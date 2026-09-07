@@ -1,0 +1,1298 @@
+/* ==========================================================================
+   BARANG DASHBOARD CSS
+   Summary Cards, Tab Filter Pills, Product Cell Layout
+   Supports Light & Dark Theme via [data-bs-theme]
+   ========================================================================== */
+
+/* ==========================================================================
+   VARIABEL WARNA (DUAL THEME)
+   ========================================================================== */
+:root,
+[data-bs-theme="light"] {
+    /* Summary Cards */
+    --brg-card-total-from: #3b82f6;
+    --brg-card-total-to: #1d4ed8;
+    --brg-card-stok-from: #10b981;
+    --brg-card-stok-to: #059669;
+    --brg-card-jasa-from: #8b5cf6;
+    --brg-card-jasa-to: #7c3aed;
+    --brg-card-aset-from: #f59e0b;
+    --brg-card-aset-to: #d97706;
+
+    /* Tab Pills */
+    --brg-tab-bg: #f1f5f9;
+    --brg-tab-text: #64748b;
+    --brg-tab-active-bg: #2563eb;
+    --brg-tab-active-text: #ffffff;
+    --brg-tab-hover-bg: #e2e8f0;
+    --brg-tab-border: #e2e8f0;
+    --brg-tab-count-bg: rgba(0, 0, 0, 0.08);
+    --brg-tab-count-active-bg: rgba(255, 255, 255, 0.25);
+
+    /* Product Cell */
+    --brg-product-name: #0f172a;
+    --brg-product-alias: #94a3b8;
+    --brg-product-avatar-border: #e2e8f0;
+    --brg-product-avatar-shadow: rgba(0, 0, 0, 0.06);
+    --brg-product-placeholder-bg: #f1f5f9;
+    --brg-product-placeholder-icon: #cbd5e1;
+
+    /* Tipe Badges */
+    --brg-badge-stok-bg: rgba(16, 185, 129, 0.1);
+    --brg-badge-stok-text: #059669;
+    --brg-badge-jasa-bg: rgba(139, 92, 246, 0.1);
+    --brg-badge-jasa-text: #7c3aed;
+    --brg-badge-aset-bg: rgba(245, 158, 11, 0.1);
+    --brg-badge-aset-text: #d97706;
+
+    /* Status */
+    --brg-status-active-dot: #10b981;
+    --brg-status-active-text: #059669;
+    --brg-status-active-bg: rgba(16, 185, 129, 0.08);
+    --brg-status-inactive-dot: #94a3b8;
+    --brg-status-inactive-text: #64748b;
+    --brg-status-inactive-bg: rgba(148, 163, 184, 0.08);
+
+    /* Info cell */
+    --brg-info-sub: #64748b;
+    --brg-info-main: #1e293b;
+
+    /* Size Chips */
+    --brg-size-chip-bg: #f1f5f9;
+    --brg-size-chip-text: #475569;
+    --brg-size-chip-border: #cbd5e1;
+    --brg-size-chip-hover-bg: #e2e8f0;
+    --brg-size-chip-hover-text: #0f172a;
+    --brg-size-chip-hover-border: #94a3b8;
+}
+
+[data-bs-theme="dark"] {
+    /* Summary Cards — slightly muted gradients for dark mode */
+    --brg-card-total-from: #2563eb;
+    --brg-card-total-to: #1e40af;
+    --brg-card-stok-from: #059669;
+    --brg-card-stok-to: #047857;
+    --brg-card-jasa-from: #7c3aed;
+    --brg-card-jasa-to: #6d28d9;
+    --brg-card-aset-from: #d97706;
+    --brg-card-aset-to: #b45309;
+
+    /* Tab Pills */
+    --brg-tab-bg: #1e293b;
+    --brg-tab-text: #94a3b8;
+    --brg-tab-active-bg: #3b82f6;
+    --brg-tab-active-text: #ffffff;
+    --brg-tab-hover-bg: #334155;
+    --brg-tab-border: #334155;
+    --brg-tab-count-bg: rgba(255, 255, 255, 0.08);
+    --brg-tab-count-active-bg: rgba(255, 255, 255, 0.2);
+
+    /* Product Cell */
+    --brg-product-name: #f1f5f9;
+    --brg-product-alias: #64748b;
+    --brg-product-avatar-border: #334155;
+    --brg-product-avatar-shadow: rgba(0, 0, 0, 0.25);
+    --brg-product-placeholder-bg: #0f172a;
+    --brg-product-placeholder-icon: #475569;
+
+    /* Tipe Badges */
+    --brg-badge-stok-bg: rgba(16, 185, 129, 0.15);
+    --brg-badge-stok-text: #34d399;
+    --brg-badge-jasa-bg: rgba(139, 92, 246, 0.15);
+    --brg-badge-jasa-text: #a78bfa;
+    --brg-badge-aset-bg: rgba(245, 158, 11, 0.15);
+    --brg-badge-aset-text: #fbbf24;
+
+    /* Status */
+    --brg-status-active-dot: #34d399;
+    --brg-status-active-text: #34d399;
+    --brg-status-active-bg: rgba(52, 211, 153, 0.1);
+    --brg-status-inactive-dot: #64748b;
+    --brg-status-inactive-text: #94a3b8;
+    --brg-status-inactive-bg: rgba(100, 116, 139, 0.1);
+
+    /* Info cell */
+    --brg-info-sub: #94a3b8;
+    --brg-info-main: #e2e8f0;
+
+    /* Size Chips */
+    --brg-size-chip-bg: #1e293b;
+    --brg-size-chip-text: #94a3b8;
+    --brg-size-chip-border: #334155;
+    --brg-size-chip-hover-bg: #334155;
+    --brg-size-chip-hover-text: #f1f5f9;
+    --brg-size-chip-hover-border: #475569;
+}
+
+
+/* ==========================================================================
+   SUMMARY CARDS
+   ========================================================================== */
+.brg-summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.brg-summary-card {
+    position: relative;
+    border-radius: 16px;
+    padding: 1.35rem 1.5rem;
+    color: #ffffff;
+    overflow: hidden;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+    cursor: default;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.brg-summary-card::before {
+    content: '';
+    position: absolute;
+    top: -25%;
+    right: -15%;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    transition: transform 0.4s ease;
+}
+
+.brg-summary-card::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    right: 10%;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.brg-summary-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.brg-summary-card:hover::before {
+    transform: scale(1.15);
+}
+
+/* Card Variants */
+.brg-card-total {
+    background: linear-gradient(135deg, var(--brg-card-total-from), var(--brg-card-total-to));
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+}
+
+.brg-card-stok {
+    background: linear-gradient(135deg, var(--brg-card-stok-from), var(--brg-card-stok-to));
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.brg-card-jasa {
+    background: linear-gradient(135deg, var(--brg-card-jasa-from), var(--brg-card-jasa-to));
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+.brg-card-aset {
+    background: linear-gradient(135deg, var(--brg-card-aset-from), var(--brg-card-aset-to));
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+}
+
+/* Card Inner Layout */
+.brg-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+}
+
+.brg-card-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.brg-card-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.85;
+}
+
+.brg-card-number {
+    font-size: 1.85rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    position: relative;
+    z-index: 1;
+}
+
+.brg-card-sub {
+    font-size: 0.7rem;
+    font-weight: 500;
+    opacity: 0.7;
+    margin-top: 0.15rem;
+}
+
+
+/* ==========================================================================
+   TAB FILTER PILLS
+   ========================================================================== */
+.brg-tab-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.35rem;
+    background: var(--brg-tab-bg);
+    border-radius: 12px;
+    border: 1px solid var(--brg-tab-border);
+    width: fit-content;
+}
+
+.brg-tab-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.15rem;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    color: var(--brg-tab-text);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    position: relative;
+}
+
+.brg-tab-pill:hover {
+    background: var(--brg-tab-hover-bg);
+    color: var(--brg-tab-active-bg);
+}
+
+.brg-tab-pill.active {
+    background: var(--brg-tab-active-bg);
+    color: var(--brg-tab-active-text);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.brg-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: var(--brg-tab-count-bg);
+}
+
+.brg-tab-pill.active .brg-tab-count {
+    background: var(--brg-tab-count-active-bg);
+}
+
+
+/* ==========================================================================
+   PRODUCT CELL (FOTO + NAMA + BADGE)
+   ========================================================================== */
+.brg-product-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.brg-product-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 2px solid var(--brg-product-avatar-border);
+    box-shadow: 0 2px 6px var(--brg-product-avatar-shadow);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.brg-product-avatar:hover {
+    transform: scale(1.08);
+}
+
+.brg-product-placeholder {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--brg-product-placeholder-bg);
+    border: 2px dashed var(--brg-product-avatar-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--brg-product-placeholder-icon);
+    font-size: 1.1rem;
+}
+
+.brg-product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.brg-product-name {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--brg-product-name);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+    line-height: 1.3;
+}
+
+.brg-product-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.brg-product-alias {
+    font-size: 0.72rem;
+    color: var(--brg-product-alias);
+    font-style: italic;
+}
+
+/* Tipe Badges */
+.brg-tipe-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border-radius: 20px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    line-height: 1.6;
+}
+
+.brg-tipe-stok {
+    background: var(--brg-badge-stok-bg);
+    color: var(--brg-badge-stok-text);
+}
+
+.brg-tipe-jasa {
+    background: var(--brg-badge-jasa-bg);
+    color: var(--brg-badge-jasa-text);
+}
+
+.brg-tipe-aset {
+    background: var(--brg-badge-aset-bg);
+    color: var(--brg-badge-aset-text);
+}
+
+
+/* ==========================================================================
+   KODE + QR CELL
+   ========================================================================== */
+.brg-kode-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.brg-kode-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    background: var(--brg-badge-stok-bg);
+    color: var(--brg-badge-stok-text);
+    letter-spacing: 0.3px;
+}
+
+.brg-qr-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--brg-product-avatar-border);
+    background: transparent;
+    color: var(--brg-info-sub);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.brg-qr-btn:hover {
+    background: var(--brg-tab-active-bg);
+    color: #fff;
+    border-color: var(--brg-tab-active-bg);
+    transform: scale(1.08);
+}
+
+
+/* ==========================================================================
+   INFO CELL (dual-line: main + sub)
+   ========================================================================== */
+.brg-info-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.brg-info-main {
+    font-weight: 600;
+    font-size: 0.83rem;
+    color: var(--brg-info-main);
+}
+
+.brg-info-sub {
+    font-size: 0.72rem;
+    color: var(--brg-info-sub);
+    font-weight: 500;
+}
+
+
+/* ==========================================================================
+   STATUS CELL
+   ========================================================================== */
+.brg-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.3rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.brg-status-active {
+    background: var(--brg-status-active-bg);
+    color: var(--brg-status-active-text);
+}
+
+.brg-status-inactive {
+    background: var(--brg-status-inactive-bg);
+    color: var(--brg-status-inactive-text);
+}
+
+.brg-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.brg-status-active .brg-status-dot {
+    background: var(--brg-status-active-dot);
+    box-shadow: 0 0 6px var(--brg-status-active-dot);
+    animation: brg-pulse 2s ease-in-out infinite;
+}
+
+.brg-status-inactive .brg-status-dot {
+    background: var(--brg-status-inactive-dot);
+}
+
+
+/* ==========================================================================
+   ACTION BUTTONS
+   ========================================================================== */
+.brg-actions {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+}
+
+.brg-action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--brg-product-avatar-border);
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--brg-info-sub);
+}
+
+.brg-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.brg-action-btn.brg-act-detail {
+    color: #0ea5e9;
+}
+.brg-action-btn.brg-act-detail:hover {
+    background: rgba(14, 165, 233, 0.1);
+    border-color: #0ea5e9;
+}
+
+.brg-action-btn.brg-act-edit {
+    color: #3b82f6;
+}
+.brg-action-btn.brg-act-edit:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+}
+
+.brg-action-btn.brg-act-delete {
+    color: #ef4444;
+}
+.brg-action-btn.brg-act-delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+}
+
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+@keyframes brg-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes brg-countUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.brg-card-number {
+    animation: brg-countUp 0.5s ease-out;
+}
+
+.brg-product-name {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--brg-product-name);
+    white-space: normal;
+    min-width: 180px;
+    max-width: 300px;
+    line-height: 1.35;
+}
+
+.brg-product-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.brg-product-alias {
+    font-size: 0.72rem;
+    color: var(--brg-product-alias);
+    font-style: italic;
+}
+
+/* Base DataTable Minimum Width for Horizontal Scroll */
+#tableBarang {
+    min-width: 960px !important;
+    width: 100% !important;
+}
+
+.table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.4);
+    border-radius: 10px;
+}
+
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+@media (max-width: 1200px) {
+    .brg-summary-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .brg-summary-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .brg-summary-card {
+        padding: 0.85rem 1rem;
+        min-height: 85px;
+    }
+
+    .brg-card-number {
+        font-size: 1.5rem;
+    }
+
+    .brg-card-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1.05rem;
+    }
+
+    .brg-tab-wrapper {
+        overflow-x: auto;
+        width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .brg-product-avatar {
+        width: 38px;
+        height: 38px;
+    }
+
+    .brg-product-placeholder {
+        width: 38px;
+        height: 38px;
+    }
+}
+
+@media (max-width: 480px) {
+    .brg-summary-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+
+    .brg-summary-card {
+        padding: 0.85rem 0.95rem;
+        border-radius: 12px;
+        min-height: 80px;
+    }
+
+    .brg-card-number {
+        font-size: 1.3rem;
+    }
+
+    .brg-card-label {
+        font-size: 0.65rem;
+    }
+
+    .brg-card-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 0.95rem;
+        border-radius: 8px;
+    }
+
+    .brg-tab-pill {
+        padding: 0.4rem 0.85rem;
+        font-size: 0.72rem;
+    }
+}
+
+
+/* ==========================================================================
+   TAB WRAPPER INSIDE DATATABLES CARD
+   ========================================================================== */
+#tableBarang_wrapper #brgTabFilter {
+    margin: 1rem 1.25rem 0;
+    margin-bottom: 0;
+}
+
+/* ==========================================================================
+   SIZE VARIANT CHIPS
+   ========================================================================== */
+.brg-size-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    background-color: var(--brg-size-chip-bg);
+    color: var(--brg-size-chip-text);
+    border: 1px solid var(--brg-size-chip-border);
+    border-radius: 6px;
+    text-transform: uppercase;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: default;
+    user-select: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.brg-size-chip:hover {
+    background-color: var(--brg-size-chip-hover-bg);
+    color: var(--brg-size-chip-hover-text);
+    border-color: var(--brg-size-chip-hover-border);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.brg-size-chip-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 3px 6px;
+    background-color: transparent;
+    color: var(--brg-product-alias);
+    border: 1px dashed var(--brg-size-chip-border);
+    border-radius: 6px;
+    cursor: help;
+    transition: all 0.2s ease;
+}
+
+.brg-size-chip-more:hover {
+    color: var(--brg-size-chip-hover-text);
+    border-color: var(--brg-size-chip-hover-border);
+    background-color: var(--brg-size-chip-bg);
+}
+
+/* ==========================================================================
+   VARIANT INPUT TABLE STYLING
+   ========================================================================== */
+.variant-row td {
+    padding: 0.6rem 0.5rem;
+}
+
+.variant-row .form-control,
+.variant-row .form-select {
+    border-color: var(--brg-size-chip-border);
+    background-color: var(--brg-size-chip-bg);
+    color: var(--brg-info-main);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    padding: 0.35rem 0.6rem;
+    transition: all 0.2s ease;
+}
+
+.variant-row .form-control:focus,
+.variant-row .form-select:focus {
+    border-color: #3b82f6;
+    background-color: transparent;
+    box-shadow: 0 0 0 0.15rem rgba(59, 130, 246, 0.15);
+}
+
+.warna-dot-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Style table headers and wrappers */
+#tambah_varian_wrapper .table-responsive,
+#edit_varian_wrapper .table-responsive {
+    border-color: var(--brg-size-chip-border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    overflow: visible; /* allows dropdown to show without scrollbars */
+}
+
+#tambah_varian_wrapper thead.table-light th,
+#edit_varian_wrapper thead.table-light th {
+    background-color: var(--brg-size-chip-bg);
+    color: var(--brg-info-sub);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 0.65rem 0.5rem;
+    border-bottom: 2px solid var(--brg-size-chip-border);
+}
+
+/* ─── Select2 Custom for Category Filter (Show ~5 items & Searchable) ─── */
+.select2-container--bootstrap-5 .select2-selection--single {
+    border-radius: 50px !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    padding: 0.35rem 0.85rem !important;
+    height: calc(2rem + 6px) !important;
+    border: 1px solid var(--border-color, #e2e8f0) !important;
+    background-color: var(--card-bg, #ffffff) !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    color: var(--text-main, #334155) !important;
+    padding-left: 0 !important;
+}
+
+.select2-dropdown {
+    border-radius: 12px !important;
+    border: 1px solid var(--border-color, #cbd5e1) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+    overflow: hidden !important;
+    z-index: 1060 !important;
+}
+
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__options,
+.select2-results__options {
+    max-height: 185px !important; /* Menampilkan ~5 items dengan scroll */
+    overflow-y: auto !important;
+    padding: 4px !important;
+}
+
+.select2-container--bootstrap-5 .select2-results__option {
+    font-size: 0.82rem !important;
+    padding: 7px 10px !important;
+    border-radius: 8px !important;
+    margin-bottom: 2px !important;
+}
+
+.select2-container--bootstrap-5 .select2-search--dropdown {
+    padding: 6px 8px !important;
+}
+
+.select2-container--bootstrap-5 .select2-search__field {
+    border-radius: 8px !important;
+    font-size: 0.82rem !important;
+    padding: 5px 8px !important;
+}
+
+/* Sleek Scrollbar for Select2 options */
+.select2-results__options::-webkit-scrollbar {
+    width: 6px;
+}
+
+/* ─── Select2 Base & Universal Styling ─── */
+.select2-container {
+    width: 100% !important;
+}
+
+.select2-container--open {
+    z-index: 1070 !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single {
+    min-height: 38px !important;
+    height: 38px !important;
+    display: flex !important;
+    align-items: center !important;
+    border-radius: 8px !important;
+    font-size: 0.875rem !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+.select2-container--bootstrap-5 .select2-dropdown {
+    margin-top: 3px !important;
+    border-radius: 8px !important;
+}
+
+/* Force dropdown position to always anchor below */
+.select2-dropdown--above {
+    top: 100% !important;
+    bottom: auto !important;
+    margin-top: 3px !important;
+    border-top: 1px solid var(--bs-border-color, #dee2e6) !important;
+    border-radius: 8px !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    padding-left: 10px !important;
+    padding-right: 28px !important;
+    line-height: normal !important;
+}
+
+/* Compact Select2 inside UoM table */
+.uom-table .select2-container--bootstrap-5 .select2-selection--single {
+    min-height: 31px !important;
+    height: 31px !important;
+    font-size: 0.8rem !important;
+    border-radius: 6px !important;
+}
+
+.uom-table .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    padding-left: 6px !important;
+    padding-right: 24px !important;
+    font-size: 0.8rem !important;
+}
+
+/* Scrollable dropdown list (~10 items) */
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__options {
+    max-height: 280px !important;
+    overflow-y: auto !important;
+    padding: 4px !important;
+}
+
+.select2-results__options::-webkit-scrollbar {
+    width: 6px;
+}
+.select2-results__options::-webkit-scrollbar-track {
+    background: transparent;
+}
+.select2-results__options::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.4);
+    border-radius: 10px;
+}
+
+/* Dark Mode Select2 */
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single,
+.dark-mode .select2-container--bootstrap-5 .select2-selection--single {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+.dark-mode .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    color: #f8fafc !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+    color: #64748b !important;
+}
+[data-bs-theme="dark"] .select2-dropdown,
+.dark-mode .select2-dropdown {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-search__field,
+.dark-mode .select2-container--bootstrap-5 .select2-search__field {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+    border-radius: 6px !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-search__field:focus {
+    border-color: #3b82f6 !important;
+    outline: none !important;
+}
+[data-bs-theme="dark"] .select2-results__option,
+.dark-mode .select2-results__option {
+    color: #cbd5e1 !important;
+    border-radius: 4px !important;
+    margin-bottom: 2px !important;
+    font-size: 0.82rem !important;
+    padding: 6px 10px !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option--highlighted,
+.dark-mode .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+/* Light Mode Select2 Refinements */
+[data-bs-theme="light"] .select2-container--bootstrap-5 .select2-selection--single {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+}
+[data-bs-theme="light"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+    color: #94a3b8 !important;
+}
+[data-bs-theme="light"] .select2-dropdown {
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+}
+[data-bs-theme="light"] .select2-container--bootstrap-5 .select2-search__field {
+    border-color: #cbd5e1 !important;
+    border-radius: 6px !important;
+}
+[data-bs-theme="light"] .select2-results__option {
+    border-radius: 4px !important;
+    margin-bottom: 2px !important;
+    font-size: 0.82rem !important;
+    padding: 6px 10px !important;
+}
+
+/* ─── Toolbar Filter Category & Responsive ─── */
+#brgToolbarFilter {
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 767.98px) {
+    #brgToolbarFilter {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    #brgToolbarFilter .brg-tab-wrapper {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+    }
+    #brgToolbarFilter .brg-tab-wrapper::-webkit-scrollbar {
+        display: none !important;
+    }
+    #brgToolbarFilter .select2-container {
+        width: 100% !important;
+    }
+}
+
+/* ==========================================================================
+   MULTI-SATUAN (UOM CONVERSION) CONTAINER & TABLE (DUAL THEME)
+   ========================================================================== */
+.uom-conversion-box {
+    border-radius: 12px;
+    padding: 1.15rem;
+    transition: all 0.2s ease;
+}
+
+[data-bs-theme="light"] .uom-conversion-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+[data-bs-theme="dark"] .uom-conversion-box {
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid #334155;
+}
+
+.uom-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    min-width: 720px;
+    table-layout: fixed;
+    border-radius: 8px;
+}
+
+[data-bs-theme="light"] .uom-table {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+}
+
+[data-bs-theme="dark"] .uom-table {
+    background: #1e293b;
+    border: 1px solid #334155;
+}
+
+.uom-table thead th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    padding: 9px 12px;
+}
+
+[data-bs-theme="light"] .uom-table thead th {
+    background-color: #f1f5f9;
+    color: #475569;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+[data-bs-theme="dark"] .uom-table thead th {
+    background-color: #0f172a;
+    color: #94a3b8;
+    border-bottom: 1px solid #334155;
+}
+
+.uom-table tbody td {
+    padding: 8px 12px;
+    vertical-align: middle;
+}
+
+[data-bs-theme="light"] .uom-table tbody td {
+    border-top: 1px solid #f1f5f9;
+    background-color: #ffffff;
+    color: #1e293b;
+}
+
+[data-bs-theme="dark"] .uom-table tbody td {
+    border-top: 1px solid #334155;
+    background-color: #1e293b;
+    color: #f1f5f9;
+}
+
+.uom-input-addon {
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+
+[data-bs-theme="light"] .uom-input-addon {
+    background-color: #f1f5f9;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+
+[data-bs-theme="dark"] .uom-input-addon {
+    background-color: #0f172a;
+    color: #94a3b8;
+    border-color: #475569;
+}
+
+.uom-input-field {
+    font-weight: 700;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+[data-bs-theme="dark"] .uom-input-field {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #475569 !important;
+}
+
+[data-bs-theme="dark"] .uom-input-field:focus {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    border-color: #3b82f6 !important;
+}
+
+/* Seamless merged input group inside UoM table */
+.uom-table .input-group {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+}
+
+.uom-table .input-group > .uom-input-field:first-child {
+    border-top-left-radius: 6px !important;
+    border-bottom-left-radius: 6px !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    font-size: 0.85rem !important;
+    text-align: right !important;
+}
+
+.uom-table .input-group > .uom-input-addon:last-child {
+    border-top-right-radius: 6px !important;
+    border-bottom-right-radius: 6px !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-left: 0 !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    color: #0284c7 !important;
+}
+
+[data-bs-theme="dark"] .uom-table .input-group > .uom-input-addon:last-child {
+    color: #38bdf8 !important;
+}
+
+.uom-table-container {
+    border-radius: 8px;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.uom-table-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.uom-table-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.uom-table-container::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.4);
+    border-radius: 10px;
+}
+
+[data-bs-theme="light"] .uom-table-container {
+    border: 1px solid #e2e8f0;
+}
+
+[data-bs-theme="dark"] .uom-table-container {
+    border: 1px solid #334155;
+}
+
+@media (max-width: 575.98px) {
+    .uom-conversion-box {
+        padding: 0.85rem !important;
+    }
+    .uom-conversion-box .btn {
+        width: 100% !important;
+        justify-content: center !important;
+        margin-top: 0.25rem !important;
+    }
+
+    /* Modal Dialog Mobile Bottom Space */
+    .modal-dialog {
+        margin: 0.5rem auto 4.5rem auto !important;
+        width: 96vw !important;
+        max-width: 96vw !important;
+    }
+
+    .modal-content-custom {
+        margin-bottom: 2.5rem !important;
+    }
+
+    .modal-footer {
+        position: sticky !important;
+        bottom: 0 !important;
+        z-index: 1050 !important;
+        padding: 0.85rem 1rem !important;
+        border-top: 1px solid var(--bs-border-color, rgba(255, 255, 255, 0.08)) !important;
+        box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.12) !important;
+        display: flex !important;
+        gap: 0.5rem !important;
+    }
+
+    .modal-footer .btn {
+        flex: 1 1 0 !important;
+        padding: 0.65rem 0.5rem !important;
+        font-size: 0.875rem !important;
+        text-align: center !important;
+        justify-content: center !important;
+    }
+}
+
+/* ─── Kategori Filter Toolbar & Bounded Dropdown ─── */
+.brg-kategori-filter-wrapper {
+    width: 240px;
+    min-width: 200px;
+    max-width: 100%;
+    position: relative;
+}
+
+.brg-kategori-filter-wrapper .select2-container {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.brg-kategori-filter-wrapper .select2-container--bootstrap-5 .select2-selection--single {
+    border-radius: 20px !important;
+    font-size: 0.84rem !important;
+    font-weight: 500 !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding-left: 6px !important;
+}
+
+#brgToolbarFilter .select2-container--bootstrap-5 .select2-dropdown,
+.brg-kategori-filter-wrapper .select2-dropdown {
+    width: 100% !important;
+    min-width: 200px !important;
+    max-width: 300px !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28) !important;
+    border-radius: 12px !important;
+}
+
+@media (max-width: 575.98px) {
+    .brg-kategori-filter-wrapper {
+        width: 100% !important;
+        margin-top: 0.35rem !important;
+    }
+    #brgToolbarFilter .select2-container--bootstrap-5 .select2-dropdown,
+    .brg-kategori-filter-wrapper .select2-dropdown {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+

@@ -1,0 +1,674 @@
+/* ─── Global Custom Variable Themes ───────────────────────── */
+:root {
+    --card-bg: #ffffff;
+    --border-color: #e2e8f0;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --bg-light: #f8fafc;
+    --accent-color: #0284c7;
+
+    --badge-draft-bg: #fef3c7;
+    --badge-draft-text: #92400e;
+    --badge-confirmed-bg: #dcfce7;
+    --badge-confirmed-text: #15803d;
+
+    --table-header-bg: #f1f5f9;
+    --table-header-text: #334155;
+    --table-footer-bg: #f8fafc;
+    --table-hover-bg: #f0f9ff;
+    --readonly-bg: #f1f5f9;
+    --readonly-text: #475569;
+}
+
+[data-bs-theme="dark"], .dark-mode {
+    --card-bg: #1e293b;
+    --border-color: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --bg-light: #0f172a;
+    --accent-color: #38bdf8;
+
+    --badge-draft-bg: #451a03;
+    --badge-draft-text: #f59e0b;
+    --badge-confirmed-bg: #064e3b;
+    --badge-confirmed-text: #34d399;
+
+    --table-header-bg: #0f172a;
+    --table-header-text: #f8fafc;
+    --table-footer-bg: #0f172a;
+    --table-hover-bg: #1e293b;
+    --readonly-bg: #0f172a;
+    --readonly-text: #94a3b8;
+}
+
+body {
+    color: var(--text-main);
+}
+
+.page-title {
+    color: var(--text-main) !important;
+}
+
+.card {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.card-header {
+    background-color: var(--card-bg) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* ─── Modern Vibrant KPI Cards (Fixed Padding & Title) ─────── */
+.card-kpi {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px !important;
+    border: 0 !important;
+    padding: 1.25rem 1.25rem 1.15rem 1.25rem !important;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.15) !important;
+}
+
+.card-kpi:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 16px 30px -6px rgba(0, 0, 0, 0.28) !important;
+}
+
+/* Decorative background ambient circles */
+.card-kpi::after {
+    content: '';
+    position: absolute;
+    right: -25px;
+    bottom: -35px;
+    width: 145px;
+    height: 145px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.card-kpi::before {
+    content: '';
+    position: absolute;
+    right: 45px;
+    bottom: -55px;
+    width: 105px;
+    height: 105px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.kpi-title {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 0.73rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    line-height: 1.4;
+    margin-top: 0;
+    margin-bottom: 2px;
+}
+
+.kpi-value {
+    color: #ffffff !important;
+    font-size: 1.7rem;
+    font-weight: 800;
+    margin-top: 4px;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+}
+
+.kpi-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.22) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: #ffffff !important;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.kpi-icon-box i {
+    color: #ffffff !important;
+}
+
+.kpi-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 4px 12px;
+    border-radius: 50px;
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+/* ─── Modal Styling ──────────────────────────────────────── */
+.modal-content {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-color) !important;
+}
+
+/* Modal Form Labels & Text Overrides */
+.modal-body .form-label,
+.modal-body label {
+    color: var(--text-muted) !important;
+}
+
+.modal-body h6, 
+.modal-body .fw-bold.text-dark {
+    color: var(--text-main) !important;
+}
+
+.modal-body .form-control,
+.modal-body .form-select {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+.modal-body .form-control:focus,
+.modal-body .form-select:focus {
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 0.25rem rgba(2, 132, 199, 0.15) !important;
+}
+
+/* Readonly Inputs */
+.modal-body .form-control[readonly],
+.modal-body .form-control.bg-light {
+    background-color: var(--readonly-bg) !important;
+    color: var(--readonly-text) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* ─── Modern Tables & DataTables Styling ─────────────────── */
+.dataTables_wrapper {
+    color: var(--text-main) !important;
+    padding: 1rem 1.25rem 1.25rem 1.25rem;
+}
+
+.dataTables_wrapper .dataTables_length {
+    margin-bottom: 0.85rem;
+}
+
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 0.85rem;
+}
+
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_filter label,
+.dataTables_wrapper .dataTables_info {
+    color: var(--text-muted) !important;
+    font-size: 0.84rem;
+    font-weight: 500;
+}
+
+.dataTables_wrapper .dataTables_length select {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    padding: 4px 8px;
+    margin: 0 4px;
+    font-size: 0.84rem;
+    cursor: pointer;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    padding: 4px 10px;
+    margin-left: 6px;
+    font-size: 0.84rem;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus,
+.dataTables_wrapper .dataTables_length select:focus {
+    border-color: var(--accent-color) !important;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    padding-top: 0.75rem;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--text-main) !important;
+    border-radius: 6px !important;
+    padding: 4px 10px !important;
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--accent-color) !important;
+    color: #ffffff !important;
+    border-color: var(--accent-color) !important;
+}
+
+.table-modern, 
+.table-bordered,
+#tableAdjustment,
+#tabelItemInput, 
+#tabelItemEdit, 
+#tableDetailItems {
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+.table-modern thead,
+.table-bordered thead,
+.table-light,
+#tableAdjustment thead,
+#tabelItemInput thead, 
+#tabelItemEdit thead, 
+#tableDetailItems thead {
+    background-color: var(--table-header-bg) !important;
+    color: var(--table-header-text) !important;
+}
+
+.table-modern thead th,
+.table-bordered thead th,
+#tableAdjustment thead th,
+#tabelItemInput thead th, 
+#tabelItemEdit thead th, 
+#tableDetailItems thead th {
+    background-color: var(--table-header-bg) !important;
+    color: var(--table-header-text) !important;
+    border-bottom: 2px solid var(--border-color) !important;
+    border-color: var(--border-color) !important;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table-modern tbody td,
+.table-bordered tbody td,
+#tableAdjustment tbody td,
+#tabelItemInput tbody td, 
+#tabelItemEdit tbody td, 
+#tableDetailItems tbody td {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+.table-modern tbody tr:hover td,
+#tableAdjustment tbody tr:hover td,
+#tabelItemInput tbody tr:hover td, 
+#tabelItemEdit tbody tr:hover td, 
+#tableDetailItems tbody tr:hover td {
+    background-color: var(--table-hover-bg) !important;
+}
+
+.table-modern tfoot,
+.table-bordered tfoot,
+tfoot.table-light,
+#tableAdjustment tfoot,
+#tabelItemInput tfoot, 
+#tabelItemEdit tfoot, 
+#tableDetailItems tfoot {
+    background-color: var(--table-footer-bg) !important;
+    color: var(--text-main) !important;
+}
+
+.table-modern tfoot td,
+.table-bordered tfoot td,
+#tableAdjustment tfoot td,
+#tabelItemInput tfoot td, 
+#tabelItemEdit tfoot td, 
+#tableDetailItems tfoot td {
+    background-color: var(--table-footer-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* ─── Status & Reason Badges ──────────────────────────────── */
+.badge-draft {
+    background-color: var(--badge-draft-bg);
+    color: var(--badge-draft-text);
+    padding: 5px 11px;
+    font-weight: 700;
+    border-radius: 50px;
+    font-size: .72rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.badge-pending {
+    background-color: #fef3c7;
+    color: #d97706;
+    padding: 5px 11px;
+    font-weight: 700;
+    border-radius: 50px;
+    font-size: .72rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+[data-bs-theme="dark"] .badge-pending,
+.dark-mode .badge-pending {
+    background-color: #451a03;
+    color: #fbbf24;
+    border-color: #78350f;
+}
+
+.badge-confirmed {
+    background-color: var(--badge-confirmed-bg);
+    color: var(--badge-confirmed-text);
+    padding: 5px 11px;
+    font-weight: 700;
+    border-radius: 50px;
+    font-size: .72rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge-tipe-pengurangan {
+    background-color: #ffe4e6;
+    color: #be123c;
+    border: 1px solid #fecdd3;
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: .72rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.badge-tipe-penambahan {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: .72rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+[data-bs-theme="dark"] .badge-tipe-pengurangan,
+.dark-mode .badge-tipe-pengurangan {
+    background-color: #4c0519;
+    color: #fda4af;
+    border-color: #881337;
+}
+
+[data-bs-theme="dark"] .badge-tipe-penambahan,
+.dark-mode .badge-tipe-penambahan {
+    background-color: #052e16;
+    color: #86efac;
+    border-color: #14532d;
+}
+
+.badge-alasan {
+    background-color: var(--readonly-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    padding: 4px 9px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+}
+
+.text-emerald {
+    color: #059669 !important;
+}
+
+[data-bs-theme="dark"] .text-emerald,
+.dark-mode .text-emerald {
+    color: #34d399 !important;
+}
+
+/* ─── Modern Action Buttons in Table ─────────────────────── */
+.btn-action-table {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: transparent;
+    cursor: pointer;
+}
+
+.btn-action-detail {
+    color: #0284c7;
+    background-color: rgba(2, 132, 199, 0.08);
+    border-color: rgba(2, 132, 199, 0.2);
+}
+
+.btn-action-detail:hover {
+    color: #ffffff;
+    background-color: #0284c7;
+    border-color: #0284c7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(2, 132, 199, 0.25);
+}
+
+.btn-action-edit {
+    color: #d97706;
+    background-color: rgba(217, 119, 6, 0.08);
+    border-color: rgba(217, 119, 6, 0.2);
+}
+
+.btn-action-edit:hover {
+    color: #ffffff;
+    background-color: #d97706;
+    border-color: #d97706;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(217, 119, 6, 0.25);
+}
+
+.btn-action-delete {
+    color: #e11d48;
+    background-color: rgba(225, 29, 72, 0.08);
+    border-color: rgba(225, 29, 72, 0.2);
+}
+
+.btn-action-delete:hover {
+    color: #ffffff;
+    background-color: #e11d48;
+    border-color: #e11d48;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(225, 29, 72, 0.25);
+}
+
+/* ─── Select2 Override (Dark & Light) ───────────────────── */
+.select2-container--bootstrap-5 .select2-selection {
+    border-color: var(--border-color) !important;
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border-radius: 8px !important;
+    font-size: 0.85rem !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    color: var(--text-main) !important;
+}
+
+.select2-dropdown {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+    font-size: 0.85rem !important;
+}
+
+.select2-search__field {
+    background-color: var(--readonly-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+.select2-results__option {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+}
+
+.select2-results__option--highlighted[aria-selected] {
+    background-color: var(--accent-color) !important;
+    color: #ffffff !important;
+}
+
+/* ─── Modal Lookup Barang Dark & Light Theme Support ───────── */
+#modalLookupBarangAdj .modal-content {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+#modalLookupBarangAdj .input-group-text,
+#modalLookupBarangAdj #searchBarangAdjInput {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+#modalLookupBarangAdj table thead {
+    background-color: var(--table-header-bg) !important;
+    color: var(--table-header-text) !important;
+}
+
+#modalLookupBarangAdj table thead th {
+    background-color: var(--table-header-bg) !important;
+    color: var(--table-header-text) !important;
+    border-bottom: 2px solid var(--border-color) !important;
+}
+
+#modalLookupBarangAdj table tbody td {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+#modalLookupBarangAdj table tbody tr:hover td {
+    background-color: var(--table-hover-bg) !important;
+}
+
+#modalLookupBarangAdj .modal-footer {
+    background-color: var(--card-bg) !important;
+    border-top: 1px solid var(--border-color) !important;
+}
+
+/* ─── Modal Detail Theme Overrides (Dark & Light) ─────────── */
+.nav-pills-custom {
+    background-color: var(--readonly-bg) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.nav-pills-custom .nav-link {
+    color: var(--text-muted) !important;
+    transition: all 0.2s ease;
+}
+
+.nav-pills-custom .nav-link:hover {
+    color: var(--text-main) !important;
+}
+
+.nav-pills-custom .nav-link.active {
+    background-color: var(--accent-color) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25) !important;
+}
+
+.detail-info-card,
+.box-keterangan-detail {
+    background-color: var(--readonly-bg) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.detail-info-card strong,
+.detail-info-card span,
+.detail-info-card small,
+.box-keterangan-detail small,
+.box-keterangan-detail span {
+    color: var(--text-main) !important;
+}
+
+/* ─── Product Thumbnail & Item Row Styling ───────────────── */
+.product-thumb-box {
+    background-color: var(--readonly-bg) !important;
+    border-color: var(--border-color) !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-thumb-box:hover {
+    transform: scale(1.06);
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12) !important;
+}
+
+.shadow-xs {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ─── Table Responsive Custom Scrollbar ─────────────────── */
+.table-responsive::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: var(--readonly-bg);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Input group text dark theme support */
+[data-bs-theme="dark"] .input-group-text,
+.dark-mode .input-group-text {
+    background-color: var(--readonly-bg) !important;
+    color: var(--text-muted) !important;
+    border-color: var(--border-color) !important;
+}
+
+
+

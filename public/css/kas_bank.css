@@ -1,0 +1,842 @@
+/* ==========================================================================
+   MODUL AKUNTANSI & KEUANGAN: KAS & BANK (FINANCE & TREASURY)
+   Asset CSS: public/css/kas_bank.css
+   ========================================================================== */
+
+/* ==========================================================================
+   1. SELECT2 CUSTOM STYLING (MAX 10 ITEMS SCROLLABLE & SEARCHABLE)
+   ========================================================================== */
+.select2-container--bootstrap-5 .select2-selection {
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    min-height: 40px !important;
+    font-size: 0.85rem !important;
+    font-weight: 500;
+    display: flex !important;
+    align-items: center !important;
+    border-color: #cbd5e1 !important;
+    background-color: #ffffff !important;
+    transition: all 0.2s ease;
+}
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    padding-left: 2px !important;
+    padding-right: 20px !important;
+    color: #0f172a !important;
+    font-family: inherit;
+}
+.select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.select2-container--bootstrap-5.select2-container--open .select2-selection {
+    border-color: #16a34a !important;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2) !important;
+}
+.select2-dropdown {
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid #cbd5e1 !important;
+    overflow: hidden !important;
+    z-index: 99999 !important;
+    background-color: #ffffff !important;
+}
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__options,
+.select2-results__options {
+    max-height: 310px !important; /* ~10 visible items scrollable */
+    overflow-y: auto !important;
+    padding: 6px !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(22, 163, 74, 0.4) transparent;
+}
+.select2-results__options::-webkit-scrollbar {
+    width: 6px;
+}
+.select2-results__options::-webkit-scrollbar-thumb {
+    background: rgba(22, 163, 74, 0.35);
+    border-radius: 10px;
+}
+.select2-container--bootstrap-5 .select2-results__option {
+    padding: 8px 12px !important;
+    font-size: 0.83rem !important;
+    border-radius: 8px !important;
+    margin-bottom: 2px !important;
+    font-family: var(--bs-font-monospace);
+    transition: all 0.15s ease;
+}
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #16a34a !important;
+    color: #ffffff !important;
+}
+.select2-container--bootstrap-5 .select2-search__field {
+    border-radius: 8px !important;
+    padding: 7px 12px !important;
+    font-size: 0.82rem !important;
+    margin: 6px !important;
+    width: calc(100% - 12px) !important;
+    border: 1px solid #cbd5e1 !important;
+}
+.select2-container--bootstrap-5 .select2-search__field:focus {
+    border-color: #16a34a !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2) !important;
+}
+
+/* Dark Mode Select2 */
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection {
+    background-color: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: #f8fafc !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    color: #f8fafc !important;
+}
+[data-bs-theme="dark"] .select2-dropdown {
+    background-color: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option {
+    color: #e2e8f0 !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-search__field {
+    background-color: #0f172a !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #f8fafc !important;
+}
+
+/* ==========================================================================
+   2. CINEMATIC STAT CARDS (VIBRANT GLOW GRADIENTS)
+   ========================================================================== */
+.kb-cinematic-card {
+    border-radius: 20px !important;
+    min-height: 142px;
+    padding: 20px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    border: none !important;
+}
+.kb-cinematic-card:hover {
+    transform: translateY(-4px);
+}
+
+.kb-cine-blue {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%) !important;
+    box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.45), 0 8px 10px -6px rgba(37, 99, 235, 0.25) !important;
+}
+.kb-cine-blue:hover {
+    box-shadow: 0 16px 32px -4px rgba(37, 99, 235, 0.6), 0 10px 14px -4px rgba(37, 99, 235, 0.35) !important;
+}
+
+.kb-cine-green {
+    background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%) !important;
+    box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.45), 0 8px 10px -6px rgba(16, 185, 129, 0.25) !important;
+}
+.kb-cine-green:hover {
+    box-shadow: 0 16px 32px -4px rgba(16, 185, 129, 0.6), 0 10px 14px -4px rgba(16, 185, 129, 0.35) !important;
+}
+
+.kb-cine-purple {
+    background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 50%, #8b5cf6 100%) !important;
+    box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.45), 0 8px 10px -6px rgba(124, 58, 237, 0.25) !important;
+}
+.kb-cine-purple:hover {
+    box-shadow: 0 16px 32px -4px rgba(124, 58, 237, 0.6), 0 10px 14px -4px rgba(124, 58, 237, 0.35) !important;
+}
+
+.kb-cine-amber {
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #fbbf24 100%) !important;
+    box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.45), 0 8px 10px -6px rgba(245, 158, 11, 0.25) !important;
+}
+.kb-cine-amber:hover {
+    box-shadow: 0 16px 32px -4px rgba(245, 158, 11, 0.6), 0 10px 14px -4px rgba(245, 158, 11, 0.35) !important;
+}
+
+.kb-cine-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+}
+
+.kb-cine-circle {
+    position: absolute;
+    right: -20px;
+    bottom: -25px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 70%);
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   3. KAS & BANK THEME TOKENS (LIGHT & DARK MODE)
+   ========================================================================== */
+
+/* Light Mode */
+.kb-card-section, .kb-stat-card, .kb-modal-container {
+    background-color: #ffffff !important;
+}
+
+/* Cards Scrollable Container */
+.kb-cards-scroll-container {
+    max-height: 520px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(22, 163, 74, 0.4) transparent;
+    padding-right: 8px;
+}
+
+.kb-cards-scroll-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.kb-cards-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.kb-cards-scroll-container::-webkit-scrollbar-thumb {
+    background: rgba(22, 163, 74, 0.35);
+    border-radius: 10px;
+}
+
+.kb-cards-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(22, 163, 74, 0.6);
+}
+
+[data-bs-theme="dark"] .kb-cards-scroll-container {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+[data-bs-theme="dark"] .kb-cards-scroll-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+[data-bs-theme="dark"] .kb-cards-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+/* ==========================================================================
+   4. MODERN ATM & FINTECH CARD STYLING (PER BANK THEMES)
+   ========================================================================== */
+.kb-modern-card {
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 228px;
+    cursor: pointer;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.kb-modern-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Ambient Light Reflection Sweep */
+.kb-card-shine {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(115deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.08) 28%, transparent 55%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* 1. Theme BCA (Cobalt Sapphire Cyber Aura) */
+.kb-card-bca {
+    background: radial-gradient(circle at 10% 20%, #1e40af 0%, #0d2557 45%, #020617 95%) !important;
+    box-shadow: 0 15px 35px -10px rgba(30, 64, 175, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.kb-card-bca:hover {
+    box-shadow: 0 22px 45px -5px rgba(59, 130, 246, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 2. Theme Mandiri (Dark Titanium Flame & Amber Gold Aura) */
+.kb-card-mandiri {
+    background: radial-gradient(circle at 90% 85%, #d97706 0%, #78350f 25%, #1c1917 65%, #09090b 100%) !important;
+    box-shadow: 0 15px 35px -10px rgba(217, 119, 6, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.kb-card-mandiri:hover {
+    box-shadow: 0 22px 45px -5px rgba(245, 158, 11, 0.65), inset 0 1px 2px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 3. Theme BRI (Electric Oceanic Cyan) */
+.kb-card-bri {
+    background: radial-gradient(circle at 15% 15%, #0284c7 0%, #0369a1 40%, #082f49 75%, #020617 100%) !important;
+    box-shadow: 0 15px 35px -10px rgba(2, 132, 199, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.kb-card-bri:hover {
+    box-shadow: 0 22px 45px -5px rgba(14, 165, 233, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 4. Theme BNI (Teal Emerald Matrix) */
+.kb-card-bni {
+    background: radial-gradient(circle at 85% 15%, #0d9488 0%, #115e59 40%, #042f2e 80%, #020617 100%) !important;
+    box-shadow: 0 15px 35px -10px rgba(13, 148, 136, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.kb-card-bni:hover {
+    box-shadow: 0 22px 45px -5px rgba(20, 184, 166, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 5. Theme Kas Tunai / Kasir (Aurora Jade & Emerald Matrix) */
+.kb-card-kas {
+    background: radial-gradient(circle at 10% 15%, #059669 0%, #047857 35%, #064e3b 70%, #022c22 100%) !important;
+    box-shadow: 0 15px 35px -10px rgba(5, 150, 105, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.kb-card-kas:hover {
+    box-shadow: 0 22px 45px -5px rgba(16, 185, 129, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 6. Theme E-Wallet (Cyber Royal Purple Neon) */
+.kb-card-ewallet {
+    background: radial-gradient(circle at 85% 85%, #9333ea 0%, #6b21a8 40%, #3b0764 75%, #09090b 100%) !important;
+    box-shadow: 0 15px 35px -10px rgba(147, 51, 234, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.kb-card-ewallet:hover {
+    box-shadow: 0 22px 45px -5px rgba(168, 85, 247, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 7. Theme Default Bank (Titanium Carbon Sleek) */
+.kb-card-default {
+    background: radial-gradient(circle at 15% 15%, #475569 0%, #1e293b 50%, #0f172a 85%, #020617 100%) !important;
+    box-shadow: 0 15px 35px -10px rgba(15, 23, 42, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.kb-card-default:hover {
+    box-shadow: 0 22px 45px -5px rgba(71, 85, 105, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 3D Realistic Gold EMV Chip */
+.kb-emv-chip {
+    width: 42px;
+    height: 32px;
+    background: linear-gradient(135deg, #fef08a 0%, #facc15 25%, #eab308 50%, #ca8a04 75%, #854d0e 100%);
+    border-radius: 7px;
+    position: relative;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 3px 6px rgba(0, 0, 0, 0.35);
+    border: 1px solid #713f12;
+    overflow: hidden;
+}
+
+.kb-chip-inner {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    border: 1px solid rgba(113, 63, 18, 0.4);
+    border-radius: 4px;
+}
+
+.kb-chip-inner::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(113, 63, 18, 0.45);
+}
+
+.kb-chip-inner::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: rgba(113, 63, 18, 0.45);
+}
+
+/* Glass Badges & Cyber Elements */
+.kb-glass-badge {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff !important;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.kb-btn-glass {
+    background: rgba(0, 0, 0, 0.25) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: #ffffff !important;
+    width: 30px;
+    height: 30px;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+}
+
+.kb-btn-glass:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-color: #ffffff !important;
+    transform: scale(1.12);
+}
+
+.kb-card-number {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7), 0 0 12px rgba(255, 255, 255, 0.3);
+}
+
+.kb-balance-text {
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.35);
+}
+
+.kb-holder-name {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.kb-coa-badge {
+    background: rgba(0, 0, 0, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    color: #38bdf8 !important;
+    font-size: 0.8rem;
+    letter-spacing: 0.8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Watermark Background */
+.kb-card-watermark {
+    font-size: 8rem;
+    right: -15px;
+    bottom: -25px;
+    opacity: 0.07;
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   5. MODAL, INPUTS & GENERAL FORMS
+   ========================================================================== */
+.kb-modal-header {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.kb-modal-footer {
+    background: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
+}
+
+.kb-icon-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kb-input-icon {
+    background-color: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-right: none !important;
+    color: #64748b;
+}
+
+.kb-form-control {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.input-group .kb-form-control {
+    border-left: none !important;
+}
+
+.input-group:focus-within .kb-input-icon,
+.input-group:focus-within .kb-form-control {
+    border-color: #16a34a !important;
+}
+
+.input-group:focus-within {
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+    border-radius: 8px;
+}
+
+.kb-table-header {
+    background: linear-gradient(135deg, #14532d 0%, #16a34a 100%) !important;
+    color: #ffffff !important;
+}
+
+/* Dark Mode Overrides */
+[data-bs-theme="dark"] .kb-card-section, 
+[data-bs-theme="dark"] .kb-stat-card, 
+[data-bs-theme="dark"] .kb-modal-container {
+    background-color: #151d2a !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .kb-account-card {
+    background-color: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .kb-account-card:hover {
+    border-color: #22c55e !important;
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.15) !important;
+}
+
+[data-bs-theme="dark"] .kb-modal-header {
+    background: linear-gradient(180deg, #1e293b 0%, #151f30 100%) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .kb-modal-footer {
+    background: #151f30 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .kb-input-icon {
+    background-color: #1e293b !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-right: none !important;
+    color: #94a3b8;
+}
+
+[data-bs-theme="dark"] .kb-form-control {
+    background-color: #1e293b !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: #f8fafc !important;
+}
+
+[data-bs-theme="dark"] .input-group:focus-within .kb-input-icon,
+[data-bs-theme="dark"] .input-group:focus-within .kb-form-control {
+    border-color: #22c55e !important;
+}
+
+[data-bs-theme="dark"] .input-group:focus-within {
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+}
+
+/* ==========================================================================
+   6. TABLES & HORIZONTAL SCROLLBAR
+   ========================================================================== */
+#tableKasMutasi thead th,
+#tableMasterKasBank thead th,
+#tableCardMutasi thead th,
+#tableLedgerKas thead th {
+    background: linear-gradient(135deg, #14532d 0%, #16a34a 100%) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.78rem !important;
+    letter-spacing: 0.4px !important;
+    padding: 12px 14px !important;
+    border: none !important;
+    white-space: nowrap !important;
+}
+
+#tableKasMutasi tbody td,
+#tableMasterKasBank tbody td,
+#tableCardMutasi tbody td,
+#tableLedgerKas tbody td {
+    padding: 12px 14px !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+}
+
+#tableCardMutasi tbody td * {
+    white-space: nowrap !important;
+}
+
+/* Modern Horizontal Smooth Scrolling for Tables */
+.table-responsive,
+.dataTables_wrapper .table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(22, 163, 74, 0.45) rgba(0, 0, 0, 0.05);
+    padding-bottom: 4px;
+    width: 100% !important;
+    display: block !important;
+}
+
+.dataTables_wrapper {
+    width: 100% !important;
+}
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    padding: 12px 18px 10px 18px !important;
+}
+.dataTables_wrapper .dataTables_info {
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    text-align: left !important;
+}
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_info {
+    color: #94a3b8 !important;
+}
+.dataTables_wrapper .dataTables_paginate {
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    text-align: right !important;
+}
+.dataTables_wrapper .dataTables_paginate .pagination {
+    margin: 0 !important;
+    gap: 4px !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+}
+.dataTables_wrapper .dataTables_paginate .page-item .page-link {
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-size: 0.84rem !important;
+    font-weight: 600 !important;
+    font-family: var(--bs-font-monospace) !important;
+    border-color: #cbd5e1 !important;
+    color: #334155 !important;
+    transition: all 0.2s ease !important;
+}
+.dataTables_wrapper .dataTables_paginate .page-item.active .page-link {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+    border-color: #16a34a !important;
+    color: #ffffff !important;
+    box-shadow: 0 3px 8px rgba(22, 163, 74, 0.25) !important;
+}
+.dataTables_wrapper .dataTables_paginate .page-item .page-link:hover {
+    background-color: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .page-item .page-link {
+    background-color: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: #cbd5e1 !important;
+}
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .page-item.active .page-link {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+    color: #ffffff !important;
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: rgba(22, 163, 74, 0.35);
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: rgba(22, 163, 74, 0.6);
+}
+
+[data-bs-theme="dark"] .table-responsive::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="dark"] .table-responsive::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Enforce spacious desktop-like minimum width so all columns remain elegant without squishing */
+#tableMasterKasBank,
+#tableKasMutasi,
+#tableCardMutasi,
+#tableLedgerKas {
+    min-width: 950px !important;
+    width: 100% !important;
+}
+
+/* ==========================================================================
+   7. RESPONSIVE & CINEMATIC MOBILE OPTIMIZATIONS (HP / SMARTPHONES)
+   ========================================================================== */
+@media (max-width: 767.98px) {
+    /* Header & Action Toolbar (Pepet ke Kanan di HP) */
+    .kb-header-title {
+        font-size: 1.15rem !important;
+    }
+    .kb-header-actions {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        gap: 8px !important;
+        margin-left: auto !important;
+    }
+    .kb-header-actions .btn {
+        flex: 0 1 auto !important;
+        padding: 8px 14px !important;
+        font-size: 0.8rem !important;
+        justify-content: center !important;
+        white-space: nowrap !important;
+    }
+
+    /* DataTable Mobile Alignment & Responsive Controls */
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        padding: 8px 12px !important;
+        width: 100% !important;
+    }
+    .dataTables_wrapper .dataTables_filter {
+        display: flex !important;
+        justify-content: flex-end !important;
+    }
+    .dataTables_wrapper .dataTables_filter label {
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        justify-content: flex-end !important;
+    }
+    .dataTables_wrapper .dataTables_filter input {
+        flex: 1 1 auto !important;
+        max-width: 100% !important;
+    }
+    .dataTables_wrapper .dataTables_info {
+        padding: 6px 12px !important;
+        text-align: right !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+    }
+    .dataTables_wrapper .dataTables_paginate {
+        padding: 4px 12px 10px 12px !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+    }
+    .dataTables_wrapper .dataTables_paginate .pagination {
+        margin-left: auto !important;
+        justify-content: flex-end !important;
+    }
+
+    /* Cinematic Stat Cards on Mobile (Horizontal Banner Cards) */
+    .kb-cinematic-card {
+        min-height: 96px !important;
+        padding: 14px 16px !important;
+        border-radius: 16px !important;
+    }
+    .kb-cine-title {
+        font-size: 0.68rem !important;
+        letter-spacing: 0.6px !important;
+    }
+    .kb-cine-icon {
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 0.9rem !important;
+        border-radius: 9px !important;
+    }
+    .kb-cine-value {
+        font-size: 1.35rem !important;
+        line-height: 1.2 !important;
+    }
+    .kb-cine-sub {
+        font-size: 0.72rem !important;
+    }
+    .kb-cine-circle {
+        width: 85px !important;
+        height: 85px !important;
+        right: -10px !important;
+        bottom: -15px !important;
+    }
+
+    /* ATM Debit Cards on Mobile */
+    .kb-modern-card {
+        min-height: 195px !important;
+        padding: 16px 14px !important;
+        border-radius: 18px !important;
+    }
+    .kb-emv-chip {
+        width: 28px !important;
+        height: 22px !important;
+    }
+    .kb-nfc-sensor i {
+        font-size: 0.95rem !important;
+    }
+    .kb-glass-badge {
+        font-size: 0.62rem !important;
+        padding: 2px 6px !important;
+    }
+    .kb-balance-text {
+        font-size: 1.35rem !important;
+    }
+    .kb-card-number {
+        font-size: 0.8rem !important;
+        letter-spacing: 1.8px !important;
+    }
+    .kb-holder-name {
+        font-size: 0.76rem !important;
+    }
+    .kb-coa-badge {
+        font-size: 0.72rem !important;
+        padding: 2px 6px !important;
+    }
+    .kb-cards-scroll-container {
+        max-height: 440px !important;
+        padding-right: 4px !important;
+    }
+
+    /* Modal Responsive */
+    .modal-dialog {
+        margin: 8px !important;
+    }
+    .kb-modal-container {
+        border-radius: 20px !important;
+    }
+    .kb-modal-header {
+        padding: 14px 16px !important;
+    }
+    .kb-modal-body {
+        padding: 14px 16px !important;
+    }
+    .kb-modal-footer {
+        padding: 12px 16px !important;
+    }
+    .select2-container .select2-selection--single {
+        height: 40px !important;
+        border-radius: 10px !important;
+    }
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        line-height: 38px !important;
+        font-size: 0.82rem !important;
+    }
+}
+
+/* ==========================================================================
+   11. SWEETALERT2 HIGH-CONTRAST INPUT STYLING
+   ========================================================================== */
+.swal2-popup .swal2-input,
+.swal2-popup .swal2-textarea {
+    color: #0f172a !important;
+    background-color: #ffffff !important;
+    border: 1.5px solid #94a3b8 !important;
+    border-radius: 10px !important;
+    font-size: 0.95rem !important;
+    font-family: var(--bs-font-monospace) !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    height: 48px !important;
+    margin: 12px auto 6px !important;
+    width: 92% !important;
+    box-sizing: border-box !important;
+}
+.swal2-popup .swal2-input:focus,
+.swal2-popup .swal2-textarea:focus {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25) !important;
+    outline: none !important;
+}
+.swal2-popup .swal2-input::placeholder,
+.swal2-popup .swal2-textarea::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+}
+

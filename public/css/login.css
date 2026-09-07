@@ -1,0 +1,355 @@
+/* ==========================================================================
+   BASE & VARIABLES
+   ========================================================================== */
+:root {
+    --primary-dark: #111827;
+    --primary-hover: #1f2937;
+    --accent-gold: #fde047;
+    --accent-gold-dark: #ca8a04;
+    --border-light: #e2e8f0;
+    --text-dark: #1e293b;
+    --text-muted: #64748b;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #000;
+}
+
+/* ==========================================================================
+   FULLSCREEN CINEMATIC BACKGROUND
+   ========================================================================== */
+.login-wrapper {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    /* Menggunakan path relatif agar gambar terbaca langsung oleh file CSS */
+    background-image: url('../gambar/gudang.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Dark overlay gradient: Lebih gelap untuk tampilan cinematic */
+.bg-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+        radial-gradient(ellipse at center, transparent 20%, rgba(0, 0, 0, 0.55) 100%),
+        linear-gradient(90deg, rgba(5, 8, 16, 0.95) 0%, rgba(5, 8, 16, 0.75) 45%, rgba(5, 8, 16, 0.45) 100%);
+    z-index: 1;
+}
+
+.content-container {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+}
+
+/* ==========================================================================
+   LEFT SIDE: TEXT CONTENT
+   ========================================================================== */
+.left-content {
+    padding: 4rem 5rem;
+}
+
+.brand-logo-left {
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-logo-left i {
+    color: #60a5fa;
+}
+
+.hero-title {
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+}
+
+.text-gradient-gold {
+    background: linear-gradient(135deg, #fef08a 0%, #eab308 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    font-weight: 300;
+    color: #cbd5e1;
+    max-width: 600px;
+    line-height: 1.6;
+}
+
+.footer-text {
+    color: #94a3b8;
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+/* ==========================================================================
+   RIGHT SIDE: FLOATING FORM CARD
+   ========================================================================== */
+.right-content {
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-card {
+    background: linear-gradient(145deg,
+            #cff3f3 0%,
+            #d5e3eb 25%,
+            #b4dcec 60%,
+            #c2e4ee 100%);
+    border-radius: 24px;
+    padding: 3.5rem 3rem;
+    width: 100%;
+    max-width: 480px;
+    border: 1px solid rgba(199, 210, 254, 0.7);
+    box-shadow:
+        0 32px 64px -12px rgba(79, 70, 229, 0.2),
+        0 12px 28px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.9) inset,
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+    backdrop-filter: blur(8px);
+}
+
+.card-brand {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: #3730a3;
+    margin-bottom: 1.5rem;
+    background: transparent;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    width: fit-content;
+    margin-left: 0;
+    margin-right: auto;
+    letter-spacing: 0.3px;
+}
+
+.card-brand i {
+    color: #6366f1;
+}
+
+.card-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.card-subtitle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    line-height: 1.5;
+}
+
+/* Form Inputs */
+.input-group-custom {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+
+.input-group-custom i.icon-left {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 1.1rem;
+    transition: color 0.3s;
+}
+
+.input-group-custom i.icon-right {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.custom-input {
+    width: 100%;
+    padding: 14px 45px;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    font-size: 1rem;
+    color: var(--text-dark);
+    background-color: #fff;
+    transition: all 0.2s ease;
+}
+
+.custom-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.custom-input:focus~i.icon-left {
+    color: #2563eb;
+}
+
+.custom-checkbox {
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 0.1rem;
+}
+
+.custom-checkbox:checked {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-login {
+    background-color: var(--primary-dark);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 500;
+    width: 100%;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+}
+
+.btn-login:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.forgot-link {
+    display: block;
+    text-align: center;
+    margin-top: 1.5rem;
+    color: var(--text-dark);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.forgot-link:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   ANIMATIONS (STAGGERED FADE-UP & FADE-RIGHT)
+   ========================================================================== */
+@keyframes fadeRight {
+    from {
+        opacity: 0;
+        transform: translateX(-40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.anim-fade-right {
+    opacity: 0;
+    animation: fadeRight 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anim-fade-up {
+    opacity: 0;
+    animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anim-scale-in {
+    opacity: 0;
+    animation: scaleIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Delays */
+.delay-1 {
+    animation-delay: 0.2s;
+}
+
+.delay-2 {
+    animation-delay: 0.4s;
+}
+
+.delay-3 {
+    animation-delay: 0.6s;
+}
+
+.delay-4 {
+    animation-delay: 0.8s;
+}
+
+.delay-5 {
+    animation-delay: 1.0s;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 991.98px) {
+    .left-content {
+        display: none !important;
+    }
+
+    .bg-overlay {
+        background: rgba(5, 8, 16, 0.82);
+    }
+
+    .login-card {
+        padding: 2.5rem 2rem;
+    }
+}

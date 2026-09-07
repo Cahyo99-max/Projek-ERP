@@ -1,0 +1,376 @@
+/* ==========================================================================
+   DUAL-THEME HIGH-CONTRAST PURCHASING DASHBOARD (LIGHT & DARK MODE)
+   ========================================================================== */
+
+:root {
+    --pch-card-bg: #ffffff;
+    --pch-card-border: #e2e8f0;
+    --pch-surface-sub: #f8fafc;
+    --pch-text-heading: #0f172a;
+    --pch-text-body: #1e293b;
+    --pch-text-muted: #64748b;
+    --pch-text-subtle: #94a3b8;
+    --pch-tab-wrap-bg: #f1f5f9;
+    --pch-tab-wrap-border: #e2e8f0;
+    --pch-tab-inactive-text: #475569;
+    --pch-table-hover: rgba(59, 130, 246, 0.05);
+    --pch-row-border: #f1f5f9;
+}
+
+[data-bs-theme="dark"] {
+    --pch-card-bg: #1e293b;
+    --pch-card-border: #334155;
+    --pch-surface-sub: #0f172a;
+    --pch-text-heading: #f8fafc;
+    --pch-text-body: #e2e8f0;
+    --pch-text-muted: #94a3b8;
+    --pch-text-subtle: #cbd5e1;
+    --pch-tab-wrap-bg: #0f172a;
+    --pch-tab-wrap-border: #334155;
+    --pch-tab-inactive-text: #94a3b8;
+    --pch-table-hover: rgba(59, 130, 246, 0.15);
+    --pch-row-border: #334155;
+}
+
+/* ── High-Contrast Dedicated Pill Badges (Never blend background with text) ── */
+.pill-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    padding: 0.28rem 0.75rem !important;
+    border-radius: 9999px !important;
+    font-size: 0.74rem !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    letter-spacing: 0.2px !important;
+    white-space: nowrap !important;
+    text-decoration: none !important;
+}
+
+/* Light Theme Pill Badges: Soft tinted background + High-contrast dark saturated text */
+.pill-badge-emerald {
+    background: #dcfce7 !important;
+    color: #14532d !important;
+    border: 1px solid #86efac !important;
+}
+.pill-badge-blue {
+    background: #dbeafe !important;
+    color: #1e3a8a !important;
+    border: 1px solid #93c5fd !important;
+}
+.pill-badge-amber {
+    background: #fef3c7 !important;
+    color: #78350f !important;
+    border: 1px solid #fde68a !important;
+}
+.pill-badge-rose {
+    background: #ffe4e6 !important;
+    color: #881337 !important;
+    border: 1px solid #fecdd3 !important;
+}
+.pill-badge-cyan {
+    background: #cffafe !important;
+    color: #164e63 !important;
+    border: 1px solid #a5f3fc !important;
+}
+.pill-badge-slate {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+/* Dark Theme Pill Badges: Deep background + Bright glowing readable text */
+[data-bs-theme="dark"] .pill-badge-emerald {
+    background: rgba(16, 185, 129, 0.22) !important;
+    color: #6ee7b7 !important;
+    border: 1px solid rgba(16, 185, 129, 0.5) !important;
+}
+[data-bs-theme="dark"] .pill-badge-blue {
+    background: rgba(59, 130, 246, 0.22) !important;
+    color: #93c5fd !important;
+    border: 1px solid rgba(59, 130, 246, 0.5) !important;
+}
+[data-bs-theme="dark"] .pill-badge-amber {
+    background: rgba(245, 158, 11, 0.22) !important;
+    color: #fde047 !important;
+    border: 1px solid rgba(245, 158, 11, 0.5) !important;
+}
+[data-bs-theme="dark"] .pill-badge-rose {
+    background: rgba(244, 63, 94, 0.22) !important;
+    color: #fda4af !important;
+    border: 1px solid rgba(244, 63, 94, 0.5) !important;
+}
+[data-bs-theme="dark"] .pill-badge-cyan {
+    background: rgba(6, 182, 212, 0.22) !important;
+    color: #67e8f9 !important;
+    border: 1px solid rgba(6, 182, 212, 0.5) !important;
+}
+[data-bs-theme="dark"] .pill-badge-slate {
+    background: #334155 !important;
+    color: #f8fafc !important;
+    border: 1px solid #475569 !important;
+}
+
+/* ── Text Utility Classes ── */
+.pch-heading {
+    color: var(--pch-text-heading) !important;
+    font-weight: 700;
+}
+
+.pch-subtext {
+    color: var(--pch-text-muted) !important;
+}
+
+.pch-body-text {
+    color: var(--pch-text-body) !important;
+}
+
+/* ── Cinematic Stat Cards ── */
+.cinematic-kpi-card {
+    position: relative;
+    background: var(--pch-card-bg);
+    border: 1px solid var(--pch-card-border);
+    border-radius: 18px;
+    padding: 1.35rem 1.45rem;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 145px;
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
+}
+
+[data-bs-theme="dark"] .cinematic-kpi-card {
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.cinematic-kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.15);
+}
+
+.cinematic-kpi-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; width: 90px; height: 90px;
+    border-radius: 0 18px 0 90px;
+    opacity: 0.12;
+    transition: all 0.4s ease;
+    pointer-events: none;
+}
+
+.kpi-emerald::after { background: #10b981; }
+.kpi-blue::after    { background: #3b82f6; }
+.kpi-amber::after   { background: #f59e0b; }
+.kpi-cyan::after    { background: #06b6d4; }
+.kpi-rose::after    { background: #f43f5e; }
+
+.cinematic-kpi-card:hover::after {
+    transform: scale(1.35);
+    opacity: 0.22;
+}
+
+.kpi-icon-bubble {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+.cinematic-kpi-card:hover .kpi-icon-bubble {
+    transform: scale(1.1) rotate(3deg);
+}
+
+.kpi-emerald .kpi-icon-bubble { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.kpi-blue .kpi-icon-bubble    { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.kpi-amber .kpi-icon-bubble   { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.kpi-cyan .kpi-icon-bubble    { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
+.kpi-rose .kpi-icon-bubble    { background: rgba(244, 63, 94, 0.15); color: #f43f5e; }
+
+.kpi-title-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--pch-text-muted);
+    margin-bottom: 0.35rem;
+}
+
+.kpi-main-metric {
+    font-size: 1.65rem;
+    font-weight: 800;
+    letter-spacing: -0.6px;
+    line-height: 1.15;
+    color: var(--pch-text-heading);
+}
+
+/* ── Main Cinematic Box ── */
+.cinematic-box {
+    background: var(--pch-card-bg);
+    border: 1px solid var(--pch-card-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 25px -5px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+}
+
+[data-bs-theme="dark"] .cinematic-box {
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Interactive Pipeline Tabs ── */
+.pipeline-tabs-wrapper {
+    background: var(--pch-tab-wrap-bg);
+    border: 1px solid var(--pch-tab-wrap-border);
+    padding: 4px;
+    border-radius: 14px;
+    display: inline-flex;
+    gap: 4px;
+}
+
+.pipeline-tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--pch-tab-inactive-text);
+    padding: 0.45rem 1rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.pipeline-tab-btn.active {
+    background: #3b82f6 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+}
+
+.pipeline-tab-btn:hover:not(.active) {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+/* ── Reorder Stock Item ── */
+.radar-item {
+    background: var(--pch-surface-sub);
+    border: 1px solid var(--pch-card-border);
+    border-radius: 14px;
+    padding: 0.95rem 1.15rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 0.75rem;
+}
+
+.radar-item:hover {
+    transform: translateY(-2px) translateX(3px);
+    border-color: rgba(244, 63, 94, 0.4);
+    box-shadow: 0 6px 16px -4px rgba(244, 63, 94, 0.15);
+}
+
+.radar-item-name {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--pch-text-heading);
+}
+
+.radar-progress-bar {
+    height: 6px;
+    background: rgba(148, 163, 184, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.radar-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s ease;
+}
+
+/* ── Supplier Medal Ranks ── */
+.rank-medal-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+.rank-gold   { background: linear-gradient(135deg, #fbbf24, #d97706); color: #ffffff; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35); }
+.rank-silver { background: linear-gradient(135deg, #cbd5e1, #64748b); color: #ffffff; box-shadow: 0 4px 12px rgba(100, 116, 139, 0.25); }
+.rank-bronze { background: linear-gradient(135deg, #fb923c, #c2410c); color: #ffffff; box-shadow: 0 4px 12px rgba(194, 65, 12, 0.25); }
+.rank-other  { background: rgba(148, 163, 184, 0.15); color: var(--pch-text-muted); }
+
+.vendor-row-item {
+    background: var(--pch-surface-sub);
+    border: 1px solid var(--pch-card-border);
+    border-radius: 12px;
+    padding: 0.75rem 0.95rem;
+    margin-bottom: 0.65rem;
+    transition: all 0.2s ease;
+}
+.vendor-row-item:hover {
+    border-color: rgba(59, 130, 246, 0.35);
+    transform: translateX(3px);
+}
+
+.vendor-name-title {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--pch-text-heading);
+}
+
+/* ── High-Contrast Table Styling ── */
+.cinematic-table thead th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 700;
+    color: var(--pch-text-muted);
+    border-bottom: 1.5px solid var(--pch-card-border);
+    padding: 0.85rem 0.75rem;
+    background-color: transparent;
+}
+.cinematic-table tbody td {
+    padding: 0.95rem 0.75rem;
+    border-bottom: 1px solid var(--pch-row-border);
+    color: var(--pch-text-body);
+    font-size: 0.85rem;
+    background-color: transparent;
+}
+.cinematic-table tbody tr:hover td {
+    background-color: var(--pch-table-hover);
+}
+
+.pch-link {
+    color: #2563eb !important;
+    font-weight: 700;
+    text-decoration: none;
+}
+[data-bs-theme="dark"] .pch-link {
+    color: #60a5fa !important;
+}
+.pch-link:hover {
+    text-decoration: underline;
+}
+
+/* Minimal Spend Progress Bar */
+.mini-progress {
+    height: 5px;
+    background-color: rgba(148, 163, 184, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.mini-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s ease;
+}

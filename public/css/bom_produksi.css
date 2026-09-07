@@ -1,0 +1,1051 @@
+/* ─── GLOBAL CUSTOM VARIABLE THEMES FOR BOM PRODUKSI ───────── */
+:root {
+    --card-bg: #ffffff;
+    --border-color: #e2e8f0;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --bg-light: #f8fafc;
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --accent-color: #0284c7;
+
+    --hero-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 60%, #eff6ff 100%);
+    --hero-border: #e2e8f0;
+    --hero-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    --hero-breadcrumb-bg: #f1f5f9;
+    --hero-breadcrumb-border: #e2e8f0;
+    --hero-breadcrumb-text: #475569;
+    --hero-title-text: #0f172a;
+    --hero-glow-1: rgba(37, 99, 235, 0.08);
+    --hero-glow-2: rgba(14, 165, 233, 0.06);
+
+    --month-picker-bg: #ffffff;
+    --month-picker-border: #cbd5e1;
+    --month-picker-text: #0f172a;
+    --month-picker-btn-bg: #f1f5f9;
+    --month-picker-btn-text: #334155;
+
+    --table-header-bg: #f1f5f9;
+    --table-header-text: #1e293b;
+    --table-hover-bg: #f0f9ff;
+    --readonly-bg: #f8fafc;
+    --processing-bg: rgba(15, 23, 42, 0.9);
+    --processing-text: #ffffff;
+    --input-bg: #ffffff;
+    --modal-bg: #ffffff;
+    --modal-border: #e2e8f0;
+    --modal-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
+}
+
+html[data-bs-theme="dark"],
+[data-bs-theme="dark"],
+.dark-mode {
+    --card-bg: #1e293b;
+    --border-color: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --bg-light: #0f172a;
+    --bg-main: #0f172a;
+    --bg-card: #1e293b;
+    --accent-color: #38bdf8;
+
+    --hero-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+    --hero-border: rgba(255, 255, 255, 0.1);
+    --hero-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    --hero-breadcrumb-bg: rgba(255, 255, 255, 0.06);
+    --hero-breadcrumb-border: rgba(255, 255, 255, 0.1);
+    --hero-breadcrumb-text: #94a3b8;
+    --hero-title-text: #ffffff;
+    --hero-glow-1: rgba(37, 99, 235, 0.28);
+    --hero-glow-2: rgba(14, 165, 233, 0.18);
+
+    --month-picker-bg: #1e293b;
+    --month-picker-border: rgba(255, 255, 255, 0.12);
+    --month-picker-text: #f8fafc;
+    --month-picker-btn-bg: rgba(255, 255, 255, 0.08);
+    --month-picker-btn-text: #f8fafc;
+
+    --table-header-bg: #0f172a;
+    --table-header-text: #f8fafc;
+    --table-hover-bg: #334155;
+    --readonly-bg: #0f172a;
+    --processing-bg: rgba(30, 41, 59, 0.95);
+    --processing-text: #38bdf8;
+    --input-bg: #0f172a;
+    --modal-bg: #1e293b;
+    --modal-border: #334155;
+    --modal-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+/* ─── GLOBAL TEXT & CARD OVERRIDES ────────────────────────── */
+body {
+    color: var(--text-main);
+}
+
+.page-title {
+    color: var(--text-main) !important;
+}
+
+.text-theme-main {
+    color: var(--text-main) !important;
+}
+
+.text-theme-muted {
+    color: var(--text-muted) !important;
+}
+
+.card {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+}
+
+.card-header {
+    background-color: var(--card-bg) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+}
+
+/* ─── FORM INPUTS & SELECTS THEME ADAPTATION ─────────────── */
+.form-control,
+.form-select,
+.input-group-text {
+    background-color: var(--input-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2) !important;
+}
+
+.form-control:read-only,
+.form-control.bg-light,
+.bg-light-theme {
+    background-color: var(--readonly-bg) !important;
+    color: var(--text-main) !important;
+}
+
+/* ─── VIBRANT MODERN KPI CARDS ────────────────────────────── */
+.card-kpi {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px !important;
+    border: 0 !important;
+    padding: 1.25rem 1.25rem 1.15rem 1.25rem !important;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.15) !important;
+}
+
+.card-kpi:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 30px -6px rgba(0, 0, 0, 0.25) !important;
+}
+
+.card-kpi::after {
+    content: '';
+    position: absolute;
+    right: -25px;
+    bottom: -35px;
+    width: 145px;
+    height: 145px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.card-kpi-blue {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+}
+
+.card-kpi-green {
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
+}
+
+.card-kpi-dark {
+    background: linear-gradient(135deg, #334155 0%, #1e293b 100%) !important;
+}
+
+/* ─── DATATABLES CUSTOM PROCESSING INDICATOR ──────────────── */
+div.dataTables_processing {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+    padding: 1rem 2rem !important;
+    background: var(--processing-bg) !important;
+    color: var(--processing-text) !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--accent-color) !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35) !important;
+    z-index: 1040 !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    letter-spacing: 0.3px !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    text-align: center !important;
+}
+
+div.dataTables_processing .spinner-border {
+    width: 1.3rem !important;
+    height: 1.3rem !important;
+    border-width: 0.18em !important;
+}
+
+/* ─── TABLE RESPONSIVE, DRAG-SCROLL & MODERN STYLING ──────── */
+.table-responsive,
+.bom-table-responsive {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+    width: 100% !important;
+    margin: 0 !important;
+    cursor: grab;
+    scroll-behavior: smooth !important;
+    overscroll-behavior-x: contain !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #0284c7 #e2e8f0 !important;
+}
+
+.table-responsive.table-grabbing,
+.bom-table-responsive.table-grabbing {
+    cursor: grabbing !important;
+    user-select: none !important;
+}
+
+/* Rounded Colorful Scrollbar (Desktop & Mobile) */
+.table-responsive::-webkit-scrollbar,
+.bom-table-responsive::-webkit-scrollbar,
+#resultLookupBarangBom::-webkit-scrollbar {
+    height: 8px !important;
+    width: 8px !important;
+}
+.table-responsive::-webkit-scrollbar-track,
+.bom-table-responsive::-webkit-scrollbar-track,
+#resultLookupBarangBom::-webkit-scrollbar-track {
+    background: #e2e8f0 !important;
+    border-radius: 999px !important;
+    margin: 0 4px !important;
+}
+.table-responsive::-webkit-scrollbar-thumb,
+.bom-table-responsive::-webkit-scrollbar-thumb,
+#resultLookupBarangBom::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #0284c7 0%, #2563eb 100%) !important;
+    border-radius: 999px !important;
+    border: 1.5px solid #ffffff !important;
+    transition: background 0.2s ease;
+}
+.table-responsive::-webkit-scrollbar-thumb:hover,
+.bom-table-responsive::-webkit-scrollbar-thumb:hover,
+#resultLookupBarangBom::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(90deg, #0369a1 0%, #1d4ed8 100%) !important;
+}
+
+html[data-bs-theme="dark"] .table-responsive,
+html[data-bs-theme="dark"] .bom-table-responsive,
+html[data-bs-theme="dark"] #resultLookupBarangBom,
+.dark-mode .table-responsive,
+.dark-mode .bom-table-responsive,
+.dark-mode #resultLookupBarangBom {
+    scrollbar-color: #38bdf8 #1e293b !important;
+}
+html[data-bs-theme="dark"] .table-responsive::-webkit-scrollbar-track,
+html[data-bs-theme="dark"] .bom-table-responsive::-webkit-scrollbar-track,
+html[data-bs-theme="dark"] #resultLookupBarangBom::-webkit-scrollbar-track,
+.dark-mode .table-responsive::-webkit-scrollbar-track,
+.dark-mode .bom-table-responsive::-webkit-scrollbar-track,
+.dark-mode #resultLookupBarangBom::-webkit-scrollbar-track {
+    background: #0f172a !important;
+}
+html[data-bs-theme="dark"] .table-responsive::-webkit-scrollbar-thumb,
+html[data-bs-theme="dark"] .bom-table-responsive::-webkit-scrollbar-thumb,
+html[data-bs-theme="dark"] #resultLookupBarangBom::-webkit-scrollbar-thumb,
+.dark-mode .table-responsive::-webkit-scrollbar-thumb,
+.dark-mode .bom-table-responsive::-webkit-scrollbar-thumb,
+.dark-mode #resultLookupBarangBom::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #38bdf8 0%, #60a5fa 100%) !important;
+    border: 1.5px solid #1e293b !important;
+}
+
+#resultLookupBarangBom {
+    max-height: 480px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+}
+
+/* Mobile swipe hint banner */
+.bom-mobile-scroll-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #0284c7;
+    padding: 0.45rem 1rem;
+    background: rgba(2, 132, 199, 0.08);
+    border-bottom: 1px dashed rgba(2, 132, 199, 0.25);
+}
+
+html[data-bs-theme="dark"] .bom-mobile-scroll-hint,
+.dark-mode .bom-mobile-scroll-hint {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.1);
+    border-bottom-color: rgba(56, 189, 248, 0.25);
+}
+
+/* ─── TABLE DARK/LIGHT ADAPTABILITY ──────────────────────── */
+#tabelMasterBom {
+    color: var(--text-main) !important;
+    min-width: 980px !important;
+    width: 100% !important;
+}
+
+#tabelMasterBom thead th {
+    background-color: var(--table-header-bg) !important;
+    color: var(--table-header-text) !important;
+    border-bottom: 2px solid var(--border-color) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 0.78rem !important;
+    letter-spacing: 0.5px !important;
+    white-space: nowrap !important;
+    padding: 12px 14px !important;
+}
+
+#tabelMasterBom tbody td {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+    vertical-align: middle !important;
+    padding: 11px 14px !important;
+    font-size: 0.88rem;
+}
+
+#tabelMasterBom tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+#tabelMasterBom tbody tr:hover td {
+    background-color: var(--table-hover-bg) !important;
+}
+
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--text-main) !important;
+}
+
+/* ─── ULTRAMODERN BOM MODAL SYSTEM & Z-INDEX ARCHITECTURE ─── */
+
+/* 1. Primary Modal & Backdrop Layer */
+.bom-modal-primary {
+    z-index: 1050 !important;
+}
+
+.modal-backdrop:not(.backdrop-secondary) {
+    z-index: 1045 !important;
+}
+
+/* 2. Secondary Lookup Sub-Modal & Backdrop Layer */
+.bom-modal-secondary {
+    z-index: 1070 !important;
+}
+
+.modal-backdrop.backdrop-secondary {
+    z-index: 1065 !important;
+}
+
+/* Modal Dialog & Card Styling */
+.bom-modal-content {
+    background-color: var(--modal-bg) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--modal-border) !important;
+    border-radius: 20px !important;
+    box-shadow: var(--modal-shadow) !important;
+    overflow: hidden;
+    transition: all 0.25s ease;
+}
+
+.bom-modal-header-blue {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+    color: #ffffff !important;
+    border-bottom: none !important;
+    padding: 1.25rem 1.5rem !important;
+}
+
+.bom-modal-header-amber {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #ffffff !important;
+    border-bottom: none !important;
+    padding: 1.25rem 1.5rem !important;
+}
+
+.bom-modal-header-dark {
+    background: linear-gradient(135deg, #334155 0%, #0f172a 100%) !important;
+    color: #ffffff !important;
+    border-bottom: none !important;
+    padding: 1.25rem 1.5rem !important;
+}
+
+.bom-modal-body {
+    background-color: var(--modal-bg) !important;
+    color: var(--text-main) !important;
+}
+
+.bom-modal-footer {
+    background-color: var(--modal-bg) !important;
+    border-top: 1px solid var(--border-color) !important;
+    padding: 1rem 1.5rem !important;
+}
+
+/* Material Table Styling inside Modals */
+.bom-table-material {
+    color: var(--text-main);
+    min-width: 820px !important;
+    width: 100% !important;
+}
+
+.bom-table-material thead th {
+    background-color: var(--table-header-bg) !important;
+    color: var(--table-header-text) !important;
+    font-weight: 700 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    padding: 0.75rem 0.75rem !important;
+    white-space: nowrap !important;
+}
+
+.bom-table-material tbody td {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+    padding: 0.6rem 0.75rem !important;
+}
+
+/* HPP Live Summary Card */
+.bom-hpp-summary-card {
+    background: linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
+    border: 1px dashed var(--accent-color);
+    border-radius: 14px;
+    padding: 0.85rem 1.25rem;
+}
+
+/* ─── KALKULATOR SIMULASI PRODUKSI ──────────────────────────── */
+.bom-col-simulasi {
+    transition: all 0.3s ease;
+}
+
+.bom-col-simulasi:not(.d-none) {
+    animation: fadeInCol 0.35s ease;
+}
+
+@keyframes fadeInCol {
+    from { opacity: 0; transform: translateX(8px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+#bomKalkulatorBody {
+    transition: max-height 0.35s ease, opacity 0.3s ease;
+}
+
+#simJumlahProduksi:focus {
+    border-color: #d97706 !important;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2) !important;
+    outline: none !important;
+}
+
+#simJumlahProduksi::-webkit-inner-spin-button,
+#simJumlahProduksi::-webkit-outer-spin-button {
+    opacity: 1;
+    cursor: pointer;
+}
+
+#simResultBanner {
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Dark mode support untuk kalkulator ── */
+html[data-bs-theme="dark"] #bomKalkulatorBody,
+.dark-mode #bomKalkulatorBody {
+    background: #1c1a0a !important;
+}
+
+html[data-bs-theme="dark"] #bomKalkulatorBody .rounded-3,
+.dark-mode #bomKalkulatorBody .rounded-3 {
+    background: #1e293b !important;
+    border-color: #d97706 !important;
+}
+
+html[data-bs-theme="dark"] .sim-qty-cell,
+html[data-bs-theme="dark"] .sim-subtotal-cell,
+.dark-mode .sim-qty-cell,
+.dark-mode .sim-subtotal-cell {
+    color: #fbbf24 !important;
+}
+
+/* ─── BOM DETAIL TABS ──────────────────────────────────────── */
+.bom-detail-tabs .nav-link {
+    color: var(--text-muted);
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    background: transparent;
+}
+
+.bom-detail-tabs .nav-link:hover {
+    color: var(--text-main);
+    border-bottom-color: rgba(2, 132, 199, 0.3);
+}
+
+.bom-detail-tabs .nav-link.active {
+    color: var(--accent-color) !important;
+    border-bottom: 2px solid var(--accent-color) !important;
+    background: transparent !important;
+    font-weight: 700 !important;
+}
+
+/* ─── TABEL PREVIEW KEBUTUHAN BAHAN ────────────────────────── */
+#tbodyPreviewKebutuhan tr:hover {
+    background: rgba(245, 158, 11, 0.04);
+}
+
+#tbodyPreviewKebutuhan tr td {
+    border-color: var(--border-color);
+    padding: 0.6rem 0.75rem;
+    color: var(--text-main);
+    vertical-align: middle;
+}
+
+/* ─── PREVIEW SECTION ANIMATIONS ───────────────────────────── */
+#previewKebutuhanSection {
+    animation: fadeInUp 0.4s ease;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+#simJumlahProduksi:focus {
+    border-color: #d97706 !important;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2) !important;
+}
+
+/* Quick-set buttons */
+#tab-kalkulator .btn-outline-warning {
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #d97706;
+    font-size: 11px;
+    padding: 2px 10px;
+    transition: all 0.15s ease;
+}
+
+#tab-kalkulator .btn-outline-warning:hover {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #d97706;
+    color: #d97706;
+    transform: translateY(-1px);
+}
+
+/* Dark mode tabel preview */
+html[data-bs-theme="dark"] #tbodyPreviewKebutuhan tr td,
+.dark-mode #tbodyPreviewKebutuhan tr td {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+html[data-bs-theme="dark"] #tab-kalkulator .rounded-3,
+.dark-mode #tab-kalkulator .rounded-3 {
+    border-color: var(--border-color) !important;
+}
+
+/* ─── COMPREHENSIVE DARK MODE & HIGH-CONTRAST TEXT FIXES ───── */
+html[data-bs-theme="dark"],
+[data-bs-theme="dark"],
+.dark-mode {
+    --text-main: #f1f5f9;
+    --text-muted: #cbd5e1;
+    --card-bg: #1e293b;
+    --border-color: #334155;
+    --table-header-bg: #0f172a;
+    --table-header-text: #38bdf8;
+    --table-hover-bg: #334155;
+    --readonly-bg: #0f172a;
+    --modal-bg: #1e293b;
+}
+
+html[data-bs-theme="dark"] body,
+html[data-bs-theme="dark"] .table,
+html[data-bs-theme="dark"] .table td,
+html[data-bs-theme="dark"] .table th,
+html[data-bs-theme="dark"] .modal-body,
+html[data-bs-theme="dark"] .modal-content,
+html[data-bs-theme="dark"] .card,
+html[data-bs-theme="dark"] .form-control,
+html[data-bs-theme="dark"] .form-select,
+.dark-mode body,
+.dark-mode .table,
+.dark-mode .table td,
+.dark-mode .table th,
+.dark-mode .modal-body,
+.dark-mode .modal-content,
+.dark-mode .card,
+.dark-mode .form-control,
+.dark-mode .form-select {
+    color: #f1f5f9 !important;
+}
+
+html[data-bs-theme="dark"] .text-theme-main,
+.dark-mode .text-theme-main {
+    color: #f8fafc !important;
+}
+
+html[data-bs-theme="dark"] .text-muted,
+html[data-bs-theme="dark"] .text-theme-muted,
+html[data-bs-theme="dark"] .text-secondary,
+.dark-mode .text-muted,
+.dark-mode .text-theme-muted,
+.dark-mode .text-secondary {
+    color: #94a3b8 !important;
+}
+
+html[data-bs-theme="dark"] .text-dark:not(.badge):not(.btn),
+.dark-mode .text-dark:not(.badge):not(.btn) {
+    color: #f8fafc !important;
+}
+
+html[data-bs-theme="dark"] .badge.bg-warning.text-dark,
+html[data-bs-theme="dark"] .badge.bg-info.text-dark,
+html[data-bs-theme="dark"] .badge.bg-light.text-dark,
+html[data-bs-theme="dark"] .btn-warning.text-dark,
+.dark-mode .badge.bg-warning.text-dark,
+.dark-mode .badge.bg-info.text-dark,
+.dark-mode .badge.bg-light.text-dark,
+.dark-mode .btn-warning.text-dark {
+    color: #0f172a !important;
+}
+
+html[data-bs-theme="dark"] .table-hover tbody tr:hover td,
+.dark-mode .table-hover tbody tr:hover td {
+    background-color: #334155 !important;
+    color: #ffffff !important;
+}
+
+html[data-bs-theme="dark"] .badge.bg-secondary,
+html[data-bs-theme="dark"] .badge.bg-light,
+.dark-mode .badge.bg-secondary,
+.dark-mode .badge.bg-light {
+    background-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+html[data-bs-theme="dark"] .bg-light,
+html[data-bs-theme="dark"] .bg-light-theme,
+.dark-mode .bg-light,
+.dark-mode .bg-light-theme {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+}
+
+html[data-bs-theme="dark"] .modal-content,
+.dark-mode .modal-content {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
+}
+
+html[data-bs-theme="dark"] .modal-header,
+html[data-bs-theme="dark"] .modal-footer,
+.dark-mode .modal-header,
+.dark-mode .modal-footer {
+    border-color: #334155 !important;
+}
+
+html[data-bs-theme="dark"] ::placeholder,
+.dark-mode ::placeholder {
+    color: #64748b !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CINEMATIC MOBILE & ULTRA-RESPONSIVE SYSTEM FOR BOM
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Smooth Hide Scrollbar Utility */
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+}
+
+/* Horizontal Touch Scrolling Bar for Filter Pills */
+.bom-filter-pills-scroll {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    gap: 0.5rem;
+    padding-top: 2px;
+    padding-bottom: 6px;
+    cursor: grab;
+    user-select: none;
+    scrollbar-width: none;
+}
+.bom-filter-pills-scroll::-webkit-scrollbar {
+    display: none;
+}
+.bom-filter-pills-scroll.pills-grabbing {
+    cursor: grabbing !important;
+}
+.bom-filter-pills-scroll .btn-quick-status {
+    flex-shrink: 0;
+    white-space: nowrap;
+    transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.bom-filter-pills-scroll .btn-quick-status:active {
+    transform: scale(0.96);
+}
+
+/* Cinematic Hero Header */
+.bom-hero-header {
+    background: var(--hero-bg) !important;
+    border: 1px solid var(--hero-border) !important;
+    box-shadow: var(--hero-shadow) !important;
+    backdrop-filter: blur(12px);
+}
+.bom-hero-header .hero-breadcrumb {
+    background: var(--hero-breadcrumb-bg) !important;
+    border: 1px solid var(--hero-breadcrumb-border) !important;
+    color: var(--hero-breadcrumb-text) !important;
+}
+.bom-hero-header .hero-title {
+    color: var(--hero-title-text) !important;
+}
+.bom-hero-glow-1 {
+    background: radial-gradient(circle, var(--hero-glow-1) 0%, rgba(37, 99, 235, 0) 70%) !important;
+}
+.bom-hero-glow-2 {
+    background: radial-gradient(circle, var(--hero-glow-2) 0%, rgba(14, 165, 233, 0) 70%) !important;
+}
+
+.btn-hero-create-bom {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #0ea5e9 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 8px 24px -4px rgba(37, 99, 235, 0.5) !important;
+    color: #ffffff !important;
+    width: auto !important;
+    max-width: max-content !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.btn-hero-create-bom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px -4px rgba(37, 99, 235, 0.65), 0 0 15px rgba(14, 165, 233, 0.4) !important;
+    color: #ffffff !important;
+}
+.btn-hero-create-bom:active {
+    transform: scale(0.97);
+}
+
+/* Month Picker Pill Component */
+.bom-month-picker-pill {
+    background: var(--month-picker-bg) !important;
+    border: 1px solid var(--month-picker-border) !important;
+    color: var(--month-picker-text) !important;
+    transition: all 0.2s ease;
+}
+.bom-month-picker-pill:hover {
+    border-color: #2563eb !important;
+    box-shadow: 0 4px 14px -2px rgba(37, 99, 235, 0.25);
+}
+.bom-month-picker-pill .month-label {
+    color: var(--month-picker-text) !important;
+}
+.btn-icon-stepper {
+    background: var(--month-picker-btn-bg) !important;
+    color: var(--month-picker-btn-text) !important;
+    border: 0 !important;
+    transition: all 0.2s ease;
+}
+.btn-icon-stepper:hover {
+    background: rgba(37, 99, 235, 0.15) !important;
+    color: #2563eb !important;
+    transform: scale(1.08);
+}
+.btn-icon-stepper:active {
+    transform: scale(0.92);
+}
+
+/* Cinematic Mobile KPI Card Grid */
+.bom-kpi-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.bom-kpi-card:active {
+    transform: scale(0.97);
+}
+
+/* Lookup Barang Table Rows */
+.row-select-barang-bom {
+    transition: background-color 0.15s ease;
+}
+.row-select-barang-bom:hover {
+    background: rgba(37, 99, 235, 0.12) !important;
+}
+.row-select-barang-bom:active {
+    background: rgba(37, 99, 235, 0.22) !important;
+}
+
+/* Back-to-Top Floating Button Optimization */
+#btnBackToTop,
+.btn-back-to-top,
+.scroll-top-btn {
+    position: fixed !important;
+    bottom: 24px !important;
+    right: 18px !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 990 !important;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+/* ─── UNIVERSAL MODAL DIALOG SCROLLABLE (DESKTOP, LAPTOP & MOBILE) ─── */
+.modal-dialog-scrollable {
+    height: calc(100% - var(--bs-modal-margin, 3.5rem) * 2);
+    max-height: calc(100% - var(--bs-modal-margin, 3.5rem) * 2);
+    display: flex !important;
+}
+
+.modal-dialog-scrollable .modal-content,
+.bom-modal-content {
+    max-height: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+.modal-dialog-scrollable form {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    height: 100% !important;
+    width: 100% !important;
+}
+
+.modal-dialog-scrollable .modal-body,
+.modal-dialog-scrollable form .modal-body,
+.bom-modal-body {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+}
+
+.modal-dialog-scrollable .modal-header,
+.bom-modal-header-blue,
+.bom-modal-header-amber,
+.bom-modal-header-dark {
+    flex-shrink: 0 !important;
+}
+
+.modal-dialog-scrollable .modal-footer,
+.modal-dialog-scrollable form .modal-footer,
+.bom-modal-footer {
+    flex-shrink: 0 !important;
+}
+
+/* ─── MOBILE MEDIA QUERIES (max-width: 767.98px) ─────────────────── */
+@media (max-width: 767.98px) {
+    /* Page Container */
+    .container-fluid {
+        padding-left: 0.85rem !important;
+        padding-right: 0.85rem !important;
+        padding-top: 0.75rem !important;
+    }
+
+    /* Page Header */
+    .page-title {
+        font-size: 1.35rem !important;
+        line-height: 1.25;
+    }
+
+    /* KPI Cards on Mobile: Full-width Cinematic Banners */
+    .bom-kpi-row {
+        --bs-gutter-x: 0.75rem;
+        --bs-gutter-y: 0.75rem;
+    }
+    .bom-kpi-card {
+        min-height: 98px !important;
+        border-radius: 16px !important;
+    }
+    .bom-kpi-card .card-body {
+        padding: 1rem 1.15rem !important;
+    }
+    .bom-kpi-card .kpi-title {
+        font-size: 11px !important;
+        letter-spacing: 0.5px !important;
+    }
+    .bom-kpi-card .kpi-icon-box {
+        width: 42px !important;
+        height: 42px !important;
+        font-size: 1.15rem !important;
+    }
+    .bom-kpi-card .kpi-number {
+        font-size: 1.85rem !important;
+    }
+    .bom-kpi-card .kpi-subtext {
+        font-size: 11px !important;
+    }
+
+    /* Full-width Create BOM Button */
+    .btn-create-bom-mobile {
+        width: 100%;
+        padding: 0.7rem 1.25rem;
+        font-size: 0.95rem;
+        border-radius: 14px;
+        box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.5) !important;
+    }
+
+    /* DataTables Mobile Polish */
+    .card-header {
+        padding: 1rem 0.85rem !important;
+    }
+
+    /* Mobile Table horizontal swipe container */
+    .table-responsive,
+    .bom-table-responsive {
+        border-radius: 0 0 14px 14px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #tabelMasterBom th {
+        padding: 0.75rem 0.85rem !important;
+        font-size: 0.78rem !important;
+        white-space: nowrap !important;
+    }
+
+    #tabelMasterBom td {
+        padding: 0.75rem 0.85rem !important;
+        font-size: 0.84rem !important;
+    }
+
+    /* Compact DataTables length & info */
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        padding: 0.75rem 0.85rem !important;
+        font-size: 0.82rem !important;
+    }
+    .dataTables_wrapper .dataTables_paginate .pagination {
+        justify-content: center !important;
+        flex-wrap: wrap !important;
+        gap: 2px !important;
+    }
+    .dataTables_wrapper .dataTables_paginate .page-link {
+        padding: 0.35rem 0.65rem !important;
+        font-size: 0.8rem !important;
+        border-radius: 8px !important;
+        margin: 0 1px !important;
+    }
+
+    /* ── Mobile Modal Bottom Sheet Adaptation ── */
+    .modal-dialog {
+        margin: 0.5rem auto !important;
+        max-width: calc(100vw - 1rem) !important;
+    }
+    .modal-dialog-scrollable {
+        max-height: calc(100dvh - 1rem) !important;
+        height: calc(100dvh - 1rem) !important;
+    }
+    .modal.show .modal-dialog {
+        transform: none !important;
+    }
+    .bom-modal-content {
+        border-radius: 18px !important;
+    }
+    .bom-modal-header-blue,
+    .bom-modal-header-amber,
+    .bom-modal-header-dark {
+        padding: 0.9rem 1.15rem !important;
+    }
+    .bom-modal-body {
+        padding: 1rem 0.9rem !important;
+        padding-bottom: 2rem !important;
+    }
+    .bom-modal-footer {
+        padding: 0.75rem 1rem !important;
+        padding-bottom: max(0.85rem, env(safe-area-inset-bottom, 0.85rem)) !important;
+        flex-direction: column-reverse;
+        gap: 0.5rem;
+        z-index: 10;
+    }
+    .bom-modal-footer .btn {
+        width: 100%;
+    }
+    .bom-modal-footer .d-flex {
+        width: 100%;
+        flex-direction: column;
+        gap: 0.5rem !important;
+    }
+
+    /* Modal Cards and Tables on Mobile */
+    .bom-modal-body .card {
+        padding: 0.85rem !important;
+        border-radius: 14px !important;
+        margin-bottom: 0.75rem !important;
+    }
+    .bom-table-material th,
+    .bom-table-material td {
+        padding: 0.5rem 0.4rem !important;
+        font-size: 0.8rem !important;
+    }
+    .bom-table-material .form-control {
+        font-size: 0.8rem !important;
+        padding: 0.35rem 0.45rem !important;
+    }
+
+    /* Show Page Tabs Scrollable */
+    .bom-show-nav-tabs {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        gap: 0.4rem !important;
+        padding-bottom: 2px !important;
+        border-bottom: 1px solid var(--border-color) !important;
+    }
+    .bom-show-nav-tabs .nav-item {
+        flex-shrink: 0 !important;
+    }
+    .bom-show-nav-tabs .nav-link {
+        white-space: nowrap !important;
+        padding: 0.55rem 0.85rem !important;
+        font-size: 0.85rem !important;
+        border-radius: 10px 10px 0 0 !important;
+    }
+}
+
+

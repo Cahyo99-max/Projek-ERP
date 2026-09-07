@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="#f8fafc">
+    <rect width="300" height="300" fill="#f1f5f9"/>
+    <g transform="translate(110, 100)">
+        <rect x="0" y="0" width="80" height="80" rx="16" fill="#e2e8f0"/>
+        <path d="M25 50 L38 35 L48 45 L58 32 L68 46 L68 56 L25 56 Z" fill="#94a3b8"/>
+        <circle cx="34" cy="28" r="6" fill="#cbd5e1"/>
+    </g>
+    <text x="150" y="210" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600" fill="#94a3b8" text-anchor="middle">Tidak Ada Foto</text>
+</svg>

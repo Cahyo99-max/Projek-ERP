@@ -1,0 +1,2513 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="csrf-token" content="5WU0qUDuPaEl4WKozbmo3UklPDQtxdqUjXRJVr6T">
+    <title>Satria ERP</title>
+    <link rel="shortcut icon" href="http://localhost/storage/gambar/logo_1786070712.png" type="image/x-icon">
+    <link rel="icon" href="http://localhost/storage/gambar/logo_1786070712.png" type="image/x-icon">
+
+    <!-- Inline script to set dark/light theme immediately to prevent flashing of light screen on page load -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        })();
+    </script>
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Tabler Flags CSS -->
+    <link href="http://localhost/tabler/dist/css/tabler-flags.min.css?1692870762" rel="stylesheet" />
+    <!-- DataTables Bootstrap 5 CSS -->
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="http://localhost/css/style.css">
+        <style>
+        .pc-container {
+            max-width: 1400px;
+        }
+        .pc-wallet-hero {
+            box-shadow: 0 10px 25px -5px rgba(6, 78, 59, 0.3), 0 8px 10px -6px rgba(6, 78, 59, 0.2);
+        }
+        .backdrop-blur {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .border-dashed {
+            border-style: dashed !important;
+        }
+        .pc-trx-mobile-card {
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            cursor: pointer;
+        }
+        .pc-trx-mobile-card:active {
+            transform: scale(0.98);
+        }
+        .pc-fab-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 58px;
+            height: 58px;
+            z-index: 1040;
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            border: none;
+        }
+        .pc-type-btn {
+            transition: all 0.2s ease;
+        }
+        @media (max-width: 576px) {
+            .pc-container {
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+            }
+        }
+    </style>
+    </head>
+
+<body>
+
+    <!-- Panggil komponen Sidebar -->
+    <!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand" style="display: flex; align-items: center; gap: 8px;">
+        <img src="http://localhost/storage/gambar/logo_1786070712.png" alt="Logo" class="sidebar-logo" style="width: 28px; height: 28px; object-fit: contain; border-radius: 6px;">
+        <span class="brand-text">Satria ERP</span>
+    </div>
+
+    <div class="sidebar-nav">
+        <ul class="nav flex-column">
+                        <li class="nav-item">
+                <a href="/dashbord" class="nav-link " data-bs-toggle="tooltip" data-bs-placement="right"
+                    title="Dashboard">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+            </li>
+            
+            <div class="nav-label">Modul</div>
+
+            <!-- Accordion Menu: Master Produk -->
+                        <li class="nav-item">
+                <a href="#menuMasterProduk" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Master Produk">
+                    <i class="bi bi-boxes"></i>
+                    <span class="nav-text">Master Produk</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuMasterProduk">
+                    <ul class="sub-menu">
+                                                <li><a href="/barang" class="nav-link "><i class="bi bi-box-seam"></i> Barang</a></li>
+                                                                        <li><a href="/kategori-barang" class="nav-link "><i class="bi bi-tags"></i> Kategori Barang</a></li>
+                                                                        <li><a href="/satuan" class="nav-link "><i class="bi bi-tag"></i> Satuan Dasar</a></li>
+                                                                        <li><a href="/brand" class="nav-link "><i class="bi bi-award"></i> Brand / Merk</a></li>
+                                                                        <li><a href="/tipe-barang" class="nav-link "><i class="bi bi-grid"></i> Tipe Barang</a></li>
+                                                                        <li><a href="/warna" class="nav-link "><i class="bi bi-palette"></i> Warna Barang</a></li>
+                                            </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Master Bundle Produk -->
+                        <li class="nav-item">
+                <a href="#menuMasterBundle" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Master Bundle Produk">
+                    <i class="bi bi-boxes text-info"></i>
+                    <span class="nav-text fw-bold">Master Bundle Produk</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuMasterBundle">
+                    <ul class="sub-menu">
+                                                <li>
+                            <a href="/master-bundle" class="nav-link ">
+                                <i class="bi bi-box-seam"></i> Daftar Paket Bundle
+                            </a>
+                        </li>
+                                                                        <li>
+                            <a href="/master-bundle/pengaturan-kategori" class="nav-link ">
+                                <i class="bi bi-sliders2-vertical text-warning"></i> Setting Visibilitas Kategori
+                            </a>
+                        </li>
+                                            </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Master Gudang -->
+                        <li class="nav-item">
+                <a href="#menuMasterGudang" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Master Gudang">
+                    <i class="bi bi-building-gear"></i>
+                    <span class="nav-text">Master Gudang</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuMasterGudang">
+                    <ul class="sub-menu">
+                                                <li><a href="/gudang" class="nav-link "><i class="bi bi-house-gear"></i> Gudang</a></li>
+                                                                        <li><a href="/jenis-gudang" class="nav-link "><i class="bi bi-grid-3x3-gap"></i> Jenis Gudang</a></li>
+                                                                        <li><a href="/companies" class="nav-link "><i class="bi bi-building"></i> Perusahaan (PT)</a></li>
+                                                                        <li><a href="/branches" class="nav-link "><i class="bi bi-buildings"></i> Cabang</a></li>
+                                                                        <li><a href="/lokasi-rak" class="nav-link "><i class="bi bi-grid-3x3"></i> Lokasi Rak</a></li>
+                                            </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Master Organisasi -->
+                        <li class="nav-item">
+                <a href="#menuMasterOrganisasi" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Master Organisasi">
+                    <i class="bi bi-diagram-3"></i>
+                    <span class="nav-text">Master Organisasi</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuMasterOrganisasi">
+                    <ul class="sub-menu">
+                                                <li><a href="/karyawan" class="nav-link "><i class="bi bi-person-badge-fill"></i> Karyawan (HRD)</a></li>
+                                                                        <li><a href="/departemen" class="nav-link "><i class="bi bi-building"></i> Departemen</a></li>
+                                                                        <li><a href="/positions" class="nav-link "><i class="bi bi-person-badge"></i> Jabatan</a></li>
+                                            </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Master Keuangan -->
+                        <li class="nav-item">
+                <a href="#menuMasterKeuangan" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Master Keuangan">
+                    <i class="bi bi-wallet2"></i>
+                    <span class="nav-text">Master Keuangan</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuMasterKeuangan">
+                    <ul class="sub-menu">
+                                                <li><a href="/pajak" class="nav-link "><i class="bi bi-percent"></i> Pajak (PPN)</a></li>
+                                                                        <li><a href="/currency" class="nav-link "><i class="bi bi-cash-stack"></i> Mata Uang</a></li>
+                                                                        <li><a href="/payment-term" class="nav-link "><i class="bi bi-calendar-range"></i> Tenor Pembayaran</a></li>
+                                                                        <li><a href="/payment-method" class="nav-link "><i class="bi bi-credit-card"></i> Metode Pembayaran</a></li>
+                                                <li><a href="/finance/chart-of-accounts" class="nav-link "><i class="bi bi-journal-bookmark-fill"></i> Chart of Accounts (COA)</a></li>
+                    </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Inventory -->
+                        <li class="nav-item">
+                <a href="#menuInventory" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Inventori">
+                    <i class="bi bi-box-seam"></i>
+                    <span class="nav-text">Inventori</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuInventory">
+                    <ul class="sub-menu">
+                                                <li><a href="/goods-receipt" class="nav-link "><i class="bi bi-circle-fill"></i> Barang Masuk</a></li>
+                                                                         <li><a href="http://localhost/goods-issue" class="nav-link "><i class="bi bi-circle-fill"></i> Barang Keluar</a></li>
+                                               
+                                                <li><a href="http://localhost/stock-overview" class="nav-link "><i class="bi bi-circle-fill"></i> Stok Saat Ini</a></li>
+                                                                        <li><a href="http://localhost/opening-stock" class="nav-link "><i class="bi bi-circle-fill"></i> Saldo Awal Stok</a></li>
+                                                                          <li><a href="http://localhost/stock-opname" class="nav-link "><i class="bi bi-circle-fill"></i> Stock Opname</a></li>
+                                                                        <li><a href="http://localhost/stock-adjustment" class="nav-link "><i class="bi bi-circle-fill"></i> Penyesuaian Stok</a></li>
+                                                                        <li><a href="http://localhost/warehouse-transfer" class="nav-link "><i class="bi bi-circle-fill"></i> Transfer Gudang</a></li>
+                                                                         <li><a href="http://localhost/stock-card" class="nav-link "><i class="bi bi-circle-fill"></i> Kartu Stok</a></li>
+                                              
+                    </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Penjualan -->
+                        <li class="nav-item">
+                <a href="#menuSales" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Penjualan">
+                    <i class="bi bi-cart3"></i>
+                    <span class="nav-text">Penjualan</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuSales">
+                    <ul class="sub-menu">
+                                                <li><a href="/customer" class="nav-link "><i class="bi bi-people-fill"></i> Customer</a></li>
+                                                                        <li><a href="/tender" class="nav-link "><i class="bi bi-briefcase-fill"></i> Tender & Proyek</a></li>
+                                                                        <li><a href="http://localhost/penawaran" class="nav-link "><i class="bi bi-file-earmark-ruled-fill"></i> Penawaran Harga (SQ)</a></li>
+                                                                        <li><a href="http://localhost/marketing/sales-order" class="nav-link "><i class="bi bi-cart-check-fill"></i> Order Penjualan (SO / POS)</a></li>
+                        <li><a href="http://localhost/marketing/delivery-order" class="nav-link "><i class="bi bi-truck"></i> Pengiriman &amp; Surat Jalan</a></li>
+                                            </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Pembelian -->
+                        <li class="nav-item">
+                <a href="#menuPurchase" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Pembelian">
+                    <i class="bi bi-bag"></i>
+                    <span class="nav-text">Pembelian</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuPurchase">
+                    <ul class="sub-menu">
+                                                <li><a href="/supplier" class="nav-link "><i class="bi bi-people-fill"></i> Supplier</a></li>
+                                                                        <li><a href="/purchase-requisition" class="nav-link "><i class="bi bi-file-earmark-text-fill"></i> Pengajuan (PR)</a></li>
+                                                                        <li><a href="/purchase-order" class="nav-link "><i class="bi bi-cart-check-fill"></i> Purchase Order</a></li>
+                                                <li><a href="/purchase-invoices" class="nav-link "><i class="bi bi-receipt-cutoff"></i> Faktur Pembelian (AP)</a></li>
+                        <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> Retur Pembelian</a></li>
+                    </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Keuangan -->
+            <li class="nav-item">
+                <a href="#menuFinance" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Keuangan">
+                    <i class="bi bi-wallet2"></i>
+                    <span class="nav-text">Keuangan</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuFinance">
+                    <ul class="sub-menu">
+                        <li><a href="http://localhost/accounting/kas-bank" class="nav-link "><i class="bi bi-bank2 text-success"></i> Kas &amp; Rekening Bank</a></li>
+                        <li><a href="http://localhost/accounting/petty-cash" class="nav-link "><i class="bi bi-wallet2 text-warning"></i> Kas Kecil (Petty Cash)</a></li>
+                        <li><a href="http://localhost/accounting/kas-bank/ledger" class="nav-link "><i class="bi bi-journal-bookmark-fill text-info"></i> Buku Kas &amp; Rekening Koran</a></li>
+                        <li><a href="http://localhost/accounting/jurnal-umum" class="nav-link "><i class="bi bi-journal-text text-primary"></i> Jurnal Umum</a></li>
+                        <li><a href="/settings/akuntansi" class="nav-link "><i class="bi bi-sliders text-warning"></i> Pengaturan Akuntansi</a></li>
+                                                <li><a href="/fixed-assets" class="nav-link "><i class="bi bi-shield-check"></i> Aset Tetap</a></li>
+                                                                        <li><a href="/registrasi-jasa" class="nav-link "><i class="bi bi-gear-wide-connected"></i> Registrasi Jasa</a></li>
+                                            </ul>
+                </div>
+            </li>
+
+            <!-- Accordion Menu: Produksi Garmen -->
+                        <li class="nav-item">
+                <a href="#menuProduction" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Produksi">
+                    <i class="bi bi-tools"></i>
+                    <span class="nav-text">Produksi Garmen</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuProduction">
+                    <ul class="sub-menu">
+                                                <li><a href="http://localhost/produksi/bom" class="nav-link "><i class="bi bi-box-seam"></i> Master BOM (Resep)</a></li>
+                                                                        <li><a href="http://localhost/produksi/spk" class="nav-link "><i class="bi bi-file-earmark-ruled"></i> SPK / Work Order</a></li>
+                                                                        <li><a href="http://localhost/produksi/realisasi-produksi" class="nav-link "><i class="bi bi-clock-history"></i> Realisasi & Kontrol Tahapan</a></li>
+                                                                        <li><a href="http://localhost/produksi/pengeluaran-bahan" class="nav-link "><i class="bi bi-box-arrow-right"></i> Pengeluaran Bahan Baku</a></li>
+                                                                        <li><a href="http://localhost/produksi/barang-jadi" class="nav-link "><i class="bi bi-box-arrow-in-down-right"></i> Penerimaan Barang Jadi</a></li>
+                                                                        <li><a href="http://localhost/produksi/master-tahapan" class="nav-link "><i class="bi bi-diagram-3-fill"></i> Master Tahapan</a></li>
+                                            </ul>
+                </div>
+            </li>
+            
+            <div class="nav-label">Sistem</div>
+
+            <li class="nav-item">
+                <a href="#" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right"
+                    title="Laporan">
+                    <i class="bi bi-file-earmark-bar-graph"></i>
+                    <span class="nav-text">Laporan</span>
+                </a>
+            </li>
+            <!-- Accordion Menu: Pengaturan -->
+                        <li class="nav-item">
+                <a href="#menuSettings" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Pengaturan">
+                    <i class="bi bi-gear"></i>
+                    <span class="nav-text">Pengaturan</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuSettings">
+                    <ul class="sub-menu">
+                                                <li><a href="/viewusers" class="nav-link "><i class="bi bi-people"></i> Manajemen User</a></li>
+                                                                        <li><a href="/roles" class="nav-link "><i class="bi bi-shield-lock"></i> Hak Akses (Roles)</a></li>
+                        <li><a href="/app-settings" class="nav-link "><i class="bi bi-sliders"></i> Pengaturan Aplikasi</a></li>
+                        <li><a href="/activity-logs" class="nav-link "><i class="bi bi-clock-history"></i> Log Aktivitas User</a></li>
+                                                                        <li><a href="/settings/whatsapp" class="nav-link "><i class="bi bi-whatsapp text-success"></i> WhatsApp Gateway</a></li>
+                                            </ul>
+                </div>
+            </li>
+                    </ul>
+    </div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <main class="main-content">
+        <!-- Panggil komponen Navbar -->
+        <header class="top-navbar">
+     <style>
+         .company-header-badge {
+             background-color: #f1f5f9;
+             border: 1px solid #e2e8f0;
+         }
+         .company-header-text {
+             color: #1e293b;
+         }
+
+         /* ===== DARK MODE NAVBAR & BRANCH SWITCHER OVERRIDES ===== */
+         [data-bs-theme="dark"] #branchDropdownMenu,
+         html[data-theme="dark"] #branchDropdownMenu,
+         .dark-mode #branchDropdownMenu {
+             background-color: #0f172a !important;
+             border: 1px solid #334155 !important;
+             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+         }
+
+         [data-bs-theme="dark"] .company-header-badge,
+         html[data-theme="dark"] .company-header-badge,
+         .dark-mode .company-header-badge {
+             background-color: #1e293b !important;
+             border-color: #334155 !important;
+         }
+
+         [data-bs-theme="dark"] .company-header-text,
+         html[data-theme="dark"] .company-header-text,
+         .dark-mode .company-header-text {
+             color: #60a5fa !important;
+         }
+
+         [data-bs-theme="dark"] #branchDropdownBtn,
+         html[data-theme="dark"] #branchDropdownBtn,
+         .dark-mode #branchDropdownBtn {
+             background: linear-gradient(135deg, #1e293b, #0f172a) !important;
+             border-color: #334155 !important;
+             color: #f8fafc !important;
+         }
+
+         [data-bs-theme="dark"] #branchDropdownBtn .text-muted,
+         html[data-theme="dark"] #branchDropdownBtn .text-muted,
+         .dark-mode #branchDropdownBtn .text-muted {
+             color: #94a3b8 !important;
+         }
+
+         [data-bs-theme="dark"] #branchDropdownMenu .dropdown-item,
+         html[data-theme="dark"] #branchDropdownMenu .dropdown-item,
+         .dark-mode #branchDropdownMenu .dropdown-item {
+             color: #cbd5e1 !important;
+         }
+
+         [data-bs-theme="dark"] #branchDropdownMenu .dropdown-item:hover,
+         html[data-theme="dark"] #branchDropdownMenu .dropdown-item:hover,
+         .dark-mode #branchDropdownMenu .dropdown-item:hover {
+             background-color: #1e293b !important;
+             color: #ffffff !important;
+         }
+
+         [data-bs-theme="dark"] #branchDropdownMenu .dropdown-item.active,
+         html[data-theme="dark"] #branchDropdownMenu .dropdown-item.active,
+         .dark-mode #branchDropdownMenu .dropdown-item.active {
+             background-color: rgba(37, 99, 235, 0.25) !important;
+             color: #60a5fa !important;
+         }
+
+         [data-bs-theme="dark"] #branchDropdownMenu .text-muted,
+         html[data-theme="dark"] #branchDropdownMenu .text-muted,
+         .dark-mode #branchDropdownMenu .text-muted {
+             color: #94a3b8 !important;
+         }
+     </style>
+     <div class="d-flex align-items-center">
+         <button class="btn-icon me-3" id="sidebarToggle">
+             <i class="bi bi-list fs-4"></i>
+         </button>
+
+         <!-- Search Box -->
+         <div class="d-none d-md-flex align-items-center navbar-search rounded-pill px-3 py-1">
+             <i class="bi bi-search navbar-search-icon"></i>
+             <input type="text" class="navbar-search-input border-0 bg-transparent shadow-none w-100 ms-2"
+                 placeholder="Cari order, stok..." style="min-width: 250px;"
+                 autocomplete="off">
+         </div>
+     </div>
+
+     <div class="d-flex align-items-center gap-2">
+
+         
+                    
+                    <div class="dropdown" id="branchSwitcherDropdown">
+              <button
+                  class="btn btn-sm d-flex align-items-center gap-2 rounded-pill px-3 py-2 border"
+                  style="background: linear-gradient(135deg, #e0eafc, #cfdef3); border-color: #a8c3e8 !important; color: #1e3a5f;"
+                  data-bs-toggle="dropdown"
+                  title="PT Persada Aman Sentosa"
+                  id="branchDropdownBtn">
+                  <i class="bi bi-building-fill" style="color: #2563eb;"></i>
+                  <div class="d-none d-sm-flex flex-column text-start" style="line-height: 1.1;">
+                                                <span class="fw-semibold" style="font-size: 0.8rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                              PT Persada Aman Sentosa
+                          </span>
+                                        </div>
+                                        <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.65rem;">Pusat</span>
+                  
+                                    <i class="bi bi-chevron-down ms-1" style="font-size: 0.7rem;"></i>
+                                </button>
+
+                            <div class="dropdown-menu shadow border-0 mt-2 p-2" style="min-width: 260px; max-height: 380px; overflow-y: auto; border-radius: 14px;" id="branchDropdownMenu">
+                  <div class="px-2 pb-2 mb-1 border-bottom">
+                      <p class="text-muted fw-semibold mb-0" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                          <i class="bi bi-arrow-left-right me-1"></i> Pilih PT & Cabang
+                      </p>
+                  </div>
+                  <div id="branchList">
+                      <!-- Diisi oleh JavaScript -->
+                      <div class="text-center py-2">
+                          <span class="spinner-border spinner-border-sm text-primary"></span>
+                      </div>
+                  </div>
+              </div>
+                        </div>
+                             
+
+         <div class="vr mx-1 text-muted d-none d-sm-block"></div>
+
+
+
+         <!-- Theme Toggle -->
+         <button class="btn-icon" id="themeToggle" data-bs-toggle="tooltip" title="Toggle Dark Mode">
+             <i class="bi bi-moon fs-5"></i>
+         </button>
+
+         <!-- Fullscreen Toggle -->
+         <button class="btn-icon d-none d-sm-inline-flex" id="fullscreenToggle" data-bs-toggle="tooltip"
+             title="Fullscreen">
+             <i class="bi bi-arrows-fullscreen fs-6"></i>
+         </button>
+
+         <!-- Notifications -->
+         
+         <div class="dropdown">
+             <button class="btn-icon position-relative" data-bs-toggle="dropdown">
+                 <i class="bi bi-bell fs-5"></i>
+                                      <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+                              </button>
+             <div class="dropdown-menu dropdown-menu-end shadow border-0"
+                 style="width: 320px; border-radius: var(--border-radius-md);">
+                 <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                     <h6 class="mb-0 fw-bold">Notifikasi</h6>
+                     <span class="badge bg-primary rounded-pill">2 Baru</span>
+                 </div>
+                 <div class="p-2" style="max-height: 300px; overflow-y: auto;">
+                                              <a href="/stok" class="dropdown-item d-flex align-items-start py-2 rounded mb-1 text-wrap">
+                             <div class="icon-box bg-danger-soft text-danger me-3 d-flex align-items-center justify-content-center" style="width:36px; height:36px; flex-shrink: 0; border-radius: 8px;">
+                                 <i class="bi bi-exclamation-triangle fs-6"></i>
+                             </div>
+                             <div style="min-width: 0;">
+                                 <p class="mb-0 fw-semibold fs-7 text-dark text-truncate">Peringatan Stok Menipis</p>
+                                 <small class="text-muted text-wrap d-block fs-8" style="line-height: 1.25;">Terdapat 1 item barang dengan stok menipis.</small>
+                             </div>
+                         </a>
+                                              <a href="#" class="dropdown-item d-flex align-items-start py-2 rounded mb-1 text-wrap">
+                             <div class="icon-box bg-success-soft text-success me-3 d-flex align-items-center justify-content-center" style="width:36px; height:36px; flex-shrink: 0; border-radius: 8px;">
+                                 <i class="bi bi-check-circle fs-6"></i>
+                             </div>
+                             <div style="min-width: 0;">
+                                 <p class="mb-0 fw-semibold fs-7 text-dark text-truncate">Sesi Aktif: Super Admin</p>
+                                 <small class="text-muted text-wrap d-block fs-8" style="line-height: 1.25;">Anda masuk sebagai Super Admin. Modul Anda siap digunakan.</small>
+                             </div>
+                         </a>
+                                      </div>
+                                                           <div class="p-2 border-top text-center">
+                         <a href="/activity-logs" class="text-primary fw-medium text-decoration-none fs-7">Lihat Riwayat Log</a>
+                     </div>
+                                                   </div>
+         </div>
+
+         <div class="vr mx-2 text-muted"></div>
+
+         <!-- User Profile -->
+         <div class="dropdown">
+             <button class="btn border-0 bg-transparent d-flex align-items-center p-0" data-bs-toggle="dropdown">
+                                  <img src="http://localhost/gambar/laki.jpg"
+                     alt="User" class="rounded-circle border border-2" width="36" height="36" style="object-fit: cover;">
+                 <div class="d-none d-md-block text-start ms-2">
+                     <h6 class="mb-0 fw-semibold fs-7" style="color: var(--text-main);">CP</h6>
+                     <small class="text-muted" style="font-size: 0.7rem;">Super Admin</small>
+                 </div>
+                                  <i class="bi bi-chevron-down ms-2 fs-7 text-muted d-none d-md-block"></i>
+             </button>
+             <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2"
+                 style="border-radius: var(--border-radius-md);">
+                 <li><a class="dropdown-item py-2" href="http://localhost/profile"><i class="bi bi-person me-2"></i> My Profile</a></li>
+                 <li><a class="dropdown-item py-2" href="http://localhost/profile"><i class="bi bi-gear me-2"></i> Account Settings</a>
+                 </li>
+                 <li>
+                     <hr class="dropdown-divider">
+                 </li>
+                 <li>
+                     <form method="POST" action="http://localhost/logout">
+                         <input type="hidden" name="_token" value="5WU0qUDuPaEl4WKozbmo3UklPDQtxdqUjXRJVr6T" autocomplete="off">                         <button type="submit" class="dropdown-item py-2 text-danger">
+                             <i class="bi bi-box-arrow-right me-2"></i> Sign Out
+                         </button>
+                     </form>
+                 </li>
+             </ul>
+         </div>
+
+
+
+     </div>
+
+     
+          
+
+ </header>
+
+        <!-- Area ini akan diisi oleh konten dari halaman yang sedang dibuka -->
+        <div class="content-body">
+            <div class="container-fluid py-2 px-2 px-md-4 pc-container">
+        
+        <!-- =========================================================================
+             1. HEADER TOOLBAR & ENTITAS ACTIVE PILL
+             ========================================================================= -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
+            <div>
+                <nav aria-label="breadcrumb" class="d-none d-md-block">
+                    <ol class="breadcrumb mb-1 small">
+                        <li class="breadcrumb-item"><a href="http://localhost/dashbord" class="text-decoration-none"><i class="bi bi-house-door"></i> Dashboard</a></li>
+                        <li class="breadcrumb-item text-muted">Akuntansi &amp; Keuangan</li>
+                        <li class="breadcrumb-item active fw-bold text-success" aria-current="page">Kas Kecil (Petty Cash)</li>
+                    </ol>
+                </nav>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="p-2 rounded-3 text-white d-inline-flex shadow-sm" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);">
+                        <i class="bi bi-wallet2 fs-5"></i>
+                    </span>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-body-emphasis fs-5 fs-md-4">Kas Kecil (Petty Cash)</h4>
+                        <p class="text-muted small mb-0 d-none d-sm-block">Pencatatan pengeluaran harian, pengisian, dan klaim terintegrasi COA &amp; Tender.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entitas Status Badge & Quick Action Header -->
+            <div class="d-flex flex-wrap align-items-center gap-2 w-100 w-md-auto justify-content-between justify-content-md-end">
+                <div class="badge bg-body border shadow-sm rounded-pill px-3 py-2 text-body d-flex align-items-center gap-2">
+                    <span class="p-1 rounded-circle bg-success d-inline-block"></span>
+                    <span class="fw-bold small">PT Persada Aman Sentosa</span>
+                    <span class="badge bg-primary-subtle text-primary border-primary-subtle border rounded-pill" style="font-size: 10px;">
+                        Pusat
+                    </span>
+                </div>
+
+                <button type="button" class="btn btn-success btn-sm rounded-pill px-3.5 py-2 fw-bold shadow-sm d-none d-md-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalInputPettyCash" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border: none;">
+                    <i class="bi bi-plus-circle fs-6"></i>
+                    <span>Tambah Transaksi</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- =========================================================================
+             2. DIGITAL WALLET CARD (HERO BENTO CARD SALDO KAS KECIL)
+             ========================================================================= -->
+        <div class="row g-3 mb-3">
+            <!-- Main Hero Wallet Card (Gradient Fintech Look) -->
+            <div class="col-12 col-xl-7">
+                <div class="card border-0 text-white rounded-4 shadow-sm position-relative overflow-hidden pc-wallet-hero" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #064e3b 100%); min-height: 185px;">
+                    <!-- Decorative Background Shapes -->
+                    <div class="position-absolute end-0 top-0 opacity-10 pe-none" style="transform: translate(20%, -20%);">
+                        <i class="bi bi-wallet2" style="font-size: 240px;"></i>
+                    </div>
+
+                    <div class="card-body p-3 p-md-4 d-flex flex-column justify-content-between position-relative z-1">
+                        <!-- Top Row: Card Title & Eye Toggle -->
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-white bg-opacity-20 backdrop-blur rounded-pill px-2.5 py-1 text-white small font-monospace">
+                                    <i class="bi bi-shield-check text-warning me-1"></i> Saldo Kas Kecil
+                                </span>
+                                <span class="small text-white-50 font-monospace d-none d-sm-inline">
+                                    (PT Persada Aman Sentosa)
+                                </span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-link text-white-50 p-0 text-decoration-none" id="btnToggleBalance" title="Sembunyikan/Tampilkan Saldo">
+                                <i class="bi bi-eye fs-5" id="iconEyeBalance"></i>
+                            </button>
+                        </div>
+
+                        <!-- Middle Row: Single Focused Balance Display -->
+                        <div class="my-2">
+                            <div class="text-white-50 small mb-0.5 font-monospace">Saldo Berjalan Saat Ini</div>
+                            <h2 class="fw-bold font-monospace mb-0 text-white pc-balance-val fs-2 fs-md-1" data-nominal="6774900">
+                                Rp 6.774.900
+                            </h2>
+                        </div>
+
+                        <!-- Bottom Row: Quick Action Pill Buttons (Mobile Ready) -->
+                        <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top border-white border-opacity-10">
+                            <button type="button" class="btn btn-sm btn-danger text-white rounded-pill px-3 py-1.5 fw-bold shadow-sm d-flex align-items-center gap-1.5 flex-grow-1 flex-md-grow-0 justify-content-center btn-quick-action" data-type="Pengeluaran">
+                                <i class="bi bi-dash-circle"></i>
+                                <span>+ Kas Keluar</span>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-success text-white rounded-pill px-3 py-1.5 fw-bold shadow-sm d-flex align-items-center gap-1.5 flex-grow-1 flex-md-grow-0 justify-content-center btn-quick-action" data-type="Pemasukan" style="background-color: #059669; border-color: #059669;">
+                                <i class="bi bi-plus-circle"></i>
+                                <span>+ Pengisian</span>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-warning text-dark rounded-pill px-3 py-1.5 fw-bold shadow-sm d-flex align-items-center gap-1.5 flex-grow-1 flex-md-grow-0 justify-content-center btn-quick-action" data-type="Klaim">
+                                <i class="bi bi-receipt"></i>
+                                <span>+ Klaim Bon</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stat Metric Cards (Bulan Ini) -->
+            <div class="col-12 col-xl-5">
+                <div class="row g-2 g-md-3 h-100">
+                    <!-- Pengeluaran Bulan Ini -->
+                    <div class="col-6 col-xl-12">
+                        <div class="card border-0 shadow-sm rounded-4 h-100 bg-body">
+                            <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-muted small fw-semibold mb-0.5">Pengeluaran Bulan Ini</div>
+                                    <h5 class="fw-bold font-monospace mb-0 text-danger fs-6 fs-md-5">- Rp 150.100</h5>
+                                    <div class="small text-muted mt-0.5 font-monospace" style="font-size: 11px;"><i class="bi bi-arrow-down-right text-danger"></i> Biaya Operasional</div>
+                                </div>
+                                <div class="p-2.5 rounded-3 bg-danger-subtle text-danger d-inline-flex">
+                                    <i class="bi bi-cash-stack fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pengisian / Inflow Bulan Ini -->
+                    <div class="col-6 col-xl-12">
+                        <div class="card border-0 shadow-sm rounded-4 h-100 bg-body">
+                            <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-muted small fw-semibold mb-0.5">Pengisian Bulan Ini</div>
+                                    <h5 class="fw-bold font-monospace mb-0 text-success fs-6 fs-md-5">+ Rp 2.000.000</h5>
+                                    <div class="small text-muted mt-0.5 font-monospace" style="font-size: 11px;"><i class="bi bi-arrow-up-left text-success"></i> Top Up Kas Kecil</div>
+                                </div>
+                                <div class="p-2.5 rounded-3 bg-success-subtle text-success d-inline-flex">
+                                    <i class="bi bi-piggy-bank fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================================
+             3. FILTER BAR & SEARCH
+             ========================================================================= -->
+        <div class="card border-0 shadow-sm rounded-4 mb-3 bg-body">
+            <div class="card-body p-2.5 p-md-3">
+                <form action="http://localhost/accounting/petty-cash" method="GET" id="formFilterPettyCash">
+                    
+                    <div class="row g-2 align-items-center">
+                        <!-- Search Box -->
+                        <div class="col-12 col-md-5">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-body border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                                <input type="text" name="search" class="form-control form-control-sm border-start-0" placeholder="Cari no transaksi, pengaju, catatan..." value="">
+                                                                <button type="submit" class="btn btn-secondary btn-sm">Cari</button>
+                            </div>
+                        </div>
+
+                        <!-- Tender Filter Dropdown -->
+                        <div class="col-6 col-md-3">
+                            <select name="tender_id" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                                <option value="">-- Filter Tender --</option>
+                                                                    <option value="7" >
+                                        🎯 TND/20260822/0002
+                                    </option>
+                                                                    <option value="6" >
+                                        🎯 TND/20260822/0001
+                                    </option>
+                                                                    <option value="8" >
+                                        🎯 TDN-003
+                                    </option>
+                                                            </select>
+                        </div>
+
+                        <!-- Type Chips -->
+                        <div class="col-6 col-md-4 d-flex flex-wrap align-items-center justify-content-end gap-1.5">
+                            <a href="http://localhost/accounting/petty-cash?tipe=all" class="btn btn-sm rounded-pill px-2.5 py-1 btn-dark" style="font-size: 12px;">
+                                Semua
+                            </a>
+                            <a href="http://localhost/accounting/petty-cash?tipe=Pengeluaran" class="btn btn-sm rounded-pill px-2.5 py-1 btn-outline-danger" style="font-size: 12px;">
+                                🔴 Keluar
+                            </a>
+                            <a href="http://localhost/accounting/petty-cash?tipe=Pemasukan" class="btn btn-sm rounded-pill px-2.5 py-1 btn-outline-success" style="font-size: 12px;">
+                                🟢 Pengisian
+                            </a>
+                            <a href="http://localhost/accounting/petty-cash?tipe=Klaim" class="btn btn-sm rounded-pill px-2.5 py-1 btn-outline-warning text-dark" style="font-size: 12px;">
+                                🟡 Klaim
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1" data-bs-toggle="collapse" data-bs-target="#collapseDateFilter" title="Filter Tanggal">
+                                <i class="bi bi-calendar3"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Date Filter -->
+                    <div class="collapse mt-2 pt-2 border-top " id="collapseDateFilter">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-6 col-md-3">
+                                <label class="small text-muted" style="font-size: 11px;">Dari Tanggal:</label>
+                                <input type="date" name="start_date" class="form-control form-control-sm rounded-3" value="2026-08-01">
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="small text-muted" style="font-size: 11px;">Sampai Tanggal:</label>
+                                <input type="date" name="end_date" class="form-control form-control-sm rounded-3" value="2026-08-31">
+                            </div>
+                            <div class="col-12 col-md-2 mt-auto">
+                                <button type="submit" class="btn btn-primary btn-sm rounded-pill w-100 fw-semibold">Terapkan Tanggal</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- =========================================================================
+             4. MOBILE TRANSACTION CARDS FEED (OPTIMIZED FOR HP)
+             ========================================================================= -->
+        <div class="d-block d-lg-none mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                <span class="small fw-bold text-muted text-uppercase">Daftar Transaksi (3)</span>
+                <span class="small text-muted">Hal 1 / 1</span>
+            </div>
+
+                                            <div class="card border-0 shadow-sm rounded-4 mb-2.5 bg-body pc-trx-mobile-card" data-id="4">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-start justify-content-between gap-2">
+                            <!-- Left: Icon & Info -->
+                            <div class="d-flex align-items-start gap-2.5">
+                                <div class="p-2.5 rounded-4 bg-danger-subtle text-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                                    <i class="bi bi-fuel-pump fs-5"></i>
+                                </div>
+                                <div>
+                                    <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                        <span class="fw-bold text-body-emphasis small">BBM &amp; Transportasi</span>
+                                        <span class="badge bg-danger-subtle text-danger border-danger-subtle border rounded-pill px-2 py-0.5 font-monospace" style="font-size: 10px;">Pengeluaran</span>
+                                    </div>
+                                    <p class="small text-muted mb-0 font-monospace" style="font-size: 11px;">
+                                        29 Aug 2026 &bull; PC-PT-260829-0003
+                                    </p>
+                                                                            <p class="small text-body-secondary mb-1 text-truncate" style="max-width: 200px; font-size: 11px;">
+                                            perjalanan tol
+                                        </p>
+                                    
+                                    <!-- Tag Tender (Jika ada) -->
+                                                                            <div class="mt-1">
+                                            <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill font-monospace" style="font-size: 10px;">
+                                                🎯 TND/20260822/0002
+                                            </span>
+                                        </div>
+                                                                    </div>
+                            </div>
+
+                            <!-- Right: Nominal & Action -->
+                            <div class="text-end flex-shrink-0">
+                                <span class="fw-bold font-monospace d-block text-danger fs-6">
+                                    - Rp 100
+                                </span>
+
+                                                                    <a href="http://localhost/storage/petty_cash_receipts/nota_1787998959_6a92b2efd07d7.png" target="_blank" class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-0.5 text-decoration-none mt-1 d-inline-block" onclick="event.stopPropagation();">
+                                        <i class="bi bi-paperclip"></i> Nota
+                                    </a>
+                                
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-light border rounded-pill px-2.5 py-0.5 text-muted btn-detail-pc" data-id="4" style="font-size: 11px;">
+                                        Detail
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                                            <div class="card border-0 shadow-sm rounded-4 mb-2.5 bg-body pc-trx-mobile-card" data-id="3">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-start justify-content-between gap-2">
+                            <!-- Left: Icon & Info -->
+                            <div class="d-flex align-items-start gap-2.5">
+                                <div class="p-2.5 rounded-4 bg-success-subtle text-success d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                                    <i class="bi bi-piggy-bank fs-5"></i>
+                                </div>
+                                <div>
+                                    <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                        <span class="fw-bold text-body-emphasis small">Pengisian Kas Kecil</span>
+                                        <span class="badge bg-success-subtle text-success border-success-subtle border rounded-pill px-2 py-0.5 font-monospace" style="font-size: 10px;">Pemasukan</span>
+                                    </div>
+                                    <p class="small text-muted mb-0 font-monospace" style="font-size: 11px;">
+                                        29 Aug 2026 &bull; PC-PT-260829-0002
+                                    </p>
+                                                                            <p class="small text-body-secondary mb-1 text-truncate" style="max-width: 200px; font-size: 11px;">
+                                            Pengisian kas kecil awal minggu dari Bank BCA
+                                        </p>
+                                    
+                                    <!-- Tag Tender (Jika ada) -->
+                                                                    </div>
+                            </div>
+
+                            <!-- Right: Nominal & Action -->
+                            <div class="text-end flex-shrink-0">
+                                <span class="fw-bold font-monospace d-block text-success fs-6">
+                                    + Rp 2.000.000
+                                </span>
+
+                                
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-light border rounded-pill px-2.5 py-0.5 text-muted btn-detail-pc" data-id="3" style="font-size: 11px;">
+                                        Detail
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                                            <div class="card border-0 shadow-sm rounded-4 mb-2.5 bg-body pc-trx-mobile-card" data-id="1">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-start justify-content-between gap-2">
+                            <!-- Left: Icon & Info -->
+                            <div class="d-flex align-items-start gap-2.5">
+                                <div class="p-2.5 rounded-4 bg-info-subtle text-info d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                                    <i class="bi bi-paperclip fs-5"></i>
+                                </div>
+                                <div>
+                                    <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                        <span class="fw-bold text-body-emphasis small">Operasional &amp; ATK</span>
+                                        <span class="badge bg-danger-subtle text-danger border-danger-subtle border rounded-pill px-2 py-0.5 font-monospace" style="font-size: 10px;">Pengeluaran</span>
+                                    </div>
+                                    <p class="small text-muted mb-0 font-monospace" style="font-size: 11px;">
+                                        29 Aug 2026 &bull; PC-PT-260829-0001
+                                    </p>
+                                                                            <p class="small text-body-secondary mb-1 text-truncate" style="max-width: 200px; font-size: 11px;">
+                                            Beli kertas HVS dan tinta printer kantor pusat
+                                        </p>
+                                    
+                                    <!-- Tag Tender (Jika ada) -->
+                                                                            <div class="mt-1">
+                                            <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill font-monospace" style="font-size: 10px;">
+                                                🎯 TND/20260822/0001
+                                            </span>
+                                        </div>
+                                                                    </div>
+                            </div>
+
+                            <!-- Right: Nominal & Action -->
+                            <div class="text-end flex-shrink-0">
+                                <span class="fw-bold font-monospace d-block text-danger fs-6">
+                                    - Rp 150.000
+                                </span>
+
+                                
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-light border rounded-pill px-2.5 py-0.5 text-muted btn-detail-pc" data-id="1" style="font-size: 11px;">
+                                        Detail
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+            <!-- Mobile Pagination -->
+            <div class="d-flex justify-content-center mt-3">
+                
+            </div>
+        </div>
+
+        <!-- =========================================================================
+             5. DESKTOP & TABLET DATA TABLE
+             ========================================================================= -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 d-none d-lg-block bg-body">
+            <div class="card-header bg-transparent border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold text-body-emphasis mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-journal-text text-success"></i> Riwayat Pembukuan Kas Kecil &bull; PT Persada Aman Sentosa
+                </h6>
+                <span class="badge bg-secondary-subtle text-secondary rounded-pill font-monospace px-3 py-1">Total: 3 Data</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="desktopTablePettyCash">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">No. Transaksi</th>
+                                <th>Tanggal</th>
+                                <th>Kategori &amp; Keterangan</th>
+                                <th>Akun Kas (COA)</th>
+                                <th>Lawan COA (Beban)</th>
+                                <th>Tender/Proyek</th>
+                                <th class="text-end">Nominal</th>
+                                <th class="text-center">Bukti</th>
+                                <th class="text-center pe-4">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                                                                            <tr>
+                                    <td class="ps-4 font-monospace fw-bold text-body-emphasis">
+                                        PC-PT-260829-0003
+                                        <div class="small fw-normal text-muted">suratmi</div>
+                                    </td>
+                                    <td class="font-monospace text-muted small">
+                                        29/08/2026
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-body-emphasis small">BBM &amp; Transportasi</div>
+                                        <div class="text-muted small text-truncate" style="max-width: 220px;">perjalanan tol</div>
+                                    </td>
+                                    <td class="small">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-monospace" style="font-size: 11px;">
+                                            1101
+                                        </span>
+                                        <div class="text-truncate" style="max-width: 140px; font-size: 11px;">Kas Kecil / Kasir</div>
+                                    </td>
+                                    <td class="small">
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill font-monospace" style="font-size: 11px;">
+                                            1102
+                                        </span>
+                                        <div class="text-truncate" style="max-width: 140px; font-size: 11px;">Bank BCA</div>
+                                    </td>
+                                    <td>
+                                                                                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill font-monospace px-2 py-1" style="font-size: 11px;">
+                                                🎯 TND/20260822/0002
+                                            </span>
+                                                                            </td>
+                                    <td class="text-end font-monospace fw-bold text-danger">
+                                        - Rp 100
+                                    </td>
+                                    <td class="text-center">
+                                                                                    <a href="http://localhost/storage/petty_cash_receipts/nota_1787998959_6a92b2efd07d7.png" target="_blank" class="btn btn-sm btn-outline-info rounded-circle p-1.5 lh-1" title="Lihat Struk">
+                                                <i class="bi bi-paperclip"></i>
+                                            </a>
+                                                                            </td>
+                                    <td class="text-center pe-4">
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-info btn-detail-pc" data-id="' . $trx->id . '" title="Detail Voucher" onclick="loadPettyCashDetail(4)"><i class="bi bi-eye"></i></button>
+                                            <button type="button" class="btn btn-outline-warning btn-edit-pc" data-id="4" title="Edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="btn btn-outline-danger btn-delete-pc" data-id="4" title="Hapus"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                                                                            <tr>
+                                    <td class="ps-4 font-monospace fw-bold text-body-emphasis">
+                                        PC-PT-260829-0002
+                                        <div class="small fw-normal text-muted">Finance Pusat</div>
+                                    </td>
+                                    <td class="font-monospace text-muted small">
+                                        29/08/2026
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-body-emphasis small">Pengisian Kas Kecil</div>
+                                        <div class="text-muted small text-truncate" style="max-width: 220px;">Pengisian kas kecil awal minggu dari Bank BCA</div>
+                                    </td>
+                                    <td class="small">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-monospace" style="font-size: 11px;">
+                                            1101
+                                        </span>
+                                        <div class="text-truncate" style="max-width: 140px; font-size: 11px;">Kas Kecil / Kasir</div>
+                                    </td>
+                                    <td class="small">
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill font-monospace" style="font-size: 11px;">
+                                            1101
+                                        </span>
+                                        <div class="text-truncate" style="max-width: 140px; font-size: 11px;">Kas Kecil / Kasir</div>
+                                    </td>
+                                    <td>
+                                                                                    <span class="text-muted small">-</span>
+                                                                            </td>
+                                    <td class="text-end font-monospace fw-bold text-success">
+                                        + Rp 2.000.000
+                                    </td>
+                                    <td class="text-center">
+                                                                                    <span class="text-muted small">-</span>
+                                                                            </td>
+                                    <td class="text-center pe-4">
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-info btn-detail-pc" data-id="' . $trx->id . '" title="Detail Voucher" onclick="loadPettyCashDetail(3)"><i class="bi bi-eye"></i></button>
+                                            <button type="button" class="btn btn-outline-warning btn-edit-pc" data-id="3" title="Edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="btn btn-outline-danger btn-delete-pc" data-id="3" title="Hapus"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                                                                            <tr>
+                                    <td class="ps-4 font-monospace fw-bold text-body-emphasis">
+                                        PC-PT-260829-0001
+                                        <div class="small fw-normal text-muted">Budi Staff Pusat</div>
+                                    </td>
+                                    <td class="font-monospace text-muted small">
+                                        29/08/2026
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-body-emphasis small">Operasional &amp; ATK</div>
+                                        <div class="text-muted small text-truncate" style="max-width: 220px;">Beli kertas HVS dan tinta printer kantor pusat</div>
+                                    </td>
+                                    <td class="small">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-monospace" style="font-size: 11px;">
+                                            1101
+                                        </span>
+                                        <div class="text-truncate" style="max-width: 140px; font-size: 11px;">Kas Kecil / Kasir</div>
+                                    </td>
+                                    <td class="small">
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill font-monospace" style="font-size: 11px;">
+                                            1112
+                                        </span>
+                                        <div class="text-truncate" style="max-width: 140px; font-size: 11px;">Piutang Karyawan / Biaya Dibayar Dimuka</div>
+                                    </td>
+                                    <td>
+                                                                                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill font-monospace px-2 py-1" style="font-size: 11px;">
+                                                🎯 TND/20260822/0001
+                                            </span>
+                                                                            </td>
+                                    <td class="text-end font-monospace fw-bold text-danger">
+                                        - Rp 150.000
+                                    </td>
+                                    <td class="text-center">
+                                                                                    <span class="text-muted small">-</span>
+                                                                            </td>
+                                    <td class="text-center pe-4">
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-info btn-detail-pc" data-id="' . $trx->id . '" title="Detail Voucher" onclick="loadPettyCashDetail(1)"><i class="bi bi-eye"></i></button>
+                                            <button type="button" class="btn btn-outline-warning btn-edit-pc" data-id="1" title="Edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="btn btn-outline-danger btn-delete-pc" data-id="1" title="Hapus"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                                    </tbody>
+                    </table>
+                </div>
+                <!-- Desktop Pagination -->
+                <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                    <span class="small text-muted">Menampilkan 1 - 3 dari 3 transaksi</span>
+                    
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FLOATING ACTION BUTTON (FAB) -->
+    <button type="button" class="btn btn-success rounded-circle shadow-lg d-flex d-md-none align-items-center justify-content-center pc-fab-btn" data-bs-toggle="modal" data-bs-target="#modalInputPettyCash" title="Input Kas Kecil">
+        <i class="bi bi-plus-lg fs-4"></i>
+    </button>
+
+    <!-- PUSH MODALS -->
+    
+    <!-- PUSH CUSTOM STYLES & SCRIPTS -->
+        </div>
+
+        <!-- Panggil komponen Footer -->
+        <footer class="mt-auto py-3 px-4 bg-white border-top text-center text-md-start d-md-flex justify-content-between"
+    style="background-color: var(--navbar-bg) !important;">
+    <span class="text-muted fs-7">©CP 2026 <strong class="text-primary">Satria ERP</strong>
+        </span>
+</footer>
+    </main>
+
+    <!-- Modal Container Outside Main Stacking Context -->
+            <!-- MODAL INPUT TRANSAKSI KAS KECIL (MOBILE-OPTIMIZED) -->
+<div class="modal fade" id="modalInputPettyCash" tabindex="-1" aria-labelledby="modalInputPettyCashLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <form id="formInputPettyCash" class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" enctype="multipart/form-data">
+            <input type="hidden" name="_token" value="5WU0qUDuPaEl4WKozbmo3UklPDQtxdqUjXRJVr6T" autocomplete="off">            
+            <!-- Modal Header with Gradient -->
+            <div class="modal-header border-0 text-white px-3 px-md-4 py-3 flex-shrink-0" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="p-2 rounded-3 bg-white bg-opacity-10 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-wallet2 fs-5 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="modalInputPettyCashLabel">Input Kas Kecil (Petty Cash)</h5>
+                        <p class="text-white-50 small mb-0 font-monospace">PT Persada Aman Sentosa</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Body Scrollable -->
+            <div class="modal-body px-3 px-md-4 py-3 bg-body-tertiary" style="overflow-y: auto; -webkit-overflow-scrolling: touch; max-height: calc(100vh - 170px);">
+
+                <!-- STEP 1: Pilih Tipe Transaksi (Pills Touch-Friendly) -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-2">1. Jenis Transaksi</label>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="tipe" id="tipe_pengeluaran" value="Pengeluaran" checked>
+                            <label class="btn btn-outline-danger w-100 py-2.5 px-2 rounded-3 d-flex flex-column align-items-center gap-1 pc-type-btn" for="tipe_pengeluaran">
+                                <i class="bi bi-arrow-up-right-circle fs-5"></i>
+                                <span class="fw-bold small">Pengeluaran</span>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="tipe" id="tipe_pemasukan" value="Pemasukan">
+                            <label class="btn btn-outline-success w-100 py-2.5 px-2 rounded-3 d-flex flex-column align-items-center gap-1 pc-type-btn" for="tipe_pemasukan">
+                                <i class="bi bi-arrow-down-left-circle fs-5"></i>
+                                <span class="fw-bold small">Pengisian</span>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="tipe" id="tipe_klaim" value="Klaim">
+                            <label class="btn btn-outline-warning w-100 py-2.5 px-2 rounded-3 d-flex flex-column align-items-center gap-1 pc-type-btn" for="tipe_klaim">
+                                <i class="bi bi-receipt-cutoff fs-5"></i>
+                                <span class="fw-bold small">Klaim / Bon</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Nominal Transaksi & Quick Nominal Chips -->
+                <div class="card border-0 shadow-sm rounded-3 mb-3 bg-body">
+                    <div class="card-body p-3">
+                        <label class="form-label small fw-bold text-muted text-uppercase mb-1">2. Nominal (Rupiah) <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-lg mb-2">
+                            <span class="input-group-text bg-light fw-bold border-end-0 text-muted">Rp</span>
+                            <input type="text" name="nominal" id="input_nominal" class="form-control form-control-lg fw-bold font-monospace text-primary border-start-0 fs-4" placeholder="0" inputmode="numeric" required autocomplete="off">
+                        </div>
+                        
+                        <!-- Quick Nominal Chips for fast phone typing -->
+                        <div class="d-flex flex-wrap gap-1.5">
+                            <button type="button" class="btn btn-sm btn-light border rounded-pill px-2.5 py-1 text-muted small btn-quick-nominal" data-amount="20000">+20rb</button>
+                            <button type="button" class="btn btn-sm btn-light border rounded-pill px-2.5 py-1 text-muted small btn-quick-nominal" data-amount="50000">+50rb</button>
+                            <button type="button" class="btn btn-sm btn-light border rounded-pill px-2.5 py-1 text-muted small btn-quick-nominal" data-amount="100000">+100rb</button>
+                            <button type="button" class="btn btn-sm btn-light border rounded-pill px-2.5 py-1 text-muted small btn-quick-nominal" data-amount="250000">+250rb</button>
+                            <button type="button" class="btn btn-sm btn-light border rounded-pill px-2.5 py-1 text-muted small btn-quick-nominal" data-amount="500000">+500rb</button>
+                            <button type="button" class="btn btn-sm btn-light border rounded-pill px-2.5 py-1 text-muted small btn-quick-nominal" data-amount="1000000">+1jt</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1 text-muted small btn-clear-nominal" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Kategori Cepat & Tanggal -->
+                <div class="card border-0 shadow-sm rounded-3 mb-3 bg-body">
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1">Tanggal Transaksi <span class="text-danger">*</span></label>
+                                <input type="date" name="tanggal" id="input_tanggal" class="form-control rounded-3" value="2026-08-29" required>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1">Nama Pemohon / Pengaju</label>
+                                <input type="text" name="nama_pengaju" id="input_nama_pengaju" class="form-control rounded-3" placeholder="Contoh: Budi (Driver), Ani (Admin)" value="Cahyo Prasetyo Nugroho">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1">Kategori Transaksi <span class="text-danger">*</span></label>
+                                <input type="text" name="kategori" id="input_kategori" class="form-control rounded-3 mb-2" placeholder="Pilih chip di bawah atau ketik manual..." value="Operasional & ATK" required>
+                                <!-- Category Chips -->
+                                <div class="d-flex flex-wrap gap-1.5" id="categoryChips">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-0.5 small btn-cat-chip" data-cat="Operasional & ATK">📁 ATK & Kantor</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-0.5 small btn-cat-chip" data-cat="BBM & Transportasi">⛽ Bensin & Tol</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-0.5 small btn-cat-chip" data-cat="Konsumsi & Jamuan">☕ Konsumsi / Makan</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-0.5 small btn-cat-chip" data-cat="Kurir & Ekspedisi">📦 Ongkir / Kurir</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-0.5 small btn-cat-chip" data-cat="Maintenance & Kebersihan">🧹 Kebersihan / Servis</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-0.5 small btn-cat-chip" data-cat="Pengisian Kas Kecil">💵 Pengisian Kas</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 4: Koneksi COA & Hubungkan Tender -->
+                <div class="card border-0 shadow-sm rounded-3 mb-3 bg-body">
+                    <div class="card-body p-3">
+                        <label class="form-label small fw-bold text-success text-uppercase mb-2 d-flex align-items-center gap-1.5">
+                            <i class="bi bi-journal-bookmark-fill"></i> 4. Integrasi Chart of Accounts (COA) &amp; Tender
+                        </label>
+                        
+                        <div class="row g-3">
+                            <!-- Akun Kas Kecil (COA Kas) -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small text-muted fw-semibold mb-1" id="labelCoaKas">
+                                    Akun Kas Kecil <span class="text-danger">*</span>
+                                </label>
+                                <select name="coa_kas_id" id="input_coa_kas_id" class="form-select rounded-3" required>
+                                    <option value="">-- Pilih Akun Kas --</option>
+                                                                            <option value="198" selected>
+                                            1101 - Kas Kecil / Kasir
+                                        </option>
+                                                                            <option value="199" >
+                                            1102 - Bank BCA
+                                        </option>
+                                                                            <option value="200" >
+                                            1103 - Bank Mandiri
+                                        </option>
+                                                                            <option value="201" >
+                                            1104 - Piutang Usaha
+                                        </option>
+                                                                            <option value="202" >
+                                            1105 - Persediaan Barang Dagang
+                                        </option>
+                                                                            <option value="203" >
+                                            1106 - Persediaan Bahan Baku
+                                        </option>
+                                                                            <option value="204" >
+                                            1107 - PPN Masukan (Input VAT)
+                                        </option>
+                                                                            <option value="205" >
+                                            1108 - Persediaan Setengah Jadi (WIP)
+                                        </option>
+                                                                            <option value="206" >
+                                            1109 - Persediaan Barang Jadi
+                                        </option>
+                                                                            <option value="207" >
+                                            1110 - Persediaan Perlengkapan
+                                        </option>
+                                                                            <option value="208" >
+                                            1111 - Uang Muka Pembelian (DP Supplier)
+                                        </option>
+                                                                            <option value="209" >
+                                            1112 - Piutang Karyawan / Biaya Dibayar Dimuka
+                                        </option>
+                                                                            <option value="225" >
+                                            2201 - Hutang Bank Jangka Panjang
+                                        </option>
+                                                                            <option value="256" >
+                                            7101 - Pendapatan Bunga &amp; Bagi Hasil Bank
+                                        </option>
+                                                                            <option value="259" >
+                                            8101 - Beban Administrasi Bank &amp; Pajak Bunga
+                                        </option>
+                                                                    </select>
+                                <small class="text-muted" style="font-size: 11px;">Akun Aset / Kas yang terpotong/bertambah.</small>
+                            </div>
+
+                            <!-- Lawan COA (Biaya/Beban atau Kas Sumber) -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small text-muted fw-semibold mb-1" id="labelLawanCoa">
+                                    Akun Biaya / Beban (Lawan COA) <span class="text-danger">*</span>
+                                </label>
+                                <select name="lawan_coa_id" id="input_lawan_coa_id" class="form-select rounded-3" required>
+                                    <option value="">-- Pilih Akun Beban / Biaya --</option>
+                                                                            <option value="198" >
+                                            1101 - Kas Kecil / Kasir
+                                        </option>
+                                                                            <option value="199" >
+                                            1102 - Bank BCA
+                                        </option>
+                                                                            <option value="200" >
+                                            1103 - Bank Mandiri
+                                        </option>
+                                                                            <option value="201" >
+                                            1104 - Piutang Usaha
+                                        </option>
+                                                                            <option value="202" >
+                                            1105 - Persediaan Barang Dagang
+                                        </option>
+                                                                            <option value="203" >
+                                            1106 - Persediaan Bahan Baku
+                                        </option>
+                                                                            <option value="204" >
+                                            1107 - PPN Masukan (Input VAT)
+                                        </option>
+                                                                            <option value="205" >
+                                            1108 - Persediaan Setengah Jadi (WIP)
+                                        </option>
+                                                                            <option value="206" >
+                                            1109 - Persediaan Barang Jadi
+                                        </option>
+                                                                            <option value="207" >
+                                            1110 - Persediaan Perlengkapan
+                                        </option>
+                                                                            <option value="208" >
+                                            1111 - Uang Muka Pembelian (DP Supplier)
+                                        </option>
+                                                                            <option value="209" >
+                                            1112 - Piutang Karyawan / Biaya Dibayar Dimuka
+                                        </option>
+                                                                            <option value="211" >
+                                            1201 - Peralatan &amp; Mesin Kantor/Pabrik
+                                        </option>
+                                                                            <option value="212" >
+                                            1202 - Kendaraan Operasional
+                                        </option>
+                                                                            <option value="213" >
+                                            1203 - Bangunan &amp; Gedung
+                                        </option>
+                                                                            <option value="214" >
+                                            1209 - Akumulasi Penyusutan Aset Tetap
+                                        </option>
+                                                                            <option value="217" >
+                                            2101 - Hutang Usaha
+                                        </option>
+                                                                            <option value="218" >
+                                            2102 - Hutang Penerimaan Barang (GR/IR Clearing)
+                                        </option>
+                                                                            <option value="219" >
+                                            2103 - PPN Keluaran (Output VAT)
+                                        </option>
+                                                                            <option value="220" >
+                                            2104 - Hutang Gaji &amp; Komisi
+                                        </option>
+                                                                            <option value="221" >
+                                            2105 - Hutang Pajak PPh
+                                        </option>
+                                                                            <option value="222" >
+                                            2106 - Uang Muka Penjualan (DP Customer)
+                                        </option>
+                                                                            <option value="223" >
+                                            2107 - Retur Pembelian
+                                        </option>
+                                                                            <option value="225" >
+                                            2201 - Hutang Bank Jangka Panjang
+                                        </option>
+                                                                            <option value="228" >
+                                            3101 - Modal Disetor
+                                        </option>
+                                                                            <option value="229" >
+                                            3102 - Prive / Dividen Owner
+                                        </option>
+                                                                            <option value="231" >
+                                            3201 - Laba Ditahan (Retained Earnings)
+                                        </option>
+                                                                            <option value="232" >
+                                            3202 - Saldo Awal Persediaan / Opening Balance Equity
+                                        </option>
+                                                                            <option value="235" >
+                                            4101 - Penjualan Barang Dagang / Produk
+                                        </option>
+                                                                            <option value="236" >
+                                            4102 - Penjualan Jasa / Layanan
+                                        </option>
+                                                                            <option value="237" >
+                                            4103 - Retur &amp; Potongan Penjualan
+                                        </option>
+                                                                            <option value="240" data-expense=&quot;1&quot;>
+                                            5101 - HPP Barang Dagang / Produk
+                                        </option>
+                                                                            <option value="241" data-expense=&quot;1&quot;>
+                                            5102 - HPP Bahan Baku &amp; Material
+                                        </option>
+                                                                            <option value="242" data-expense=&quot;1&quot;>
+                                            5103 - Biaya Angkut Pembelian (Freight-In)
+                                        </option>
+                                                                            <option value="243" data-expense=&quot;1&quot;>
+                                            5104 - Selisih Stok Opname / Adjustment
+                                        </option>
+                                                                            <option value="244" data-expense=&quot;1&quot;>
+                                            5105 - HPP Barang Jadi &amp; Setengah Jadi
+                                        </option>
+                                                                            <option value="247" data-expense=&quot;1&quot;>
+                                            6101 - Beban Gaji &amp; Tunjangan Karyawan
+                                        </option>
+                                                                            <option value="248" data-expense=&quot;1&quot;>
+                                            6102 - Beban Listrik, Air &amp; Telepon
+                                        </option>
+                                                                            <option value="249" data-expense=&quot;1&quot;>
+                                            6103 - Beban Sewa &amp; Pemeliharaan Kantor/Gudang
+                                        </option>
+                                                                            <option value="250" data-expense=&quot;1&quot;>
+                                            6104 - Beban Pengiriman Penjualan (Freight-Out)
+                                        </option>
+                                                                            <option value="251" data-expense=&quot;1&quot;>
+                                            6105 - Beban Perlengkapan &amp; ATK
+                                        </option>
+                                                                            <option value="252" data-expense=&quot;1&quot;>
+                                            6106 - Beban Penyusutan Aset Tetap
+                                        </option>
+                                                                            <option value="253" data-expense=&quot;1&quot;>
+                                            6107 - Beban Pemasaran &amp; Promosi
+                                        </option>
+                                                                            <option value="254" data-expense=&quot;1&quot;>
+                                            6108 - Beban Perjalanan Dinas &amp; Entertainment
+                                        </option>
+                                                                            <option value="256" >
+                                            7101 - Pendapatan Bunga &amp; Bagi Hasil Bank
+                                        </option>
+                                                                            <option value="257" >
+                                            7102 - Keuntungan Selisih Kurs / Diskon Pembayaran
+                                        </option>
+                                                                            <option value="259" >
+                                            8101 - Beban Administrasi Bank &amp; Pajak Bunga
+                                        </option>
+                                                                            <option value="260" >
+                                            8102 - Kerugian Selisih Kurs &amp; Penyesuaian
+                                        </option>
+                                                                    </select>
+                                <small class="text-muted" style="font-size: 11px;">Akun lawan jurnal untuk pencatatan beban/sumber.</small>
+                            </div>
+
+                            <!-- Koneksi ke Tender / Proyek (Opsional) -->
+                            <div class="col-12">
+                                <label class="form-label small text-muted fw-semibold mb-1 d-flex align-items-center justify-content-between">
+                                    <span><i class="bi bi-briefcase-fill text-warning me-1"></i> Hubungkan ke Tender / Proyek (Opsional)</span>
+                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill fw-normal">Opsional</span>
+                                </label>
+                                <select name="tender_id" id="input_tender_id" class="form-select rounded-3">
+                                    <option value="">-- Tidak Terhubung ke Tender / Umum --</option>
+                                                                            <option value="7">
+                                            TND/20260822/0002 - Proyek militer (Won)
+                                        </option>
+                                                                            <option value="6">
+                                            TND/20260822/0001 - Tender akademi (Lost)
+                                        </option>
+                                                                            <option value="8">
+                                            TDN-003 - Pengadaan copel rem (Won)
+                                        </option>
+                                                                    </select>
+                                <small class="text-muted" style="font-size: 11px;">Jika biaya ini dikeluarkan untuk kebutuhan tender/proyek tertentu.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 5: Keterangan & Kamera / Upload Foto Nota -->
+                <div class="card border-0 shadow-sm rounded-3 bg-body">
+                    <div class="card-body p-3">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase mb-1">Catatan / Keperluan</label>
+                            <textarea name="keterangan" id="input_keterangan" rows="2" class="form-control rounded-3" placeholder="Tuliskan rincian pembelian atau keperluan transaksi..."></textarea>
+                        </div>
+
+                        <!-- Upload / Camera Struk -->
+                        <div>
+                            <label class="form-label small fw-bold text-muted text-uppercase mb-1 d-flex align-items-center gap-1.5">
+                                <i class="bi bi-camera-fill text-info"></i> Foto Struk / Nota Bukti (Kamera HP)
+                            </label>
+                            <input type="file" name="lampiran_nota" id="input_lampiran_nota" class="form-control rounded-3" accept="image/*,application/pdf" capture="environment">
+                            <small class="text-muted d-block mt-1" style="font-size: 11px;">Bisa langsung foto struk lewat kamera HP atau upload file JPG/PNG/PDF (Maks 10MB).</small>
+                            
+                            <!-- Preview Image Container -->
+                            <div id="previewReceiptContainer" class="mt-2 d-none">
+                                <div class="position-relative d-inline-block border rounded-3 overflow-hidden shadow-sm" style="max-width: 140px;">
+                                    <img id="imgReceiptPreview" src="#" alt="Preview Nota" class="img-fluid" style="max-height: 140px; object-fit: cover;">
+                                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-1 lh-1" id="btnRemoveReceiptPreview" title="Hapus foto">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer with Touch Friendly Buttons -->
+            <div class="modal-footer border-0 px-3 px-md-4 py-3 bg-body flex-shrink-0">
+                <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-semibold" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" id="btnSubmitPettyCash" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border: none;">
+                    <i class="bi bi-check2-circle fs-5"></i>
+                    <span>Simpan &amp; Jurnal</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+        <!-- MODAL EDIT TRANSAKSI KAS KECIL -->
+<div class="modal fade" id="modalEditPettyCash" tabindex="-1" aria-labelledby="modalEditPettyCashLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <form id="formEditPettyCash" class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" enctype="multipart/form-data">
+            <input type="hidden" name="_token" value="5WU0qUDuPaEl4WKozbmo3UklPDQtxdqUjXRJVr6T" autocomplete="off">            <input type="hidden" name="_method" value="PUT">
+            <input type="hidden" name="id" id="edit_pc_id">
+
+            <!-- Modal Header -->
+            <div class="modal-header border-0 text-white px-3 px-md-4 py-3 flex-shrink-0" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%);">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="p-2 rounded-3 bg-white bg-opacity-10 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-pencil-square fs-5 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="modalEditPettyCashLabel">Edit Transaksi Kas Kecil</h5>
+                        <p class="text-white-50 small mb-0 font-monospace" id="edit_pc_nomor_display">PC-xxxx-xxxx</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Body Scrollable -->
+            <div class="modal-body px-3 px-md-4 py-3 bg-body-tertiary" style="overflow-y: auto; -webkit-overflow-scrolling: touch; max-height: calc(100vh - 170px);">
+
+                <!-- Tipe Transaksi -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-2">1. Jenis Transaksi</label>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="tipe" id="edit_tipe_pengeluaran" value="Pengeluaran">
+                            <label class="btn btn-outline-danger w-100 py-2 rounded-3 d-flex flex-column align-items-center gap-1" for="edit_tipe_pengeluaran">
+                                <i class="bi bi-arrow-up-right-circle fs-5"></i>
+                                <span class="fw-bold small">Pengeluaran</span>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="tipe" id="edit_tipe_pemasukan" value="Pemasukan">
+                            <label class="btn btn-outline-success w-100 py-2 rounded-3 d-flex flex-column align-items-center gap-1" for="edit_tipe_pemasukan">
+                                <i class="bi bi-arrow-down-left-circle fs-5"></i>
+                                <span class="fw-bold small">Pengisian</span>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="tipe" id="edit_tipe_klaim" value="Klaim">
+                            <label class="btn btn-outline-warning w-100 py-2 rounded-3 d-flex flex-column align-items-center gap-1" for="edit_tipe_klaim">
+                                <i class="bi bi-receipt-cutoff fs-5"></i>
+                                <span class="fw-bold small">Klaim / Bon</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nominal -->
+                <div class="card border-0 shadow-sm rounded-3 mb-3 bg-body">
+                    <div class="card-body p-3">
+                        <label class="form-label small fw-bold text-muted text-uppercase mb-1">2. Nominal (Rupiah) <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-lg mb-2">
+                            <span class="input-group-text bg-light fw-bold border-end-0 text-muted">Rp</span>
+                            <input type="text" name="nominal" id="edit_input_nominal" class="form-control form-control-lg fw-bold font-monospace text-primary border-start-0 fs-4" placeholder="0" inputmode="numeric" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rincian Transaksi & Tanggal -->
+                <div class="card border-0 shadow-sm rounded-3 mb-3 bg-body">
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1">Tanggal Transaksi <span class="text-danger">*</span></label>
+                                <input type="date" name="tanggal" id="edit_input_tanggal" class="form-control rounded-3" required>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1">Nama Pemohon / Pengaju</label>
+                                <input type="text" name="nama_pengaju" id="edit_input_nama_pengaju" class="form-control rounded-3" placeholder="Nama karyawan / PIC">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1">Kategori Transaksi <span class="text-danger">*</span></label>
+                                <input type="text" name="kategori" id="edit_input_kategori" class="form-control rounded-3" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COA & Tender -->
+                <div class="card border-0 shadow-sm rounded-3 mb-3 bg-body">
+                    <div class="card-body p-3">
+                        <label class="form-label small fw-bold text-success text-uppercase mb-2 d-flex align-items-center gap-1.5">
+                            <i class="bi bi-journal-bookmark-fill"></i> Integrasi COA &amp; Tender
+                        </label>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small text-muted fw-semibold mb-1">Akun Kas Kecil <span class="text-danger">*</span></label>
+                                <select name="coa_kas_id" id="edit_input_coa_kas_id" class="form-select rounded-3" required>
+                                    <option value="">-- Pilih Akun Kas --</option>
+                                                                            <option value="198">1101 - Kas Kecil / Kasir</option>
+                                                                            <option value="199">1102 - Bank BCA</option>
+                                                                            <option value="200">1103 - Bank Mandiri</option>
+                                                                            <option value="201">1104 - Piutang Usaha</option>
+                                                                            <option value="202">1105 - Persediaan Barang Dagang</option>
+                                                                            <option value="203">1106 - Persediaan Bahan Baku</option>
+                                                                            <option value="204">1107 - PPN Masukan (Input VAT)</option>
+                                                                            <option value="205">1108 - Persediaan Setengah Jadi (WIP)</option>
+                                                                            <option value="206">1109 - Persediaan Barang Jadi</option>
+                                                                            <option value="207">1110 - Persediaan Perlengkapan</option>
+                                                                            <option value="208">1111 - Uang Muka Pembelian (DP Supplier)</option>
+                                                                            <option value="209">1112 - Piutang Karyawan / Biaya Dibayar Dimuka</option>
+                                                                            <option value="225">2201 - Hutang Bank Jangka Panjang</option>
+                                                                            <option value="256">7101 - Pendapatan Bunga &amp; Bagi Hasil Bank</option>
+                                                                            <option value="259">8101 - Beban Administrasi Bank &amp; Pajak Bunga</option>
+                                                                    </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small text-muted fw-semibold mb-1">Akun Lawan (Biaya / Sumber) <span class="text-danger">*</span></label>
+                                <select name="lawan_coa_id" id="edit_input_lawan_coa_id" class="form-select rounded-3" required>
+                                    <option value="">-- Pilih Akun Beban / Sumber --</option>
+                                                                            <option value="198">1101 - Kas Kecil / Kasir</option>
+                                                                            <option value="199">1102 - Bank BCA</option>
+                                                                            <option value="200">1103 - Bank Mandiri</option>
+                                                                            <option value="201">1104 - Piutang Usaha</option>
+                                                                            <option value="202">1105 - Persediaan Barang Dagang</option>
+                                                                            <option value="203">1106 - Persediaan Bahan Baku</option>
+                                                                            <option value="204">1107 - PPN Masukan (Input VAT)</option>
+                                                                            <option value="205">1108 - Persediaan Setengah Jadi (WIP)</option>
+                                                                            <option value="206">1109 - Persediaan Barang Jadi</option>
+                                                                            <option value="207">1110 - Persediaan Perlengkapan</option>
+                                                                            <option value="208">1111 - Uang Muka Pembelian (DP Supplier)</option>
+                                                                            <option value="209">1112 - Piutang Karyawan / Biaya Dibayar Dimuka</option>
+                                                                            <option value="211">1201 - Peralatan &amp; Mesin Kantor/Pabrik</option>
+                                                                            <option value="212">1202 - Kendaraan Operasional</option>
+                                                                            <option value="213">1203 - Bangunan &amp; Gedung</option>
+                                                                            <option value="214">1209 - Akumulasi Penyusutan Aset Tetap</option>
+                                                                            <option value="217">2101 - Hutang Usaha</option>
+                                                                            <option value="218">2102 - Hutang Penerimaan Barang (GR/IR Clearing)</option>
+                                                                            <option value="219">2103 - PPN Keluaran (Output VAT)</option>
+                                                                            <option value="220">2104 - Hutang Gaji &amp; Komisi</option>
+                                                                            <option value="221">2105 - Hutang Pajak PPh</option>
+                                                                            <option value="222">2106 - Uang Muka Penjualan (DP Customer)</option>
+                                                                            <option value="223">2107 - Retur Pembelian</option>
+                                                                            <option value="225">2201 - Hutang Bank Jangka Panjang</option>
+                                                                            <option value="228">3101 - Modal Disetor</option>
+                                                                            <option value="229">3102 - Prive / Dividen Owner</option>
+                                                                            <option value="231">3201 - Laba Ditahan (Retained Earnings)</option>
+                                                                            <option value="232">3202 - Saldo Awal Persediaan / Opening Balance Equity</option>
+                                                                            <option value="235">4101 - Penjualan Barang Dagang / Produk</option>
+                                                                            <option value="236">4102 - Penjualan Jasa / Layanan</option>
+                                                                            <option value="237">4103 - Retur &amp; Potongan Penjualan</option>
+                                                                            <option value="240">5101 - HPP Barang Dagang / Produk</option>
+                                                                            <option value="241">5102 - HPP Bahan Baku &amp; Material</option>
+                                                                            <option value="242">5103 - Biaya Angkut Pembelian (Freight-In)</option>
+                                                                            <option value="243">5104 - Selisih Stok Opname / Adjustment</option>
+                                                                            <option value="244">5105 - HPP Barang Jadi &amp; Setengah Jadi</option>
+                                                                            <option value="247">6101 - Beban Gaji &amp; Tunjangan Karyawan</option>
+                                                                            <option value="248">6102 - Beban Listrik, Air &amp; Telepon</option>
+                                                                            <option value="249">6103 - Beban Sewa &amp; Pemeliharaan Kantor/Gudang</option>
+                                                                            <option value="250">6104 - Beban Pengiriman Penjualan (Freight-Out)</option>
+                                                                            <option value="251">6105 - Beban Perlengkapan &amp; ATK</option>
+                                                                            <option value="252">6106 - Beban Penyusutan Aset Tetap</option>
+                                                                            <option value="253">6107 - Beban Pemasaran &amp; Promosi</option>
+                                                                            <option value="254">6108 - Beban Perjalanan Dinas &amp; Entertainment</option>
+                                                                            <option value="256">7101 - Pendapatan Bunga &amp; Bagi Hasil Bank</option>
+                                                                            <option value="257">7102 - Keuntungan Selisih Kurs / Diskon Pembayaran</option>
+                                                                            <option value="259">8101 - Beban Administrasi Bank &amp; Pajak Bunga</option>
+                                                                            <option value="260">8102 - Kerugian Selisih Kurs &amp; Penyesuaian</option>
+                                                                    </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small text-muted fw-semibold mb-1">Hubungkan ke Tender / Proyek (Opsional)</label>
+                                <select name="tender_id" id="edit_input_tender_id" class="form-select rounded-3">
+                                    <option value="">-- Tidak Terhubung ke Tender --</option>
+                                                                            <option value="7">TND/20260822/0002 - Proyek militer</option>
+                                                                            <option value="6">TND/20260822/0001 - Tender akademi</option>
+                                                                            <option value="8">TDN-003 - Pengadaan copel rem</option>
+                                                                    </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Keterangan & Lampiran Nota -->
+                <div class="card border-0 shadow-sm rounded-3 bg-body">
+                    <div class="card-body p-3">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase mb-1">Catatan / Keperluan</label>
+                            <textarea name="keterangan" id="edit_input_keterangan" rows="2" class="form-control rounded-3"></textarea>
+                        </div>
+                        <div>
+                            <label class="form-label small fw-bold text-muted text-uppercase mb-1 d-flex align-items-center gap-1.5">
+                                <i class="bi bi-camera-fill text-info"></i> Ganti Foto Struk / Nota (Opsional)
+                            </label>
+                            <input type="file" name="lampiran_nota" id="edit_input_lampiran_nota" class="form-control rounded-3" accept="image/*,application/pdf" capture="environment">
+                            <div id="edit_existingReceiptContainer" class="mt-2 d-none">
+                                <p class="small text-muted mb-1">Nota Saat Ini:</p>
+                                <a id="edit_linkExistingReceipt" href="#" target="_blank" class="btn btn-sm btn-outline-info rounded-pill px-3 py-1">
+                                    <i class="bi bi-file-earmark-image"></i> Lihat Nota Tersimpan
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer border-0 px-3 px-md-4 py-3 bg-body flex-shrink-0">
+                <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-semibold" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-warning text-dark rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" id="btnUpdatePettyCash">
+                    <i class="bi bi-check-lg fs-5"></i>
+                    <span>Update Transaksi</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+        <!-- MODAL DETAIL TRANSAKSI KAS KECIL (DIGITAL RECEIPT & JOURNAL BREAKDOWN) -->
+<div class="modal fade" id="modalDetailPettyCash" tabindex="-1" aria-labelledby="modalDetailPettyCashLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-md">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            
+            <!-- Modal Header -->
+            <div class="modal-header border-0 text-white px-3 px-md-4 py-3 flex-shrink-0" style="background: linear-gradient(135deg, #047857 0%, #065f46 100%);">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="p-2 rounded-3 bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-receipt fs-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="modalDetailPettyCashLabel">Voucher Kas Kecil</h5>
+                        <p class="text-white-50 small mb-0 font-monospace" id="detail_nomor_header">PC-xxxx-xxxx</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Body Scrollable -->
+            <div class="modal-body p-3 p-md-4 bg-body-tertiary" style="overflow-y: auto; -webkit-overflow-scrolling: touch; max-height: calc(100vh - 170px);">
+                
+                <!-- Digital Receipt Ticket Card -->
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-3 bg-body" id="receiptPrintArea">
+                    <!-- Ticket Header Stamp -->
+                    <div class="p-3 text-center border-bottom border-dashed">
+                        <div class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 fw-bold mb-1" id="detail_status_badge">
+                            Disetujui
+                        </div>
+                        <h6 class="fw-bold mb-0 text-body-emphasis" id="detail_company_name">PT PUSAT</h6>
+                        <p class="small text-muted mb-0" id="detail_entitas_badge">Kantor Pusat</p>
+                        
+                        <!-- Tender Link Badge (If any) -->
+                        <div id="detail_tender_container" class="mt-2 d-none">
+                            <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill px-3 py-1 font-monospace">
+                                <i class="bi bi-briefcase-fill text-warning me-1"></i> <span id="detail_tender_title">-</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Nominal Display Big -->
+                    <div class="p-4 text-center bg-body-secondary bg-opacity-50 border-bottom border-dashed">
+                        <span class="text-muted small text-uppercase fw-semibold d-block mb-1" id="detail_tipe_label">TOTAL PENGELUARAN</span>
+                        <h2 class="fw-bold font-monospace mb-0 text-success" id="detail_nominal">Rp 0</h2>
+                        <span class="small text-muted font-monospace d-block mt-1" id="detail_tanggal">Tanggal: -</span>
+                    </div>
+
+                    <!-- Detail Rows -->
+                    <div class="p-3">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tbody>
+                                <tr>
+                                    <td class="text-muted small py-1" style="width: 38%;">No. Transaksi</td>
+                                    <td class="fw-bold font-monospace small py-1" id="detail_nomor">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted small py-1">Kategori</td>
+                                    <td class="fw-semibold small py-1" id="detail_kategori">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted small py-1">Pemohon / PIC</td>
+                                    <td class="small py-1" id="detail_pengaju">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted small py-1">Diinput Oleh</td>
+                                    <td class="small py-1" id="detail_creator">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted small py-1 align-top">Catatan</td>
+                                    <td class="small py-1" id="detail_keterangan">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- COA Information -->
+                    <div class="p-3 border-top bg-body-secondary bg-opacity-25">
+                        <div class="small fw-bold text-muted text-uppercase mb-2 font-monospace" style="font-size: 11px;">Akun Terkait (COA)</div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted">Akun Kas Kecil:</span>
+                            <span class="small fw-bold font-monospace text-success" id="detail_coa_kas">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">Lawan COA (Beban/Sumber):</span>
+                            <span class="small fw-bold font-monospace text-danger" id="detail_lawan_coa">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JURNAL UMUM SECTION -->
+                <div class="card border-0 shadow-sm rounded-4 mb-3 bg-body">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold text-muted text-uppercase d-flex align-items-center gap-1">
+                                <i class="bi bi-journal-bookmark text-primary"></i> Jurnal Akuntansi
+                            </span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill font-monospace" style="font-size: 10px;" id="detail_nomor_jurnal">
+                                JV-xxxx
+                            </span>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle mb-0" style="font-size: 12px;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Akun Rekening</th>
+                                        <th class="text-end">Debit</th>
+                                        <th class="text-end">Kredit</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detail_jurnal_tbody">
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Memuat jurnal...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RECEIPT PHOTO (If any) -->
+                <div class="card border-0 shadow-sm rounded-4 bg-body d-none" id="detail_receipt_photo_container">
+                    <div class="card-body p-3 text-center">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold text-muted text-uppercase d-flex align-items-center gap-1">
+                                <i class="bi bi-paperclip text-info"></i> Lampiran Nota / Struk
+                            </span>
+                            <a href="#" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-0.5" id="detail_receipt_download_btn" style="font-size: 11px;">
+                                <i class="bi bi-box-arrow-up-right"></i> Buka Foto Asli
+                            </a>
+                        </div>
+                        <div class="border rounded-3 p-1 bg-light overflow-hidden">
+                            <img id="detail_receipt_img" src="#" alt="Foto Bukti Struk" class="img-fluid rounded-2" style="max-height: 250px; object-fit: contain;">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer border-0 px-3 px-md-4 py-3 bg-body flex-shrink-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 btn-sm fw-semibold" onclick="printPettyCashVoucher()">
+                    <i class="bi bi-printer me-1"></i> Cetak Bon
+                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-warning text-dark rounded-pill px-3 py-2 btn-sm fw-bold" id="btnEditFromDetail">
+                        <i class="bi bi-pencil me-1"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-danger rounded-pill px-3 py-2 btn-sm fw-bold" id="btnDeleteFromDetail">
+                        <i class="bi bi-trash me-1"></i> Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    
+    <!-- Floating Action Button & Scroll to Top -->
+    <button class="fab-btn" id="scrollTopBtn" title="Scroll to top" style="display: none;">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+
+    <!-- ==========================================================================
+         SCRIPTS
+         ========================================================================== -->
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Bootstrap 5.3 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- Custom Vanilla JS -->
+    <script src="http://localhost/js/main.js"></script>
+    
+    <!-- SweetAlert2 & Reusable Alert Component -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    // Global helper object for showing modern SweetAlert2 notifications
+    window.showAlert = {
+        success: function(message, title = 'Berhasil') {
+            return Swal.fire({
+                icon: 'success',
+                title: title,
+                text: message,
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-custom-popup'
+                }
+            });
+        },
+        error: function(message, title = 'Gagal') {
+            return Swal.fire({
+                icon: 'error',
+                title: title,
+                text: message,
+                showConfirmButton: true,
+                customClass: {
+                    popup: 'swal2-custom-popup'
+                }
+            });
+        },
+        confirm: function(message, confirmCallback, title = 'Apakah Anda yakin?') {
+            Swal.fire({
+                title: title,
+                text: message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2563EB',
+                cancelButtonColor: '#EF4444',
+                confirmButtonText: 'Ya, Lanjutkan!',
+                cancelButtonText: 'Batal',
+                customClass: {
+                    popup: 'swal2-custom-popup'
+                }
+            }).then((result) => {
+                if (result.isConfirmed && typeof confirmCallback === 'function') {
+                    confirmCallback();
+                }
+            });
+        }
+    };
+</script>
+
+<style>
+    /* Styling agar match dengan tema premium (dark/light) */
+    .swal2-custom-popup {
+        border-radius: var(--border-radius-lg) !important;
+        background-color: var(--card-bg) !important;
+        color: var(--text-main) !important;
+        border: 1px solid var(--border-color) !important;
+        box-shadow: var(--shadow-lg) !important;
+    }
+    .swal2-title, .swal2-html-container {
+        color: var(--text-main) !important;
+    }
+</style>
+
+    <!-- Reusable Global Loader Component -->
+    <script>window.appLogoSource = "http://localhost/storage/gambar/logo_1786070712.png";</script>
+    <script src="http://localhost/js/global-loader.js"></script>
+
+    <!-- Untuk script khusus per halaman (misal chart data) -->
+        <script>
+        $(document).ready(function() {
+            // Setup CSRF Token
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            });
+
+            // 1. Toggle Show / Hide Balance
+            let isBalanceHidden = false;
+            $('#btnToggleBalance').on('click', function() {
+                isBalanceHidden = !isBalanceHidden;
+                $('.pc-balance-val').each(function() {
+                    const rawNominal = $(this).data('nominal') || 0;
+                    if (isBalanceHidden) {
+                        $(this).text('Rp ••••••••');
+                        $('#iconEyeBalance').removeClass('bi-eye').addClass('bi-eye-slash');
+                    } else {
+                        $(this).text('Rp ' + new Intl.NumberFormat('id-ID').format(rawNominal));
+                        $('#iconEyeBalance').removeClass('bi-eye-slash').addClass('bi-eye');
+                    }
+                });
+            });
+
+            // 2. Quick Action Buttons on Wallet Header
+            $('.btn-quick-action').on('click', function() {
+                const targetType = $(this).data('type');
+                if (targetType === 'Pengeluaran') {
+                    $('#tipe_pengeluaran').prop('checked', true).trigger('change');
+                } else if (targetType === 'Pemasukan') {
+                    $('#tipe_pemasukan').prop('checked', true).trigger('change');
+                } else if (targetType === 'Klaim') {
+                    $('#tipe_klaim').prop('checked', true).trigger('change');
+                }
+                $('#modalInputPettyCash').modal('show');
+            });
+
+            // 3. Format Rupiah Input Helper
+            function formatRupiah(value) {
+                const numberString = value.replace(/[^,\d]/g, '').toString();
+                const split = numberString.split(',');
+                const sisa = split[0].length % 3;
+                let rupiah = split[0].substr(0, sisa);
+                const ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+                if (ribuan) {
+                    const separator = sisa ? '.' : '';
+                    rupiah += separator + ribuan.join('.');
+                }
+                return split[1] !== undefined ? rupiah + ',' + split[1] : rupiah;
+            }
+
+            $('#input_nominal, #edit_input_nominal').on('input', function() {
+                const formatted = formatRupiah($(this).val());
+                $(this).val(formatted);
+            });
+
+            // 4. Quick Nominal Chips (+20k, +50k, etc.)
+            $('.btn-quick-nominal').on('click', function() {
+                const addAmount = parseInt($(this).data('amount')) || 0;
+                let currentVal = parseInt($('#input_nominal').val().replace(/[^0-9]/g, '')) || 0;
+                currentVal += addAmount;
+                $('#input_nominal').val(formatRupiah(currentVal.toString())).trigger('input');
+            });
+
+            $('.btn-clear-nominal').on('click', function() {
+                $('#input_nominal').val('').trigger('input');
+            });
+
+            // 5. Category Chips Click Handler
+            $('.btn-cat-chip').on('click', function() {
+                const cat = $(this).data('cat');
+                $('#input_kategori').val(cat);
+                if (cat === 'Pengisian Kas Kecil') {
+                    $('#tipe_pemasukan').prop('checked', true).trigger('change');
+                }
+            });
+
+            // 6. Dynamic COA Label Adjuster when Tipe changes
+            $('input[name="tipe"]').on('change', function() {
+                const tipe = $(this).val();
+                if (tipe === 'Pemasukan') {
+                    $('#labelCoaKas').html('Akun Kas Kecil (Penerima) <span class="text-danger">*</span>');
+                    $('#labelLawanCoa').html('Akun Sumber Dana (Kas Besar / Bank) <span class="text-danger">*</span>');
+                } else {
+                    $('#labelCoaKas').html('Akun Kas Kecil (Sumber) <span class="text-danger">*</span>');
+                    $('#labelLawanCoa').html('Akun Biaya / Beban (Lawan COA) <span class="text-danger">*</span>');
+                }
+            });
+
+            // 7. Image Receipt Live Preview
+            $('#input_lampiran_nota').on('change', function(e) {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        $('#imgReceiptPreview').attr('src', evt.target.result);
+                        $('#previewReceiptContainer').removeClass('d-none');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    $('#previewReceiptContainer').addClass('d-none');
+                }
+            });
+
+            $('#btnRemoveReceiptPreview').on('click', function() {
+                $('#input_lampiran_nota').val('');
+                $('#previewReceiptContainer').addClass('d-none');
+            });
+
+            // 8. Submit Form Input Petty Cash
+            $('#formInputPettyCash').on('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const submitBtn = $('#btnSubmitPettyCash');
+
+                submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...');
+
+                $.ajax({
+                    url: "http://localhost/accounting/petty-cash",
+                    method: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        submitBtn.prop('disabled', false).html('<i class="bi bi-check2-circle fs-5"></i><span>Simpan &amp; Jurnal</span>');
+                        if (response.success) {
+                            $('#modalInputPettyCash').modal('hide');
+                            $('#formInputPettyCash')[0].reset();
+                            $('#previewReceiptContainer').addClass('d-none');
+                            
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                html: response.message,
+                                confirmButtonColor: '#059669',
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        submitBtn.prop('disabled', false).html('<i class="bi bi-check2-circle fs-5"></i><span>Simpan &amp; Jurnal</span>');
+                        let errMsg = 'Terjadi kesalahan sistem.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errMsg = xhr.responseJSON.message;
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal Menyimpan!',
+                            text: errMsg,
+                            confirmButtonColor: '#e11d48'
+                        });
+                    }
+                });
+            });
+
+            // 9. Click Mobile Card or Table Row to Open Detail
+            $('.pc-trx-mobile-card').on('click', function() {
+                const id = $(this).data('id');
+                loadPettyCashDetail(id);
+            });
+
+            $(document).on('click', '.btn-detail-pc', function(e) {
+                e.stopPropagation();
+                const id = $(this).data('id');
+                loadPettyCashDetail(id);
+            });
+
+            // Load Detail Function
+            window.loadPettyCashDetail = function(id) {
+                $('#modalDetailPettyCash').modal('show');
+                $('#detail_nomor_header').text('Memuat...');
+                $('#detail_nominal').text('Rp ...');
+
+                $.ajax({
+                    url: `/accounting/petty-cash/${id}`,
+                    method: 'GET',
+                    success: function(res) {
+                        if (res.success && res.data) {
+                            const d = res.data;
+                            const isExpense = (d.tipe === 'Pengeluaran' || d.tipe === 'Klaim');
+
+                            $('#detail_nomor_header').text(d.nomor_transaksi);
+                            $('#detail_nomor').text(d.nomor_transaksi);
+                            $('#detail_company_name').text(d.branch ? d.branch.nama_cabang : (d.company ? d.company.nama_perusahaan : 'PT Pusat'));
+                            
+                            if (d.tender) {
+                                $('#detail_tender_container').removeClass('d-none');
+                                $('#detail_tender_title').text(d.tender.nomor_kontrak + ' - ' + d.tender.nama_tender);
+                            } else {
+                                $('#detail_tender_container').addClass('d-none');
+                            }
+
+                            // Nominal
+                            $('#detail_tipe_label').text('TOTAL ' + d.tipe.toUpperCase());
+                            $('#detail_nominal').removeClass('text-danger text-success')
+                                .addClass(isExpense ? 'text-danger' : 'text-success')
+                                .text((isExpense ? '- ' : '+ ') + 'Rp ' + new Intl.NumberFormat('id-ID').format(d.nominal));
+                            
+                            $('#detail_tanggal').text('Tanggal: ' + (d.tanggal ? new Date(d.tanggal).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : '-'));
+                            $('#detail_kategori').text(d.kategori);
+                            $('#detail_pengaju').text(d.nama_pengaju || '-');
+                            $('#detail_creator').text(d.creator ? (d.creator.nama_lengkap || d.creator.username) : 'System');
+                            $('#detail_keterangan').text(d.keterangan || 'Tidak ada catatan tambahan.');
+
+                            // COA Breakdown
+                            $('#detail_coa_kas').text((d.coa_kas ? d.coa_kas.code + ' - ' + d.coa_kas.name : '-'));
+                            $('#detail_lawan_coa').text((d.lawan_coa ? d.lawan_coa.code + ' - ' + d.lawan_coa.name : '-'));
+                            
+                            // Jurnal breakdown
+                            if (d.jurnal) {
+                                $('#detail_nomor_jurnal').text(d.jurnal.nomor_jurnal);
+                                let tbodyHtml = '';
+                                if (d.jurnal.details && d.jurnal.details.length > 0) {
+                                    d.jurnal.details.forEach(function(item) {
+                                        tbodyHtml += `
+                                            <tr>
+                                                <td><span class="font-monospace fw-bold">${item.account ? item.account.code : ''}</span> ${item.account ? item.account.name : ''}</td>
+                                                <td class="text-end font-monospace">${item.debit > 0 ? 'Rp ' + new Intl.NumberFormat('id-ID').format(item.debit) : '-'}</td>
+                                                <td class="text-end font-monospace">${item.kredit > 0 ? 'Rp ' + new Intl.NumberFormat('id-ID').format(item.kredit) : '-'}</td>
+                                            </tr>
+                                        `;
+                                    });
+                                }
+                                $('#detail_jurnal_tbody').html(tbodyHtml);
+                            } else {
+                                $('#detail_nomor_jurnal').text('Tidak ada jurnal');
+                                $('#detail_jurnal_tbody').html('<tr><td colspan="3" class="text-center text-muted">Jurnal otomatis belum tercatat.</td></tr>');
+                            }
+
+                            // Receipt Photo
+                            if (res.lampiran_url) {
+                                $('#detail_receipt_photo_container').removeClass('d-none');
+                                $('#detail_receipt_img').attr('src', res.lampiran_url);
+                                $('#detail_receipt_download_btn').attr('href', res.lampiran_url);
+                            } else {
+                                $('#detail_receipt_photo_container').addClass('d-none');
+                            }
+
+                            $('#btnEditFromDetail').attr('data-id', d.id);
+                            $('#btnDeleteFromDetail').attr('data-id', d.id);
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Error', 'Gagal memuat detail transaksi.', 'error');
+                    }
+                });
+            };
+
+            // 10. Edit Handler
+            $(document).on('click', '.btn-edit-pc, #btnEditFromDetail', function(e) {
+                e.stopPropagation();
+                const id = $(this).attr('data-id') || $(this).data('id');
+                $('#modalDetailPettyCash').modal('hide');
+
+                $.ajax({
+                    url: `/accounting/petty-cash/${id}/edit`,
+                    method: 'GET',
+                    success: function(res) {
+                        if (res.success && res.data) {
+                            const d = res.data;
+                            $('#edit_pc_id').val(d.id);
+                            $('#edit_pc_nomor_display').text(d.nomor_transaksi);
+                            
+                            if (d.tipe === 'Pengeluaran') $('#edit_tipe_pengeluaran').prop('checked', true);
+                            else if (d.tipe === 'Pemasukan') $('#edit_tipe_pemasukan').prop('checked', true);
+                            else if (d.tipe === 'Klaim') $('#edit_tipe_klaim').prop('checked', true);
+
+                            $('#edit_input_nominal').val(formatRupiah(parseInt(d.nominal).toString()));
+                            $('#edit_input_tanggal').val(d.tanggal ? d.tanggal.substring(0, 10) : '');
+                            $('#edit_input_nama_pengaju').val(d.nama_pengaju || '');
+                            $('#edit_input_kategori').val(d.kategori);
+                            $('#edit_input_coa_kas_id').val(d.coa_kas_id);
+                            $('#edit_input_lawan_coa_id').val(d.lawan_coa_id);
+                            $('#edit_input_tender_id').val(d.tender_id || '');
+                            $('#edit_input_keterangan').val(d.keterangan || '');
+
+                            if (res.lampiran_url) {
+                                $('#edit_existingReceiptContainer').removeClass('d-none');
+                                $('#edit_linkExistingReceipt').attr('href', res.lampiran_url);
+                            } else {
+                                $('#edit_existingReceiptContainer').addClass('d-none');
+                            }
+
+                            $('#modalEditPettyCash').modal('show');
+                        }
+                    }
+                });
+            });
+
+            // Submit Edit Form
+            $('#formEditPettyCash').on('submit', function(e) {
+                e.preventDefault();
+                const id = $('#edit_pc_id').val();
+                const formData = new FormData(this);
+                const submitBtn = $('#btnUpdatePettyCash');
+
+                submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Memperbarui...');
+
+                $.ajax({
+                    url: `/accounting/petty-cash/${id}`,
+                    method: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(res) {
+                        submitBtn.prop('disabled', false).html('<i class="bi bi-check-lg fs-5"></i><span>Update Transaksi</span>');
+                        if (res.success) {
+                            $('#modalEditPettyCash').modal('hide');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                html: res.message,
+                                confirmButtonColor: '#059669',
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        submitBtn.prop('disabled', false).html('<i class="bi bi-check-lg fs-5"></i><span>Update Transaksi</span>');
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Gagal update transaksi.', 'error');
+                    }
+                });
+            });
+
+            // 11. Delete Handler
+            $(document).on('click', '.btn-delete-pc, #btnDeleteFromDetail', function(e) {
+                e.stopPropagation();
+                const id = $(this).attr('data-id') || $(this).data('id');
+                
+                Swal.fire({
+                    title: 'Hapus Transaksi Kas Kecil?',
+                    text: 'Transaksi dan jurnal akuntansi terkait akan dihapus secara permanen.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e11d48',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/accounting/petty-cash/${id}`,
+                            method: 'DELETE',
+                            success: function(res) {
+                                $('#modalDetailPettyCash').modal('hide');
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Terhapus!',
+                                    html: res.message,
+                                    confirmButtonColor: '#059669',
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Gagal!', xhr.responseJSON?.message || 'Gagal menghapus.', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // 12. Print Voucher Function
+            window.printPettyCashVoucher = function() {
+                const printContents = document.getElementById('receiptPrintArea').innerHTML;
+                const printWindow = window.open('', '', 'height=600,width=800');
+                printWindow.document.write('<html><head><title>Voucher Kas Kecil</title>');
+                printWindow.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">');
+                printWindow.document.write('</head><body class="p-4">');
+                printWindow.document.write(printContents);
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(function() {
+                    printWindow.print();
+                    printWindow.close();
+                }, 500);
+            };
+        });
+    </script>
+         <script>
+     (function() {
+         function escapeHtml(str) {
+             if (!str) return '';
+             return String(str)
+                 .replace(/&/g, '&amp;')
+                 .replace(/</g, '&lt;')
+                 .replace(/>/g, '&gt;')
+                 .replace(/"/g, '&quot;')
+                 .replace(/'/g, '&#039;');
+         }
+
+         const dropdownMenu = document.getElementById('branchDropdownMenu');
+         const branchList   = document.getElementById('branchList');
+         const dropdownBtn  = document.getElementById('branchDropdownBtn');
+
+         if (!dropdownMenu || !dropdownBtn) return;
+
+         // Load daftar PT & cabang saat dropdown dibuka
+         dropdownBtn.addEventListener('show.bs.dropdown', function() {
+             branchList.innerHTML = `
+                 <div class="text-center py-2">
+                     <span class="spinner-border spinner-border-sm text-primary"></span>
+                 </div>`;
+
+             fetch('/branch/list', {
+                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
+             })
+             .then(r => r.json())
+             .then(data => {
+                 if (!data.success || !data.companies || !data.companies.length) {
+                     branchList.innerHTML = `<div class="text-muted text-center py-2" style="font-size:0.8rem;">Tidak ada PT/Cabang tersedia.</div>`;
+                     return;
+                 }
+
+                 let html = '';
+                 data.companies.forEach((company, cIdx) => {
+                     const isPusatActive = (company.id == data.active_company_id && !data.active_branch_id);
+
+                     if (cIdx > 0) {
+                         html += `<div class="dropdown-divider my-2"></div>`;
+                     }
+
+                     // Header PT
+                     html += `
+                         <div class="px-2.5 py-1.5 rounded-2 mb-1 company-header-badge">
+                             <div class="fw-bold company-header-text" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                                 <i class="bi bi-building me-1 text-primary"></i> ${escapeHtml(company.nama_perusahaan)}
+                             </div>
+                         </div>`;
+
+                     // Pilihan PT Pusat Level
+                     html += `
+                         <button class="dropdown-item rounded-3 py-1.5 px-3 mb-1 d-flex align-items-center gap-2 entity-switch-btn ${isPusatActive ? 'active fw-bold' : ''}"
+                                 data-company-id="${company.id}"
+                                 data-branch-id=""
+                                 ${isPusatActive ? 'disabled' : ''}>
+                             <i class="bi bi-diagram-3${isPusatActive ? '-fill' : ''} text-primary" style="font-size: 0.85rem;"></i>
+                             <div class="text-start flex-grow-1">
+                                 <div class="fw-semibold" style="font-size: 0.8rem;">Pusat (${escapeHtml(company.kode_perusahaan || 'PT')})</div>
+                                 <div class="text-muted" style="font-size: 0.68rem;">Akses Tingkat Pusat / PT Induk</div>
+                             </div>
+                             ${isPusatActive ? '<i class="bi bi-check-circle-fill text-success ms-auto"></i>' : ''}
+                         </button>`;
+
+                     // Pilihan Cabang-Cabang di bawah PT ini
+                     if (company.branches && company.branches.length) {
+                         company.branches.forEach(branch => {
+                             const isBranchActive = (company.id == data.active_company_id && branch.id == data.active_branch_id);
+                             html += `
+                                 <button class="dropdown-item rounded-3 py-1.5 px-3 mb-1 d-flex align-items-center gap-2 entity-switch-btn ms-2 ${isBranchActive ? 'active fw-bold' : ''}"
+                                         data-company-id="${company.id}"
+                                         data-branch-id="${branch.id}"
+                                         ${isBranchActive ? 'disabled' : ''} style="width: calc(100% - 0.5rem);">
+                                     <i class="bi bi-geo-alt${isBranchActive ? '-fill' : ''} text-info" style="font-size: 0.85rem;"></i>
+                                     <div class="text-start flex-grow-1">
+                                         <div class="fw-semibold" style="font-size: 0.8rem;">${escapeHtml(branch.nama_cabang)}</div>
+                                         <div class="text-muted" style="font-size: 0.68rem;">Cabang • ${escapeHtml(branch.kode_cabang)}</div>
+                                     </div>
+                                     ${isBranchActive ? '<i class="bi bi-check-circle-fill text-success ms-auto"></i>' : ''}
+                                 </button>`;
+                         });
+                     }
+                 });
+
+                 branchList.innerHTML = html;
+
+                 // Event listener untuk setiap tombol switcher
+                 document.querySelectorAll('.entity-switch-btn').forEach(btn => {
+                     btn.addEventListener('click', function() {
+                         const companyId = this.dataset.companyId;
+                         const branchId  = this.dataset.branchId || null;
+                         switchEntity(companyId, branchId);
+                     });
+                 });
+             })
+             .catch((err) => {
+                 console.error(err);
+                 branchList.innerHTML = `<div class="text-danger text-center py-2" style="font-size:0.8rem;">Gagal memuat daftar.</div>`;
+             });
+         }, { once: false });
+
+         function switchEntity(companyId, branchId) {
+             const bsDropdown = bootstrap.Dropdown.getInstance(dropdownBtn);
+             if (bsDropdown) bsDropdown.hide();
+
+             fetch('/branch/switch', {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/json',
+                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                     'X-Requested-With': 'XMLHttpRequest',
+                 },
+                 body: JSON.stringify({ company_id: companyId, branch_id: branchId }),
+             })
+             .then(r => r.json())
+             .then(data => {
+                 if (data.success) {
+                     Swal.fire({
+                         icon: 'success',
+                         title: 'Akses Diubah!',
+                         html: data.message,
+                         timer: 1500,
+                         timerProgressBar: true,
+                         showConfirmButton: false,
+                         position: 'center',
+                     }).then(() => {
+                         window.location.reload();
+                     });
+                 } else {
+                     Swal.fire({
+                         icon: 'error',
+                         title: 'Gagal!',
+                         text: data.message,
+                         confirmButtonText: 'OK',
+                     });
+                 }
+             })
+             .catch(() => {
+                 Swal.fire({
+                     icon: 'error',
+                     title: 'Error Jaringan',
+                     text: 'Tidak dapat terhubung ke server. Silakan coba lagi.',
+                     confirmButtonText: 'OK',
+                 });
+             });
+         }
+     })();
+     </script>
+     
+        <script>
+        // Check session status every 10 seconds to enforce single-session logout in real-time
+        setInterval(function() {
+            $.ajax({
+                url: "http://localhost/check-session",
+                method: 'GET',
+                error: function(xhr) {
+                    if (xhr.status === 401) {
+                        window.location.href = "http://localhost?expired=1";
+                    }
+                }
+            });
+        }, 10000);
+
+        // Auto-logout after 1 hour (60 minutes) of inactivity to prevent CSRF error 419
+        let idleMinutes = 0;
+
+        // Reset idle timer on any user activity
+        $(document).on('mousemove keypress click scroll', function() {
+            idleMinutes = 0;
+        });
+
+        // Increment idle counter every minute
+        setInterval(function() {
+            idleMinutes++;
+            if (idleMinutes >= 60) { // 60 minutes = 1 hour
+                window.location.href = "http://localhost/logout?expired=1";
+            }
+        }, 60000);
+    </script>
+    </body>
+
+</html>

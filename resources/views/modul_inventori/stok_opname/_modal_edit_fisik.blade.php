@@ -1,0 +1,1002 @@
+{{-- ════════════════════════════════════════════════════════════ --}}
+{{-- MODAL: Input & Edit Hitungan Stok Fisik (View & JS)        --}}
+{{-- ════════════════════════════════════════════════════════════ --}}
+<div class="modal fade" id="modalInputFisik" tabindex="-1" aria-labelledby="modalInputFisikLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 95%;">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <div class="modal-header bg-info bg-gradient text-dark rounded-top-3">
+                <h5 class="modal-title fw-bold" id="modalInputFisikLabel">
+                    <i class="bi bi-pencil-square me-2"></i>Input Hitungan Stok Fisik
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info py-2 mb-3 small d-flex align-items-center">
+                    <i class="bi bi-info-circle-fill fs-5 me-2"></i>
+                    <div>
+                        Masukkan jumlah stok riil hasil penghitungan fisik di gudang. Selisih dengan sistem akan langsung dikalkulasikan.
+                    </div>
+                </div>
+
+                <form id="formInputFisik">
+                    @csrf
+                    <input type="hidden" name="opname_id" id="input_so_id">
+                    <div id="deleted_items_container"></div>
+
+                    <div class="row g-2 mb-3 partial-filter-card p-3">
+                        <div class="col-md-4">
+                            <span class="text-muted small">Nomor Rencana:</span>
+                            <div class="fw-bold fs-6" id="input_so_nomor">-</div>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-muted small">Gudang Lokasi:</span>
+                            <div class="fw-semibold" id="input_so_gudang">-</div>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-muted small">Tgl Direncanakan:</span>
+                            <div id="input_so_tanggal">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Barcode / Code Quick Scan Panel -->
+                    <div class="card p-3 mb-3 border-info shadow-sm">
+                        <h6 class="fw-bold mb-2 text-info"><i class="bi bi-upc-scan me-2"></i>Quick Input & Barcode Scan</h6>
+                        <div class="row g-2 align-items-end">
+                            <!-- Row 1 -->
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small fw-bold text-muted mb-1">Ketik Kode/Nama / Scan Barcode</label>
+                                <div class="position-relative">
+                                    <div class="input-group">
+                                        <input type="text" id="scan_kode" class="form-control" placeholder="Ketik kode/nama atau scan barcode..." autocomplete="off">
+                                        <button type="button" class="btn btn-info text-dark" id="btn_scan_camera" title="Scan Barcode Kamera">
+                                            <i class="bi bi-camera"></i>
+                                        </button>
+                                    </div>
+                                    <div id="scan_autocomplete_container" class="list-group position-absolute w-100 shadow-lg border" style="display: none; z-index: 2050; max-height: 260px; overflow-y: auto; top: calc(100% + 2px); left: 0; background: #ffffff; border-radius: 6px;"></div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-8">
+                                <label class="form-label small fw-bold text-muted mb-1">Nama Barang</label>
+                                <input type="text" id="scan_nama" class="form-control" readonly placeholder="Nama barang otomatis...">
+                            </div>
+                            
+                            <!-- Row 2 -->
+                            <div class="col-4 col-md-2">
+                                <label class="form-label small fw-bold text-muted mb-1">Stok Sistem</label>
+                                <input type="text" id="scan_sistem" class="form-control text-center" readonly placeholder="0">
+                            </div>
+                            <div class="col-4 col-md-3">
+                                <label class="form-label small fw-bold text-info mb-1">Stok Fisik (Riil)</label>
+                                <input type="number" id="scan_fisik" class="form-control text-center border-info" min="0" step="0.01" placeholder="0">
+                            </div>
+                            <div class="col-4 col-md-2 text-center">
+                                <label class="form-label small fw-bold text-muted mb-1 d-block text-center">Selisih</label>
+                                <div class="text-center py-1 fw-bold" id="scan_selisih_wrapper">
+                                    <span id="scan_selisih" class="selisih-indicator selisih-zero">-</span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-5">
+                                <label class="form-label small fw-bold text-info mb-1">Catatan Penyesuaian</label>
+                                <input type="text" id="scan_catatan" class="form-control border-info" placeholder="Contoh: Rusak, Hilang, Kurang...">
+                            </div>
+
+                            <div class="col-12 mt-2">
+                                <button type="button" class="btn btn-info w-100 text-dark fw-bold" id="btn_scan_add">
+                                    <i class="bi bi-plus-circle me-1"></i> Masukkan ke Daftar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
+                        <h6 class="fw-bold mb-0 text-info d-flex align-items-center">
+                            <i class="bi bi-list-check me-2 fs-5"></i>
+                            <span>Daftar Hitungan Fisik Riil</span>
+                        </h6>
+                        <div id="local_draft_indicator" style="display:none;"></div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-modern" id="tableInputFisikItems">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="small text-center" width="5%">No</th>
+                                    <th class="small" width="15%">Kode Barang</th>
+                                    <th class="small" width="20%">Nama Barang</th>
+                                    <th class="small text-center" width="10%">Stok Sistem</th>
+                                    <th class="small text-center" width="15%">Stok Fisik</th>
+                                    <th class="small text-center" width="10%">Selisih</th>
+                                    <th class="small" width="15%">Catatan</th>
+                                    <th class="small text-center" width="10%">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="input_fisik_tbody">
+                                <tr id="empty_row_placeholder">
+                                    <td colspan="8" class="text-center py-4 bg-light bg-opacity-50 border-0 rounded-3">
+                                        <div class="d-flex flex-column align-items-center justify-content-center py-3 px-2 w-100 text-center">
+                                            <div class="mb-2 p-3 rounded-circle bg-info bg-opacity-10 text-info d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 52px; height: 52px;">
+                                                <i class="bi bi-upc-scan fs-3"></i>
+                                            </div>
+                                            <div class="fw-bold text-dark fs-6 text-center w-100">Belum Ada Barang yang Di-scan</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="fisik_alert" class="mt-3" style="display:none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer d-flex flex-column-reverse flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 pb-4 pb-sm-3">
+                <button type="button" class="btn btn-cancel w-100 w-sm-auto" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i> Tutup
+                </button>
+                <button type="button" class="btn btn-draft w-100 w-sm-auto" id="btnSimpanFisikDraft">
+                    <i class="bi bi-save me-1"></i> Simpan Draf Progress
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Scanner camera barcode/QR code -->
+<div class="modal modal-blur fade" id="modalScanner" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" style="z-index: 2000;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="background: #0f172a; color: #f8fafc;">
+            <div class="modal-header border-0 pb-1 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success rounded-pill px-3 py-1 fw-bold">
+                        <i class="bi bi-camera-fill me-1"></i> Mode Kamera Belakang
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-light rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" onclick="switchCamera()" title="Ganti Kamera">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-3 text-center">
+                <div class="scanner-viewport-wrapper my-2">
+                    <div id="scanner_reader"></div>
+                    <div class="scanner-overlay" style="display: none;">
+                        <div class="scanner-target-box">
+                            <div class="scanner-corner-tr"></div>
+                            <div class="scanner-corner-bl"></div>
+                            <div class="scanner-laser-line"></div>
+                            <div class="scanner-center-dot"></div>
+                            <div class="scanner-guide-dots scanner-dot-left"></div>
+                            <div class="scanner-guide-dots scanner-dot-right"></div>
+                            <div class="scanner-guide-dots scanner-dot-top"></div>
+                            <div class="scanner-guide-dots scanner-dot-bottom"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
+                    <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span>
+                    <span class="text-white-50 small">Arahkan barcode / QR Code ke dalam area bidik hijau</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center">
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-4 text-white" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ════════════════════════════════════════════════════════════ --}}
+{{-- JAVASCRIPT KHUSUS EDIT / HITUNGEN STOK FISIK                 --}}
+{{-- ════════════════════════════════════════════════════════════ --}}
+@push('scripts')
+<script>
+let currentOpnameDetails = [];
+let currentScannedItem = null;
+let html5QrcodeScanner = null;
+
+function createRowHtml(d, displayedIdx) {
+    let sistemVal = parseFloat(d.stok_sistem || 0);
+    let sistemFormatted = (sistemVal % 1 === 0) ? sistemVal.toFixed(0) : sistemVal.toFixed(2).replace(/\.?0+$/, '');
+    
+    let fisikVal = d.stok_fisik !== null ? parseFloat(d.stok_fisik) : '';
+    
+    let diffVal = d.selisih !== null ? parseFloat(d.selisih) : 0;
+    let diffFormatted = d.selisih !== null ? ((diffVal % 1 === 0) ? diffVal.toFixed(0) : diffVal.toFixed(2).replace(/\.?0+$/, '')) : '';
+    if (diffVal > 0 && d.selisih !== null) diffFormatted = '+' + diffFormatted;
+
+    let diffClass = 'selisih-zero';
+    if (d.selisih !== null) {
+        if (diffVal > 0) diffClass = 'selisih-plus';
+        else if (diffVal < 0) diffClass = 'selisih-minus';
+    }
+
+    let catatanVal = d.catatan || '';
+
+    return `
+    <tr id="table_row_barang_${d.barang_id}">
+        <td data-label="No" class="text-center text-muted small index-cell fw-bold">${displayedIdx}</td>
+        <td data-label="Kode" class="small fw-bold text-primary">${d.barang_kode}</td>
+        <td data-label="Barang" class="small fw-semibold">${d.barang_nama}</td>
+        <td data-label="Sistem" class="text-center">
+            <span class="stok-sistem-badge" id="badge_sistem_${d.barang_id}">${sistemFormatted}</span>
+            <input type="hidden" id="input_sistem_${d.barang_id}" value="${sistemFormatted}">
+        </td>
+        <td data-label="Fisik">
+            <div class="input-group input-group-sm flex-nowrap">
+                <input type="number" class="form-control form-control-sm text-center fw-bold" 
+                       id="input_fisik_${d.barang_id}" name="items[${d.barang_id}][stok_fisik]" 
+                       min="0" step="0.01" value="${fisikVal}" placeholder="0" 
+                       oninput="hitungDiffFisik(${d.barang_id})">
+                <span class="input-group-text small py-0 text-nowrap">${d.satuan}</span>
+                <input type="hidden" name="items[${d.barang_id}][barang_id]" value="${d.barang_id}">
+            </div>
+        </td>
+        <td data-label="Selisih" class="text-center">
+            <span class="selisih-indicator ${diffClass}" id="input_diff_label_${d.barang_id}">${diffFormatted === '' ? '-' : diffFormatted}</span>
+        </td>
+        <td data-label="Catatan">
+            <input type="text" class="form-control form-control-sm" 
+                   id="input_catatan_${d.barang_id}" name="items[${d.barang_id}][catatan]" 
+                   value="${catatanVal}" placeholder="Catatan penyesuaian..."
+                   oninput="updateCatatanMemory(${d.barang_id})">
+        </td>
+        <td data-label="Aksi" class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="hapusRowFisik(${d.barang_id})" title="Hapus dari daftar">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>`;
+}
+
+function updateCatatanMemory(barangId) {
+    let notesVal = $(`#input_catatan_${barangId}`).val();
+    let match = currentOpnameDetails.find(d => d.barang_id == barangId);
+    if (match) {
+        match.catatan = notesVal;
+    }
+}
+
+function updateRowIndexes() {
+    $('#input_fisik_tbody tr:not(#empty_row_placeholder)').each(function(idx) {
+        $(this).find('.index-cell').text(idx + 1);
+    });
+}
+
+function saveLocalFisikDraft(id) {
+    if (!id) id = $('#input_so_id').val();
+    if (!id) return;
+    const key = `so_draft_fisik_${id}`;
+    const items = [];
+    if (currentOpnameDetails && currentOpnameDetails.length) {
+        currentOpnameDetails.forEach(d => {
+            if (d.stok_fisik !== null || (d.catatan && d.catatan !== '')) {
+                items.push({
+                    barang_id: d.barang_id,
+                    barang_kode: d.barang_kode,
+                    barang_nama: d.barang_nama,
+                    stok_sistem: d.stok_sistem,
+                    stok_fisik: d.stok_fisik,
+                    catatan: d.catatan,
+                    selisih: d.selisih
+                });
+            }
+        });
+    }
+    if (items.length > 0) {
+        localStorage.setItem(key, JSON.stringify(items));
+        $('#local_draft_indicator').html('<span class="badge bg-warning bg-opacity-25 text-warning-emphasis border border-warning border-opacity-50 rounded-pill px-3 py-1 fw-semibold small d-inline-flex align-items-center"><i class="bi bi-cloud-arrow-up-fill me-1"></i>Progress Tersimpan (' + items.length + ' item)</span>').show();
+    } else {
+        localStorage.removeItem(key);
+        $('#local_draft_indicator').hide();
+    }
+}
+
+function clearLocalFisikDraft(id) {
+    if (!id) id = $('#input_so_id').val();
+    if (!id) return;
+    localStorage.removeItem(`so_draft_fisik_${id}`);
+    $('#local_draft_indicator').hide();
+}
+
+function getEmptyRowHtml() {
+    return `
+        <tr id="empty_row_placeholder">
+            <td colspan="8" class="text-center py-4 bg-light bg-opacity-50 border-0 rounded-3">
+                <div class="d-flex flex-column align-items-center justify-content-center py-3 px-2 w-100 text-center">
+                    <div class="mb-2 p-3 rounded-circle bg-info bg-opacity-10 text-info d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 52px; height: 52px;">
+                        <i class="bi bi-upc-scan fs-3"></i>
+                    </div>
+                    <div class="fw-bold text-dark fs-6 text-center w-100">Belum Ada Barang yang Di-scan</div>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function restoreLocalFisikDraft(id) {
+    if (!id) return;
+    const key = `so_draft_fisik_${id}`;
+    const saved = localStorage.getItem(key);
+    if (!saved) {
+        $('#local_draft_indicator').hide();
+        return;
+    }
+    try {
+        const localItems = JSON.parse(saved);
+        if (Array.isArray(localItems) && localItems.length > 0) {
+            let restoredCount = 0;
+            localItems.forEach(local => {
+                let match = currentOpnameDetails.find(d => d.barang_id == local.barang_id);
+                if (match) {
+                    match.stok_fisik = local.stok_fisik;
+                    match.catatan = local.catatan;
+                    match.selisih = local.selisih;
+                } else {
+                    currentOpnameDetails.push(local);
+                }
+                restoredCount++;
+            });
+
+            let tbody = $('#input_fisik_tbody');
+            tbody.empty();
+            let activeDetails = currentOpnameDetails.filter(d => d.stok_fisik !== null || (d.catatan && d.catatan !== ''));
+            if (activeDetails.length > 0) {
+                activeDetails.forEach((d, idx) => {
+                    tbody.append(createRowHtml(d, idx + 1));
+                });
+            } else {
+                tbody.html(getEmptyRowHtml());
+            }
+
+            $('#local_draft_indicator').html(`<span class="badge bg-info bg-opacity-25 text-info-emphasis border border-info border-opacity-50 rounded-pill px-3 py-1 fw-semibold small d-inline-flex align-items-center"><i class="bi bi-cloud-check-fill me-1"></i>Draf Lokal Terhubung (${restoredCount} item)</span>`).show();
+        }
+    } catch (e) {
+        console.warn("Error restoring local draft:", e);
+    }
+}
+
+function openInputFisikModal(id) {
+    $('#modalInputFisik').modal('show');
+    $('#input_fisik_tbody').html(getEmptyRowHtml());
+    $('#btnSimpanFisikDraft').prop('disabled', true);
+
+    $('#scan_kode').val('');
+    $('#scan_nama').val('');
+    $('#scan_sistem').val('');
+    $('#scan_fisik').val('');
+    $('#scan_catatan').val('');
+    $('#scan_selisih').removeClass('selisih-plus selisih-minus').addClass('selisih-zero').text('-');
+    $('#deleted_items_container').empty();
+    currentScannedItem = null;
+
+    $.ajax({
+        url: `/stock-opname/${id}`,
+        method: 'GET',
+        success: function (res) {
+            $('#input_so_id').val(res.id);
+            $('#input_so_nomor').text(res.nomor_opname);
+            $('#input_so_gudang').text(res.gudang_nama);
+            $('#input_so_tanggal').text(res.tanggal_mulai);
+
+            currentOpnameDetails = res.details || [];
+            restoreLocalFisikDraft(res.id);
+            $('#btnSimpanFisikDraft').prop('disabled', false);
+
+            setTimeout(() => { $('#scan_kode').focus(); }, 400);
+        },
+        error: function () {
+            $('#input_fisik_tbody').html('<tr><td colspan="8" class="alert alert-danger text-center py-2">Gagal memuat item opname.</td></tr>');
+        }
+    });
+}
+
+function playScannerBeep() {
+    try {
+        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let oscNode = audioCtx.createOscillator();
+        let gainNode = audioCtx.createGain();
+        oscNode.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscNode.type = 'sine';
+        oscNode.frequency.setValueAtTime(1500, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        oscNode.start();
+        oscNode.stop(audioCtx.currentTime + 0.08);
+    } catch (e) {
+        console.warn("AudioContext failed:", e);
+    }
+}
+
+function playWarningBeep() {
+    try {
+        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let oscNode = audioCtx.createOscillator();
+        let gainNode = audioCtx.createGain();
+        oscNode.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscNode.type = 'sawtooth';
+        oscNode.frequency.setValueAtTime(250, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+        oscNode.start();
+        oscNode.stop(audioCtx.currentTime + 0.25);
+    } catch (e) {
+        console.warn("AudioContext failed:", e);
+    }
+}
+
+function selectScannedItem(item, shouldFocus = true) {
+    playScannerBeep();
+
+    currentScannedItem = item;
+    $('#scan_kode').val(item.barang_kode);
+    $('#scan_nama').val(item.barang_nama);
+    
+    let sisVal = parseFloat(item.stok_sistem || 0);
+    let sisFormatted = (sisVal % 1 === 0) ? sisVal.toFixed(0) : sisVal.toFixed(2).replace(/\.?0+$/, '');
+    $('#scan_sistem').val(sisFormatted);
+    
+    let existingFisik = item.stok_fisik !== null ? item.stok_fisik : '';
+    $('#scan_fisik').val(existingFisik);
+
+    let existingCatatan = item.catatan !== null ? item.catatan : '';
+    $('#scan_catatan').val(existingCatatan);
+    
+    hitungDiffScan();
+
+    if (shouldFocus) {
+        setTimeout(() => {
+            $('#scan_fisik').focus().select();
+        }, 10);
+    }
+}
+
+function hitungDiffScan() {
+    const sistem = parseFloat($('#scan_sistem').val()) || 0;
+    const fisik = parseFloat($('#scan_fisik').val());
+    const lbl = $('#scan_selisih');
+
+    if (isNaN(fisik)) {
+        lbl.removeClass('selisih-plus selisih-minus').addClass('selisih-zero').text('-');
+        return;
+    }
+
+    const diff = fisik - sistem;
+    let diffFormatted = (diff % 1 === 0) ? diff.toFixed(0) : diff.toFixed(2).replace(/\.?0+$/, '');
+
+    if (diff > 0) {
+        lbl.removeClass('selisih-minus selisih-zero').addClass('selisih-plus').text('+' + diffFormatted);
+    } else if (diff < 0) {
+        lbl.removeClass('selisih-plus selisih-zero').addClass('selisih-minus').text(diffFormatted);
+    } else {
+        lbl.removeClass('selisih-plus selisih-minus').addClass('selisih-zero').text('0');
+    }
+}
+
+function hitungDiffFisik(barangId) {
+    const sistem = parseFloat($(`#input_sistem_${barangId}`).val()) || 0;
+    const fisik = parseFloat($(`#input_fisik_${barangId}`).val());
+    const lbl = $(`#input_diff_label_${barangId}`);
+
+    let match = currentOpnameDetails.find(d => d.barang_id == barangId);
+    if (match) {
+        match.stok_fisik = isNaN(fisik) ? null : fisik;
+        match.selisih = isNaN(fisik) ? null : (fisik - sistem);
+    }
+
+    if (isNaN(fisik)) {
+        lbl.removeClass('selisih-plus selisih-minus').addClass('selisih-zero').text('-');
+        return;
+    }
+
+    const diff = fisik - sistem;
+    let diffFormatted = (diff % 1 === 0) ? diff.toFixed(0) : diff.toFixed(2).replace(/\.?0+$/, '');
+
+    if (diff > 0) {
+        lbl.removeClass('selisih-minus selisih-zero').addClass('selisih-plus').text('+' + diffFormatted);
+    } else if (diff < 0) {
+        lbl.removeClass('selisih-plus selisih-zero').addClass('selisih-minus').text(diffFormatted);
+    } else {
+        lbl.removeClass('selisih-plus selisih-minus').addClass('selisih-zero').text('0');
+    }
+    saveLocalFisikDraft();
+}
+
+function hapusRowFisik(barangId) {
+    let match = currentOpnameDetails.find(d => d.barang_id == barangId);
+    if (match) {
+        $('#deleted_items_container').append(`
+            <input type="hidden" name="items[${barangId}][stok_fisik]" value="">
+            <input type="hidden" name="items[${barangId}][barang_id]" value="${barangId}">
+        `);
+        match.stok_fisik = null;
+        match.selisih = null;
+        match.catatan = null;
+    }
+
+    $(`#table_row_barang_${barangId}`).remove();
+
+    if ($('#input_fisik_tbody tr:not(#empty_row_placeholder)').length === 0) {
+        $('#input_fisik_tbody').html(getEmptyRowHtml());
+    } else {
+        updateRowIndexes();
+    }
+    saveLocalFisikDraft();
+}
+
+function masukkanKeDaftar() {
+    if (!currentScannedItem) {
+        Swal.fire({ icon: 'warning', title: 'Barang Kosong', text: 'Scan atau ketik kode barang yang valid terlebih dahulu.', timer: 1500, showConfirmButton: false });
+        return;
+    }
+
+    let fisikText = $('#scan_fisik').val().trim();
+    if (fisikText === '') {
+        Swal.fire({ icon: 'warning', title: 'Jumlah Fisik Kosong', text: 'Ketik kuantiti fisik barang riil.', timer: 1500, showConfirmButton: false });
+        return;
+    }
+
+    let fisikVal = parseFloat( fisikText );
+    let catatanVal = $('#scan_catatan').val().trim();
+    
+    $('#empty_row_placeholder').remove();
+
+    currentScannedItem.stok_fisik = fisikVal;
+    let sistemVal = parseFloat(currentScannedItem.stok_sistem || 0);
+    let diffVal = fisikVal - sistemVal;
+    currentScannedItem.selisih = diffVal;
+    currentScannedItem.catatan = catatanVal;
+
+    $(`#deleted_items_container input[name="items[${currentScannedItem.barang_id}][barang_id]"]`).parent().remove();
+
+    let targetRow = $(`#table_row_barang_${currentScannedItem.barang_id}`);
+    if (targetRow.length) {
+        let targetInput = $(`#input_fisik_${currentScannedItem.barang_id}`);
+        targetInput.val(fisikVal);
+        $(`#input_catatan_${currentScannedItem.barang_id}`).val(catatanVal);
+        hitungDiffFisik(currentScannedItem.barang_id);
+    } else {
+        let nextIndex = $('#input_fisik_tbody tr:not(#empty_row_placeholder)').length + 1;
+        let newRowHtml = createRowHtml(currentScannedItem, nextIndex);
+        $('#input_fisik_tbody').append(newRowHtml);
+        targetRow = $(`#table_row_barang_${currentScannedItem.barang_id}`);
+    }
+
+    updateRowIndexes();
+    saveLocalFisikDraft();
+
+    if (targetRow.length) {
+        targetRow[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetRow.css('transition', 'background-color 0.2s');
+        targetRow.css('background-color', '#fff3cd');
+        setTimeout(() => {
+            targetRow.css('background-color', '');
+        }, 1500);
+    }
+
+    $('#scan_kode').val('');
+    $('#scan_nama').val('');
+    $('#scan_sistem').val('');
+    $('#scan_fisik').val('');
+    $('#scan_catatan').val('');
+    $('#scan_selisih').removeClass('selisih-plus selisih-minus').addClass('selisih-zero').text('-');
+    currentScannedItem = null;
+
+    $('#scan_kode').focus();
+}
+
+function processBarcodeInput(query) {
+    query = (query || '').toString().trim();
+    if (query === '') return;
+
+    $('#scan_kode').val(query);
+    let qLower = query.toLowerCase();
+
+    let exactMatch = currentOpnameDetails.find(d => 
+        (d.barang_kode && d.barang_kode.toLowerCase() === qLower) || 
+        (d.barang_barcode && d.barang_barcode.toLowerCase() === qLower)
+    );
+
+    if (exactMatch) {
+        selectScannedItem(exactMatch, false);
+        setTimeout(() => {
+            $('#scan_fisik').focus().select();
+        }, 100);
+    } else {
+        let opnameId = $('#input_so_id').val();
+        if (!opnameId) return;
+
+        $('#scan_nama').val('Mencari di Master Barang...');
+
+        $.ajax({
+            url: `/stock-opname/${opnameId}/find-barang`,
+            method: 'GET',
+            data: { code: query },
+            success: function(res) {
+                currentOpnameDetails.push(res);
+                selectScannedItem(res, true);
+                setTimeout(() => {
+                    $('#scan_fisik').focus().select();
+                }, 100);
+            },
+            error: function(xhr) {
+                playWarningBeep();
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Barang Tidak Terdaftar!',
+                    html: `Barang dengan kode/barcode <strong class="text-danger">${query.toUpperCase()}</strong> tidak terdaftar di sistem!`,
+                    confirmButtonText: 'OK'
+                });
+
+                $('#scan_kode').val('').focus();
+                $('#scan_nama').val('');
+                $('#scan_sistem').val('');
+                $('#scan_fisik').val('');
+                $('#scan_catatan').val('');
+                $('#scan_selisih').removeClass('selisih-plus selisih-minus').addClass('selisih-zero').text('-');
+            }
+        });
+    }
+}
+
+let availableCameraIds = [];
+let currentCameraIndex = 0;
+
+function switchCamera() {
+    if (!availableCameraIds || availableCameraIds.length <= 1) {
+        Swal.fire({ icon: 'info', title: 'Info Kamera', text: 'Hanya 1 perangkat kamera yang terdeteksi pada perangkat ini.', timer: 1500, showConfirmButton: false });
+        return;
+    }
+    currentCameraIndex = (currentCameraIndex + 1) % availableCameraIds.length;
+    startCameraScanner(availableCameraIds[currentCameraIndex]);
+}
+
+function startCameraScanner(specificCameraId = null) {
+    if (html5QrcodeScanner) {
+        try {
+            html5QrcodeScanner.clear().catch(err => console.log(err));
+        } catch (e) {}
+    }
+
+    $('#scanner_reader').html('<div class="d-flex align-items-center justify-content-center text-white flex-column py-5" style="min-height: 220px;"><div class="spinner-border text-success mb-2" role="status"></div><span class="small text-success">Menginisialisasi Kamera...</span></div>');
+    $('.scanner-overlay').hide();
+
+    let allFormats = [];
+    if (typeof Html5QrcodeSupportedFormats !== 'undefined') {
+        allFormats = [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.UPC_EAN_EXTENSION,
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.CODABAR,
+            Html5QrcodeSupportedFormats.DATA_MATRIX,
+            Html5QrcodeSupportedFormats.AZTEC,
+            Html5QrcodeSupportedFormats.PDF_417
+        ];
+    }
+
+    html5QrcodeScanner = new Html5Qrcode("scanner_reader", {
+        formatsToSupport: allFormats.length ? allFormats : undefined,
+        verbose: false
+    });
+    
+    let isProcessingScan = false;
+    const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+        if (isProcessingScan) return;
+        isProcessingScan = true;
+
+        playScannerBeep();
+
+        // Flash green box on successful scan
+        $('.scanner-target-box').css('box-shadow', '0 0 35px 12px #22c55e');
+
+        setTimeout(() => {
+            $('#modalScanner').modal('hide');
+            processBarcodeInput(decodedText);
+        }, 120);
+    };
+
+    const proceedStart = (cameraConfig) => {
+        const scanConfig = { 
+            fps: 15,
+            qrbox: function(viewfinderWidth, viewfinderHeight) {
+                const w = Math.min(Math.floor(viewfinderWidth * 0.82), 300);
+                const h = Math.min(Math.floor(viewfinderHeight * 0.52), 160);
+                return { width: w, height: h };
+            }
+        };
+
+        html5QrcodeScanner.start(
+            cameraConfig, 
+            scanConfig, 
+            qrCodeSuccessCallback,
+            (errorMessage) => {}
+        ).then(() => {
+            $('.scanner-overlay').fadeIn(150);
+        }).catch(err => {
+            console.error("Camera access failed:", err);
+            let cleanError = err ? err.toString() : 'Unknown Error';
+            
+            $('#scanner_reader').html(`
+                <div class="d-flex align-items-center justify-content-center text-white flex-column p-4 text-center" style="min-height: 220px; background: #27272a;">
+                    <i class="bi bi-exclamation-triangle-fill text-warning mb-2" style="font-size: 2rem;"></i>
+                    <span class="fw-semibold">Gagal Membuka Kamera</span>
+                    <small class="text-muted mt-2">${cleanError}</small>
+                    <small class="text-danger mt-1" style="font-size: 0.75rem;">Pastikan izin kamera aktif & menggunakan koneksi aman HTTPS / Localhost.</small>
+                </div>
+            `);
+        });
+    };
+
+    if (specificCameraId) {
+        proceedStart(specificCameraId);
+    } else {
+        Html5Qrcode.getCameras().then(devices => {
+            if (devices && devices.length) {
+                availableCameraIds = devices.map(d => d.id);
+                // Prefer rear / back camera (environment) on mobile
+                let backCamera = devices.find(d => {
+                    let label = (d.label || '').toLowerCase();
+                    return label.includes('back') || label.includes('rear') || label.includes('belakang') || label.includes('environment');
+                });
+                if (backCamera) {
+                    currentCameraIndex = availableCameraIds.indexOf(backCamera.id);
+                    proceedStart(backCamera.id);
+                } else {
+                    currentCameraIndex = 0;
+                    proceedStart(devices[0].id);
+                }
+            } else {
+                proceedStart({ facingMode: "environment" });
+            }
+        }).catch(() => {
+            proceedStart({ facingMode: "environment" });
+        });
+    }
+}
+
+function stopCameraScanner() {
+    // 1. Explicitly stop all video MediaStreamTracks to turn off camera hardware light immediately
+    try {
+        $('#scanner_reader video').each(function() {
+            if (this.srcObject) {
+                let stream = this.srcObject;
+                if (stream && stream.getTracks) {
+                    stream.getTracks().forEach(track => {
+                        try { track.stop(); } catch(e) {}
+                    });
+                }
+                this.srcObject = null;
+            }
+        });
+    } catch(e) {}
+
+    // 2. Stop Html5Qrcode instance
+    if (html5QrcodeScanner) {
+        try {
+            if (html5QrcodeScanner.isScanning) {
+                html5QrcodeScanner.stop().then(() => {
+                    try { html5QrcodeScanner.clear(); } catch(e) {}
+                    html5QrcodeScanner = null;
+                }).catch(err => {
+                    try { html5QrcodeScanner.clear(); } catch(e) {}
+                    html5QrcodeScanner = null;
+                });
+            } else {
+                try { html5QrcodeScanner.clear(); } catch(e) {}
+                html5QrcodeScanner = null;
+            }
+        } catch (e) {
+            html5QrcodeScanner = null;
+        }
+    }
+
+    // 3. Clear container DOM and hide overlay
+    $('#scanner_reader').empty();
+    $('.scanner-overlay').hide();
+}
+
+$(document).ready(function () {
+    $(document).on('input keyup', '#scan_kode', function(e) {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter') return;
+
+        let query = $(this).val().trim().toLowerCase();
+        if (query === '') {
+            $('#scan_nama').val('');
+            $('#scan_sistem').val('');
+            $('#scan_fisik').val('');
+            $('#scan_catatan').val('');
+            $('#scan_selisih').removeClass('selisih-plus selisih-minus').addClass('selisih-zero').text('-');
+            $('#scan_autocomplete_container').hide().empty();
+            currentScannedItem = null;
+            return;
+        }
+
+        let exactMatch = currentOpnameDetails.find(d => 
+            (d.barang_kode && d.barang_kode.toLowerCase() === query) || 
+            (d.barang_barcode && d.barang_barcode.toLowerCase() === query)
+        );
+
+        if (exactMatch) {
+            selectScannedItem(exactMatch, false);
+            $('#scan_autocomplete_container').hide().empty();
+            return;
+        }
+
+        let queryParts = query.split(/\s+/).filter(p => p.length > 0);
+        let partialMatches = currentOpnameDetails.filter(d => {
+            let combined = ((d.barang_kode || '') + ' ' + (d.barang_nama || '') + ' ' + (d.barang_barcode || '')).toLowerCase();
+            return queryParts.every(part => combined.includes(part));
+        });
+
+        if (partialMatches.length > 0) {
+            let listHtml = '';
+            partialMatches.slice(0, 15).forEach((item, idx) => {
+                let sisVal = parseFloat(item.stok_sistem || 0);
+                let sisFormatted = (sisVal % 1 === 0) ? sisVal.toFixed(0) : sisVal.toFixed(2).replace(/\.?0+$/, '');
+                listHtml += `
+                <a href="javascript:void(0)" class="list-group-item list-group-item-action py-2 px-3 small autocomplete-item d-flex justify-content-between align-items-center ${idx === 0 ? 'active' : ''}" data-barang-id="${item.barang_id}" data-barang-kode="${item.barang_kode}">
+                    <div>
+                        <strong class="text-primary">${item.barang_kode}</strong> - <span class="fw-semibold text-dark">${item.barang_nama}</span>
+                    </div>
+                    <span class="badge bg-secondary rounded-pill small ms-2 text-nowrap">Sistem: ${sisFormatted} ${item.satuan || ''}</span>
+                </a>`;
+            });
+            $('#scan_autocomplete_container').html(listHtml).show();
+        } else {
+            let notFoundHtml = `
+            <div class="list-group-item py-2 px-3 small text-muted text-center bg-light">
+                <i class="bi bi-search me-1"></i> Tidak ditemukan barang dengan kata kunci "<strong>${query}</strong>"
+            </div>`;
+            $('#scan_autocomplete_container').html(notFoundHtml).show();
+            currentScannedItem = null;
+        }
+    });
+
+    $(document).on('click', '.autocomplete-item', function(e) {
+        e.preventDefault();
+        let barangId = $(this).data('barang-id');
+        let code = $(this).data('barang-kode');
+        let match = currentOpnameDetails.find(d => d.barang_id == barangId || d.barang_kode === code);
+        if (match) {
+            selectScannedItem(match, true);
+        }
+        $('#scan_autocomplete_container').hide().empty();
+    });
+
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#scan_kode, #scan_autocomplete_container').length) {
+            $('#scan_autocomplete_container').hide();
+        }
+    });
+
+    $(document).on('keydown', '#scan_kode', function(e) {
+        let container = $('#scan_autocomplete_container');
+        if (!container.is(':visible')) return;
+
+        let items = container.find('.autocomplete-item');
+        if (items.length === 0) return;
+
+        let activeItem = container.find('.autocomplete-item.active');
+        let activeIdx = items.index(activeItem);
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            items.removeClass('active');
+            let nextIdx = (activeIdx + 1) % items.length;
+            $(items[nextIdx]).addClass('active');
+            items[nextIdx].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            items.removeClass('active');
+            let prevIdx = (activeIdx - 1 + items.length) % items.length;
+            $(items[prevIdx]).addClass('active');
+            items[prevIdx].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (activeItem.length > 0) {
+                activeItem.click();
+            } else {
+                $(items[0]).click();
+            }
+        }
+    });
+
+    $(document).on('input', '#scan_fisik', function() {
+        hitungDiffScan();
+    });
+
+    $(document).on('click', '#btn_scan_add', function(e) {
+        e.preventDefault();
+        masukkanKeDaftar();
+    });
+
+    $(document).on('keypress', '#scan_kode', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            processBarcodeInput($(this).val());
+        }
+    });
+
+    $(document).on('keypress', '#scan_fisik', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            masukkanKeDaftar();
+        }
+    });
+
+    let cameraStartTimer = null;
+
+    $(document).on('click', '#btn_scan_camera', function(e) {
+        e.preventDefault();
+        if (cameraStartTimer) clearTimeout(cameraStartTimer);
+        $('#modalScanner').modal('show');
+        cameraStartTimer = setTimeout(() => { startCameraScanner(); }, 400);
+    });
+
+    $('#modalScanner').on('hide.bs.modal hidden.bs.modal', function () {
+        if (cameraStartTimer) {
+            clearTimeout(cameraStartTimer);
+            cameraStartTimer = null;
+        }
+        stopCameraScanner();
+    });
+
+    $('#btnSimpanFisikDraft').on('click', function (e) {
+        e.preventDefault();
+        $('#fisik_alert').hide();
+
+        const id = $('#input_so_id').val();
+        const data = $('#formInputFisik').serialize();
+
+        $('#btnSimpanFisikDraft').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan…');
+
+        $.ajax({
+            url: `/stock-opname/${id}/save-physical`,
+            method: 'POST',
+            data: data,
+            success: function (res) {
+                $('#btnSimpanFisikDraft').prop('disabled', false).html('<i class="bi bi-save me-1"></i> Simpan Draf Progress');
+
+                $('#input_fisik_tbody').html(getEmptyRowHtml());
+                $('#deleted_items_container').empty();
+                clearLocalFisikDraft(id);
+
+                reloadTableOpname();
+
+                Swal.fire({ icon:'success', title:'Progress Disimpan!', text:res.message, timer:1500, showConfirmButton:false });
+            },
+            error: function (xhr) {
+                $('#btnSimpanFisikDraft').prop('disabled', false).html('<i class="bi bi-save me-1"></i> Simpan Draf Progress');
+                $('#fisik_alert').html(`<div class="alert alert-danger py-2 mb-0 small">${xhr.responseJSON?.message || 'Terjadi kesalahan.'}</div>`).show();
+            }
+        });
+    });
+
+    window.addEventListener('beforeunload', function (e) {
+        const opnameId = $('#input_so_id').val();
+        if (opnameId && $('#modalInputFisik').hasClass('show')) {
+            const key = `so_draft_fisik_${opnameId}`;
+            if (localStorage.getItem(key)) {
+                e.preventDefault();
+                e.returnValue = 'Data input stok fisik belum disimpan sebagai Draf Progress!';
+            }
+        }
+    });
+
+    document.getElementById('modalInputFisik')?.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('formInputFisik').reset();
+        $('#input_fisik_tbody').empty();
+        $('#deleted_items_container').empty();
+        $('#fisik_alert').hide();
+    });
+});
+</script>
+@endpush

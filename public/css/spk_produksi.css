@@ -1,0 +1,1143 @@
+/* ─── GLOBAL CSS VARIABLE THEMES FOR SPK / WORK ORDER PRODUKSI ─── */
+:root {
+    --spk-card-bg:           #ffffff;
+    --spk-border-color:      #e2e8f0;
+    --spk-text-main:         #0f172a;
+    --spk-text-muted:        #64748b;
+    --spk-bg-light:          #f8fafc;
+    --spk-bg-tertiary:       #f1f5f9;
+    --spk-accent:            #2563eb;
+    --spk-input-bg:          #ffffff;
+    --spk-readonly-bg:       #f8fafc;
+    --spk-modal-bg:          #ffffff;
+    --spk-modal-border:      #e2e8f0;
+    --spk-modal-shadow:      0 25px 50px -12px rgba(15, 23, 42, 0.22);
+    --spk-table-head-bg:     #f1f5f9;
+    --spk-table-head-text:   #1e293b;
+    --spk-table-hover-bg:    #f0f9ff;
+    --spk-table-row-bg:      #ffffff;
+    --spk-table-border:      #e2e8f0;
+    --spk-processing-bg:     rgba(15, 23, 42, 0.9);
+    --spk-processing-text:   #ffffff;
+
+    /* Stock pill */
+    --spk-suff-bg:           rgba(16, 185, 129, 0.12);
+    --spk-suff-color:        #047857;
+    --spk-suff-border:       rgba(16, 185, 129, 0.3);
+    --spk-deficit-bg:        rgba(239, 68, 68, 0.12);
+    --spk-deficit-color:     #b91c1c;
+    --spk-deficit-border:    rgba(239, 68, 68, 0.3);
+}
+
+/* ── DARK MODE OVERRIDES ─────────────────────────────────────── */
+html[data-bs-theme="dark"],
+[data-bs-theme="dark"],
+.dark-mode {
+    --spk-card-bg:           #1e293b;
+    --spk-border-color:      #334155;
+    --spk-text-main:         #f1f5f9;
+    --spk-text-muted:        #94a3b8;
+    --spk-bg-light:          #0f172a;
+    --spk-bg-tertiary:       #0f172a;
+    --spk-accent:            #60a5fa;
+    --spk-input-bg:          #0f172a;
+    --spk-readonly-bg:       #0f172a;
+    --spk-modal-bg:          #1e293b;
+    --spk-modal-border:      #334155;
+    --spk-modal-shadow:      0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    --spk-table-head-bg:     #0f172a;
+    --spk-table-head-text:   #60a5fa;
+    --spk-table-hover-bg:    #334155;
+    --spk-table-row-bg:      #1e293b;
+    --spk-table-border:      #334155;
+    --spk-processing-bg:     rgba(30, 41, 59, 0.95);
+    --spk-processing-text:   #60a5fa;
+
+    /* Stock pill dark */
+    --spk-suff-bg:           rgba(16, 185, 129, 0.22);
+    --spk-suff-color:        #34d399;
+    --spk-suff-border:       rgba(16, 185, 129, 0.45);
+    --spk-deficit-bg:        rgba(239, 68, 68, 0.22);
+    --spk-deficit-color:     #f87171;
+    --spk-deficit-border:    rgba(239, 68, 68, 0.45);
+}
+
+/* ── BASE TEXT & CARD ─────────────────────────────────────────── */
+.spk-text-main   { color: var(--spk-text-main)   !important; }
+.spk-text-muted  { color: var(--spk-text-muted)  !important; }
+
+.spk-text-contrast {
+    color: var(--spk-text-main) !important;
+}
+
+.spk-text-muted-contrast {
+    color: var(--spk-text-muted) !important;
+}
+
+.micro-header {
+    font-size: 10.5px !important;
+    letter-spacing: 0.6px !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    color: var(--spk-text-muted) !important;
+}
+
+html[data-bs-theme="dark"] .spk-modal-secondary .text-muted,
+html[data-bs-theme="dark"] .spk-modal-primary .text-muted,
+[data-bs-theme="dark"] .text-muted,
+.dark-mode .text-muted {
+    color: #94a3b8 !important;
+}
+
+.spk-card {
+    background-color: var(--spk-card-bg)    !important;
+    border: 1px solid var(--spk-border-color) !important;
+    color:            var(--spk-text-main)   !important;
+}
+
+.spk-card-header {
+    background-color: var(--spk-card-bg)       !important;
+    border-bottom: 1px solid var(--spk-border-color) !important;
+    color: var(--spk-text-main) !important;
+}
+
+/* ── FORM INPUTS ──────────────────────────────────────────────── */
+.spk-input,
+.spk-select,
+.spk-input-group-text {
+    background-color: var(--spk-input-bg)     !important;
+    color:            var(--spk-text-main)    !important;
+    border-color:     var(--spk-border-color) !important;
+}
+
+.spk-input:focus,
+.spk-select:focus {
+    border-color: var(--spk-accent) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+}
+
+.spk-input[readonly],
+.spk-readonly {
+    background-color: var(--spk-readonly-bg) !important;
+    color:            var(--spk-text-main)   !important;
+    border-color:     var(--spk-border-color) !important;
+    cursor: default;
+}
+
+.spk-bg-tertiary {
+    background-color: var(--spk-bg-tertiary) !important;
+    color: var(--spk-text-main) !important;
+}
+
+.spk-bg-light {
+    background-color: var(--spk-bg-light) !important;
+    color: var(--spk-text-main) !important;
+}
+
+/* ── MAIN DATATABLES — #tabelMasterSpk, #table_barang_jadi & #table_realisasi_spk ──── */
+#tabelMasterSpk,
+#table_barang_jadi,
+#table_realisasi_spk {
+    color: var(--spk-text-main) !important;
+    min-width: 1100px !important;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#tabelMasterSpk thead th,
+#table_barang_jadi thead th,
+#table_realisasi_spk thead th {
+    background-color: var(--spk-table-head-bg)   !important;
+    color:            var(--spk-table-head-text)  !important;
+    border-bottom: 2px solid var(--spk-border-color) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 0.76rem !important;
+    letter-spacing: 0.5px !important;
+    padding: 0.9rem 1rem !important;
+}
+
+#tabelMasterSpk tbody td,
+#table_barang_jadi tbody td,
+#table_realisasi_spk tbody td {
+    background-color: var(--spk-table-row-bg) !important;
+    color:            var(--spk-text-main)    !important;
+    border-color:     var(--spk-table-border) !important;
+    vertical-align: middle !important;
+    padding: 0.9rem 1rem !important;
+}
+
+#tabelMasterSpk tbody tr:hover td,
+#table_barang_jadi tbody tr:hover td,
+#table_realisasi_spk tbody tr:hover td {
+    background-color: var(--spk-table-hover-bg) !important;
+}
+
+/* ── BOOTSTRAP BADGE OVERRIDES FOR HIGH CONTRAST (LIGHT & DARK MODE) ── */
+.badge {
+    box-shadow: none !important;
+}
+
+/* Light Mode Badges (Default / Light Theme) */
+.badge.spk-badge-cyan,
+.badge.spk-badge-cyan * {
+    background-color: #e0f2fe !important;
+    color: #0369a1 !important;
+    border: 1px solid #7dd3fc !important;
+}
+
+.badge.spk-badge-blue,
+.badge.spk-badge-blue * {
+    background-color: #dbeafe !important;
+    color: #1d4ed8 !important;
+    border: 1px solid #93c5fd !important;
+}
+
+.badge.spk-badge-green,
+.badge.spk-badge-green * {
+    background-color: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #86efac !important;
+}
+
+.badge.spk-badge-amber,
+.badge.spk-badge-amber * {
+    background-color: #fef3c7 !important;
+    color: #b45309 !important;
+    border: 1px solid #fde68a !important;
+}
+
+.badge.spk-badge-red,
+.badge.spk-badge-red * {
+    background-color: #fee2e2 !important;
+    color: #b91c1c !important;
+    border: 1px solid #fca5a5 !important;
+}
+
+.badge.spk-badge-muted,
+.badge.spk-badge-muted * {
+    background-color: #f1f5f9 !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+.badge.bg-secondary-subtle,
+.badge.bg-secondary-subtle * {
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+/* Dark Mode Badges */
+html[data-bs-theme="dark"] .badge.spk-badge-cyan,
+html[data-bs-theme="dark"] .badge.spk-badge-cyan *,
+.dark-mode .badge.spk-badge-cyan,
+.dark-mode .badge.spk-badge-cyan * {
+    background-color: rgba(6, 182, 212, 0.22) !important;
+    color: #22d3ee !important;
+    border: 1px solid rgba(6, 182, 212, 0.45) !important;
+}
+
+html[data-bs-theme="dark"] .badge.spk-badge-blue,
+html[data-bs-theme="dark"] .badge.spk-badge-blue *,
+.dark-mode .badge.spk-badge-blue,
+.dark-mode .badge.spk-badge-blue * {
+    background-color: rgba(59, 130, 246, 0.22) !important;
+    color: #60a5fa !important;
+    border: 1px solid rgba(59, 130, 246, 0.45) !important;
+}
+
+html[data-bs-theme="dark"] .badge.spk-badge-green,
+html[data-bs-theme="dark"] .badge.spk-badge-green *,
+.dark-mode .badge.spk-badge-green,
+.dark-mode .badge.spk-badge-green * {
+    background-color: rgba(16, 185, 129, 0.22) !important;
+    color: #34d399 !important;
+    border: 1px solid rgba(16, 185, 129, 0.45) !important;
+}
+
+html[data-bs-theme="dark"] .badge.spk-badge-amber,
+html[data-bs-theme="dark"] .badge.spk-badge-amber *,
+.dark-mode .badge.spk-badge-amber,
+.dark-mode .badge.spk-badge-amber * {
+    background-color: rgba(245, 158, 11, 0.22) !important;
+    color: #fbbf24 !important;
+    border: 1px solid rgba(245, 158, 11, 0.45) !important;
+}
+
+html[data-bs-theme="dark"] .badge.spk-badge-red,
+html[data-bs-theme="dark"] .badge.spk-badge-red *,
+.dark-mode .badge.spk-badge-red,
+.dark-mode .badge.spk-badge-red * {
+    background-color: rgba(239, 68, 68, 0.22) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.45) !important;
+}
+
+html[data-bs-theme="dark"] .badge.spk-badge-muted,
+html[data-bs-theme="dark"] .badge.spk-badge-muted *,
+.dark-mode .badge.spk-badge-muted,
+.dark-mode .badge.spk-badge-muted * {
+    background-color: rgba(148, 163, 184, 0.25) !important;
+    color: #e2e8f0 !important;
+    border: 1px solid rgba(148, 163, 184, 0.4) !important;
+}
+
+html[data-bs-theme="dark"] .badge.bg-secondary-subtle,
+html[data-bs-theme="dark"] .badge.bg-secondary-subtle *,
+.dark-mode .badge.bg-secondary-subtle,
+.dark-mode .badge.bg-secondary-subtle * {
+    background-color: rgba(148, 163, 184, 0.18) !important;
+    color: #cbd5e1 !important;
+    border: 1px solid rgba(148, 163, 184, 0.3) !important;
+}
+
+/* Outline Buttons Light Mode Overrides */
+html[data-bs-theme="light"] .btn-outline-info,
+[data-bs-theme="light"] .btn-outline-info {
+    color: #0284c7 !important;
+    border-color: #38bdf8 !important;
+    background-color: #f0f9ff !important;
+}
+html[data-bs-theme="light"] .btn-outline-info:hover,
+[data-bs-theme="light"] .btn-outline-info:hover {
+    color: #ffffff !important;
+    background-color: #0284c7 !important;
+    border-color: #0284c7 !important;
+}
+
+/* ── DATATABLES RESPONSIVE SCROLLBAR ── */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+.table-responsive::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.4);
+    border-radius: 99px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.4);
+    border-radius: 99px;
+}
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.7);
+}
+
+/* DataTables controls */
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--spk-text-main) !important;
+}
+
+div.dataTables_processing {
+    position: absolute !important;
+    top: 50% !important; left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important; padding: 1rem 2rem !important;
+    background: var(--spk-processing-bg) !important;
+    color: var(--spk-processing-text) !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--spk-accent) !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35) !important;
+    z-index: 1040 !important; font-weight: 700 !important;
+    font-size: 0.95rem !important; backdrop-filter: blur(8px) !important;
+}
+
+/* ── MODAL SYSTEM ─────────────────────────────────────────────── */
+.spk-modal-primary   { z-index: 1050 !important; }
+.spk-modal-secondary { z-index: 1070 !important; }
+
+.modal-backdrop:not(.spk-backdrop-secondary) { z-index: 1045 !important; }
+.modal-backdrop.spk-backdrop-secondary       { z-index: 1065 !important; }
+
+/* SweetAlert must always be higher than any stacked modals */
+.swal2-container,
+div:where(.swal2-container) {
+    z-index: 999999 !important;
+}
+
+/* modal-content: overriding Bootstrap's own bg */
+.spk-modal-content {
+    background-color: var(--spk-modal-bg)     !important;
+    color:            var(--spk-text-main)    !important;
+    border: 1px solid var(--spk-modal-border) !important;
+    border-radius: 20px !important;
+    box-shadow: var(--spk-modal-shadow) !important;
+    overflow: hidden;
+    transition: all 0.25s ease;
+}
+
+.spk-modal-body {
+    background-color: var(--spk-modal-bg) !important;
+    color: var(--spk-text-main) !important;
+    overflow-y: auto;
+}
+
+.spk-modal-body::-webkit-scrollbar { width: 6px; }
+.spk-modal-body::-webkit-scrollbar-thumb {
+    background: rgba(148,163,184,0.4);
+    border-radius: 4px;
+}
+
+.spk-modal-footer {
+    background-color: var(--spk-modal-bg) !important;
+    border-top: 1px solid var(--spk-border-color) !important;
+    padding: 1rem 1.25rem 1.25rem 1.25rem;
+    flex-shrink: 0 !important;
+}
+
+/* Ensure modal dialog height never exceeds screen viewport on mobile */
+.modal-dialog-scrollable {
+    max-height: calc(100dvh - 1rem) !important;
+}
+.modal-dialog-scrollable .modal-content {
+    max-height: calc(100dvh - 1rem) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+.modal-content > form {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+}
+.modal-dialog-scrollable .modal-header,
+.modal-dialog-scrollable .modal-footer {
+    flex-shrink: 0 !important;
+}
+.modal-dialog-scrollable .modal-body {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+}
+
+@media (max-width: 575.98px) {
+    .spk-modal-footer {
+        padding: 0.85rem 1rem 1.25rem 1rem;
+    }
+}
+
+/* Modal Headers — always dark gradient (same as BOM) */
+.spk-modal-header-dark {
+    background: linear-gradient(135deg, #334155 0%, #0f172a 100%) !important;
+    color: #ffffff !important;
+    border-bottom: none !important;
+    padding: 1.15rem 1.5rem !important;
+}
+
+.spk-modal-header-blue {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    border-bottom: none !important;
+    padding: 1.15rem 1.5rem !important;
+}
+
+.spk-modal-header-amber {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #ffffff !important;
+    border-bottom: none !important;
+    padding: 1.15rem 1.5rem !important;
+}
+
+/* ── TABLES INSIDE MODALS ─────────────────────────────────────── */
+.spk-table {
+    color: var(--spk-text-main) !important;
+}
+
+.spk-table thead th {
+    background-color: var(--spk-table-head-bg)  !important;
+    color:            var(--spk-table-head-text) !important;
+    font-weight: 700 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    border-color: var(--spk-border-color) !important;
+    padding: 0.75rem !important;
+}
+
+.spk-table tbody td {
+    background-color: var(--spk-table-row-bg) !important;
+    color:            var(--spk-text-main)    !important;
+    border-color:     var(--spk-table-border) !important;
+    padding: 0.6rem 0.75rem !important;
+    vertical-align: middle !important;
+}
+
+.spk-table tfoot td {
+    background-color: var(--spk-table-head-bg) !important;
+    color:            var(--spk-text-main)     !important;
+    border-color:     var(--spk-border-color)  !important;
+}
+
+.spk-table tbody tr:hover td {
+    background-color: var(--spk-table-hover-bg) !important;
+}
+
+/* ── STOCK PILLS ──────────────────────────────────────────────── */
+.stock-pill-sufficient {
+    background-color: var(--spk-suff-bg)     !important;
+    color:            var(--spk-suff-color)   !important;
+    border: 1px solid var(--spk-suff-border) !important;
+}
+
+.stock-pill-deficit {
+    background-color: var(--spk-deficit-bg)     !important;
+    color:            var(--spk-deficit-color)   !important;
+    border: 1px solid var(--spk-deficit-border) !important;
+}
+
+/* ── COST SUMMARY CARDS (inside modals) ───────────────────────── */
+.spk-cost-card {
+    background-color: var(--spk-bg-tertiary) !important;
+    border: 1px solid var(--spk-border-color) !important;
+    border-radius: 0.75rem;
+    padding: 0.85rem 1rem;
+    color: var(--spk-text-main) !important;
+}
+
+.spk-cost-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--spk-text-muted) !important;
+    display: block;
+}
+
+.spk-cost-value {
+    color: var(--spk-text-main) !important;
+    font-weight: 700;
+}
+
+/* ── TAHAPAN CARDS IN DETAIL ──────────────────────────────────── */
+.spk-tahapan-card {
+    background-color: var(--spk-bg-tertiary) !important;
+    border: 1px solid var(--spk-border-color) !important;
+    border-radius: 0.75rem;
+    padding: 0.85rem 1rem;
+    height: 100%;
+    color: var(--spk-text-main) !important;
+}
+
+.spk-tahapan-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--spk-text-main) !important;
+}
+
+.spk-tahapan-sub {
+    font-size: 11px;
+    color: var(--spk-text-muted) !important;
+}
+
+/* ── FILTER BAR ───────────────────────────────────────────────── */
+.spk-filter-card {
+    background-color: var(--spk-card-bg) !important;
+    border: 1px solid var(--spk-border-color) !important;
+    border-radius: 1rem !important;
+}
+
+.spk-filter-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--spk-text-muted) !important;
+    margin-bottom: 0.25rem;
+}
+
+/* ── BOM LOOKUP TABLE IN LOOKUP MODAL ────────────────────────── */
+#tbodyLookupBom tr td {
+    background-color: var(--spk-table-row-bg) !important;
+    color:            var(--spk-text-main)    !important;
+    border-color:     var(--spk-table-border) !important;
+}
+
+#tbodyLookupBom tr:hover td {
+    background-color: var(--spk-table-hover-bg) !important;
+}
+
+/* ── COMPREHENSIVE DARK MODE CATCH-ALL ───────────────────────── */
+/* Ensures any inline Bootstrap class gets themed inside SPK modals */
+html[data-bs-theme="dark"] #modalTambahSpk .modal-content,
+html[data-bs-theme="dark"] #modalEditSpk .modal-content,
+html[data-bs-theme="dark"] #modalDetailSpk .modal-content,
+html[data-bs-theme="dark"] #modalLookupBomSpk .modal-content,
+.dark-mode #modalTambahSpk .modal-content,
+.dark-mode #modalEditSpk .modal-content,
+.dark-mode #modalDetailSpk .modal-content,
+.dark-mode #modalLookupBomSpk .modal-content {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
+}
+
+html[data-bs-theme="dark"] #modalTambahSpk .modal-footer,
+html[data-bs-theme="dark"] #modalEditSpk .modal-footer,
+html[data-bs-theme="dark"] #modalDetailSpk .modal-footer,
+html[data-bs-theme="dark"] #modalLookupBomSpk .modal-footer,
+.dark-mode #modalTambahSpk .modal-footer,
+.dark-mode #modalEditSpk .modal-footer,
+.dark-mode #modalDetailSpk .modal-footer,
+.dark-mode #modalLookupBomSpk .modal-footer {
+    background-color: #1e293b !important;
+    border-top-color: #334155 !important;
+}
+
+/* table-light thead in dark mode */
+html[data-bs-theme="dark"] .spk-table thead.table-light,
+html[data-bs-theme="dark"] .spk-table thead.table-light th,
+.dark-mode .spk-table thead.table-light,
+.dark-mode .spk-table thead.table-light th {
+    background-color: #0f172a !important;
+    color: #60a5fa !important;
+    border-color: #334155 !important;
+}
+
+/* table-light tfoot in dark mode */
+html[data-bs-theme="dark"] .spk-table tfoot.table-light,
+html[data-bs-theme="dark"] .spk-table tfoot.table-light td,
+.dark-mode .spk-table tfoot.table-light,
+.dark-mode .spk-table tfoot.table-light td {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
+}
+
+html[data-bs-theme="dark"] .spk-table tfoot.table-primary,
+html[data-bs-theme="dark"] .spk-table tfoot.table-primary td,
+.dark-mode .spk-table tfoot.table-primary,
+.dark-mode .spk-table tfoot.table-primary td {
+    background-color: rgba(37, 99, 235, 0.25) !important;
+    color: #93c5fd !important;
+    border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+/* table-danger rows in dark mode */
+html[data-bs-theme="dark"] .spk-table tr.table-danger td,
+.dark-mode .spk-table tr.table-danger td {
+    background-color: rgba(239, 68, 68, 0.18) !important;
+}
+
+/* form-control & form-select */
+html[data-bs-theme="dark"] .spk-input,
+html[data-bs-theme="dark"] .spk-select,
+html[data-bs-theme="dark"] .spk-input-group-text,
+html[data-bs-theme="dark"] .spk-readonly,
+.dark-mode .spk-input,
+.dark-mode .spk-select,
+.dark-mode .spk-input-group-text,
+.dark-mode .spk-readonly {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
+}
+
+html[data-bs-theme="dark"] .spk-input::placeholder,
+.dark-mode .spk-input::placeholder {
+    color: #64748b !important;
+}
+
+html[data-bs-theme="dark"] .spk-bg-tertiary,
+.dark-mode .spk-bg-tertiary {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+}
+
+html[data-bs-theme="dark"] .spk-cost-card,
+.dark-mode .spk-cost-card {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+html[data-bs-theme="dark"] .spk-tahapan-card,
+.dark-mode .spk-tahapan-card {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+html[data-bs-theme="dark"] .spk-card,
+.dark-mode .spk-card {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+html[data-bs-theme="dark"] .spk-card-header,
+.dark-mode .spk-card-header {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+html[data-bs-theme="dark"] .spk-text-muted,
+html[data-bs-theme="dark"] .spk-cost-label,
+html[data-bs-theme="dark"] .spk-tahapan-sub,
+html[data-bs-theme="dark"] .spk-filter-label,
+.dark-mode .spk-text-muted,
+.dark-mode .spk-cost-label,
+.dark-mode .spk-tahapan-sub,
+.dark-mode .spk-filter-label {
+    color: #94a3b8 !important;
+}
+
+html[data-bs-theme="dark"] .text-dark:not(.badge):not(.btn),
+.dark-mode .text-dark:not(.badge):not(.btn) {
+    color: #f8fafc !important;
+}
+
+html[data-bs-theme="dark"] .badge.bg-warning.text-dark,
+html[data-bs-theme="dark"] .badge.bg-info.text-dark,
+html[data-bs-theme="dark"] .badge.bg-light.text-dark,
+html[data-bs-theme="dark"] .btn-warning.text-dark,
+.dark-mode .badge.bg-warning.text-dark,
+.dark-mode .badge.bg-info.text-dark,
+.dark-mode .badge.bg-light.text-dark,
+.dark-mode .btn-warning.text-dark {
+    color: #0f172a !important;
+}
+
+/* text-body-emphasis in dark */
+html[data-bs-theme="dark"] .spk-table .text-body-emphasis,
+html[data-bs-theme="dark"] #modalDetailSpk .text-body-emphasis,
+html[data-bs-theme="dark"] #modalTambahSpk .text-body-emphasis,
+html[data-bs-theme="dark"] #modalEditSpk .text-body-emphasis,
+.dark-mode .text-body-emphasis {
+    color: #f1f5f9 !important;
+}
+
+/* text-body-secondary in dark */
+html[data-bs-theme="dark"] .text-body-secondary,
+.dark-mode .text-body-secondary {
+    color: #94a3b8 !important;
+}
+
+html[data-bs-theme="dark"] #tabelMasterSpk tbody td,
+.dark-mode #tabelMasterSpk tbody td {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
+}
+
+html[data-bs-theme="dark"] #tabelMasterSpk tbody tr:hover td,
+.dark-mode #tabelMasterSpk tbody tr:hover td {
+    background-color: #334155 !important;
+    color: #ffffff !important;
+}
+
+html[data-bs-theme="dark"] #tabelMasterSpk thead th,
+.dark-mode #tabelMasterSpk thead th {
+    background-color: #0f172a !important;
+    color: #60a5fa !important;
+    border-color: #334155 !important;
+}
+
+/* Input group text in lookup modal */
+html[data-bs-theme="dark"] #modalLookupBomSpk .input-group-text,
+html[data-bs-theme="dark"] #modalLookupBomSpk .form-control,
+.dark-mode #modalLookupBomSpk .input-group-text,
+.dark-mode #modalLookupBomSpk .form-control {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
+}
+
+/* table-responsive bordered wrapper */
+html[data-bs-theme="dark"] .spk-table-wrapper,
+.dark-mode .spk-table-wrapper {
+    border-color: #334155 !important;
+}
+
+/* DataTables wrapper text */
+html[data-bs-theme="dark"] .dataTables_wrapper .dataTables_info,
+html[data-bs-theme="dark"] .dataTables_wrapper .dataTables_length label,
+html[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button,
+.dark-mode .dataTables_wrapper .dataTables_info,
+.dark-mode .dataTables_wrapper .dataTables_length label,
+.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: #f1f5f9 !important;
+}
+
+html[data-bs-theme="dark"] .dataTables_wrapper .dataTables_length select,
+html[data-bs-theme="dark"] .dataTables_wrapper .dataTables_filter input,
+.dark-mode .dataTables_wrapper .dataTables_length select,
+.dark-mode .dataTables_wrapper .dataTables_filter input {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
+}
+
+/* ── MISC ANIMATIONS ──────────────────────────────────────────── */
+@keyframes spkFadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.spk-animate-in {
+    animation: spkFadeInUp 0.35s ease;
+}
+
+/* ── DATATABLES RESPONSIVE & MODERN STYLING ── */
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    border-radius: 20px !important;
+    padding: 0.4rem 1rem !important;
+    font-size: 0.85rem !important;
+    border: 1px solid var(--spk-border-color, #cbd5e1) !important;
+    background-color: var(--spk-input-bg, #ffffff) !important;
+    color: var(--spk-text-main, #1e293b) !important;
+    outline: none !important;
+    transition: all 0.2s ease !important;
+}
+
+html[data-bs-theme="dark"] .dataTables_wrapper .dataTables_length select,
+html[data-bs-theme="dark"] .dataTables_wrapper .dataTables_filter input,
+.dark-mode .dataTables_wrapper .dataTables_length select,
+.dark-mode .dataTables_wrapper .dataTables_filter input {
+    background-color: rgba(15, 23, 42, 0.75) !important;
+    color: #f8fafc !important;
+    border: 1px solid rgba(59, 130, 246, 0.35) !important;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus,
+.dataTables_wrapper .dataTables_length select:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3) !important;
+}
+
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_filter label {
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* ── ULTRA CLEAR CINEMATIC BADGES (LIGHT & DARK MODE READY) ── */
+.spk-badge-cyan {
+    background-color: rgba(6, 182, 212, 0.15) !important;
+    color: #0284c7 !important;
+    border: 1px solid rgba(6, 182, 212, 0.35) !important;
+}
+html[data-bs-theme="dark"] .spk-badge-cyan,
+.dark-mode .spk-badge-cyan {
+    background-color: rgba(6, 182, 212, 0.22) !important;
+    color: #38bdf8 !important;
+    border-color: rgba(56, 189, 248, 0.45) !important;
+}
+
+.spk-badge-blue {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    color: #2563eb !important;
+    border: 1px solid rgba(59, 130, 246, 0.35) !important;
+}
+html[data-bs-theme="dark"] .spk-badge-blue,
+.dark-mode .spk-badge-blue {
+    background-color: rgba(59, 130, 246, 0.22) !important;
+    color: #60a5fa !important;
+    border-color: rgba(96, 165, 250, 0.45) !important;
+}
+
+.spk-badge-green {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    color: #059669 !important;
+    border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+html[data-bs-theme="dark"] .spk-badge-green,
+.dark-mode .spk-badge-green {
+    background-color: rgba(16, 185, 129, 0.22) !important;
+    color: #34d399 !important;
+    border-color: rgba(52, 211, 153, 0.45) !important;
+}
+
+.spk-badge-amber {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    color: #d97706 !important;
+    border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+html[data-bs-theme="dark"] .spk-badge-amber,
+.dark-mode .spk-badge-amber {
+    background-color: rgba(245, 158, 11, 0.22) !important;
+    color: #fbbf24 !important;
+    border-color: rgba(251, 191, 36, 0.45) !important;
+}
+
+.spk-badge-purple {
+    background-color: rgba(139, 92, 246, 0.15) !important;
+    color: #7c3aed !important;
+    border: 1px solid rgba(139, 92, 246, 0.35) !important;
+}
+html[data-bs-theme="dark"] .spk-badge-purple,
+.dark-mode .spk-badge-purple {
+    background-color: rgba(139, 92, 246, 0.22) !important;
+    color: #a78bfa !important;
+    border-color: rgba(167, 139, 250, 0.45) !important;
+}
+
+.spk-badge-muted {
+    background-color: rgba(100, 116, 139, 0.12) !important;
+    color: #475569 !important;
+    border: 1px solid rgba(100, 116, 139, 0.28) !important;
+}
+html[data-bs-theme="dark"] .spk-badge-muted,
+.dark-mode .spk-badge-muted {
+    background-color: rgba(148, 163, 184, 0.16) !important;
+    color: #cbd5e1 !important;
+    border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+/* Pulsing badge animation */
+@keyframes pulseGlow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.02); }
+}
+
+.spk-badge-pulse {
+    animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+/* Table dark & light mode styling */
+#tabelPengeluaranBahan thead th {
+    background-color: var(--spk-table-head-bg) !important;
+    color: var(--spk-table-head-text) !important;
+    border-bottom: 2px solid var(--spk-border-color) !important;
+}
+
+#tabelPengeluaranBahan tbody tr {
+    background-color: var(--spk-table-row-bg) !important;
+    color: var(--spk-text-main) !important;
+    border-color: var(--spk-table-border) !important;
+}
+
+#tabelPengeluaranBahan tbody tr:hover td {
+    background-color: var(--spk-table-hover-bg) !important;
+}
+
+#tabelPengeluaranBahan tbody td {
+    background-color: transparent !important;
+    color: var(--spk-text-main) !important;
+    border-color: var(--spk-border-color) !important;
+    padding: 0.85rem 0.75rem !important;
+}
+
+@media (max-width: 575.98px) {
+    .dataTables_wrapper {
+        padding: 0;
+    }
+
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        float: none !important;
+        text-align: left !important;
+        width: 100% !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .dataTables_wrapper .dataTables_length label {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+        margin-bottom: 0 !important;
+        font-size: 0.82rem !important;
+    }
+
+    .dataTables_wrapper .dataTables_length select {
+        padding: 0.35rem 1.75rem 0.35rem 0.65rem !important;
+        border-radius: 8px !important;
+    }
+
+    .dataTables_wrapper .dataTables_filter label {
+        display: block !important;
+        width: 100% !important;
+        margin-bottom: 0 !important;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0.45rem 0.85rem !important;
+        border-radius: 12px !important;
+        font-size: 0.85rem !important;
+    }
+
+    .dataTables_wrapper .dataTables_info {
+        float: none !important;
+        text-align: center !important;
+        margin-top: 0.75rem !important;
+        margin-bottom: 0.5rem !important;
+        font-size: 0.8rem !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate {
+        float: none !important;
+        text-align: center !important;
+        display: flex !important;
+        justify-content: center !important;
+        margin-top: 0.25rem !important;
+    }
+
+    .spk-table th, .spk-table td {
+        padding: 0.65rem 0.6rem !important;
+        font-size: 0.84rem !important;
+        white-space: nowrap !important;
+    }
+
+    /* Mobile modal adjustments */
+    .modal-dialog {
+        margin: 0.5rem !important;
+    }
+
+    .spk-modal-content {
+        border-radius: 18px !important;
+    }
+
+    .spk-modal-header-blue,
+    .spk-modal-header-dark {
+        padding: 0.85rem 1rem !important;
+    }
+
+    .spk-modal-body {
+        padding: 0.85rem !important;
+    }
+
+    .spk-modal-footer {
+        padding: 0.85rem 1rem !important;
+        flex-direction: column-reverse !important;
+        gap: 0.5rem !important;
+    }
+
+    .spk-modal-footer .btn {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0.65rem 1rem !important;
+    }
+
+    .spk-card {
+        border-radius: 14px !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .spk-card-header {
+        padding: 0.75rem 0.85rem !important;
+    }
+
+    .spk-input-group-text {
+        padding: 0.45rem 0.65rem !important;
+    }
+
+    .spk-input {
+        font-size: 0.85rem !important;
+        padding: 0.45rem 0.65rem !important;
+    }
+}
+
+.spk-info-banner::-webkit-scrollbar {
+    display: none !important;
+}
+.spk-info-banner {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+}
+
+/* ─── VIBRANT HIGH-CONTRAST SPK BADGES (DUAL THEME / CINEMATIC) ─── */
+.spk-badge-cyan,
+.badge-status-in-progress {
+    background: rgba(14, 165, 233, 0.22) !important;
+    color: #38bdf8 !important;
+    border: 1px solid rgba(56, 189, 248, 0.6) !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.5) !important;
+}
+
+.spk-badge-green,
+.badge-status-completed,
+.badge-sisa-green {
+    background: rgba(16, 185, 129, 0.22) !important;
+    color: #34d399 !important;
+    border: 1px solid rgba(52, 211, 153, 0.6) !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 10px rgba(52, 211, 153, 0.5) !important;
+}
+
+.spk-badge-amber,
+.badge-sisa-amber {
+    background: rgba(245, 158, 11, 0.22) !important;
+    color: #fbbf24 !important;
+    border: 1px solid rgba(251, 191, 36, 0.65) !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.5) !important;
+}
+
+.spk-badge-blue {
+    background: rgba(59, 130, 246, 0.22) !important;
+    color: #60a5fa !important;
+    border: 1px solid rgba(96, 165, 250, 0.6) !important;
+    font-weight: 700 !important;
+}
+
+.spk-badge-muted {
+    background: rgba(148, 163, 184, 0.18) !important;
+    color: #e2e8f0 !important;
+    border: 1px solid rgba(148, 163, 184, 0.45) !important;
+    font-weight: 600 !important;
+}
+
+.text-warning-vibrant {
+    color: #fbbf24 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.45) !important;
+}
+
+.text-success-vibrant {
+    color: #34d399 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 8px rgba(52, 211, 153, 0.45) !important;
+}
+
+.text-info-vibrant {
+    color: #38bdf8 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 8px rgba(56, 189, 248, 0.45) !important;
+}
+
+.spk-badge-pulse {
+    animation: spkPulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes spkPulseGlow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 0 5px rgba(56, 189, 248, 0);
+    }
+}
+
+/* Container Scroll 3 Baris untuk Tahapan SPK */
+.tahapan-scroll-wrapper {
+    max-height: 285px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: 12px;
+    padding-bottom: 8px;
+    padding-right: 6px;
+    margin-right: -4px;
+    scroll-behavior: smooth;
+}
+
+.tahapan-scroll-wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tahapan-scroll-wrapper::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.1);
+    border-radius: 999px;
+}
+
+.tahapan-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(37, 99, 235, 0.45);
+    border-radius: 999px;
+}
+
+.tahapan-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(37, 99, 235, 0.75);
+}
+

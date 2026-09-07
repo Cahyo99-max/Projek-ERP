@@ -1,0 +1,815 @@
+/* ==========================================================================
+   PR DASHBOARD & PURCHASE REQUISITION STYLES
+   ERP Pastel - Modul Purchasing
+   ========================================================================== */
+
+#tablePR_wrapper.dt-silent .dataTables_processing {
+    display: none !important;
+}
+.pr-row-subtotal {
+    font-weight: 600;
+    color: #1e293b;
+}
+.pr-detail-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+}
+.pr-detail-val {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+.pr-detail-card {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+/* Select2 bootstrap 5 override adjustments */
+.select2-container--bootstrap-5 .select2-selection {
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    height: 38px !important;
+    padding: 4px 8px !important;
+}
+    
+/* Convert Select2 dropdown to a clean modal sheet on mobile */
+@media (max-width: 768px) {
+    .select2-container--open {
+        position: static !important;
+    }
+    
+    .select2-container--open .select2-dropdown {
+        position: fixed !important;
+        top: 20% !important;
+        left: 5% !important;
+        width: 90% !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+        z-index: 99999 !important;
+        background: #ffffff !important;
+    }
+    
+    /* Blurred overlay backdrop behind select2 dropdown card */
+    .select2-container--open::before {
+        content: "" !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: rgba(15, 23, 42, 0.4) !important;
+        backdrop-filter: blur(3px) !important;
+        z-index: 99998 !important;
+        pointer-events: none !important;
+    }
+}
+
+/* Select2 global fallback open correction */
+.select2-container--open {
+    z-index: 1060 !important;
+}
+
+/* Make PR Modals wider and spacious on desktop */
+@media (min-width: 1200px) {
+    .modal-xl {
+        max-width: 95% !important;
+    }
+}
+
+/* ===== DARK MODE OVERRIDES ===== */
+[data-bs-theme="dark"] .pr-row-subtotal,
+[data-bs-theme="dark"] .pr-detail-val,
+html[data-theme="dark"] .pr-row-subtotal,
+html[data-theme="dark"] .pr-detail-val,
+.dark-mode .pr-row-subtotal,
+.dark-mode .pr-detail-val {
+    color: #e2e8f0 !important;
+}
+
+[data-bs-theme="dark"] .pr-detail-label,
+html[data-theme="dark"] .pr-detail-label,
+.dark-mode .pr-detail-label {
+    color: #94a3b8 !important;
+}
+
+/* PR Detail Card */
+[data-bs-theme="dark"] .pr-detail-card,
+html[data-theme="dark"] .pr-detail-card,
+.dark-mode .pr-detail-card {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+/* Modal headers with bg-light */
+[data-bs-theme="dark"] .modal-header.bg-light,
+[data-bs-theme="dark"] .modal-header .bg-light,
+html[data-theme="dark"] .modal-header.bg-light,
+.dark-mode .modal-header.bg-light {
+    background-color: #1e293b !important;
+}
+
+/* Hardcoded bg-white / bg-light inside modal body */
+[data-bs-theme="dark"] .modal-body .bg-white,
+[data-bs-theme="dark"] .modal-body .bg-light,
+[data-bs-theme="dark"] .modal-content .bg-white,
+[data-bs-theme="dark"] .modal-content .bg-light,
+html[data-theme="dark"] .modal-body .bg-white,
+html[data-theme="dark"] .modal-body .bg-light,
+.dark-mode .modal-body .bg-white,
+.dark-mode .modal-body .bg-light {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+/* Table header rows */
+[data-bs-theme="dark"] .responsive-pr-table thead tr.bg-light,
+[data-bs-theme="dark"] table thead tr.bg-light,
+html[data-theme="dark"] .responsive-pr-table thead tr.bg-light,
+html[data-theme="dark"] table thead tr.bg-light,
+.dark-mode .responsive-pr-table thead tr.bg-light,
+.dark-mode table thead tr.bg-light {
+    background-color: #0f172a !important;
+    color: #94a3b8 !important;
+}
+
+/* Table rows with bg-light in body (grand total rows etc.) */
+[data-bs-theme="dark"] .table thead th,
+html[data-theme="dark"] .table thead th,
+.dark-mode .table thead th {
+    background-color: #0f172a !important;
+    color: #94a3b8 !important;
+    border-color: #334155 !important;
+}
+
+[data-bs-theme="dark"] .table td,
+[data-bs-theme="dark"] .table tr,
+html[data-theme="dark"] .table td,
+html[data-theme="dark"] .table tr,
+.dark-mode .table td,
+.dark-mode .table tr {
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+/* table-striped override */
+[data-bs-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd),
+html[data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd),
+.dark-mode .table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: rgba(255,255,255,0.03) !important;
+}
+
+/* text-dark overrides */
+[data-bs-theme="dark"] .text-dark,
+html[data-theme="dark"] .text-dark,
+.dark-mode .text-dark {
+    color: #e2e8f0 !important;
+}
+
+/* fw-semibold text-dark (requester name in table) */
+[data-bs-theme="dark"] td .fw-semibold.text-dark,
+html[data-theme="dark"] td .fw-semibold.text-dark,
+.dark-mode td .fw-semibold.text-dark {
+    color: #f1f5f9 !important;
+}
+
+/* Badge bg-light text-dark (color badges) */
+[data-bs-theme="dark"] .badge.bg-light,
+html[data-theme="dark"] .badge.bg-light,
+.dark-mode .badge.bg-light {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+    border-color: #475569 !important;
+}
+
+/* Budget summary total card */
+[data-bs-theme="dark"] .p-2.border.rounded-3.bg-light,
+[data-bs-theme="dark"] .p-2.border.rounded.bg-light,
+html[data-theme="dark"] .p-2.border.rounded-3.bg-light,
+html[data-theme="dark"] .p-2.border.rounded.bg-light,
+.dark-mode .p-2.border.rounded-3.bg-light,
+.dark-mode .p-2.border.rounded.bg-light {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+/* table-responsive container border */
+[data-bs-theme="dark"] .table-responsive.border,
+html[data-theme="dark"] .table-responsive.border,
+.dark-mode .table-responsive.border {
+    border-color: #334155 !important;
+}
+
+/* form-control-custom in dark mode */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select,
+[data-bs-theme="dark"] .form-control-custom,
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .form-select,
+html[data-theme="dark"] .form-control-custom,
+.dark-mode .form-control,
+.dark-mode .form-select,
+.dark-mode .form-control-custom {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+    color: #e2e8f0 !important;
+}
+
+[data-bs-theme="dark"] .form-control::placeholder,
+html[data-theme="dark"] .form-control::placeholder,
+.dark-mode .form-control::placeholder {
+    color: #64748b !important;
+}
+
+/* Popup DataTable search modal table wrapper */
+[data-bs-theme="dark"] #modalCariBarang .modal-content,
+[data-bs-theme="dark"] #modalQuickAddBarang .modal-content,
+[data-bs-theme="dark"] #modalDetailPR .modal-content,
+[data-bs-theme="dark"] #modalTambahPR .modal-content,
+[data-bs-theme="dark"] #modalEditPR .modal-content,
+[data-bs-theme="dark"] #modalFilterPR .modal-content,
+html[data-theme="dark"] #modalCariBarang .modal-content,
+html[data-theme="dark"] #modalDetailPR .modal-content,
+html[data-theme="dark"] #modalTambahPR .modal-content,
+html[data-theme="dark"] #modalEditPR .modal-content,
+html[data-theme="dark"] #modalFilterPR .modal-content,
+.dark-mode #modalCariBarang .modal-content,
+.dark-mode #modalDetailPR .modal-content,
+.dark-mode #modalTambahPR .modal-content,
+.dark-mode #modalEditPR .modal-content,
+.dark-mode #modalFilterPR .modal-content {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+/* label text in dark mode */
+[data-bs-theme="dark"] .form-label,
+html[data-theme="dark"] .form-label,
+.dark-mode .form-label {
+    color: #cbd5e1 !important;
+}
+
+/* modal titles */
+[data-bs-theme="dark"] .modal-title,
+html[data-theme="dark"] .modal-title,
+.dark-mode .modal-title {
+    color: #f1f5f9 !important;
+}
+
+/* btn-light inside dark mode (action buttons in table) */
+[data-bs-theme="dark"] .btn-light,
+html[data-theme="dark"] .btn-light,
+.dark-mode .btn-light {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+    color: #94a3b8 !important;
+}
+
+[data-bs-theme="dark"] .btn-light.text-primary,
+html[data-theme="dark"] .btn-light.text-primary,
+.dark-mode .btn-light.text-primary { color: #60a5fa !important; }
+
+[data-bs-theme="dark"] .btn-light.text-info,
+html[data-theme="dark"] .btn-light.text-info,
+.dark-mode .btn-light.text-info { color: #38bdf8 !important; }
+
+[data-bs-theme="dark"] .btn-light.text-danger,
+html[data-theme="dark"] .btn-light.text-danger,
+.dark-mode .btn-light.text-danger { color: #f87171 !important; }
+
+/* Select2 dark mode */
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection,
+html[data-theme="dark"] .select2-container--bootstrap-5 .select2-selection,
+.dark-mode .select2-container--bootstrap-5 .select2-selection {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+    color: #e2e8f0 !important;
+}
+
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection__rendered,
+html[data-theme="dark"] .select2-container--bootstrap-5 .select2-selection__rendered,
+.dark-mode .select2-container--bootstrap-5 .select2-selection__rendered {
+    color: #e2e8f0 !important;
+}
+
+[data-bs-theme="dark"] .select2-dropdown,
+html[data-theme="dark"] .select2-dropdown,
+.dark-mode .select2-dropdown {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+    color: #e2e8f0 !important;
+}
+
+[data-bs-theme="dark"] .select2-results__option,
+html[data-theme="dark"] .select2-results__option,
+.dark-mode .select2-results__option {
+    color: #e2e8f0 !important;
+}
+
+[data-bs-theme="dark"] .select2-results__option--highlighted,
+html[data-theme="dark"] .select2-results__option--highlighted,
+.dark-mode .select2-results__option--highlighted {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+/* Label total in product item row */
+[data-bs-theme="dark"] .label-satuan-name,
+[data-bs-theme="dark"] .label-tipe-item,
+html[data-theme="dark"] .label-satuan-name,
+html[data-theme="dark"] .label-tipe-item,
+.dark-mode .label-satuan-name,
+.dark-mode .label-tipe-item {
+    color: #94a3b8 !important;
+}
+
+/* ===== SWEETALERT2 ALWAYS ON TOP OF BOOTSTRAP MODALS ===== */
+.swal2-container {
+    z-index: 99999 !important;
+}
+.swal2-popup {
+    z-index: 100000 !important;
+}
+
+/* ===== ULTRA STABLE MODAL SCROLLING ENGINE ===== */
+.modal {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+#modalTambahPR .modal-dialog,
+#modalEditPR .modal-dialog {
+    margin: 1.5rem auto;
+    max-width: 1200px;
+}
+
+@media (max-width: 768px) {
+    #modalTambahPR,
+    #modalEditPR {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    #modalTambahPR .modal-dialog,
+    #modalEditPR .modal-dialog {
+        margin: 0.5rem auto 2rem auto !important;
+        max-width: calc(100% - 1rem) !important;
+    }
+    #modalTambahPR .modal-content,
+    #modalEditPR .modal-content {
+        border-radius: 18px !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    #modalTambahPR .modal-body,
+    #modalEditPR .modal-body {
+        overflow: visible !important;
+        max-height: none !important;
+        height: auto !important;
+        padding: 0.85rem !important;
+    }
+    #modalTambahPR .table-responsive,
+    #modalEditPR .table-responsive {
+        overflow: visible !important;
+    }
+}
+
+/* ===== ULTRA MODERN RESPONSIVE MOBILE CARD SYSTEM FOR PR ITEMS ===== */
+@media (max-width: 768px) {
+    .responsive-pr-table thead {
+        display: none !important;
+    }
+    .responsive-pr-table, 
+    .responsive-pr-table tbody {
+        display: block !important;
+        width: 100% !important;
+    }
+    .responsive-pr-table tr.item-row {
+        display: flex !important;
+        flex-direction: column !important;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        margin-bottom: 1.1rem;
+        padding: 0 !important;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        position: relative;
+    }
+    html[data-bs-theme="dark"] .responsive-pr-table tr.item-row,
+    .dark-mode .responsive-pr-table tr.item-row {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        box-shadow: none;
+    }
+
+    /* CARD HEADER: ITEM # & DELETE BUTTON */
+    .responsive-pr-table td.pr-row-number-td {
+        display: flex !important;
+        align-items: center;
+        gap: 6px;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(59, 130, 246, 0.03) 100%);
+        border-bottom: 1px solid #e2e8f0 !important;
+        padding: 10px 14px !important;
+        order: 1;
+        width: 100% !important;
+        justify-content: flex-start !important;
+        border-radius: 0 !important;
+    }
+    html[data-bs-theme="dark"] .responsive-pr-table td.pr-row-number-td,
+    .dark-mode .responsive-pr-table td.pr-row-number-td {
+        background: rgba(37, 99, 235, 0.15);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    .responsive-pr-table td.pr-row-number-td::before {
+        content: "ITEM #";
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #2563eb;
+        letter-spacing: 0.5px;
+    }
+    .responsive-pr-table td.pr-row-number-td .pr-row-number {
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #2563eb;
+    }
+
+    /* DELETE BUTTON FLOATING TOP RIGHT */
+    .responsive-pr-table td.pr-row-delete-td {
+        display: flex !important;
+        position: absolute;
+        top: 7px;
+        right: 10px;
+        z-index: 5;
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        order: 2;
+        width: auto !important;
+    }
+    .responsive-pr-table td.pr-row-delete-td .btn-delete-item-row {
+        width: 32px;
+        height: 32px;
+        border-radius: 50% !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(239, 68, 68, 0.1) !important;
+        color: #ef4444 !important;
+        transition: all 0.2s;
+    }
+    .responsive-pr-table td.pr-row-delete-td .btn-delete-item-row:hover {
+        background: #ef4444 !important;
+        color: #ffffff !important;
+    }
+    .responsive-pr-table td.pr-row-delete-td::before {
+        display: none !important;
+    }
+
+    /* TIPE SELECTION */
+    .responsive-pr-table td[data-label="Tipe"] {
+        display: block !important;
+        order: 3;
+        padding: 10px 14px 4px 14px !important;
+        border: none !important;
+    }
+    .responsive-pr-table td[data-label="Tipe"]::before {
+        content: "TIPE PENGADAAN";
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #64748b;
+        display: block;
+        margin-bottom: 4px;
+        letter-spacing: 0.4px;
+    }
+    .responsive-pr-table td[data-label="Tipe"] select {
+        width: 100% !important;
+        height: 40px !important;
+        border-radius: 8px !important;
+    }
+
+    /* PRODUCT SELECTION */
+    .responsive-pr-table td[data-label="Nama Barang"] {
+        display: block !important;
+        order: 4;
+        padding: 6px 14px !important;
+        border: none !important;
+    }
+    .responsive-pr-table td[data-label="Nama Barang"]::before {
+        content: "PILIH BARANG / MATERIAL";
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #64748b;
+        display: block;
+        margin-bottom: 4px;
+        letter-spacing: 0.4px;
+    }
+    .responsive-pr-table td[data-label="Nama Barang"] .select-product-container input {
+        height: 40px !important;
+    }
+    .responsive-pr-table td[data-label="Nama Barang"] .select-product-container button {
+        height: 40px !important;
+        padding: 0 14px !important;
+    }
+
+    /* SATUAN (Multi-Satuan support on mobile) */
+    .responsive-pr-table td[data-label="Satuan"] {
+        display: block !important;
+        order: 5;
+        padding: 6px 14px !important;
+        border: none !important;
+    }
+    .responsive-pr-table td[data-label="Satuan"]::before {
+        content: "SATUAN BARANG";
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #64748b;
+        display: block;
+        margin-bottom: 4px;
+        letter-spacing: 0.4px;
+    }
+    .responsive-pr-table td[data-label="Satuan"] select {
+        width: 100% !important;
+        height: 40px !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+    }
+    .responsive-pr-table td[data-label="Satuan"] .label-satuan-name {
+        display: inline-block !important;
+        font-size: 0.82rem !important;
+        padding: 6px 14px !important;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* QUANTITY & ESTIMATED PRICE */
+    .responsive-pr-table td[data-label="Jumlah"] {
+        display: block !important;
+        order: 6;
+        padding: 6px 14px !important;
+        border: none !important;
+    }
+    .responsive-pr-table td[data-label="Jumlah"]::before {
+        content: "JUMLAH (QTY)";
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #64748b;
+        display: block;
+        margin-bottom: 4px;
+        letter-spacing: 0.4px;
+    }
+    .responsive-pr-table td[data-label="Jumlah"] input {
+        height: 40px !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+    }
+
+    .responsive-pr-table td[data-label="Estimasi Harga"] {
+        display: block !important;
+        order: 7;
+        padding: 6px 14px !important;
+        border: none !important;
+    }
+    .responsive-pr-table td[data-label="Estimasi Harga"]::before {
+        content: "ESTIMASI HARGA SATUAN (RP)";
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #64748b;
+        display: block;
+        margin-bottom: 4px;
+        letter-spacing: 0.4px;
+    }
+    .responsive-pr-table td[data-label="Estimasi Harga"] .input-group input {
+        height: 40px !important;
+        font-weight: 700 !important;
+    }
+
+    /* SUBTOTAL BAR */
+    .responsive-pr-table td[data-label="Total"] {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        order: 8;
+        margin: 8px 14px 4px 14px !important;
+        padding: 10px 14px !important;
+        background: rgba(37, 99, 235, 0.06);
+        border: 1px dashed rgba(37, 99, 235, 0.3) !important;
+        border-radius: 10px;
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #2563eb;
+    }
+    html[data-bs-theme="dark"] .responsive-pr-table td[data-label="Total"],
+    .dark-mode .responsive-pr-table td[data-label="Total"] {
+        background: rgba(37, 99, 235, 0.12);
+        border-color: rgba(37, 99, 235, 0.3) !important;
+        color: #60a5fa;
+    }
+    .responsive-pr-table td[data-label="Total"]::before {
+        content: "SUBTOTAL ITEM";
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #64748b;
+        letter-spacing: 0.4px;
+    }
+
+    /* CATATAN */
+    .responsive-pr-table td[data-label="Catatan"] {
+        display: block !important;
+        order: 9;
+        padding: 6px 14px 14px 14px !important;
+        border: none !important;
+    }
+    .responsive-pr-table td[data-label="Catatan"]::before {
+        content: "CATATAN ITEM (OPSIONAL)";
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #64748b;
+        display: block;
+        margin-bottom: 4px;
+        letter-spacing: 0.4px;
+    }
+    .responsive-pr-table td[data-label="Catatan"] input {
+        height: 38px !important;
+        border-radius: 8px !important;
+    }
+
+    /* Mobile Modal Dialog Layout */
+    .modal-dialog {
+        margin: 0.5rem auto 7rem auto !important;
+        max-width: 96vw !important;
+        width: 96vw !important;
+    }
+    .modal-content {
+        margin-bottom: 2rem !important;
+        border-radius: 16px !important;
+    }
+    .modal-footer {
+        position: static !important;
+        padding: 1.25rem 1rem 3rem 1rem !important;
+        border-top: 1px solid #e2e8f0 !important;
+        background: #ffffff !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+    }
+    .modal-footer .btn {
+        width: 100% !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.95rem !important;
+        justify-content: center !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .modal-footer > div {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.6rem !important;
+    }
+    [data-bs-theme="dark"] .modal-footer,
+    .dark-mode .modal-footer,
+    html[data-theme="dark"] .modal-footer {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+    }
+}
+
+/* ===== LUXURY MODAL & INPUT INPUT STYLES ===== */
+.modal-luxury-header {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06) 0%, rgba(37, 99, 235, 0.01) 100%);
+    border-bottom: 1px solid rgba(37, 99, 235, 0.08) !important;
+}
+[data-bs-theme="dark"] .modal-luxury-header {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(15, 23, 42, 0.2) 100%) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.luxury-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01);
+    transition: all 0.3s ease;
+}
+[data-bs-theme="dark"] .luxury-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    box-shadow: none;
+}
+
+.luxury-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    border-color: #cbd5e1;
+}
+[data-bs-theme="dark"] .luxury-card:hover {
+    border-color: #475569;
+}
+
+.form-control-luxury {
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    padding: 0.6rem 0.85rem !important;
+    font-size: 0.9rem !important;
+    transition: all 0.2s ease-in-out !important;
+    background-color: #f8fafc !important;
+    color: #1e293b !important;
+}
+[data-bs-theme="dark"] .form-control-luxury {
+    border-color: #475569 !important;
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+}
+
+.form-control-luxury:focus {
+    border-color: #2563eb !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
+}
+[data-bs-theme="dark"] .form-control-luxury:focus {
+    background-color: #0f172a !important;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2) !important;
+    border-color: #2563eb !important;
+}
+
+.product-img-frame {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #f1f5f9;
+    border: 1.5px solid #cbd5e1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+[data-bs-theme="dark"] .product-img-frame {
+    background-color: #0f172a;
+    border-color: #334155;
+}
+
+.luxury-total-badge {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.02) 100%);
+    border: 1.5px solid rgba(37, 99, 235, 0.15);
+    border-radius: 14px;
+    padding: 0.85rem 1.25rem;
+    display: inline-flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+[data-bs-theme="dark"] .luxury-total-badge {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(15, 23, 42, 0.3) 100%);
+    border-color: rgba(37, 99, 235, 0.3);
+}
+.cursor-pointer {
+    cursor: pointer !important;
+}
+
+/* Popup Master Barang Luxury & Table Scrollable overrides */
+.btn-add-master-luxury {
+    background-color: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+    padding: 8px 16px !important;
+    border-radius: 50px !important;
+    font-size: 0.825rem !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.15);
+    transition: all 0.2s ease;
+}
+.btn-add-master-luxury:hover {
+    background-color: #059669 !important;
+    border-color: #059669 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(16, 185, 129, 0.25);
+}
+@media (max-width: 575px) {
+    .btn-add-master-luxury {
+        width: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        box-shadow: 0 4px 8px rgba(16, 185, 129, 0.25);
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+}
+
+#tablePopupCariBarang {
+    white-space: nowrap !important;
+}
+#modalCariBarang .table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}

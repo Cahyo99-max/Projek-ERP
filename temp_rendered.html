@@ -1,0 +1,2745 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="ug56emcQwcmn31e81zAPoB49AEWtui10oDgeq3Yf">
+    <title>EzMart ERP - Enterprise Dashboard</title>
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Tabler Flags CSS -->
+    <link href="http://localhost/tabler/dist/css/tabler-flags.min.css?1692870762" rel="stylesheet" />
+    <!-- DataTables Bootstrap 5 CSS -->
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="http://localhost/css/style.css">
+        <!-- Barang Dashboard CSS -->
+    <link rel="stylesheet" href="http://localhost/css/barang_dashboard.css?v=1783759729">
+    <!-- FilePond CSS -->
+    <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet" />
+    <link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet" />
+    <style>
+        /* Custom styles for gallery */
+        .photo-gallery-item {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .photo-gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .photo-gallery-item .btn-actions {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: space-around;
+            padding: 2px 0;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .photo-gallery-item:hover .btn-actions {
+            opacity: 1;
+        }
+        .photo-gallery-item .btn-action-icon {
+            color: #fff;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: none;
+            background: none;
+            padding: 0;
+        }
+        .photo-gallery-item .btn-action-icon:hover {
+            color: #3b82f6;
+        }
+        .photo-gallery-item .btn-action-icon.text-danger:hover {
+            color: #ef4444;
+        }
+        .photo-gallery-item .primary-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #e11d48;
+            color: white;
+            font-size: 0.55rem;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+        }
+        .detail-photo-thumb {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .detail-photo-thumb:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Custom styles for FilePond to make it premium */
+        .filepond--root {
+            font-family: inherit;
+            margin-bottom: 0;
+        }
+        .filepond--panel-root {
+            border: 2px dashed #cbd5e1;
+            background-color: #f8fafc;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        .filepond--root:hover .filepond--panel-root {
+            border-color: #3b82f6;
+            background-color: #f0f9ff;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+        }
+        .filepond--drop-label {
+            color: #475569;
+            cursor: pointer;
+            padding-top: 24px;
+            padding-bottom: 24px;
+        }
+        .filepond--label-action {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .filepond--label-action:hover {
+            text-decoration: underline;
+        }
+    </style>
+        <link rel="stylesheet" href="http://localhost/css/tabel_card.css?v=1783759729">
+    <link rel="stylesheet" href="http://localhost/css/modal_form.css">
+    <link rel="stylesheet" href="http://localhost/css/modal_form.css">
+</head>
+
+<body>
+
+    <!-- Panggil komponen Sidebar -->
+    <!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand" style="display: flex; align-items: center; gap: 8px;">
+        <img src="http://localhost/gambar/logo.png" alt="Logo" class="sidebar-logo" style="width: 28px; height: 28px; object-fit: contain; border-radius: 6px;">
+        <span class="brand-text">Lumen ERP</span>
+    </div>
+
+    <div class="sidebar-nav">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="/dashbord" class="nav-link active" data-bs-toggle="tooltip" data-bs-placement="right"
+                    title="Dashboard">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+            </li>
+
+            <div class="nav-label">Modules</div>
+
+            <!-- Accordion Menu: Master Produk -->
+                        <li class="nav-item">
+                <a href="#menuMasterProduk" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Master Product">
+                    <i class="bi bi-boxes"></i>
+                    <span class="nav-text">Master Product</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuMasterProduk">
+                    <ul class="sub-menu">
+                                                <li><a href="/barang" class="nav-link "><i class="bi bi-box-seam"></i> Product</a></li>
+                                                                        <li><a href="/kategori-barang" class="nav-link "><i class="bi bi-tags"></i> Product Category</a></li>
+                                                                        <li><a href="/satuan" class="nav-link "><i class="bi bi-tag"></i> Basic Unit</a></li>
+                                                                        <li><a href="/brand" class="nav-link "><i class="bi bi-award"></i> Brand / Mark</a></li>
+                                                                        <li><a href="/tipe-barang" class="nav-link "><i class="bi bi-grid"></i> Product Type</a></li>
+                                                                        <li><a href="/warna" class="nav-link "><i class="bi bi-palette"></i> Product Color</a></li>
+                                            </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Master Gudang -->
+                        <li class="nav-item">
+                <a href="#menuMasterGudang" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Master Warehouse">
+                    <i class="bi bi-building-gear"></i>
+                    <span class="nav-text">Master Warehouse</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuMasterGudang">
+                    <ul class="sub-menu">
+                                                <li><a href="/gudang" class="nav-link "><i class="bi bi-house-gear"></i> Warehouse</a></li>
+                                                                        <li><a href="/jenis-gudang" class="nav-link "><i class="bi bi-grid-3x3-gap"></i> Warehouse Type</a></li>
+                                                                        <li><a href="/branches" class="nav-link "><i class="bi bi-buildings"></i> Branch</a></li>
+                                            </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Master Organisasi -->
+                        <li class="nav-item">
+                <a href="#menuMasterOrganisasi" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Master Organization">
+                    <i class="bi bi-diagram-3"></i>
+                    <span class="nav-text">Master Organization</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuMasterOrganisasi">
+                    <ul class="sub-menu">
+                                                <li><a href="/karyawan" class="nav-link "><i class="bi bi-person-badge-fill"></i> Karyawan (HRD)</a></li>
+                                                                        <li><a href="/departemen" class="nav-link "><i class="bi bi-building"></i> Department</a></li>
+                                                                        <li><a href="/positions" class="nav-link "><i class="bi bi-person-badge"></i> Position</a></li>
+                                            </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Master Keuangan -->
+                        <li class="nav-item">
+                <a href="#menuMasterKeuangan" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Master Finance">
+                    <i class="bi bi-wallet2"></i>
+                    <span class="nav-text">Master Finance</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuMasterKeuangan">
+                    <ul class="sub-menu">
+                                                <li><a href="/pajak" class="nav-link "><i class="bi bi-percent"></i> Tax (VAT)</a></li>
+                                                                        <li><a href="/currency" class="nav-link "><i class="bi bi-cash-stack"></i> Currency</a></li>
+                                            </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Inventory -->
+                        <li class="nav-item">
+                <a href="#menuInventory" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Inventory">
+                    <i class="bi bi-box-seam"></i>
+                    <span class="nav-text">Inventory</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuInventory">
+                    <ul class="sub-menu">
+                                                <li><a href="/goods-receipt" class="nav-link "><i class="bi bi-circle-fill"></i> Incoming Goods</a></li>
+                                                                        <li><a href="http://localhost/stock-card" class="nav-link "><i class="bi bi-circle-fill"></i> Kartu Stok</a></li>
+                                                                        <li><a href="http://localhost/goods-issue" class="nav-link "><i class="bi bi-circle-fill"></i> Barang Keluar</a></li>
+                                                                        <li><a href="http://localhost/stock-overview" class="nav-link "><i class="bi bi-circle-fill"></i> Stok Saat Ini</a></li>
+                                                                        <li><a href="http://localhost/warehouse-transfer" class="nav-link "><i class="bi bi-circle-fill"></i> Transfer Gudang</a></li>
+                                                <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> Stock Opname</a></li>
+                    </ul>
+                </div>
+            </li>
+            
+            <!-- Accordion Menu: Penjualan -->
+            <li class="nav-item">
+                <a href="#menuSales" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Sales">
+                    <i class="bi bi-cart3"></i>
+                    <span class="nav-text">Sales</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuSales">
+                    <ul class="sub-menu">
+                                                <li><a href="/tender" class="nav-link "><i class="bi bi-file-earmark-text-fill"></i> Tender / Kontrak</a></li>
+                                                                        <li><a href="/customer" class="nav-link "><i class="bi bi-people-fill"></i> Customer</a></li>
+                                                <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> Sales Order</a></li>
+                        <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> Sales</a></li>
+                        <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> Sales Return</a></li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- Accordion Menu: Pembelian -->
+            <li class="nav-item">
+                <a href="#menuPurchase" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Purchase">
+                    <i class="bi bi-bag"></i>
+                    <span class="nav-text">Purchase</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuPurchase">
+                    <ul class="sub-menu">
+                                                <li><a href="/purchase-requisition" class="nav-link "><i class="bi bi-file-earmark-text-fill"></i> Pengajuan (PR)</a></li>
+                                                                        <li><a href="/supplier" class="nav-link "><i class="bi bi-people-fill"></i> Supplier</a></li>
+                                                                        <li><a href="/purchase-order" class="nav-link "><i class="bi bi-cart-check-fill"></i> Purchase Order</a></li>
+                                                <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> Purchase</a></li>
+                        <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> Purchase Return</a></li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- Accordion Menu: Keuangan -->
+            <li class="nav-item">
+                <a href="#menuFinance" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Finance">
+                    <i class="bi bi-wallet2"></i>
+                    <span class="nav-text">Finance</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuFinance">
+                    <ul class="sub-menu">
+                                                <li><a href="/fixed-assets" class="nav-link "><i class="bi bi-shield-check"></i> Aset Tetap</a></li>
+                                                                        <li><a href="/registrasi-jasa" class="nav-link "><i class="bi bi-gear-wide-connected"></i> Registrasi Jasa</a></li>
+                                                <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> Cash &amp; Bank</a></li>
+                        <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> Invoice</a></li>
+                        <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> Payment</a></li>
+                    </ul>
+                </div>
+            </li>
+
+            <div class="nav-label">System</div>
+
+            <li class="nav-item">
+                <a href="#" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right"
+                    title="Reports">
+                    <i class="bi bi-file-earmark-bar-graph"></i>
+                    <span class="nav-text">Reports</span>
+                </a>
+            </li>
+            <!-- Accordion Menu: Pengaturan -->
+                        <li class="nav-item">
+                <a href="#menuSettings" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="false"
+                    data-tooltip-title="Settings">
+                    <i class="bi bi-gear"></i>
+                    <span class="nav-text">Settings</span>
+                    <i class="bi bi-chevron-down nav-arrow"></i>
+                </a>
+                <div class="collapse " id="menuSettings">
+                    <ul class="sub-menu">
+                                                <li><a href="/viewusers" class="nav-link "><i class="bi bi-people"></i> Manajemen User</a></li>
+                                                                        <li><a href="/roles" class="nav-link "><i class="bi bi-shield-lock"></i> Roles &amp; Permissions</a></li>
+                        <li><a href="/app-settings" class="nav-link "><i class="bi bi-sliders"></i> Pengaturan Aplikasi</a></li>
+                                            </ul>
+                </div>
+            </li>
+                    </ul>
+    </div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <main class="main-content">
+        <!-- Panggil komponen Navbar -->
+        <header class="top-navbar">
+     <div class="d-flex align-items-center">
+         <button class="btn-icon me-3" id="sidebarToggle">
+             <i class="bi bi-list fs-4"></i>
+         </button>
+
+         <!-- Search Box -->
+         <div class="d-none d-md-flex align-items-center bg-light rounded-pill px-3 py-1"
+             style="border: 1px solid var(--border-color)">
+             <i class="bi bi-search text-muted"></i>
+             <input type="text" class="form-control border-0 bg-transparent shadow-none w-100 ms-2"
+                 placeholder="Search orders, stock..." style="min-width: 250px;">
+         </div>
+     </div>
+
+     <div class="d-flex align-items-center gap-2">
+
+         
+                  
+                  <div class="dropdown" id="branchSwitcherDropdown">
+             <button
+                 class="btn btn-sm d-flex align-items-center gap-2 rounded-pill px-3 py-2 border"
+                 style="background: linear-gradient(135deg, #e0eafc, #cfdef3); border-color: #a8c3e8 !important; color: #1e3a5f;"
+                 data-bs-toggle=""
+                 title="Kamu hanya memiliki akses ke satu cabang."
+                 id="branchDropdownBtn">
+                 <i class="bi bi-building-fill" style="color: #2563eb;"></i>
+                 <span class="fw-semibold d-none d-sm-inline" style="font-size: 0.78rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                     Cabang Utama Jakarta
+                 </span>
+                 <span class="badge rounded-pill" style="background-color: #2563eb; font-size: 0.65rem;">CBG-001</span>
+                                  <i class="bi bi-lock-fill ms-1" style="font-size: 0.65rem; opacity: 0.5;"></i>
+                              </button>
+
+                      </div>
+                           
+
+         <div class="vr mx-1 text-muted d-none d-sm-block"></div>
+
+         <!-- Language Selector -->
+         <div class="dropdown">
+             <button class="btn border-0 bg-transparent p-1 d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false" title="Change Language">
+                                      <span class="flag flag-xs flag-country-gb rounded shadow-sm"></span>
+                              </button>
+             <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-2" style="border-radius: 12px; min-width: 150px;">
+                 <div class="px-2 pb-1 mb-1 border-bottom">
+                     <span class="text-muted fw-bold" style="font-size: 0.72rem; text-transform: uppercase;">Change Language</span>
+                 </div>
+                 <li>
+                     <a class="dropdown-item d-flex align-items-center gap-2 py-2 rounded-2 " href="http://localhost/lang/id">
+                         <span class="flag flag-xs flag-country-id rounded"></span>
+                         <span class="fs-7 fw-medium">Indonesia</span>
+                     </a>
+                 </li>
+                 <li>
+                     <a class="dropdown-item d-flex align-items-center gap-2 py-2 rounded-2 active" href="http://localhost/lang/en">
+                         <span class="flag flag-xs flag-country-gb rounded"></span>
+                         <span class="fs-7 fw-medium">English</span>
+                     </a>
+                 </li>
+             </ul>
+         </div>
+
+         <div class="vr mx-1 text-muted d-none d-sm-block"></div>
+
+         <!-- Theme Toggle -->
+         <button class="btn-icon" id="themeToggle" data-bs-toggle="tooltip" title="Toggle Dark Mode">
+             <i class="bi bi-moon fs-5"></i>
+         </button>
+
+         <!-- Fullscreen Toggle -->
+         <button class="btn-icon d-none d-sm-inline-flex" id="fullscreenToggle" data-bs-toggle="tooltip"
+             title="Fullscreen">
+             <i class="bi bi-arrows-fullscreen fs-6"></i>
+         </button>
+
+         <!-- Notifications -->
+         <div class="dropdown">
+             <button class="btn-icon position-relative" data-bs-toggle="dropdown">
+                 <i class="bi bi-bell fs-5"></i>
+                 <span
+                     class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+             </button>
+             <div class="dropdown-menu dropdown-menu-end shadow border-0"
+                 style="width: 320px; border-radius: var(--border-radius-md);">
+                 <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                     <h6 class="mb-0 fw-bold">Notifications</h6>
+                     <span class="badge bg-primary rounded-pill">4 New</span>
+                 </div>
+                 <div class="p-2">
+                     <a href="#" class="dropdown-item d-flex align-items-start py-2 rounded">
+                         <div class="icon-box bg-danger-soft me-3" style="width:36px; height:36px;"><i
+                                 class="bi bi-exclamation-triangle fs-6"></i></div>
+                         <div>
+                             <p class="mb-0 fw-medium fs-7">Low Stock Alert</p>
+                             <small class="text-muted text-wrap">Product 'Laptop Pro X' is below minimum
+                                 threshold.</small>
+                         </div>
+                     </a>
+                     <a href="#" class="dropdown-item d-flex align-items-start py-2 rounded">
+                         <div class="icon-box bg-success-soft me-3" style="width:36px; height:36px;"><i
+                                 class="bi bi-check-circle fs-6"></i></div>
+                         <div>
+                             <p class="mb-0 fw-medium fs-7">PO Approved</p>
+                             <small class="text-muted text-wrap">Purchase Order #PO-2023-091 approved.</small>
+                         </div>
+                     </a>
+                 </div>
+                 <div class="p-2 border-top text-center">
+                     <a href="#" class="text-primary fw-medium text-decoration-none fs-7">View All
+                         Notifications</a>
+                 </div>
+             </div>
+         </div>
+
+         <div class="vr mx-2 text-muted"></div>
+
+         <!-- User Profile -->
+         <div class="dropdown">
+             <button class="btn border-0 bg-transparent d-flex align-items-center p-0" data-bs-toggle="dropdown">
+                                  <img src="http://localhost/gambar/laki.jpg"
+                     alt="User" class="rounded-circle border border-2" width="36" height="36" style="object-fit: cover;">
+                 <div class="d-none d-md-block text-start ms-2">
+                     <h6 class="mb-0 fw-semibold fs-7" style="color: var(--text-main);">Soni Super Admin</h6>
+                     <small class="text-muted" style="font-size: 0.7rem;">Super Admin</small>
+                 </div>
+                                  <i class="bi bi-chevron-down ms-2 fs-7 text-muted d-none d-md-block"></i>
+             </button>
+             <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2"
+                 style="border-radius: var(--border-radius-md);">
+                 <li><a class="dropdown-item py-2" href="http://localhost/profile"><i class="bi bi-person me-2"></i> My Profile</a></li>
+                 <li><a class="dropdown-item py-2" href="http://localhost/profile"><i class="bi bi-gear me-2"></i> Account Settings</a>
+                 </li>
+                 <li>
+                     <hr class="dropdown-divider">
+                 </li>
+                 <li>
+                     <form method="POST" action="http://localhost/logout">
+                         <input type="hidden" name="_token" value="ug56emcQwcmn31e81zAPoB49AEWtui10oDgeq3Yf" autocomplete="off">                         <button type="submit" class="dropdown-item py-2 text-danger">
+                             <i class="bi bi-box-arrow-right me-2"></i> Sign Out
+                         </button>
+                     </form>
+                 </li>
+             </ul>
+         </div>
+     </div>
+
+     
+          
+
+ </header>
+
+        <!-- Area ini akan diisi oleh konten dari halaman yang sedang dibuka -->
+        <div class="content-body">
+            <div class="container-fluid py-3 px-2 px-md-4">
+        <div class="brg-summary-row">
+            
+            <div class="brg-summary-card brg-card-total">
+                <div class="brg-card-top">
+                    <span class="brg-card-label">Total Semua Item</span>
+                    <div class="brg-card-icon">
+                        <i class="bi bi-box-seam-fill"></i>
+                    </div>
+                </div>
+                <div class="brg-card-number">0</div>
+                <div class="brg-card-sub">0 aktif dari total</div>
+            </div>
+
+            
+            <div class="brg-summary-card brg-card-stok">
+                <div class="brg-card-top">
+                    <span class="brg-card-label">Barang Stok</span>
+                    <div class="brg-card-icon">
+                        <i class="bi bi-archive-fill"></i>
+                    </div>
+                </div>
+                <div class="brg-card-number">0</div>
+                <div class="brg-card-sub">Inventory gudang</div>
+            </div>
+
+            
+            <div class="brg-summary-card brg-card-jasa">
+                <div class="brg-card-top">
+                    <span class="brg-card-label">Jasa / Biaya</span>
+                    <div class="brg-card-icon">
+                        <i class="bi bi-gear-fill"></i>
+                    </div>
+                </div>
+                <div class="brg-card-number">0</div>
+                <div class="brg-card-sub">Layanan & biaya</div>
+            </div>
+
+            
+            <div class="brg-summary-card brg-card-aset">
+                <div class="brg-card-top">
+                    <span class="brg-card-label">Aset Tetap</span>
+                    <div class="brg-card-icon">
+                        <i class="bi bi-building-fill"></i>
+                    </div>
+                </div>
+                <div class="brg-card-number">0</div>
+                <div class="brg-card-sub">Peralatan & kendaraan</div>
+            </div>
+        </div>
+    </div>
+
+
+    
+    <div class="container-fluid py-3 px-2 px-md-4">
+    <div class="card tbl-card border-0">
+
+        
+        <div class="card-header tbl-card-header d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 border-0">
+            <h5 class="mb-0 fw-bold d-flex align-items-center tbl-card-title">
+                <div class="tbl-icon-box me-3">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+                <span>Data Barang / Produk</span>
+            </h5>
+
+                            <button type="button"
+                    class="btn tbl-btn-add rounded-pill d-flex align-items-center gap-2"
+                    data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>Tambah Barang</span>
+                </button>
+                    </div>
+
+        
+        <div class="card-body tbl-card-body px-0 pb-0">
+            <div class="table-responsive">
+                <table class="table table-hover tbl-table mb-0 align-middle" id="tableBarang">
+                    <thead>
+                        <tr>
+                            <th width="4%" class="text-center py-3">No</th>
+            <th class="py-3" width="30%">Produk</th>
+            <th class="py-3" width="14%">Kode</th>
+            <th class="py-3" width="16%">Kategori & Brand</th>
+            <th class="py-3" width="12%">Satuan & Tipe</th>
+            <th class="py-3 text-center" width="10%">Status</th>
+            <th width="14%" class="text-center py-3">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Server-side loaded data will be injected here via DataTables AJAX -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+    
+    <div class="modal modal-blur fade" id="modalDetailBarang" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold fs-4 d-flex align-items-center">
+                    <span class="p-2 bg-info-subtle text-info rounded-3 me-2.5 d-inline-flex align-items-center">
+                        <i class="bi bi-info-circle-fill fs-5"></i>
+                    </span>
+                    Detail Fisik & Spesifikasi
+                </h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    
+                    <!-- Identitas Utama -->
+                    <div class="col-6 col-md-3">
+                        <div class="detail-card-info">
+                            <div class="detail-card-label">Kode SKU</div>
+                            <div class="detail-card-value text-primary font-monospace" id="detail_sku">-</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-card-info">
+                            <div class="detail-card-label">Barcode</div>
+                            <div class="detail-card-value font-monospace" id="detail_barcode">-</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-card-info">
+                            <div class="detail-card-label">Ukuran</div>
+                            <div class="detail-card-value" id="detail_ukuran">-</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-card-info">
+                            <div class="detail-card-label">Warna</div>
+                            <div class="d-flex align-items-center mt-1.5">
+                                <span class="d-inline-block rounded-circle border shadow-sm me-2" id="detail_warna_circle" style="width: 16px; height: 16px; flex-shrink:0;"></span>
+                                <span class="fw-bold fs-6" id="detail_warna_nama">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dimensi Fisik -->
+                    <div class="col-6 col-md-3">
+                        <div class="detail-card-info">
+                            <div class="detail-card-label">Panjang</div>
+                            <div class="detail-card-value" id="detail_panjang">-</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-card-info">
+                            <div class="detail-card-label">Lebar</div>
+                            <div class="detail-card-value" id="detail_lebar">-</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-card-info">
+                            <div class="detail-card-label">Tinggi</div>
+                            <div class="detail-card-value" id="detail_tinggi">-</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="detail-card-info">
+                            <div class="detail-card-label">Berat</div>
+                            <div class="detail-card-value" id="detail_berat">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Section Varian (Parent product variants) -->
+                    <div class="col-12 d-none" id="detail_varian_section">
+                        <div class="fw-bold text-primary mt-2 mb-2 d-flex align-items-center" style="font-size:0.88rem;">
+                            <i class="bi bi-tags-fill me-2"></i> Daftar Varian Ukuran
+                        </div>
+                        <div class="detail-table-container">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 small detail-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Kode Varian (SKU)</th>
+                                            <th>Ukuran</th>
+                                            <th>Warna</th>
+                                            <th>Barcode / QR</th>
+                                            <th class="text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="detail_varian_table_body">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Galeri Foto -->
+                    <div class="col-12 mt-3">
+                        <div class="fw-bold text-secondary mb-2" style="font-size:0.82rem; letter-spacing:0.02em;">GALERI FOTO BARANG</div>
+                        <div class="d-flex flex-wrap gap-2.5 p-3 rounded-3 border" style="border-style:dashed!important;" id="detail_fotos_gallery">
+                            <!-- IMAGES RENDERED BY JS -->
+                        </div>
+                    </div>
+
+                    <!-- Spesifikasi Detail -->
+                    <div class="col-12">
+                        <div class="fw-bold text-secondary mb-1.5" style="font-size:0.82rem; letter-spacing:0.02em;">SPESIFIKASI DETAIL</div>
+                        <div class="detail-spec-box small" id="detail_spesifikasi" style="white-space: pre-wrap;">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox Carousel Modal -->
+<div class="modal fade" id="modalPhotoLightbox" tabindex="-1" style="background: rgba(0,0,0,0.85); z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-transparent border-0 shadow-none">
+            <div class="modal-header border-0 p-0 justify-content-end mb-2">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%); font-size: 1.25rem;"></button>
+            </div>
+            <div class="modal-body p-0 text-center">
+                <div id="lightboxCarousel" class="carousel slide" data-bs-ride="false">
+                    <div class="carousel-inner" id="lightbox_carousel_inner">
+                        <!-- Carousel items injected dynamically -->
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#lightboxCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true" style="filter: drop-shadow(0px 2px 5px rgba(0,0,0,0.7)); width: 2.5rem; height: 2.5rem;"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#lightboxCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true" style="filter: drop-shadow(0px 2px 5px rgba(0,0,0,0.7)); width: 2.5rem; height: 2.5rem;"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Premium Detail Modal Styling - Hardcoded Dark/Light Colors to avoid invisible text */
+    #modalDetailBarang .modal-content {
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.15);
+        background-color: #ffffff !important;
+        color: #1e293b !important;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    [data-bs-theme="dark"] #modalDetailBarang .modal-content {
+        background-color: #1e1e24 !important;
+        border-color: #2d2d34 !important;
+        color: #f1f5f9 !important;
+    }
+
+    #modalDetailBarang .modal-title {
+        color: #0f172a !important;
+    }
+
+    [data-bs-theme="dark"] #modalDetailBarang .modal-title {
+        color: #f1f5f9 !important;
+    }
+
+    .detail-card-info {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px;
+        height: 100%;
+        transition: all 0.2s ease;
+    }
+
+    [data-bs-theme="dark"] .detail-card-info {
+        background: #27272f !important;
+        border-color: #373742 !important;
+    }
+
+    .detail-card-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #64748b !important;
+    }
+
+    [data-bs-theme="dark"] .detail-card-label {
+        color: #94a3b8 !important;
+    }
+
+    .detail-card-value {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a !important;
+        margin-top: 4px;
+    }
+
+    [data-bs-theme="dark"] .detail-card-value {
+        color: #f1f5f9 !important;
+    }
+
+    .detail-spec-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        color: #334155 !important;
+    }
+
+    [data-bs-theme="dark"] .detail-spec-box {
+        background: #27272f !important;
+        border-color: #373742 !important;
+        color: #cbd5e1 !important;
+    }
+
+    .detail-table-container {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    [data-bs-theme="dark"] .detail-table-container {
+        border-color: #373742;
+    }
+
+    .detail-table th {
+        background-color: #f1f5f9 !important;
+        color: #475569 !important;
+        font-weight: 600;
+        border-bottom-width: 1px;
+    }
+
+    [data-bs-theme="dark"] .detail-table th {
+        background-color: #27272f !important;
+        color: #94a3b8 !important;
+    }
+
+    .detail-photo-thumb {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .detail-photo-thumb:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    [data-bs-theme="dark"] .detail-photo-thumb {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Handle photo thumbnail clicks inside detail gallery to trigger slider modal
+        $(document).on('click', '.btn-view-photo', function(e) {
+            e.preventDefault();
+            
+            // Get all images in the detail gallery
+            const images = [];
+            $('#detail_fotos_gallery img').each(function() {
+                images.push($(this).attr('src'));
+            });
+
+            if (images.length === 0) return;
+
+            const clickedSrc = $(this).find('img').attr('src');
+            
+            let carouselItemsHtml = '';
+            images.forEach((src, idx) => {
+                const activeClass = src === clickedSrc ? 'active' : '';
+                carouselItemsHtml += `
+                    <div class="carousel-item ${activeClass}">
+                        <img src="${src}" class="d-block mx-auto img-fluid rounded-3" style="max-height: 75vh; object-fit: contain;">
+                    </div>
+                `;
+            });
+
+            $('#lightbox_carousel_inner').html(carouselItemsHtml);
+
+            // Hide sliding controls if there's only 1 image
+            if (images.length <= 1) {
+                $('#modalPhotoLightbox .carousel-control-prev, #modalPhotoLightbox .carousel-control-next').addClass('d-none');
+            } else {
+                $('#modalPhotoLightbox .carousel-control-prev, #modalPhotoLightbox .carousel-control-next').removeClass('d-none');
+            }
+
+            // Initialize bootstrap carousel if needed or just trigger show
+            $('#lightboxCarousel').carousel({
+                interval: false, // Don't auto-rotate
+                ride: false
+            });
+
+            $('#modalPhotoLightbox').modal('show');
+        });
+    });
+</script>
+    <div class="modal modal-blur fade" id="modalQrCode" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content text-center">
+            <div class="modal-header border-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pb-4">
+                <h5 class="fw-bold mb-1" id="qr_title">QR Code Barang</h5>
+                <div id="qr_nama" class="text-dark fw-semibold mb-1" style="font-size:0.9rem;"></div>
+                <div id="qr_warna" class="d-flex align-items-center justify-content-center gap-1 mb-3" style="font-size:0.8rem;color:#64748b;"></div>
+                <div class="d-inline-block p-3 bg-white border rounded-4 shadow-sm mb-3">
+                    <img id="qr_img" src="" alt="QR Code" style="width: 150px; height: 150px;">
+                </div>
+                <div class="small text-muted font-monospace fw-semibold" id="qr_code_text">BRG-0001</div>
+            </div>
+        </div>
+    </div>
+</div>
+    <div class="modal fade" id="modalTambahBarang" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered my-4">
+        <div class="modal-content modal-content-custom bg-body">
+            <div class="modal-header header-cinematic">
+                <h5 class="modal-title fw-semibold text-white">
+                    <i class='bi bi-box-seam me-2'></i> Tambah Barang
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <form id="formTambahBarang" action="#" method="POST">
+                <input type="hidden" name="_token" value="ug56emcQwcmn31e81zAPoB49AEWtui10oDgeq3Yf" autocomplete="off">                <div class="modal-body p-3 p-md-4 p-lg-4">
+                    <div class="alert alert-danger d-none rounded-3" id="formTambahBarangErrorAlert"></div>
+
+                                            <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Kode Barang</label>
+                <div class="input-group">
+                    <input type="text" name="kode_barang" id="tambah_kode_barang"
+                        class="form-control form-control-custom"
+                        placeholder="BRG-XXXX (Otomatis jika kosong)" autocomplete="off" maxlength="15">
+                    <button class="btn btn-outline-primary btn-scan-barcode" type="button" data-target="#tambah_kode_barang" title="Scan via Kamera">
+                        <i class="bi bi-camera-fill"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Nama Barang <span class="text-danger">*</span></label>
+                <input type="text" name="nama_barang" id="tambah_nama_barang"
+                    class="form-control form-control-custom"
+                    placeholder="Contoh: Kertas A4, Semen Gresik" autocomplete="off" required maxlength="30">
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Nama Alias / Dagang</label>
+                <input type="text" name="nama_alias" id="tambah_nama_alias"
+                    class="form-control form-control-custom"
+                    placeholder="Contoh: Kertas Fotokopi" autocomplete="off" maxlength="20">
+            </div>
+            <div class="col-12 col-md-8">
+                <label class="form-label fw-semibold">Tipe Item / Kontrol Keuangan <span class="text-danger">*</span></label>
+                <select name="tipe_item" id="tambah_tipe_item" class="form-select form-control-custom" required>
+                    <option value="Stok" selected>Stok (Inventory)</option>
+                    <option value="Bundle">Barang Set / Paket Bundle</option>
+                    <option value="Aset">Aset Tetap (Laptop, Kendaraan)</option>
+                    <option value="Jasa">Jasa / Biaya (Lisensi Software, Maintenance)</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-4 d-flex align-items-end" id="tambah_wrapper_has_variants">
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="has_variants" id="tambah_has_variants" value="1" style="cursor:pointer;">
+                    <label class="form-check-label fw-semibold" for="tambah_has_variants" style="cursor:pointer;">
+                        Memiliki Varian (Ukuran)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Varian Form Section -->
+            <div class="col-12" id="tambah_varian_wrapper" style="display: none;">
+                <hr class="my-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label fw-bold text-primary mb-0"><i class="bi bi-tags-fill me-1"></i> Daftar Varian Ukuran</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn_tambah_varian_row">
+                        <i class="bi bi-plus-lg me-1"></i> Tambah Baris Varian
+                    </button>
+                </div>
+                <div class="table-responsive border rounded bg-light p-2">
+                    <table class="table table-sm table-bordered align-middle mb-0" id="table_tambah_varian">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="30%">Ukuran (S, M, L, dll) <span class="text-danger">*</span></th>
+                                <th width="30%">Warna</th>
+                                <th width="20%">Kode Varian (Otomatis jika kosong)</th>
+                                <th width="15%">Barcode</th>
+                                <th width="5%" class="text-center">Hapus</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_tambah_varian">
+                            <!-- baris varian akan dimasukkan via js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+            <div class="col-12 col-md-12">
+                <label class="form-label fw-semibold">Kategori Barang <span class="text-danger">*</span></label>
+                <select name="kategori_barang_id" id="tambah_kategori_barang_id" class="form-select form-control-custom" required>
+                    <option value="">-- Pilih Kategori --</option>
+                                    </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Brand / Merk</label>
+                <select name="brand_id" id="tambah_brand_id" class="form-select form-control-custom">
+                    <option value="">-- Tanpa Merk --</option>
+                                    </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Tipe Barang <span class="text-danger">*</span></label>
+                <select name="tipe_barang_id" id="tambah_tipe_barang_id" class="form-select form-control-custom" required>
+                    <option value="">-- Pilih Tipe --</option>
+                                    </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Satuan Dasar <span class="text-danger">*</span></label>
+                <select name="satuan_id" id="tambah_satuan_id" class="form-select form-control-custom" required>
+                    <option value="">-- Pilih Satuan --</option>
+                                    </select>
+            </div>
+            
+            <div class="col-12 tambah-physical-fields"><hr class="my-1"></div>
+
+            <div class="col-12 col-md-3 tambah-warna-field">
+                <label class="form-label fw-semibold">Warna</label>
+                <select name="warna_id" id="tambah_warna_id" class="form-select form-control-custom">
+                    <option value="">-- Tanpa Warna --</option>
+                                    </select>
+            </div>
+            <div class="col-6 col-md-2 tambah-physical-fields">
+                <label class="form-label fw-semibold">Berat (kg/gr)</label>
+                <input type="number" step="0.001" name="berat" id="tambah_berat" class="form-control form-control-custom" placeholder="0.000" min="0">
+            </div>
+            <div class="col-6 col-md-2 tambah-physical-fields">
+                <label class="form-label fw-semibold">Panjang (cm)</label>
+                <input type="number" step="0.01" name="panjang" id="tambah_panjang" class="form-control form-control-custom" placeholder="0.00" min="0">
+            </div>
+            <div class="col-6 col-md-2 tambah-physical-fields">
+                <label class="form-label fw-semibold">Lebar (cm)</label>
+                <input type="number" step="0.01" name="lebar" id="tambah_lebar" class="form-control form-control-custom" placeholder="0.00" min="0">
+            </div>
+            <div class="col-6 col-md-3 tambah-physical-fields">
+                <label class="form-label fw-semibold">Tinggi (cm)</label>
+                <input type="number" step="0.01" name="tinggi" id="tambah_tinggi" class="form-control form-control-custom" placeholder="0.00" min="0">
+            </div>
+
+            <div class="col-12 tambah-physical-fields"><hr class="my-1"></div>
+
+            <div class="col-4 col-md-3 tambah-stock-fields">
+                <label class="form-label fw-semibold">Min. Stok <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" name="minimum_stok" id="tambah_minimum_stok" class="form-control form-control-custom" value="0" min="0" required>
+            </div>
+            <div class="col-4 col-md-3 tambah-stock-fields">
+                <label class="form-label fw-semibold">Max. Stok</label>
+                <input type="number" step="0.01" name="maksimum_stok" id="tambah_maksimum_stok" class="form-control form-control-custom" placeholder="Batas max" min="0">
+            </div>
+            <div class="col-4 col-md-3 tambah-stock-fields">
+                <label class="form-label fw-semibold">Reorder Pt. (ROP)</label>
+                <input type="number" step="0.01" name="reorder_point" id="tambah_reorder_point" class="form-control form-control-custom" value="0" min="0">
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
+                <select name="status" id="tambah_status" class="form-select form-control-custom" required>
+                    <option value="Active">Aktif</option>
+                    <option value="Inactive">Nonaktif</option>
+                </select>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label fw-semibold">Spesifikasi Detail / Deskripsi</label>
+                <textarea name="spesifikasi" id="tambah_spesifikasi" rows="3"
+                    class="form-control form-control-custom"
+                    placeholder="Cantumkan spesifikasi lengkap material, dimensi, grade, dll"></textarea>
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-semibold">Foto Barang (Mendukung Drag &amp; Drop / Copy-Paste / Browse)</label>
+                <input type="file" id="tambah_foto_input" class="filepond" multiple>
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="tambah_remove_bg" style="cursor:pointer;">
+                        <label class="form-check-label small fw-semibold" for="tambah_remove_bg" style="cursor:pointer;">
+                            <i class="bi bi-magic me-1 text-primary"></i>Hapus Background Otomatis
+                        </label>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary" style="font-size:0.68rem;">AI • Client-side</span>
+                </div>
+                <div id="tambah_bg_status" class="mt-2" style="display:none;">
+                    <div class="d-flex align-items-center gap-2 text-primary small">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                        <span id="tambah_bg_status_text">Menghapus background foto...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+                                    </div>
+
+                <div class="modal-footer border-top-0 py-3 pe-4 shadow-sm"
+                    style="background-color: var(--cine-input-bg); border-top: 1px solid var(--cine-border-line) !important;">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4"
+                        data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-cinematic" id="btnSimpan">
+                        Simpan Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+    <div class="modal fade" id="modalEditBarang" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered my-4">
+        <div class="modal-content modal-content-custom bg-body">
+            <div class="modal-header header-cinematic">
+                <h5 class="modal-title fw-semibold text-white">
+                    <i class='bi bi-pencil-square me-2'></i> Edit Barang
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <form id="formEditBarang" action="#" method="POST">
+                <input type="hidden" name="_token" value="ug56emcQwcmn31e81zAPoB49AEWtui10oDgeq3Yf" autocomplete="off">                <div class="modal-body p-3 p-md-4 p-lg-4">
+                    <div class="alert alert-danger d-none rounded-3" id="formEditBarangErrorAlert"></div>
+
+                                            <input type="hidden" id="edit_barang_id">
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Kode Barang <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <input type="text" name="kode_barang" id="edit_kode_barang"
+                        class="form-control form-control-custom"
+                        placeholder="Kode Barang" autocomplete="off" required maxlength="15">
+                    <button class="btn btn-outline-primary btn-scan-barcode" type="button" data-target="#edit_kode_barang" title="Scan via Kamera">
+                        <i class="bi bi-camera-fill"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Nama Barang <span class="text-danger">*</span></label>
+                <input type="text" name="nama_barang" id="edit_nama_barang"
+                    class="form-control form-control-custom"
+                    placeholder="Contoh: Kertas A4, Semen Gresik" autocomplete="off" required maxlength="30">
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Nama Alias / Dagang</label>
+                <input type="text" name="nama_alias" id="edit_nama_alias"
+                    class="form-control form-control-custom"
+                    placeholder="Contoh: Kertas Fotokopi" autocomplete="off" maxlength="20">
+            </div>
+            <div class="col-12 col-md-8">
+                <label class="form-label fw-semibold">Tipe Item / Kontrol Keuangan <span class="text-danger">*</span></label>
+                <select name="tipe_item" id="edit_tipe_item" class="form-select form-control-custom" required>
+                    <option value="Stok">Stok (Inventory)</option>
+                    <option value="Bundle">Barang Set / Paket Bundle</option>
+                    <option value="Aset">Aset Tetap (Laptop, Kendaraan)</option>
+                    <option value="Jasa">Jasa / Biaya (Lisensi Software, Maintenance)</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-4 d-flex align-items-end" id="edit_wrapper_has_variants">
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="has_variants" id="edit_has_variants" value="1" style="cursor:pointer;">
+                    <label class="form-check-label fw-semibold" for="edit_has_variants" style="cursor:pointer;">
+                        Memiliki Varian (Ukuran)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Varian Form Section -->
+            <div class="col-12" id="edit_varian_wrapper" style="display: none;">
+                <hr class="my-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label fw-bold text-primary mb-0"><i class="bi bi-tags-fill me-1"></i> Daftar Varian Ukuran</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn_edit_varian_row">
+                        <i class="bi bi-plus-lg me-1"></i> Tambah Baris Varian
+                    </button>
+                </div>
+                <div class="table-responsive border rounded bg-light p-2">
+                    <table class="table table-sm table-bordered align-middle mb-0" id="table_edit_varian">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="30%">Ukuran (S, M, L, dll) <span class="text-danger">*</span></th>
+                                <th width="30%">Warna</th>
+                                <th width="20%">Kode Varian (Otomatis jika kosong)</th>
+                                <th width="15%">Barcode</th>
+                                <th width="5%" class="text-center">Hapus</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_edit_varian">
+                            <!-- baris varian akan dimasukkan via js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+            <div class="col-12 col-md-12">
+                <label class="form-label fw-semibold">Kategori Barang <span class="text-danger">*</span></label>
+                <select name="kategori_barang_id" id="edit_kategori_barang_id" class="form-select form-control-custom" required>
+                    <option value="">-- Pilih Kategori --</option>
+                                    </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Brand / Merk</label>
+                <select name="brand_id" id="edit_brand_id" class="form-select form-control-custom">
+                    <option value="">-- Tanpa Merk --</option>
+                                    </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Tipe Barang <span class="text-danger">*</span></label>
+                <select name="tipe_barang_id" id="edit_tipe_barang_id" class="form-select form-control-custom" required>
+                    <option value="">-- Pilih Tipe --</option>
+                                    </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Satuan Dasar <span class="text-danger">*</span></label>
+                <select name="satuan_id" id="edit_satuan_id" class="form-select form-control-custom" required>
+                    <option value="">-- Pilih Satuan --</option>
+                                    </select>
+            </div>
+            
+            <div class="col-12 edit-physical-fields"><hr class="my-1"></div>
+
+            <div class="col-12 col-md-3 edit-warna-field">
+                <label class="form-label fw-semibold">Warna</label>
+                <select name="warna_id" id="edit_warna_id" class="form-select form-control-custom">
+                    <option value="">-- Tanpa Warna --</option>
+                                    </select>
+            </div>
+            <div class="col-6 col-md-2 edit-physical-fields">
+                <label class="form-label fw-semibold">Berat (kg/gr)</label>
+                <input type="number" step="0.001" name="berat" id="edit_berat" class="form-control form-control-custom" placeholder="0.000" min="0">
+            </div>
+            <div class="col-6 col-md-2 edit-physical-fields">
+                <label class="form-label fw-semibold">Panjang (cm)</label>
+                <input type="number" step="0.01" name="panjang" id="edit_panjang" class="form-control form-control-custom" placeholder="0.00" min="0">
+            </div>
+            <div class="col-6 col-md-2 edit-physical-fields">
+                <label class="form-label fw-semibold">Lebar (cm)</label>
+                <input type="number" step="0.01" name="lebar" id="edit_lebar" class="form-control form-control-custom" placeholder="0.00" min="0">
+            </div>
+            <div class="col-6 col-md-3 edit-physical-fields">
+                <label class="form-label fw-semibold">Tinggi (cm)</label>
+                <input type="number" step="0.01" name="tinggi" id="edit_tinggi" class="form-control form-control-custom" placeholder="0.00" min="0">
+            </div>
+
+            <div class="col-12 edit-physical-fields"><hr class="my-1"></div>
+
+            <div class="col-4 col-md-3 edit-stock-fields">
+                <label class="form-label fw-semibold">Min. Stok <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" name="minimum_stok" id="edit_minimum_stok" class="form-control form-control-custom" value="0" min="0" required>
+            </div>
+            <div class="col-4 col-md-3 edit-stock-fields">
+                <label class="form-label fw-semibold">Max. Stok</label>
+                <input type="number" step="0.01" name="maksimum_stok" id="edit_maksimum_stok" class="form-control form-control-custom" placeholder="Batas max" min="0">
+            </div>
+            <div class="col-4 col-md-3 edit-stock-fields">
+                <label class="form-label fw-semibold">Reorder Pt. (ROP)</label>
+                <input type="number" step="0.01" name="reorder_point" id="edit_reorder_point" class="form-control form-control-custom" value="0" min="0">
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
+                <select name="status" id="edit_status" class="form-select form-control-custom" required>
+                    <option value="Active">Aktif</option>
+                    <option value="Inactive">Nonaktif</option>
+                </select>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label fw-semibold">Spesifikasi Detail / Deskripsi</label>
+                <textarea name="spesifikasi" id="edit_spesifikasi" rows="3"
+                    class="form-control form-control-custom"
+                    placeholder="Cantumkan spesifikasi lengkap material, dimensi, grade, dll"></textarea>
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-semibold mb-2">Foto Barang Saat Ini</label>
+                <div class="d-flex flex-wrap gap-3 mb-3 p-3 bg-light rounded-3" id="edit_fotos_gallery" style="min-height: 50px;">
+                    <span class="text-muted small">Belum ada foto yang diupload.</span>
+                </div>
+                
+                <label class="form-label fw-semibold">Tambah Foto Baru (Mendukung Drag &amp; Drop / Copy-Paste / Browse)</label>
+                <input type="file" id="edit_foto_input" class="filepond" multiple>
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="edit_remove_bg" style="cursor:pointer;">
+                        <label class="form-check-label small fw-semibold" for="edit_remove_bg" style="cursor:pointer;">
+                            <i class="bi bi-magic me-1 text-primary"></i>Hapus Background Otomatis
+                        </label>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary" style="font-size:0.68rem;">AI • Client-side</span>
+                </div>
+                <div id="edit_bg_status" class="mt-2" style="display:none;">
+                    <div class="d-flex align-items-center gap-2 text-primary small">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                        <span id="edit_bg_status_text">Menghapus background foto...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+                                    </div>
+
+                <div class="modal-footer border-top-0 py-3 pe-4 shadow-sm"
+                    style="background-color: var(--cine-input-bg); border-top: 1px solid var(--cine-border-line) !important;">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4"
+                        data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-cinematic" id="btnSimpan">
+                        Simpan Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+    <div class="modal modal-blur fade" id="modalScanner" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="bi bi-camera-fill me-2 text-primary"></i> Scan Barcode / QR Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="alert alert-info py-2 small mb-3">
+                    <i class="bi bi-info-circle-fill me-1"></i> Izinkan akses kamera dan arahkan lensa ke barcode/QR Code.
+                </div>
+                <div id="scanner_reader" class="mx-auto rounded-3 overflow-hidden shadow-sm" style="max-width: 100%; min-height: 250px; background: #000;"></div>
+                <div class="mt-3">
+                    <span class="text-muted small">Mencari kode otomatis...</span>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+            </div>
+        </div>
+    </div>
+</div>
+        </div>
+
+        <!-- Panggil komponen Footer -->
+        <footer class="mt-auto py-3 px-4 bg-white border-top text-center text-md-start d-md-flex justify-content-between"
+    style="background-color: var(--navbar-bg) !important;">
+    <span class="text-muted fs-7">© 2026 <strong class="text-primary">EzMart</strong> ERP. All rights
+        reserved.</span>
+    <span class="text-muted fs-7 d-none d-md-block">Handcrafted & Made with <i
+            class="bi bi-heart-fill text-danger"></i></span>
+</footer>
+    </main>
+
+    <!-- Floating Action Button & Scroll to Top -->
+    <button class="fab-btn" id="scrollTopBtn" title="Scroll to top" style="display: none;">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+
+    <!-- ==========================================================================
+         SCRIPTS
+         ========================================================================== -->
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Bootstrap 5.3 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- Custom Vanilla JS -->
+    <script src="http://localhost/js/main.js"></script>
+    
+    <!-- SweetAlert2 & Reusable Alert Component -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    // Global helper object for showing modern SweetAlert2 notifications
+    window.showAlert = {
+        success: function(message, title = 'Berhasil') {
+            return Swal.fire({
+                icon: 'success',
+                title: title,
+                text: message,
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-custom-popup'
+                }
+            });
+        },
+        error: function(message, title = 'Gagal') {
+            return Swal.fire({
+                icon: 'error',
+                title: title,
+                text: message,
+                showConfirmButton: true,
+                customClass: {
+                    popup: 'swal2-custom-popup'
+                }
+            });
+        },
+        confirm: function(message, confirmCallback, title = 'Apakah Anda yakin?') {
+            Swal.fire({
+                title: title,
+                text: message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2563EB',
+                cancelButtonColor: '#EF4444',
+                confirmButtonText: 'Ya, Lanjutkan!',
+                cancelButtonText: 'Batal',
+                customClass: {
+                    popup: 'swal2-custom-popup'
+                }
+            }).then((result) => {
+                if (result.isConfirmed && typeof confirmCallback === 'function') {
+                    confirmCallback();
+                }
+            });
+        }
+    };
+</script>
+
+<style>
+    /* Styling agar match dengan tema premium (dark/light) */
+    .swal2-custom-popup {
+        border-radius: var(--border-radius-lg) !important;
+        background-color: var(--card-bg) !important;
+        color: var(--text-main) !important;
+        border: 1px solid var(--border-color) !important;
+        box-shadow: var(--shadow-lg) !important;
+    }
+    .swal2-title, .swal2-html-container {
+        color: var(--text-main) !important;
+    }
+</style>
+
+    <!-- Reusable Global Loader Component -->
+    <script>window.appLogoSource = "http://localhost/gambar/logo.png";</script>
+    <script src="http://localhost/js/global-loader.js"></script>
+
+    <!-- Untuk script khusus per halaman (misal chart data) -->
+        <!-- FilePond JS & Plugins -->
+    <script src="https://unpkg.com/filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.js"></script>
+    <script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
+    <script src="https://unpkg.com/filepond-plugin-file-validate-size/dist/filepond-plugin-file-validate-size.js"></script>
+    <script src="https://unpkg.com/filepond/dist/filepond.js"></script>
+    <!-- Html5Qrcode Library for Camera Scan -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- QRious Library for local QR Code generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <!-- Force ONNX Runtime to single-thread to avoid SharedArrayBuffer issues on non-cross-origin isolated sites -->
+    <script>
+        window.ort = {
+            env: {
+                wasm: {
+                    numThreads: 1,
+                    proxy: false
+                }
+            }
+        };
+    </script>
+    <!-- Background Removal Library (AI, runs entirely in browser) -->
+    <script type="module">
+        console.log("Mengunduh library Hapus Background...");
+        try {
+            const module = await import('https://esm.sh/@imgly/background-removal@1.4.5?bundle');
+            window._imglyRemoveBg = module.removeBackground || module.default;
+            window._imglyReady = true;
+            console.log("Library Hapus Background berhasil dimuat!");
+            document.dispatchEvent(new CustomEvent('imglyReady'));
+        } catch (e) {
+            console.error("Gagal memuat library Hapus Background:", e);
+            window._imglyError = e;
+            window._imglyErrorMessage = e.message || String(e);
+        }
+    </script>
+
+    <script>
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json'
+            }
+        });
+
+        $(document).ready(function () {
+
+            // ===== REGISTER FILEPOND PLUGINS =====
+            FilePond.registerPlugin(
+                FilePondPluginFileValidateType,
+                FilePondPluginImagePreview,
+                FilePondPluginFileValidateSize
+            );
+
+            // ===== HELPER: RESIZE GAMBAR VIA CANVAS =====
+            function resizeImage(blob, maxWidthHeight = 1200) {
+                return new Promise((resolve) => {
+                    const url = URL.createObjectURL(blob instanceof Blob ? blob : new Blob([blob]));
+                    const img = new Image();
+                    img.onload = () => {
+                        URL.revokeObjectURL(url);
+                        let w = img.width, h = img.height;
+                        if (w > maxWidthHeight || h > maxWidthHeight) {
+                            if (w > h) { h = Math.round(h * maxWidthHeight / w); w = maxWidthHeight; }
+                            else       { w = Math.round(w * maxWidthHeight / h); h = maxWidthHeight; }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        canvas.toBlob(resolve, 'image/png');
+                    };
+                    img.src = url;
+                });
+            }
+
+            // ===== HELPER: KOMPRES GAMBAR VIA CANVAS (JPEG) =====
+            function compressImage(file, maxWidthHeight = 1200, quality = 0.65) {
+                return new Promise((resolve) => {
+                    if (!file.type.startsWith('image/')) { resolve(file); return; }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            let w = img.width, h = img.height;
+                            if (w > maxWidthHeight || h > maxWidthHeight) {
+                                if (w > h) { h = Math.round(h * maxWidthHeight / w); w = maxWidthHeight; }
+                                else       { w = Math.round(w * maxWidthHeight / h); h = maxWidthHeight; }
+                            }
+                            const canvas = document.createElement('canvas');
+                            canvas.width = w; canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, w, h);
+                            canvas.toBlob((blob) => {
+                                resolve(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+                            }, 'image/jpeg', quality);
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // ===== HELPER: PROSES GAMBAR (REMOVE BG + COMPRESS) =====
+            async function processImage(file, removeBg = false, statusEl = null, statusTextEl = null, index = 0, total = 1) {
+                if (removeBg) {
+                    if (!window._imglyReady || !window._imglyRemoveBg) {
+                        if (window._imglyError) {
+                            throw new Error("Gagal memuat AI Hapus Background. Detail: " + (window._imglyErrorMessage || window._imglyError) + ". Silakan matikan toggle 'Hapus Background Otomatis' lalu coba lagi.");
+                        } else {
+                            throw new Error("AI Hapus Background sedang diunduh / menyiapkan model AI (~30MB). Harap tunggu beberapa detik lalu coba simpan kembali.");
+                        }
+                    }
+                    try {
+                        if (statusEl) {
+                            $(statusEl).show();
+                            $(statusTextEl).text(`[AI] Menyiapkan foto ${index + 1}/${total}...`);
+                        }
+                        
+                        // OPTIMIZATION: Resize image to max 1200px FIRST before passing to AI background removal.
+                        // This maintains sharp details (suitable for product zoom) while still keeping processing very fast.
+                        const optimizedBlob = await resizeImage(file, 1200);
+                        
+                        if (statusEl) {
+                            $(statusTextEl).text(`[AI] Menghapus background foto ${index + 1}/${total}...`);
+                        }
+                        
+                        // Remove background on resized image with 'medium' model for crisp boundaries
+                        const resultBlob = await window._imglyRemoveBg(optimizedBlob, {
+                            publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.4.5/dist/',
+                            model: 'medium', 
+                            debug: false,
+                            output: { format: 'image/png', quality: 0.90 }
+                        });
+                        
+                        return new File([resultBlob], file.name.replace(/\.[^.]+$/, '') + '_nobg.png', { type: 'image/png' });
+                    } catch (err) {
+                        console.error('Background removal failed:', err);
+                        throw new Error(`Gagal memproses hapus background pada foto ke-${index + 1}. Detail: ${err.message || err}. Silakan matikan toggle 'Hapus Background Otomatis' jika ingin menyimpan foto apa adanya.`);
+                    }
+                }
+                return await compressImage(file);
+            }
+
+            const MAX_FOTO = 4;
+
+            // Tracking photo change state
+            let photoChanged = false;
+
+            $('#modalEditBarang').on('hidden.bs.modal', function () {
+                if (photoChanged) {
+                    photoChanged = false;
+                    location.reload();
+                }
+            });
+
+            // ===== OPTION DATA & STATE VARIABLES =====
+            let activeFilter = 'Semua';
+            let tambahVarianIndex = 0;
+            let tambahBundleIndex = 0;
+            let editVarianIndex = 0;
+            let editBundleIndex = 0;
+
+            const warnaOptions = [
+                            ];
+
+            const componentOptions = [
+                            ];
+
+            // ===== SHARED FUNCTIONS =====
+            function generateWarnaSelectOptions(selectedId = null) {
+                let html = '<option value="">-- Tanpa Warna --</option>';
+                warnaOptions.forEach(opt => {
+                    let sel = selectedId && parseInt(selectedId) === parseInt(opt.id) ? 'selected' : '';
+                    html += `<option value="${opt.id}" ${sel}>${opt.name}</option>`;
+                });
+                return html;
+            }
+
+            function generateComponentSelectOptions(selectedId = null) {
+                let html = '<option value="">-- Pilih Barang Komponen --</option>';
+                componentOptions.forEach(opt => {
+                    let sel = selectedId && parseInt(selectedId) === parseInt(opt.id) ? 'selected' : '';
+                    html += `<option value="${opt.id}" ${sel}>${opt.name}</option>`;
+                });
+                return html;
+            }
+
+            function addVarianRow(prefix, variant = null) {
+                let index = prefix === 'tambah' ? tambahVarianIndex++ : editVarianIndex++;
+                let tbody = $(`#tbody_${prefix}_varian`);
+                let varId = variant && variant.id ? variant.id : '';
+                let varUkuran = variant && variant.ukuran ? variant.ukuran : '';
+                let varWarnaId = variant && variant.warna_id ? variant.warna_id : '';
+                let varKode = variant && variant.kode_barang ? variant.kode_barang : '';
+                let varBarcode = variant && variant.barcode ? variant.barcode : '';
+                let varStatus = variant && variant.status ? variant.status : 'Active';
+
+                let initialHex = '#e2e8f0';
+                if (varWarnaId) {
+                    let opt = warnaOptions.find(o => parseInt(o.id) === parseInt(varWarnaId));
+                    if (opt && opt.hex) {
+                        initialHex = opt.hex;
+                    }
+                }
+
+                let rowHtml = `
+                    <tr class="variant-row">
+                        <input type="hidden" name="variants[${index}][id]" value="${varId}">
+                        <td>
+                            <input type="text" name="variants[${index}][ukuran]" class="form-control form-control-sm text-uppercase fw-semibold" value="${varUkuran}" required placeholder="S, M, 39, 40, dll">
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="warna-dot-indicator border shadow-sm" style="display:inline-block;width:18px;height:18px;border-radius:50%;background:${initialHex};flex-shrink:0;transition: background-color 0.2s ease;"></span>
+                                <select name="variants[${index}][warna_id]" class="form-select form-select-sm select-warna-input">
+                                    ${generateWarnaSelectOptions(varWarnaId)}
+                                </select>
+                            </div>
+                        </td>
+                        <td>
+                            <input type="text" name="variants[${index}][kode_barang]" class="form-control form-control-sm var-kode-input" value="${varKode}" placeholder="Otomatis jika kosong">
+                        </td>
+                        <td>
+                            <input type="text" name="variants[${index}][barcode]" class="form-control form-control-sm var-barcode-input" value="${varBarcode}" data-auto-copied-from="${varBarcode}" placeholder="Barcode">
+                        </td>
+                        <input type="hidden" name="variants[${index}][status]" value="${varStatus}">
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" title="Hapus Varian"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(rowHtml);
+            }
+
+            // Remove Row Handler
+            $(document).on('click', '.btn-remove-row', function() {
+                $(this).closest('tr').remove();
+            });
+
+            // Live update warna dot indicator
+            $(document).on('change', '.select-warna-input', function() {
+                let selectVal = $(this).val();
+                let dot = $(this).siblings('.warna-dot-indicator');
+                if (selectVal) {
+                    let opt = warnaOptions.find(o => parseInt(o.id) === parseInt(selectVal));
+                    if (opt && opt.hex) {
+                        dot.css('background-color', opt.hex);
+                        return;
+                    }
+                }
+                dot.css('background-color', '#e2e8f0');
+            });
+
+            // Auto copy SKU (kode_barang) to barcode in variant row
+            $(document).on('input', '.var-kode-input', function() {
+                let skuVal = $(this).val();
+                let barcodeInput = $(this).closest('tr').find('.var-barcode-input');
+                let lastCopied = barcodeInput.data('auto-copied-from');
+                if (!barcodeInput.val() || barcodeInput.val() === lastCopied) {
+                    barcodeInput.val(skuVal);
+                    barcodeInput.data('auto-copied-from', skuVal);
+                }
+            });
+
+            // Add Row Buttons Click Handlers
+            $('#btn_tambah_varian_row').on('click', () => addVarianRow('tambah'));
+            $('#btn_edit_varian_row').on('click', () => addVarianRow('edit'));
+
+            // Toggle logic for Varian Checkbox
+            function toggleVarianWrapper(prefix) {
+                let hasVariants = $(`#${prefix}_has_variants`).is(':checked');
+                if (hasVariants) {
+                    $(`#${prefix}_varian_wrapper`).show();
+                    $(`.${prefix}-warna-field`).addClass('d-none');
+                } else {
+                    $(`#${prefix}_varian_wrapper`).hide();
+                    $(`#tbody_${prefix}_varian`).empty();
+                    let type = $(`#${prefix}_tipe_item`).val();
+                    if (type === 'Stok' || type === 'Bundle' || type === 'Aset') {
+                        $(`.${prefix}-warna-field`).removeClass('d-none');
+                    }
+                }
+            }
+
+            $(document).on('change', '#tambah_has_variants', () => toggleVarianWrapper('tambah'));
+            $(document).on('change', '#edit_has_variants', () => toggleVarianWrapper('edit'));
+
+            function toggleTipeItemFields(type, prefix) {
+                if (type === 'Stok' || type === 'Bundle' || type === 'Aset') {
+                    if (type === 'Aset') {
+                        $(`.${prefix}-physical-fields`).addClass('d-none');
+                        $(`.${prefix}-stock-fields`).addClass('d-none');
+                    } else {
+                        $(`.${prefix}-physical-fields`).removeClass('d-none');
+                        $(`.${prefix}-stock-fields`).removeClass('d-none');
+                    }
+                    $(`.${prefix}-warna-field`).removeClass('d-none');
+                    if (type === 'Stok') {
+                        $(`#${prefix}_wrapper_has_variants`).removeClass('d-none');
+                        toggleVarianWrapper(prefix);
+                    } else {
+                        $(`#${prefix}_wrapper_has_variants`).addClass('d-none');
+                        $(`#${prefix}_has_variants`).prop('checked', false).trigger('change');
+                    }
+                } else { // Jasa
+                    $(`.${prefix}-physical-fields`).addClass('d-none');
+                    $(`.${prefix}-stock-fields`).addClass('d-none');
+                    $(`.${prefix}-warna-field`).addClass('d-none');
+                    $(`#${prefix}_wrapper_has_variants`).addClass('d-none');
+                    $(`#${prefix}_has_variants`).prop('checked', false).trigger('change');
+                }
+            }
+
+            $(document).on('change', '#tambah_tipe_item', function() {
+                toggleTipeItemFields($(this).val(), 'tambah');
+            });
+
+            $(document).on('change', '#edit_tipe_item', function() {
+                toggleTipeItemFields($(this).val(), 'edit');
+            });
+
+            // ===== INCLUDES SUB-MODULES =====
+            // ===== INISIALISASI DATATABLES =====
+const tableBarang = $('#tableBarang').DataTable({
+    processing: true,
+    serverSide: true,
+    language: {
+                    search: "Search:",
+            lengthMenu: "Show _MENU_ entries",
+            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+            infoEmpty: "Showing 0 to 0 of 0 entries",
+            infoFiltered: "(filtered from _MAX_ total entries)",
+            zeroRecords: "No matching records found",
+            emptyTable: "No data available in table",
+            paginate: {
+                first: "First",
+                previous: "Previous",
+                next: "Next",
+                last: "Last"
+            }
+            },
+    ajax: {
+        url: "http://localhost/barang/data",
+        data: function(d) {
+            d.tipe_filter = activeFilter;
+        }
+    },
+    columns: [
+        { 
+            data: null, 
+            className: 'text-center py-3',
+            orderable: false,
+            render: function (data, type, row, meta) {
+                return meta.row + 1 + meta.settings._iDisplayStart;
+            }
+        },
+        { 
+            data: 'nama_barang',
+            className: 'py-3',
+            render: function (data, type, row) {
+                let typeBadge = '';
+                if (row.tipe_item === 'Stok') {
+                    typeBadge = '<span class="brg-tipe-badge brg-tipe-stok">Stok</span>';
+                } else if (row.tipe_item === 'Bundle') {
+                    typeBadge = '<span class="brg-tipe-badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded small" style="font-size:0.72rem;font-weight:600;">Set / Bundle</span>';
+                } else if (row.tipe_item === 'Aset') {
+                    typeBadge = '<span class="brg-tipe-badge brg-tipe-aset">Aset Tetap</span>';
+                } else {
+                    typeBadge = '<span class="brg-tipe-badge brg-tipe-jasa">Jasa</span>';
+                }
+
+                let warnaBadge = '';
+                if (row.warna_name && row.warna_name !== '-') {
+                    warnaBadge = `<span class="badge bg-light text-dark border px-2 py-0.5 rounded small d-inline-flex align-items-center" style="font-size:0.72rem;font-weight:500;">${row.warna_name}</span>`;
+                }
+
+                let aliasSpan = row.nama_alias ? `<span class="brg-product-alias">${row.nama_alias}</span>` : '';
+
+                let variantsHtml = '';
+                if (row.variants && row.variants.length > 0) {
+                    let chips = '';
+                    row.variants.slice(0, 4).forEach(v => {
+                        chips += `<span class="brg-size-chip" title="Warna: ${v.warna_name}">${v.ukuran}</span>`;
+                    });
+                    let more = '';
+                    if (row.variants.length > 4) {
+                        more = `<span class="brg-size-chip-more">+${row.variants.length - 4}</span>`;
+                    }
+                    variantsHtml = `
+                        <div class="mt-1.5 d-flex align-items-center flex-wrap gap-1">
+                            <span class="badge bg-secondary-subtle text-secondary py-1 px-2 border d-inline-flex align-items-center" style="font-size:0.68rem;font-weight:600; border-radius: 4px;">
+                                <i class="bi bi-tags-fill me-1 text-secondary"></i>${row.variants.length} Varian
+                            </span>
+                            ${chips}
+                            ${more}
+                        </div>
+                    `;
+                }
+
+                let componentsHtml = '';
+                if (row.tipe_item === 'Bundle' && row.components && row.components.length > 0) {
+                    componentsHtml = `
+                        <div class="mt-1">
+                            <span class="badge bg-primary-subtle text-primary py-1 px-2 border" style="font-size:0.68rem;font-weight:500;">
+                                <i class="bi bi-box-seam me-1 text-primary"></i>Set: ${row.components.length} Komponen
+                            </span>
+                        </div>
+                    `;
+                }
+
+                let avatarHtml = '';
+                if (row.foto_path) {
+                    avatarHtml = `<img src="${row.foto_path}" class="brg-product-avatar" alt="${row.nama_barang}">`;
+                } else {
+                    avatarHtml = `
+                        <div class="brg-product-placeholder">
+                            <i class="bi bi-image"></i>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="brg-product-cell">
+                        ${avatarHtml}
+                        <div class="brg-product-info">
+                            <span class="brg-product-name" title="${row.nama_barang}">${row.nama_barang}</span>
+                            <div class="brg-product-meta align-items-center flex-wrap gap-1 mt-1">
+                                ${typeBadge}
+                                ${warnaBadge}
+                                ${aliasSpan}
+                            </div>
+                            ${variantsHtml}
+                            ${componentsHtml}
+                        </div>
+                    </div>
+                `;
+            }
+        },
+        { 
+            data: 'kode_barang',
+            className: 'py-3',
+            render: function (data, type, row) {
+                return `
+                    <div class="brg-kode-cell">
+                        <span class="brg-kode-badge">${row.kode_barang}</span>
+                        <button class="brg-qr-btn btn-qr-code"
+                            data-kode="${row.kode_barang}"
+                            data-nama="${row.nama_barang}"
+                            title="Lihat QR Code">
+                            <i class="bi bi-qr-code"></i>
+                        </button>
+                    </div>
+                `;
+            }
+        },
+        { 
+            data: 'kategori_name',
+            className: 'py-3',
+            render: function (data, type, row) {
+                return `
+                    <div class="brg-info-cell">
+                        <span class="brg-info-main">${row.kategori_name}</span>
+                        <span class="brg-info-sub">${row.brand_name}</span>
+                    </div>
+                `;
+            }
+        },
+        { 
+            data: 'satuan_name',
+            className: 'py-3',
+            render: function (data, type, row) {
+                return `
+                    <div class="brg-info-cell">
+                        <span class="brg-info-main">${row.satuan_name}</span>
+                        <span class="brg-info-sub">${row.tipe_barang_name}</span>
+                    </div>
+                `;
+            }
+        },
+        { 
+            data: 'status',
+            className: 'text-center py-3',
+            render: function (data, type, row) {
+                let statusClass = row.status === 'Active' ? 'brg-status-active' : 'brg-status-inactive';
+                let statusText = row.status === 'Active' ? 'Aktif' : 'Nonaktif';
+                return `
+                    <span class="brg-status ${statusClass}">
+                        <span class="brg-status-dot"></span>
+                        ${statusText}
+                    </span>
+                `;
+            }
+        },
+        { 
+            data: null,
+            orderable: false,
+            className: 'text-center py-3',
+            render: function (data, type, row) {
+                let canEdit = true;
+                let canDelete = true;
+                
+                let editBtn = canEdit ? `<button class="brg-action-btn brg-act-edit btn-edit" data-id="${row.id}" title="Edit"><i class="bi bi-pencil"></i></button>` : '';
+                let deleteBtn = canDelete ? `<button class="brg-action-btn brg-act-delete btn-hapus" data-id="${row.id}" data-nama="${row.nama_barang}" title="Hapus"><i class="bi bi-trash"></i></button>` : '';
+                
+                return `
+                    <div class="brg-actions">
+                        <button class="brg-action-btn brg-act-detail btn-detail" data-id="${row.id}" title="Detail Fisik"><i class="bi bi-eye"></i></button>
+                        ${editBtn}
+                        ${deleteBtn}
+                    </div>
+                `;
+            }
+        }
+    ],
+    dom: '<"row"<"col-sm-6"l><"col-sm-6"f>>rt<"row"<"col-sm-5"i><"col-sm-7"p>>',
+    pageLength: 10,
+    lengthMenu: [5, 10, 25, 50, 100],
+    createdRow: function (row, data, dataIndex) {
+        $(row).attr('data-tipe-item', data.tipe_item);
+    }
+});
+
+// ===== INJECT TAB FILTER PILLS =====
+const tabHtml = `
+    <div class="brg-tab-wrapper" id="brgTabFilter">
+        <button class="brg-tab-pill active" data-filter="Semua">
+            <i class="bi bi-grid-3x3-gap-fill"></i> Semua
+            <span class="brg-tab-count">0</span>
+        </button>
+        <button class="brg-tab-pill" data-filter="Stok">
+            <i class="bi bi-archive"></i> Stok
+            <span class="brg-tab-count">0</span>
+        </button>
+        <button class="brg-tab-pill" data-filter="Jasa">
+            <i class="bi bi-gear"></i> Jasa
+            <span class="brg-tab-count">0</span>
+        </button>
+        <button class="brg-tab-pill" data-filter="Aset">
+            <i class="bi bi-building"></i> Aset
+            <span class="brg-tab-count">0</span>
+        </button>
+    </div>
+`;
+
+// Inject tabs above the DataTables top controls
+$('#tableBarang_wrapper .row:first').before(tabHtml);
+
+// Tab click handler
+$(document).on('click', '.brg-tab-pill', function() {
+    $('.brg-tab-pill').removeClass('active');
+    $(this).addClass('active');
+    activeFilter = $(this).data('filter');
+    tableBarang.draw();
+});
+            // ===== INITIALIZE FILEPOND FOR TAMBAH =====
+const pondTambah = FilePond.create(document.querySelector('#tambah_foto_input'), {
+    allowMultiple: true,
+    maxFiles: MAX_FOTO,
+    maxTotalFileSize: '10MB',
+    acceptedFileTypes: ['image/*'],
+    labelIdle: `<i class="bi bi-cloud-upload-fill text-primary" style="font-size: 2.2rem; display: block; margin-bottom: 8px; opacity: 0.85;"></i>Seret &amp; lepas foto atau <span class="filepond--label-action">Browse</span><br><span style="font-size: 0.8rem; color: #64748b;">Maks. ${MAX_FOTO} foto &bull; Otomatis dikompresi</span>`,
+    labelMaxFileSizeExceeded: 'File terlalu besar',
+    labelMaxTotalFileSizeExceeded: `Maksimal hanya ${MAX_FOTO} foto`,
+    onwarning: (error) => {
+        if (error.body === 'Max files') {
+            Swal.fire({ title: 'Batas Foto!', text: `Maksimal hanya ${MAX_FOTO} foto yang bisa diupload.`, icon: 'warning', confirmButtonText: 'OK' });
+        }
+    },
+    allowPaste: true,
+    allowDrop: true,
+});
+
+// Reset form on open
+$('#modalTambahBarang').on('show.bs.modal', function () {
+    $('#tbody_tambah_varian').empty();
+    $('#tbody_tambah_bundle').empty();
+    tambahVarianIndex = 0;
+    tambahBundleIndex = 0;
+    $('#tambah_has_variants').prop('checked', false).trigger('change');
+    $('#tambah_tipe_item').val('Stok').trigger('change');
+});
+
+// Form submit handler for Tambah Barang
+$('#formTambahBarang').on('submit', async function (e) {
+    e.preventDefault();
+
+    // Validasi max foto
+    const filesToUpload = pondTambah.getFiles();
+    if (filesToUpload.length > MAX_FOTO) {
+        Swal.fire({ title: 'Batas Foto!', text: `Maksimal hanya ${MAX_FOTO} foto yang bisa diupload.`, icon: 'warning', confirmButtonText: 'OK' });
+        return;
+    }
+
+    let formData = new FormData(this);
+    const doRemoveBg = $('#tambah_remove_bg').is(':checked');
+
+    // Proses (remove BG + kompresi) & append FilePond files
+    try {
+        for (let i = 0; i < filesToUpload.length; i++) {
+            const processed = await processImage(
+                filesToUpload[i].file, doRemoveBg,
+                '#tambah_bg_status', '#tambah_bg_status_text', i, filesToUpload.length
+            );
+            formData.append('fotos[]', processed);
+        }
+    } catch (err) {
+        $('#tambah_bg_status').hide();
+        Swal.fire({
+            title: 'Proses AI Gagal',
+            text: err.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    $('#tambah_bg_status').hide();
+
+    $.ajax({
+        url: "http://localhost/barang/store",
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (res) {
+            $('#modalTambahBarang').modal('hide');
+            Swal.fire({
+                title: 'Berhasil!',
+                text: res.message,
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        },
+        error: function (err) {
+            let errorMsg = 'Terjadi kesalahan saat menyimpan data.';
+            if (err.status === 422 && err.responseJSON && err.responseJSON.errors) {
+                errorMsg = '<b>Data tidak valid:</b><br>';
+                $.each(err.responseJSON.errors, function (key, val) {
+                    errorMsg += '• ' + val[0] + '<br>';
+                });
+            } else if (err.responseJSON && err.responseJSON.message) {
+                errorMsg = err.responseJSON.message;
+            }
+            Swal.fire({
+                title: 'Gagal!',
+                html: errorMsg,
+                icon: 'error'
+            });
+        }
+    });
+});
+            // ===== INITIALIZE FILEPOND FOR EDIT =====
+const pondEdit = FilePond.create(document.querySelector('#edit_foto_input'), {
+    allowMultiple: true,
+    maxFiles: MAX_FOTO,
+    maxTotalFileSize: '10MB',
+    acceptedFileTypes: ['image/*'],
+    labelIdle: `<i class="bi bi-cloud-upload-fill text-primary" style="font-size: 2.2rem; display: block; margin-bottom: 8px; opacity: 0.85;"></i>Seret &amp; lepas foto baru atau <span class="filepond--label-action">Browse</span><br><span style="font-size: 0.8rem; color: #64748b;">Maks. ${MAX_FOTO} foto total &bull; Otomatis dikompresi</span>`,
+    labelMaxFileSizeExceeded: 'File terlalu besar',
+    labelMaxTotalFileSizeExceeded: `Maksimal hanya ${MAX_FOTO} foto`,
+    onwarning: (error) => {
+        if (error.body === 'Max files') {
+            Swal.fire({ title: 'Batas Foto!', text: `Maksimal hanya ${MAX_FOTO} foto yang bisa ditambahkan.`, icon: 'warning', confirmButtonText: 'OK' });
+        }
+    },
+    allowPaste: true,
+    allowDrop: true,
+});
+
+// ===== EDIT (SHOW MODAL) =====
+$(document).on('click', '.btn-edit', function () {
+    let id = $(this).data('id');
+    $.get('/barang/' + id + '/edit', function (res) {
+        let b = res.barang;
+        $('#edit_barang_id').val(b.id);
+        $('#edit_kode_barang').val(b.kode_barang);
+        $('#edit_nama_barang').val(b.nama_barang);
+        $('#edit_nama_alias').val(b.nama_alias);
+        $('#edit_kategori_barang_id').val(b.kategori_barang_id);
+        $('#edit_brand_id').val(b.brand_id ? b.brand_id : '');
+        $('#edit_tipe_barang_id').val(b.tipe_barang_id);
+        $('#edit_satuan_id').val(b.satuan_id);
+        $('#edit_warna_id').val(b.warna_id ? b.warna_id : '');
+        $('#edit_berat').val(b.berat ? parseFloat(b.berat) : '');
+        $('#edit_panjang').val(b.panjang ? parseFloat(b.panjang) : '');
+        $('#edit_lebar').val(b.lebar ? parseFloat(b.lebar) : '');
+        $('#edit_tinggi').val(b.tinggi ? parseFloat(b.tinggi) : '');
+        $('#edit_reorder_point').val(b.reorder_point ? parseFloat(b.reorder_point) : 0);
+        $('#edit_spesifikasi').val(b.spesifikasi);
+        $('#edit_status').val(b.status);
+        $('#edit_tipe_item').val(b.tipe_item).trigger('change');
+
+        // Reset varian rows
+        $('#tbody_edit_varian').empty();
+        editVarianIndex = 0;
+
+        // Populate Varian Checkbox & Rows
+        if (b.variants && b.variants.length > 0) {
+            $('#edit_has_variants').prop('checked', true).trigger('change');
+            b.variants.forEach(variant => {
+                addVarianRow('edit', variant);
+            });
+        } else {
+            $('#edit_has_variants').prop('checked', false).trigger('change');
+        }
+
+        // Clear file uploader
+        pondEdit.removeFiles();
+
+        // Render existing fotos
+        let galleryHtml = '';
+        if (b.fotos && b.fotos.length > 0) {
+            b.fotos.forEach(foto => {
+                let primaryBadge = foto.is_primary ? '<span class="primary-badge">Cover</span>' : '';
+                galleryHtml += `
+                    <div class="photo-gallery-item" id="foto-item-${foto.id}">
+                        <img src="/storage/${foto.foto_path}" alt="Foto">
+                        ${primaryBadge}
+                        <div class="btn-actions">
+                            ${!foto.is_primary ? `<button type="button" class="btn-action-icon btn-set-primary" data-id="${foto.id}" title="Set Utama"><i class="bi bi-star-fill text-warning"></i></button>` : ''}
+                            <button type="button" class="btn-action-icon text-danger btn-delete-foto" data-id="${foto.id}" title="Hapus"><i class="bi bi-trash-fill"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            galleryHtml = '<span class="text-muted small">Belum ada foto yang diupload.</span>';
+        }
+        $('#edit_fotos_gallery').html(galleryHtml);
+
+        $('#modalEditBarang').modal('show');
+    });
+});
+
+// ===== UPDATE BARANG =====
+$('#formEditBarang').on('submit', async function (e) {
+    e.preventDefault();
+    let id = $('#edit_barang_id').val();
+
+    // Hitung foto existing (yang sudah tersimpan di DB) + foto baru
+    const existingFotoCount = $('#edit_fotos_gallery .photo-gallery-item').length;
+    const newFiles = pondEdit.getFiles();
+    const totalFoto = existingFotoCount + newFiles.length;
+    if (totalFoto > MAX_FOTO) {
+        Swal.fire({
+            title: 'Batas Foto!',
+            html: `Total foto tidak boleh lebih dari <b>${MAX_FOTO}</b>.<br>Saat ini: <b>${existingFotoCount}</b> foto tersimpan + <b>${newFiles.length}</b> foto baru = <b>${totalFoto}</b>.<br>Hapus beberapa foto lama terlebih dahulu.`,
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    let formData = new FormData(this);
+    const doRemoveBg = $('#edit_remove_bg').is(':checked');
+
+    // Proses (remove BG + kompresi) & append FilePond files
+    try {
+        for (let i = 0; i < newFiles.length; i++) {
+            const processed = await processImage(
+                newFiles[i].file, doRemoveBg,
+                '#edit_bg_status', '#edit_bg_status_text', i, newFiles.length
+            );
+            formData.append('fotos[]', processed);
+        }
+    } catch (err) {
+        $('#edit_bg_status').hide();
+        Swal.fire({
+            title: 'Proses AI Gagal',
+            text: err.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    $('#edit_bg_status').hide();
+
+    $.ajax({
+        url: '/barang/' + id + '/update',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (res) {
+            $('#modalEditBarang').modal('hide');
+            Swal.fire({
+                title: 'Berhasil!',
+                text: res.message,
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        },
+        error: function (err) {
+            let errorMsg = 'Terjadi kesalahan saat mengupdate data.';
+            if (err.status === 422 && err.responseJSON && err.responseJSON.errors) {
+                errorMsg = '<b>Data tidak valid:</b><br>';
+                $.each(err.responseJSON.errors, function (key, val) {
+                    errorMsg += '• ' + val[0] + '<br>';
+                });
+            } else if (err.responseJSON && err.responseJSON.message) {
+                errorMsg = err.responseJSON.message;
+            }
+            Swal.fire({
+                title: 'Gagal!',
+                html: errorMsg,
+                icon: 'error'
+            });
+        }
+    });
+});
+
+// ===== SET PRIMARY FOTO =====
+$(document).on('click', '.btn-set-primary', function () {
+    let fotoId = $(this).data('id');
+    $.ajax({
+        url: '/barang/foto/' + fotoId + '/set-primary',
+        type: 'POST',
+        success: function (res) {
+            Swal.fire({
+                title: 'Berhasil!',
+                text: res.message,
+                icon: 'success',
+                timer: 1000,
+                showConfirmButton: false
+            });
+            photoChanged = true;
+
+            // Re-fetch edit modal contents
+            let barangId = $('#edit_barang_id').val();
+            $.get('/barang/' + barangId + '/edit', function (resEdit) {
+                let b = resEdit.barang;
+                let galleryHtml = '';
+                b.fotos.forEach(foto => {
+                    let primaryBadge = foto.is_primary ? '<span class="primary-badge">Cover</span>' : '';
+                    galleryHtml += `
+                        <div class="photo-gallery-item" id="foto-item-${foto.id}">
+                            <img src="/storage/${foto.foto_path}" alt="Foto">
+                            ${primaryBadge}
+                            <div class="btn-actions">
+                                ${!foto.is_primary ? `<button type="button" class="btn-action-icon btn-set-primary" data-id="${foto.id}" title="Set Utama"><i class="bi bi-star-fill text-warning"></i></button>` : ''}
+                                <button type="button" class="btn-action-icon text-danger btn-delete-foto" data-id="${foto.id}" title="Hapus"><i class="bi bi-trash-fill"></i></button>
+                            </div>
+                        </div>
+                    `;
+                });
+                $('#edit_fotos_gallery').html(galleryHtml);
+            });
+        }
+    });
+});
+
+// ===== DELETE FOTO =====
+$(document).on('click', '.btn-delete-foto', function () {
+    let fotoId = $(this).data('id');
+    Swal.fire({
+        title: 'Hapus foto ini?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Ya, hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '/barang/foto/' + fotoId + '/delete',
+                type: 'DELETE',
+                success: function (res) {
+                    Swal.fire({
+                        title: 'Berhasil!',
+                        text: res.message,
+                        icon: 'success',
+                        timer: 1000,
+                        showConfirmButton: false
+                    });
+                    photoChanged = true;
+                    $(`#foto-item-${fotoId}`).remove();
+                    if ($('#edit_fotos_gallery').children().length === 0) {
+                        $('#edit_fotos_gallery').html('<span class="text-muted small">Belum ada foto yang diupload.</span>');
+                    }
+                }
+            });
+        }
+    });
+});
+            // ===== DETAIL FISIK (SHOW MODAL) =====
+$(document).on('click', '.btn-detail', function () {
+    let rowTr = $(this).closest('tr');
+    let b = tableBarang.row(rowTr).data();
+    
+    if (!b) return;
+
+    // Identitas
+    $('#detail_sku').text(b.kode_barang);
+    $('#detail_barcode').text(b.barcode ? b.barcode : '-');
+    if (b.ukuran && b.ukuran !== '-') {
+        $('#detail_ukuran').html(`<span class="brg-size-chip">${b.ukuran}</span>`);
+    } else {
+        $('#detail_ukuran').html('<span class="text-muted small">-</span>');
+    }
+
+    $('#detail_panjang').text(b.panjang ? b.panjang + ' cm' : '-');
+    $('#detail_lebar').text(b.lebar ? b.lebar + ' cm' : '-');
+    $('#detail_tinggi').text(b.tinggi ? b.tinggi + ' cm' : '-');
+    $('#detail_berat').text(b.berat ? b.berat + ' kg' : '-');
+    
+    if (b.warna_name && b.warna_name !== '-') {
+        $('#detail_warna_circle').css('background-color', b.warna_hex ? b.warna_hex : '#e2e8f0');
+        $('#detail_warna_nama').text(b.warna_name);
+    } else {
+        $('#detail_warna_circle').css('background-color', '#e2e8f0');
+        $('#detail_warna_nama').text('Tanpa Warna');
+    }
+
+    // Render variants list if any
+    if (b.variants && b.variants.length > 0) {
+        let rows = '';
+        b.variants.forEach(v => {
+            let warnaName = v.warna_name || '-';
+            let hex = v.warna_hex || '';
+            let dot = hex ? `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${hex};margin-right:4px;"></span>` : '';
+            rows += `
+                <tr>
+                    <td><span class="badge bg-secondary-subtle text-secondary">${v.kode_barang}</span></td>
+                    <td><span class="brg-size-chip">${v.ukuran}</span></td>
+                    <td>${dot} ${warnaName}</td>
+                    <td>
+                        <div class="d-flex align-items-center justify-content-between gap-2" style="min-width: 120px;">
+                            <span class="font-monospace">${v.barcode ? v.barcode : '-'}</span>
+                            ${v.barcode ? `
+                                <button class="brg-qr-btn btn-qr-code" 
+                                    data-kode="${v.barcode}" 
+                                    data-nama="${b.nama_barang} (Varian: ${v.ukuran})" 
+                                    title="Lihat QR Code">
+                                    <i class="bi bi-qr-code"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge ${v.status === 'Active' ? 'bg-success' : 'bg-danger'}">${v.status === 'Active' ? 'Aktif' : 'Nonaktif'}</span>
+                    </td>
+                </tr>
+            `;
+        });
+        $('#detail_varian_table_body').html(rows);
+        $('#detail_varian_section').removeClass('d-none');
+    } else {
+        $('#detail_varian_section').addClass('d-none');
+    }
+
+    // Render detail gallery
+    let galleryHtml = '';
+    if (b.all_photos && b.all_photos.length > 0) {
+        b.all_photos.forEach(foto => {
+            let borderStyle = foto.is_primary ? 'border: 2.5px solid #ef4444;' : '';
+            let titleText = foto.is_primary ? 'Foto Utama (Cover)' : 'Foto Detail';
+            galleryHtml += `
+                <a href="javascript:void(0)" class="btn-view-photo" title="Klik untuk memperbesar">
+                    <img src="${foto.url}" class="detail-photo-thumb" style="${borderStyle}" title="${titleText}">
+                </a>
+            `;
+        });
+    } else {
+        galleryHtml = '<div class="text-muted small">Tidak ada foto barang.</div>';
+    }
+    $('#detail_fotos_gallery').html(galleryHtml);
+    
+    $('#detail_spesifikasi').text(b.spesifikasi ? b.spesifikasi : 'Tidak ada spesifikasi khusus.');
+    $('#modalDetailBarang').modal('show');
+});
+
+// ===== GENERATE QR CODE POP-UP =====
+$(document).on('click', '.btn-qr-code', function () {
+    let kode  = $(this).data('kode');
+    let nama  = $(this).data('nama') || '';
+    let warna = $(this).data('warna') || '';
+    let hex   = $(this).data('warna-hex') || '';
+
+    // Instantly generate QR Code locally (runs client-side, zero latency)
+    let qr = new QRious({
+        value: kode,
+        size: 300,
+        level: 'H'
+    });
+
+    $('#qr_title').text('QR Code Barang');
+    $('#qr_nama').text(nama);
+
+    // Render warna dengan dot berwarna
+    if (warna) {
+        let dotStyle = hex
+            ? `background:${hex};border:1px solid #e2e8f0;`
+            : `background:#94a3b8;border:1px solid #e2e8f0;`;
+        $('#qr_warna').html(`<span style="display:inline-block;width:11px;height:11px;border-radius:50%;${dotStyle}flex-shrink:0;"></span> ${warna}`);
+    } else {
+        $('#qr_warna').html('<span style="color:#cbd5e1;">— Tanpa Warna</span>');
+    }
+
+    $('#qr_img').attr('src', qr.toDataURL());
+    $('#qr_code_text').text(kode);
+    $('#modalQrCode').modal('show');
+});
+            // ===== CAMERA SCANNER LOGIC =====
+let html5QrcodeScanner = null;
+let currentScanTarget = null;
+
+$(document).on('click', '.btn-scan-barcode', function() {
+    currentScanTarget = $($(this).data('target'));
+    $('#modalScanner').modal('show');
+    
+    // Start scanner
+    setTimeout(() => {
+        startCameraScanner();
+    }, 450); // Wait for modal slide transition
+});
+
+function startCameraScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(err => console.log(err));
+    }
+
+    // Show loading indicator
+    $('#scanner_reader').html('<div class="d-flex align-items-center justify-content-center text-white flex-column" style="height: 250px;"><div class="spinner-border text-primary mb-2" role="status"></div><span>Memulai Kamera...</span></div>');
+
+    html5QrcodeScanner = new Html5Qrcode("scanner_reader");
+    
+    const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+        // Play sound beep
+        try {
+            let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = "sine";
+            osc.frequency.value = 800;
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        } catch(e) {}
+
+        if (currentScanTarget) {
+            currentScanTarget.val(decodedText);
+            currentScanTarget.trigger('change');
+        }
+        
+        $('#modalScanner').modal('hide');
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Scan Berhasil',
+            text: 'Kode: ' + decodedText,
+            timer: 1500,
+            showConfirmButton: false
+        });
+    };
+
+    const config = { 
+        fps: 10, 
+        qrbox: function(width, height) {
+            const minDimension = Math.min(width, height);
+            const qrboxSize = Math.floor(minDimension * 0.7);
+            return { width: qrboxSize, height: qrboxSize };
+        },
+        // Request high resolution constraints for better camera autofocus
+        videoConstraints: {
+            facingMode: "environment",
+            width: { min: 640, ideal: 1280, max: 1920 },
+            height: { min: 480, ideal: 720, max: 1080 }
+        }
+    };
+
+    html5QrcodeScanner.start(
+        { facingMode: "environment" }, 
+        config, 
+        qrCodeSuccessCallback,
+        (errorMessage) => {
+            // Suppress scanning noise log
+        }
+    ).catch(err => {
+        console.error("Camera access failed:", err);
+        let cleanError = err ? err.toString() : 'Unknown Error';
+        
+        // Display error directly in container for easier diagnostics
+        $('#scanner_reader').html(`
+            <div class="d-flex align-items-center justify-content-center text-white flex-column p-4 text-center" style="height: 250px; background: #27272a;">
+                <i class="bi bi-exclamation-triangle-fill text-warning mb-2" style="font-size: 2rem;"></i>
+                <span class="fw-semibold">Gagal Membuka Kamera</span>
+                <small class="text-muted mt-2">${cleanError}</small>
+                <small class="text-danger mt-1" style="font-size: 0.75rem;">Pastikan izin kamera aktif & menggunakan koneksi aman HTTPS / Localhost.</small>
+            </div>
+        `);
+    });
+}
+
+function stopCameraScanner() {
+    if (html5QrcodeScanner) {
+        try {
+            html5QrcodeScanner.stop().then(() => {
+                html5QrcodeScanner.clear();
+                html5QrcodeScanner = null;
+            }).catch(err => {
+                html5QrcodeScanner.clear().catch(e => {});
+                html5QrcodeScanner = null;
+            });
+        } catch (e) {
+            html5QrcodeScanner = null;
+        }
+    }
+}
+
+// Stop scanner when modal is closed
+$('#modalScanner').on('hidden.bs.modal', function () {
+    stopCameraScanner();
+});
+
+            // ===== HAPUS BARANG =====
+            $(document).on('click', '.btn-hapus', function () {
+                let id = $(this).data('id');
+                let nama = $(this).data('nama');
+
+                Swal.fire({
+                    title: 'Apakah Anda yakin?',
+                    text: "Menghapus barang \"" + nama + "\"?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Ya, hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/barang/' + id + '/delete',
+                            type: 'DELETE',
+                            success: function (res) {
+                                Swal.fire({
+                                    title: 'Terhapus!',
+                                    text: res.message,
+                                    icon: 'success',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            },
+                            error: function (err) {
+                                let errorMsg = 'Gagal menghapus data.';
+                                if (err.responseJSON && err.responseJSON.message) {
+                                    errorMsg = err.responseJSON.message;
+                                }
+                                Swal.fire({
+                                    title: 'Gagal!',
+                                    text: errorMsg,
+                                    icon: 'error'
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+
+        });
+    </script>
+         <script>
+     (function() {
+         const dropdownMenu = document.getElementById('branchDropdownMenu');
+         const branchList   = document.getElementById('branchList');
+         const dropdownBtn  = document.getElementById('branchDropdownBtn');
+
+         if (!dropdownMenu || !dropdownBtn) return; // User cuma punya 1 cabang
+
+         // Load daftar cabang saat dropdown dibuka
+         dropdownBtn.addEventListener('show.bs.dropdown', function() {
+             branchList.innerHTML = `
+                 <div class="text-center py-2">
+                     <span class="spinner-border spinner-border-sm text-primary"></span>
+                 </div>`;
+
+             fetch('/branch/list', {
+                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
+             })
+             .then(r => r.json())
+             .then(data => {
+                 if (!data.success || !data.branches.length) {
+                     branchList.innerHTML = `<div class="text-muted text-center py-2" style="font-size:0.8rem;">Tidak ada cabang tersedia.</div>`;
+                     return;
+                 }
+
+                 let html = '';
+                 data.branches.forEach(branch => {
+                     const isActive = branch.id == data.active_branch_id;
+                     html += `
+                         <button class="dropdown-item rounded-3 py-2 px-3 mb-1 d-flex align-items-center gap-2 branch-switch-btn ${isActive ? 'active' : ''}"
+                                 data-branch-id="${branch.id}"
+                                 ${isActive ? 'disabled' : ''}>
+                             <i class="bi bi-building${isActive ? '-fill' : ''} text-primary"></i>
+                             <div class="text-start flex-grow-1">
+                                 <div class="fw-semibold" style="font-size: 0.82rem;">${branch.nama_cabang}</div>
+                                 <div class="text-muted" style="font-size: 0.7rem;">${branch.kode_cabang}</div>
+                             </div>
+                             ${isActive ? '<i class="bi bi-check-circle-fill text-success ms-auto"></i>' : ''}
+                         </button>`;
+                 });
+                 branchList.innerHTML = html;
+
+                 // Event listener untuk setiap tombol cabang
+                 document.querySelectorAll('.branch-switch-btn').forEach(btn => {
+                     btn.addEventListener('click', function() {
+                         const branchId = this.dataset.branchId;
+                         switchBranch(branchId);
+                     });
+                 });
+             })
+             .catch(() => {
+                 branchList.innerHTML = `<div class="text-danger text-center py-2" style="font-size:0.8rem;">Gagal memuat cabang.</div>`;
+             });
+         }, { once: false });
+
+         function switchBranch(branchId) {
+             // Tutup dropdown dulu
+             const bsDropdown = bootstrap.Dropdown.getInstance(dropdownBtn);
+             if (bsDropdown) bsDropdown.hide();
+
+             fetch('/branch/switch', {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/json',
+                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                     'X-Requested-With': 'XMLHttpRequest',
+                 },
+                 body: JSON.stringify({ branch_id: branchId }),
+             })
+             .then(r => r.json())
+             .then(data => {
+                 if (data.success) {
+                     Swal.fire({
+                         icon: 'success',
+                         title: 'Cabang Diubah!',
+                         html: data.message,
+                         timer: 1800,
+                         timerProgressBar: true,
+                         showConfirmButton: false,
+                         toast: true,
+                         position: 'top-end',
+                     }).then(() => {
+                         // Reload halaman agar data menyesuaikan cabang baru
+                         window.location.reload();
+                     });
+                 } else {
+                     Swal.fire({
+                         icon: 'error',
+                         title: 'Gagal!',
+                         text: data.message,
+                         confirmButtonText: 'OK',
+                     });
+                 }
+             })
+             .catch(() => {
+                 Swal.fire({
+                     icon: 'error',
+                     title: 'Error Jaringan',
+                     text: 'Tidak dapat terhubung ke server. Silakan coba lagi.',
+                     confirmButtonText: 'OK',
+                 });
+             });
+         }
+     })();
+     </script>
+     
+        <script>
+        // Check session status every 10 seconds to enforce single-session logout in real-time
+        setInterval(function() {
+            $.ajax({
+                url: "http://localhost/check-session",
+                method: 'GET',
+                error: function(xhr) {
+                    if (xhr.status === 401) {
+                        window.location.href = "http://localhost?expired=1";
+                    }
+                }
+            });
+        }, 10000);
+
+        // Auto-logout after 1 hour (60 minutes) of inactivity to prevent CSRF error 419
+        let idleMinutes = 0;
+
+        // Reset idle timer on any user activity
+        $(document).on('mousemove keypress click scroll', function() {
+            idleMinutes = 0;
+        });
+
+        // Increment idle counter every minute
+        setInterval(function() {
+            idleMinutes++;
+            if (idleMinutes >= 60) { // 60 minutes = 1 hour
+                window.location.href = "http://localhost/logout?expired=1";
+            }
+        }, 60000);
+    </script>
+    </body>
+
+</html>

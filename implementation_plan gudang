@@ -1,0 +1,162 @@
+# Rencana Implementasi: Modul Penerimaan Barang (Goods Receipt)
+
+Rencana ini memandu pembuatan modul **Penerimaan Barang (Goods Receipt)** untuk menghubungkan alur dokumen fisik barang masuk dari Purchase Order (PO) yang disetujui, sekaligus menginisialisasi sistem pencatatan kartu stok barang di gudang.
+
+## Alur Kerja Modul
+1. Pengguna (Staff Gudang) membuat dokumen Penerimaan Barang (Goods Receipt / GR).
+2. Memilih **Purchase Order (PO)** yang berstatus `Ordered` atau `Partially Received`.
+3. Memilih **Gudang Penerima** dan mengisi **Nomor Surat Jalan** dari supplier.
+4. Memasukkan kuantitas aktual barang yang diterima.
+5. Setelah dokumen disimpan:
+   - Stok barang di tabel `stok_gudangs` otomatis bertambah.
+   - Pergerakan stok dicatat di log tabel audit `kartu_stoks` (tipe: Masuk).
+   - Status PO otomatis diperbarui menjadi `Partially Received` (jika diterima sebagian) atau `Received` (jika sudah lengkap/lebih).
+6. Pengguna dapat menghapus dokumen GR (jika salah input), yang akan **mengembalikan (mengurangi) stok** di gudang dan mencatat pergerakan keluar di `kartu_stoks` dengan referensi penghapusan.
+
+---
+
+## Rencana Database (Migrations)
+
+### 1. [NEW] `create_goods_receipts_table`
+Menyimpan data header penerimaan barang.
+*   `id` (Primary Key)
+*   `nomor_gr` (string 50, unique) - Nomor transaksi penerimaan (contoh: `GR/2026/07/0001`)
+*   `tanggal_gr` (date) - Tanggal barang diterima
+*   `po_id` (foreignId ke `purchase_orders`) - PO asal
+*   `gudang_id` (foreignId ke `master_gudang`) - Gudang penyimpanan
+*   `nomor_surat_jalan` (string 100, nullable) - No. Surat Jalan supplier
+*   `keterangan` (text, nullable) - Catatan tambahan
+*   `created_by` (foreignId ke `users`, audit trail)
+*   `updated_by` (foreignId ke `users`, nullable)
+*   `deleted_by` (foreignId ke `users`, nullable)
+*   `timestamps` & `softDeletes`
+
+### 2. [NEW] `create_goods_receipt_details_table`
+Menyimpan baris item yang diterima.
+*   `id` (Primary Key)
+*   `gr_id` (foreignId ke `goods_receipts` cascade)
+*   `po_detail_id` (foreignId ke `purchase_order_details` cascade) - Baris item PO asal
+*   `barang_id` (foreignId ke `master_barang` cascade)
+*   `jumlah` (decimal 12,2) - Kuantitas diterima
+*   `timestamps`
+
+### 3. [NEW] `create_stok_gudangs_table`
+Menyimpan saldo akumulasi stok aktual barang di setiap gudang.
+*   `id` (Primary Key)
+*   `barang_id` (foreignId ke `master_barang` cascade)
+*   `gudang_id` (foreignId ke `master_gudang` cascade)
+*   `stok_aktual` (decimal 12,2, default 0)
+*   *Unique Composite Index:* `[barang_id, gudang_id]`
+*   `timestamps`
+
+### 4. [NEW] `create_kartu_stoks_table`
+Audit log pergerakan keluar masuk stok (mutasi stok).
+*   `id` (Primary Key)
+*   `barang_id` (foreignId ke `master_barang` cascade)
+*   `gudang_id` (foreignId ke `master_gudang` cascade)
+*   `tipe` (enum: `Masuk`, `Keluar`)
+*   `jumlah` (decimal 12,2) - Qty mutasi
+*   `stok_awal` (decimal 12,2) - Saldo sebelum mutasi
+*   `stok_akhir` (decimal 12,2) - Saldo setelah mutasi
+*   `referensi_jenis` (string 100) - Jenis dokumen asal (e.g. `Goods Receipt`, `Goods Receipt Deletion`)
+*   `referensi_id` (unsignedBigInteger) - ID dokumen terkait
+*   `referensi_nomor` (string 100) - Nomor dokumen terkait (e.g. `GR/2026/07/0001`)
+*   `keterangan` (text, nullable)
+*   `created_at` (timestamp)
+
+---
+
+## Rencana Model Eloquent
+
+1.  **`GoodsReceipt`**:
+    *   Relasi `po` (`belongsTo` ke `PurchaseOrder`)
+    *   Relasi `gudang` (`belongsTo` ke `MasterGudang`)
+    *   Relasi `creator` (`belongsTo` ke `User`)
+    *   Relasi `details` (`hasMany` ke `GoodsReceiptDetail`)
+2.  **`GoodsReceiptDetail`**:
+    *   Relasi `goodsReceipt` (`belongsTo` ke `GoodsReceipt`)
+    *   Relasi `barang` (`belongsTo` ke `MasterBarang`)
+    *   Relasi `poDetail` (`belongsTo` ke `PurchaseOrderDetail`)
+3.  **`StokGudang`**:
+    *   Relasi `barang` (`belongsTo` ke `MasterBarang`)
+    *   Relasi `gudang` (`belongsTo` ke `MasterGudang`)
+4.  **`KartuStok`**:
+    *   Relasi `barang` (`belongsTo` ke `MasterBarang`)
+    *   Relasi `gudang` (`belongsTo` ke `MasterGudang`)
+
+---
+
+## Rencana Controller & Logika Program
+
+### [NEW] `GoodsReceiptController`
+
+*   **`index()`**: Menampilkan data seluruh GR. Mengambil data `master_gudang` dan `purchase_orders` (yang berstatus `Ordered` atau `Partially Received` untuk di-load ke dropdown modal tambah).
+*   **`getPoDetails(PurchaseOrder $po)`**: Endpoint AJAX untuk mengambil daftar barang pada PO beserta status Qty yang sudah diterima dari GR sebelumnya (dihitung dari sum `goods_receipt_details.jumlah` terkait).
+*   **`store(Request $request)`**:
+    - Validasi input (tanggal, PO, gudang, kuantitas barang $\ge 0$).
+    - Generate nomor GR otomatis jika memilih "Auto Number".
+    - Jalankan dalam database Transaction (`DB::beginTransaction`):
+      1. Simpan header `GoodsReceipt`.
+      2. Loop detail item, simpan `GoodsReceiptDetail`.
+      3. Update `stok_gudangs` (tambah stok) dan buat `kartu_stoks` log.
+      4. Hitung akumulasi Qty diterima untuk PO tersebut. Jika seluruh item sudah terpenuhi, update status PO menjadi `Received`. Jika baru sebagian, status PO menjadi `Partially Received`.
+      5. Commit Transaction.
+*   **`show(GoodsReceipt $gr)`**: Endpoint detail GR untuk dibuka pada modal detail.
+*   **`destroy(GoodsReceipt $gr)`**:
+    - Jalankan dalam database Transaction:
+      1. Loop detail item, kurangi `stok_gudangs` (revert stok).
+      2. Catat log keluar di `kartu_stoks` dengan referensi penghapusan.
+      3. Recalculate status PO asal (jika semua GR dihapus, kembalikan ke status `Ordered`).
+      4. Soft-delete data `GoodsReceipt` dan `GoodsReceiptDetail`.
+      5. Commit Transaction.
+
+---
+
+## Rencana Tampilan (Blade View)
+
+### [NEW] `resources/views/gudang/viewreceipt.blade.php`
+*   Menyajikan tabel data-table utama Penerimaan Barang.
+*   Modal **Tambah Penerimaan Barang**:
+    - Dropdown pilihan PO & Gudang.
+    - Tabel dinamis detail barang (Nama, Qty PO, Qty Sudah Diterima, Input Qty Masuk).
+    - Tombol simpan dengan AJAX terintegrasi dengan alert SweetAlert2.
+*   Modal **Detail Penerimaan Barang**:
+    - Rincian penerimaan, no surat jalan, nama penerima, beserta tabel barang yang masuk.
+
+### [MODIFY] `resources/views/components/sidebar.blade.php`
+*   Menghubungkan link menu **Barang Masuk** ke route `gr.index` (yang sebelumnya menggunakan `#`).
+
+---
+
+## Rencana Registrasi Route (`routes/web.php`)
+
+```php
+// Goods Receipt Routes
+Route::get('/goods-receipt', [GoodsReceiptController::class, 'index'])->name('gr.index');
+Route::get('/goods-receipt/po-details/{po}', [GoodsReceiptController::class, 'getPoDetails'])->name('gr.po-details');
+Route::post('/goods-receipt/store', [GoodsReceiptController::class, 'store'])->name('gr.store');
+Route::get('/goods-receipt/{goodsReceipt}', [GoodsReceiptController::class, 'show'])->name('gr.show');
+Route::delete('/goods-receipt/{goodsReceipt}/delete', [GoodsReceiptController::class, 'destroy'])->name('gr.destroy');
+```
+
+---
+
+## Rencana Hak Akses (Permissions & Seeders)
+
+1.  Buat migration untuk menambahkan permission:
+    - `lihat-gr`, `tambah-gr`, `hapus-gr`
+2.  Assign permission tersebut ke Role `Super Admin`, `Owner`, `Admin`, dan `Warehouse` pada `PermissionDetailSeeder.php` atau seeder baru.
+
+---
+
+## Rencana Pengujian & Verifikasi
+
+### Manual Verification
+1. Buat PO baru bernilai 10 unit barang A, setujui (Approve) PO tersebut.
+2. Buka menu **Barang Masuk** (Goods Receipt).
+3. Pilih PO tersebut, pilih Gudang Utama, masukkan penerimaan parsial 4 unit.
+4. Verifikasi bahwa status PO berubah menjadi `Partially Received`.
+5. Buka kartu stok/database dan verifikasi bahwa stok barang A di Gudang Utama bertambah sebanyak 4 unit.
+6. Buat penerimaan barang kedua untuk sisa 6 unit.
+7. Verifikasi status PO berubah menjadi `Received`.
+8. Hapus salah satu transaksi penerimaan barang dan verifikasi bahwa stok berkurang kembali secara akurat.

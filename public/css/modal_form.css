@@ -1,0 +1,172 @@
+/* public/css/modal_form.css */
+
+:root {
+    --cine-modal-bg: #ffffff;
+    --cine-input-bg: #f8fafc;
+    --cine-input-border: #e2e8f0;
+    --cine-text-main: #0f172a;
+    --cine-text-muted: #64748b;
+    --cine-border-line: #f1f5f9;
+    --cine-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.08);
+}
+
+[data-bs-theme="dark"] {
+    --cine-modal-bg: #1e293b; /* Premium Slate Dark */
+    --cine-input-bg: #0f172a;
+    --cine-input-border: rgba(255, 255, 255, 0.08);
+    --cine-text-main: #f8fafc;
+    --cine-text-muted: #94a3b8;
+    --cine-border-line: rgba(255, 255, 255, 0.05);
+    --cine-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+}
+
+/* Modal Content Cinematic/Premium Styling */
+.modal-content-custom {
+    background-color: var(--cine-modal-bg) !important;
+    border-radius: 20px !important;
+    border: 1px solid var(--cine-border-line) !important;
+    box-shadow: var(--cine-shadow) !important;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* Header design */
+.header-cinematic {
+    background: linear-gradient(135deg, #1e293b, #0f172a) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding: 1.25rem 1.75rem !important;
+}
+
+.modal-title {
+    font-size: 1.1rem !important;
+    letter-spacing: 0.5px;
+    font-weight: 600 !important;
+}
+
+/* Submit Button Cinematic */
+.btn-cinematic {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 50px !important;
+    padding: 0.6rem 1.75rem !important;
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25) !important;
+    transition: all 0.25s ease;
+}
+
+.btn-cinematic:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35) !important;
+    opacity: 0.95;
+    color: #ffffff !important;
+}
+
+.btn-cinematic:active {
+    transform: translateY(0);
+}
+
+/* Inputs and Forms */
+.form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--cine-text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.form-control-custom,
+.form-select-custom {
+    border-radius: 10px !important;
+    border: 1px solid var(--cine-input-border) !important;
+    padding: 0.75rem 1.1rem !important;
+    background-color: var(--cine-input-bg) !important;
+    color: var(--cine-text-main) !important;
+    font-size: 0.875rem !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.form-control-custom::placeholder {
+    color: var(--cine-text-muted) !important;
+    opacity: 0.6;
+}
+
+.form-control-custom:focus,
+.form-select-custom:focus {
+    border-color: #3b82f6 !important;
+    background-color: var(--cine-input-bg) !important;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12) !important;
+    outline: none;
+    color: var(--cine-text-main) !important;
+}
+
+.section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #3b82f6;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding-bottom: 0.5rem;
+    border-bottom: 1.5px solid var(--cine-border-line);
+    margin-bottom: 1.5rem;
+}
+
+/* Custom Separator border */
+.border-custom-separator {
+    border-bottom: 1.5px solid var(--cine-border-line);
+    padding-bottom: 2rem;
+    margin-bottom: 2rem;
+}
+
+@media (min-width: 992px) {
+    .border-custom-separator {
+        border-bottom: none;
+        border-right: 1px solid var(--cine-border-line);
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+}
+
+/* Mobile Modal Enhancements: Never cut off submit button */
+@media (max-width: 575.98px) {
+    .modal {
+        padding-bottom: 3rem !important;
+    }
+
+    .modal-dialog {
+        margin: 0.5rem auto 4.5rem auto !important;
+        width: 96vw !important;
+        max-width: 96vw !important;
+    }
+
+    .modal-content-custom {
+        margin-bottom: 2.5rem !important;
+    }
+
+    .modal-body {
+        padding: 1rem !important;
+        padding-bottom: 2rem !important;
+    }
+
+    .modal-footer {
+        position: sticky !important;
+        bottom: 0 !important;
+        z-index: 1050 !important;
+        padding: 0.85rem 1rem !important;
+        background-color: var(--cine-modal-bg) !important;
+        border-top: 1px solid var(--cine-border-line) !important;
+        box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.12) !important;
+        display: flex !important;
+        gap: 0.5rem !important;
+    }
+
+    .modal-footer .btn {
+        flex: 1 1 0 !important;
+        padding: 0.65rem 0.5rem !important;
+        font-size: 0.875rem !important;
+        text-align: center !important;
+        justify-content: center !important;
+    }
+}

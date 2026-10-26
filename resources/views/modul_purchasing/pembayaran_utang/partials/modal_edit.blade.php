@@ -88,8 +88,11 @@
                             </div>
 
                             <div class="col-12 col-md-3">
-                                <label class="form-label">No. Referensi / Cek / Giro</label>
-                                <input type="text" class="form-control form-control-sm" name="nomor_referensi" id="editNomorReferensi">
+                                <label class="form-label d-flex justify-content-between align-items-center">
+                                    <span>No. Referensi / Cek / Giro</span>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Maks 30 kar</small>
+                                </label>
+                                <input type="text" class="form-control form-control-sm" name="nomor_referensi" id="editNomorReferensi" maxlength="30" placeholder="Contoh: TRF-98231 / GIRO-001">
                             </div>
 
                             <div class="col-12 col-md-3">
@@ -105,12 +108,12 @@
 
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Kurs Valuta</label>
-                                <input type="number" step="any" class="form-control form-control-sm text-end" name="kurs" id="editKurs" value="1.0000">
+                                <input type="text" class="form-control form-control-sm text-end money-input bg-body-secondary text-muted" name="kurs" id="editKurs" value="1" readonly>
                             </div>
 
                             <div class="col-12 col-md-6">
                                 <label class="form-label d-flex align-items-center justify-content-between mb-1.5">
-                                    <span class="fw-bold"><i class="bi bi-file-earmark-arrow-up text-warning me-1.5"></i>Dokumen Bukti Pembayaran</span>
+                                    <span class="fw-bold required"><i class="bi bi-file-earmark-arrow-up text-warning me-1.5"></i>Dokumen Bukti Pembayaran <span class="text-danger">*</span></span>
                                     <span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-0.5" style="font-size: 0.7rem; font-weight: 500;">
                                         <i class="bi bi-shield-check me-1"></i>Kompresi WebP Otomatis
                                     </span>
@@ -175,16 +178,18 @@
                                 <div class="pay-section-num" style="background: #d97706;">2</div>
                                 <h6>Alokasi Faktur Pembelian (AP)</h6>
                             </div>
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2" id="btnEditPayAllSelected">
-                                    <i class="bi bi-check-all me-1"></i> Lunaskan Semua Terpilih
-                                </button>
-                                <button type="button" class="btn btn-xs btn-outline-warning rounded-pill px-2 text-dark" id="btnEditSelectOverdueOnly">
-                                    <i class="bi bi-clock-history me-1"></i> Pilih Jatuh Tempo
-                                </button>
-                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2" id="btnEditResetAllocation">
-                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Nilai
-                                </button>
+                            <div class="d-flex align-items-center gap-2 flex-wrap pay-section-actions">
+                                <span id="editInvoiceActionBtns" class="pay-quick-actions d-flex align-items-center gap-1">
+                                    <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2" id="btnEditPayAllSelected">
+                                        <i class="bi bi-check-all me-1"></i> Lunaskan <span class="d-none d-sm-inline">Semua Terpilih</span>
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-warning rounded-pill px-2" id="btnEditSelectOverdueOnly">
+                                        <i class="bi bi-clock-history me-1"></i> Jatuh Tempo
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2" id="btnEditResetAllocation">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i> Reset <span class="d-none d-sm-inline">Nilai</span>
+                                    </button>
+                                </span>
                             </div>
                         </div>
 
@@ -193,7 +198,7 @@
                             <div class="col-12 col-md-5">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><i class="bi bi-filter"></i></span>
-                                    <input type="text" id="searchTableEditInvoice" class="form-control" placeholder="Cari No. Faktur / Ref Supplier dalam daftar...">
+                                    <input type="text" id="searchTableEditInvoice" class="form-control" placeholder="Cari No. Faktur / Ref Supplier...">
                                 </div>
                             </div>
                         </div>
@@ -210,9 +215,10 @@
                                         <th>Tgl Faktur</th>
                                         <th>Jatuh Tempo</th>
                                         <th class="text-end">Total Faktur</th>
+                                        <th class="text-end text-success">Terbayar</th>
                                         <th class="text-end">Sisa Utang</th>
-                                        <th class="text-end" style="width: 175px;">Jumlah Bayar (Rp)</th>
-                                        <th class="text-end" style="width: 140px;">Potongan (Rp)</th>
+                                        <th class="text-end" style="width: 175px;" id="thEditJumlahBayar">Jumlah Bayar</th>
+                                        <th class="text-end" style="width: 140px;" id="thEditPotongan">Potongan</th>
                                         <th class="text-end" style="width: 150px;">Sisa Akhir</th>
                                         <th>Catatan</th>
                                     </tr>
@@ -228,8 +234,47 @@
                     <div class="row g-3">
                         <div class="col-12 col-lg-7">
                             <div class="card border-0 shadow-sm rounded-3 p-3 h-100">
-                                <label class="form-label">Keterangan / Catatan Pembayaran</label>
-                                <textarea class="form-control form-control-sm" name="keterangan" id="editKeterangan" rows="4" placeholder="Catatan tambahan pembayaran utang ini..."></textarea>
+                                <label class="form-label d-flex justify-content-between align-items-center">
+                                    <span>Keterangan / Catatan Pembayaran</span>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Maks 40 kar</small>
+                                </label>
+                                <textarea class="form-control form-control-sm" name="keterangan" id="editKeterangan" rows="4" maxlength="40" placeholder="Catatan tambahan pembayaran utang (maks. 40 karakter)..."></textarea>
+                                
+                                <!-- Alokasi Akun COA Potongan (Tampil otomatis jika ada potongan) -->
+                                <div id="editContainerPotonganCoa" class="d-none mt-3 pt-3 border-top">
+                                    <div class="p-3 rounded-3" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35);">
+                                        <div class="row align-items-center g-3">
+                                            <div class="col-12 col-md-5">
+                                                <div class="d-flex align-items-center gap-2.5">
+                                                    <div class="d-flex align-items-center justify-content-center rounded-3 bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 flex-shrink-0" style="width: 40px; height: 40px;">
+                                                        <i class="bi bi-journal-arrow-down fs-5"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="d-flex align-items-center gap-1.5 mb-0.5">
+                                                            <span class="text-warning-emphasis fw-bold" style="font-size: 0.85rem;">Akun COA Potongan</span>
+                                                            <span class="badge bg-warning text-dark font-monospace fw-bold px-1.5 py-0.5 rounded-pill" style="font-size: 0.62rem;">KREDIT JURNAL</span>
+                                                        </div>
+                                                        <small class="text-muted d-block" style="font-size: 0.72rem; line-height: 1.25;">
+                                                            Pilih akun diskon/potongan pembelian untuk pencatatan ayat jurnal.
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-md-7">
+                                                <select class="form-select form-select-sm select2-potongan-coa" id="editPotonganCoaId" name="potongan_coa_id" style="width: 100%;">
+                                                    <option value="">-- Cari Kode atau Nama Akun COA --</option>
+                                                    @if(isset($potonganCoas))
+                                                        @foreach($potonganCoas as $coa)
+                                                            <option value="{{ $coa->id }}">
+                                                                {{ $coa->code }} &mdash; {{ $coa->name }}
+                                                            </option>
+                                                        @endforeach
+                                                    @endif
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -269,14 +314,14 @@
                 </button>
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="btn btn-warning btn-sm rounded-pill px-3 text-dark fw-semibold" id="btnSubmitEditDraft">
-                        <i class="bi bi-save me-1"></i> Simpan Draf
+                        <i class="bi bi-save me-1"></i> <span class="d-none d-sm-inline">Simpan </span>Draf
                     </button>
-                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 text-white fw-bold shadow-sm" id="btnSubmitEditSubmit">
-                        <i class="bi bi-send-fill me-1"></i> Simpan &amp; Ajukan
+                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 text-white fw-bold shadow-sm" id="btnSubmitEditSubmit">
+                        <i class="bi bi-send-fill me-1"></i> <span class="d-none d-sm-inline">Simpan &amp; </span>Ajukan
                     </button>
                     @can('approve-pembayaran-utang')
-                    <button type="button" class="btn btn-success btn-sm rounded-pill px-4 text-white fw-bold shadow-sm" id="btnSubmitEditPost">
-                        <i class="bi bi-shield-check me-1"></i> Simpan &amp; Posting
+                    <button type="button" class="btn btn-success btn-sm rounded-pill px-3 text-white fw-bold shadow-sm" id="btnSubmitEditPost">
+                        <i class="bi bi-shield-check me-1"></i> <span class="d-none d-sm-inline">Simpan &amp; </span>Posting
                     </button>
                     @endcan
                 </div>

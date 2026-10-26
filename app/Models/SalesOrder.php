@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class SalesOrder extends Model
 {
@@ -61,6 +65,59 @@ class SalesOrder extends Model
         'updated_by',
         'deleted_by',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if (auth()->check()) {
+                $model->created_by = $model->created_by ?: auth()->id();
+            }
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            } else {
+                if (empty($model->company_id)) {
+                    $model->company_id = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
+                }
+            }
+        });
+
+        static::updating(function ($model) {
+            if (auth()->check()) {
+                $model->updated_by = auth()->id();
+            }
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            }
+        });
+    }
+
+    /**
+     * Scope for multi-company tenancy & branch isolation
+     * - Jika aktif sebagai Cabang (branch_id ada)  → branch_id = active_branch_id & company_id (PT) NULL.
+     * - Jika aktif sebagai PT Pusat (branch_id null) → branch_id (Cabang) NULL & company_id = active_company_id.
+     */
+    public function scopeForActiveCompany($query)
+    {
+        $activeCompanyId = session('active_company_id') ?: auth()->user()?->company_id;
+        $activeBranchId  = session('active_branch_id');
+        $table = $this->getTable();
+
+        if (!empty($activeBranchId)) {
+            // Aktif sebagai Cabang -> hanya data cabang ini (company_id NULL)
+            $query->where($table . '.branch_id', $activeBranchId)
+                  ->whereNull($table . '.company_id');
+        } else {
+            // Aktif sebagai PT Pusat -> hanya data level PT (branch_id NULL)
+            $query->whereNull($table . '.branch_id');
+            if (!empty($activeCompanyId)) {
+                $query->where($table . '.company_id', $activeCompanyId);
+            } else {
+                $query->where($table . '.company_id', 0);
+            }
+        }
+
+        return $query;
+    }
 
     protected $casts = [
         'tanggal_so'         => 'date',
@@ -120,6 +177,21 @@ class SalesOrder extends Model
         return $this->belongsTo(Tender::class, 'tender_id');
     }
 
+    public function sales()
+    {
+        return $this->belongsTo(Karyawan::class, 'sales_id');
+    }
+
+    public function ppnPajak()
+    {
+        return $this->belongsTo(MasterPajak::class, 'ppn_pajak_id');
+    }
+
+    public function pphPajak()
+    {
+        return $this->belongsTo(MasterPajak::class, 'pph_pajak_id');
+    }
+
     public function paymentTerm()
     {
         return $this->belongsTo(PaymentTerm::class, 'payment_term_id');
@@ -133,6 +205,11 @@ class SalesOrder extends Model
     public function details()
     {
         return $this->hasMany(SalesOrderDetail::class, 'sales_order_id');
+    }
+
+    public function currency()
+    {
+        return $this->belongsTo(MasterCurrency::class, 'currency_id');
     }
 
     public function creator()
@@ -150,24 +227,110 @@ class SalesOrder extends Model
         return $this->hasMany(DeliveryOrder::class, 'sales_order_id');
     }
 
-    /**
-     * Auto generate format nomor SO: SO-YYMM-XXXX
-     */
-    public static function generateNomorSo($companyId)
+    public function salesInvoices(): HasMany
     {
-        $prefix = 'SO-' . date('ym') . '-';
-        $lastOrder = self::where('company_id', $companyId)
-            ->where('nomor_so', 'LIKE', $prefix . '%')
-            ->orderBy('id', 'desc')
-            ->first();
+        return $this->hasMany(SalesInvoice::class, 'sales_order_id');
+    }
 
-        if ($lastOrder) {
-            $lastNumber = (int) substr($lastOrder->nomor_so, -4);
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+    /**
+     * Cek & ambil Faktur Penjualan / Sales Invoice aktif (bukan Cancelled atau Rejected)
+     */
+    public function getActiveInvoice()
+    {
+        $inactiveStatuses = ['Cancelled', 'Rejected'];
+
+        // 1. Cek langsung via salesInvoices
+        if ($this->relationLoaded('salesInvoices')) {
+            $direct = $this->salesInvoices->first(fn($i) => !in_array($i->status, $inactiveStatuses));
+            if ($direct) return $direct;
         } else {
-            $newNumber = '0001';
+            $direct = $this->salesInvoices()->whereNotIn('status', $inactiveStatuses)->first();
+            if ($direct) return $direct;
         }
 
-        return $prefix . $newNumber;
+        // 2. Cek via deliveryOrders -> salesInvoices
+        if ($this->relationLoaded('deliveryOrders')) {
+            foreach ($this->deliveryOrders as $do) {
+                if ($do->relationLoaded('salesInvoices')) {
+                    $doInv = $do->salesInvoices->first(fn($i) => !in_array($i->status, $inactiveStatuses));
+                    if ($doInv) return $doInv;
+                } else {
+                    $doInv = $do->salesInvoices()->whereNotIn('status', $inactiveStatuses)->first();
+                    if ($doInv) return $doInv;
+                }
+            }
+        } else {
+            $doInvoice = SalesInvoice::whereHas('deliveryOrder', function ($q) {
+                $q->where('sales_order_id', $this->id);
+            })->whereNotIn('status', $inactiveStatuses)->first();
+
+            if ($doInvoice) return $doInvoice;
+        }
+
+        return null;
+    }
+
+    /**
+     * Auto generate format nomor SO: SO/{PREFIX}/{YYYY}/{MM}/{XXXX}
+     * - Jika di Cabang: Prefix kode cabang (SO/CBG001/2026/09/0001)
+     * - Jika di PT Pusat: Prefix kode PT (SO/PT-MB/2026/09/0001)
+     * Dilengkapi MySQL Advisory Lock & while-loop fallback untuk mencegah duplikasi saat input bersamaan.
+     */
+    public static function generateNomorSo($companyId = null, $branchId = null)
+    {
+        $activeBranchId = $branchId !== null ? $branchId : session('active_branch_id');
+        $year = date('Y');
+        $month = date('m');
+
+        if (!empty($activeBranchId)) {
+            $branch = Branch::find($activeBranchId);
+            $prefixBranch = $branch ? ($branch->kode_cabang ?: 'CBG') : 'CBG';
+            $prefix = "SO/{$prefixBranch}/{$year}/{$month}/";
+        } else {
+            $companyId = $companyId ?: (session('active_company_id') ?: (Auth::user()?->company_id ?? 1));
+            $company = Company::find($companyId);
+            $prefixCompany = $company ? ($company->kode_perusahaan ?: 'CP') : 'CP';
+            $prefix = "SO/{$prefixCompany}/{$year}/{$month}/";
+        }
+
+        // Lock to ensure concurrency safety across simultaneous requests
+        $lockKey = 'so_generate_lock_' . md5($prefix);
+        $gotLock = false;
+        try {
+            $lockRes = DB::select("SELECT GET_LOCK(?, 10) as lk", [$lockKey]);
+            $gotLock = !empty($lockRes) && $lockRes[0]->lk == 1;
+
+            // Find all existing records with this prefix (including soft-deleted)
+            $existingNumbers = self::withTrashed()
+                ->where('nomor_so', 'like', $prefix . '%')
+                ->pluck('nomor_so');
+
+            $maxSeq = 0;
+            foreach ($existingNumbers as $num) {
+                $parts = explode('/', $num);
+                $lastPart = end($parts);
+                if (is_numeric($lastPart)) {
+                    $val = (int)$lastPart;
+                    if ($val > $maxSeq) {
+                        $maxSeq = $val;
+                    }
+                }
+            }
+
+            $nextNum = $maxSeq + 1;
+            $candidate = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+
+            // Double check existence to guarantee 100% uniqueness
+            while (self::withTrashed()->where('nomor_so', $candidate)->exists()) {
+                $nextNum++;
+                $candidate = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+            }
+
+            return $candidate;
+        } finally {
+            if ($gotLock) {
+                DB::select("SELECT RELEASE_LOCK(?)", [$lockKey]);
+            }
+        }
     }
 }

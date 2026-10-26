@@ -11,7 +11,7 @@ class MasterJenisBiayaController extends Controller
 {
     public function store(Request $request)
     {
-        $activeCompanyId = session('active_company_id');
+        $activeCompanyId = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
 
         $request->validate([
             'nama_jenis_biaya' => 'required|string|max:255',
@@ -22,9 +22,23 @@ class MasterJenisBiayaController extends Controller
             ],
             'masuk_hpp' => 'boolean',
             'alokasi_biaya' => 'required|in:Berdasarkan Nilai Barang,Berdasarkan Qty,Tanpa Alokasi',
-            'coa_id' => 'nullable|exists:chart_of_accounts,id',
+            'coa_id' => [
+                'required',
+                Rule::exists('chart_of_accounts', 'id')->where(function ($q) use ($activeCompanyId) {
+                    $q->where('is_header', false)->where('is_active', true);
+                    if ($activeCompanyId) {
+                        $q->where('company_id', $activeCompanyId);
+                    }
+                }),
+            ],
             'status' => 'required|in:Active,Inactive',
             'keterangan' => 'nullable|string|max:500',
+        ], [
+            'nama_jenis_biaya.required' => 'Nama Jenis Biaya wajib diisi.',
+            'coa_id.required'           => 'Akun COA (Mapping) wajib dipilih.',
+            'coa_id.exists'             => 'Akun COA yang dipilih tidak valid, berupa akun header, non-aktif, atau bukan milik perusahaan ini.',
+            'alokasi_biaya.required'    => 'Alokasi Biaya wajib dipilih.',
+            'status.required'           => 'Status wajib dipilih.',
         ]);
 
         try {
@@ -34,7 +48,7 @@ class MasterJenisBiayaController extends Controller
                 'kode_biaya' => $request->kode_biaya,
                 'masuk_hpp' => $request->has('masuk_hpp') ? (bool)$request->masuk_hpp : false,
                 'alokasi_biaya' => $request->alokasi_biaya,
-                'coa_id' => $request->coa_id ?: null,
+                'coa_id' => (int) $request->coa_id,
                 'status' => $request->status,
                 'keterangan' => $request->keterangan,
             ]);
@@ -42,13 +56,13 @@ class MasterJenisBiayaController extends Controller
             return response()->json(['message' => 'Jenis Biaya berhasil ditambahkan!']);
         } catch (\Exception $e) {
             Log::error('Error store Master Jenis Biaya: ' . $e->getMessage());
-            return response()->json(['message' => 'Gagal menyimpan Jenis Biaya.'], 500);
+            return response()->json(['message' => 'Gagal menyimpan Jenis Biaya: ' . $e->getMessage()], 500);
         }
     }
 
     public function edit(MasterJenisBiaya $masterJenisBiaya)
     {
-        $activeCompanyId = session('active_company_id');
+        $activeCompanyId = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
 
         if ($activeCompanyId && $masterJenisBiaya->company_id && $masterJenisBiaya->company_id != $activeCompanyId) {
             return response()->json(['message' => 'Akses ditolak: Data Jenis Biaya milik PT lain.'], 403);
@@ -59,7 +73,7 @@ class MasterJenisBiayaController extends Controller
 
     public function update(Request $request, MasterJenisBiaya $masterJenisBiaya)
     {
-        $activeCompanyId = session('active_company_id');
+        $activeCompanyId = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
 
         if ($activeCompanyId && $masterJenisBiaya->company_id && $masterJenisBiaya->company_id != $activeCompanyId) {
             return response()->json(['message' => 'Akses ditolak: Anda tidak memiliki izin mengedit Jenis Biaya milik PT lain.'], 403);
@@ -74,9 +88,23 @@ class MasterJenisBiayaController extends Controller
             ],
             'masuk_hpp' => 'boolean',
             'alokasi_biaya' => 'required|in:Berdasarkan Nilai Barang,Berdasarkan Qty,Tanpa Alokasi',
-            'coa_id' => 'nullable|exists:chart_of_accounts,id',
+            'coa_id' => [
+                'required',
+                Rule::exists('chart_of_accounts', 'id')->where(function ($q) use ($activeCompanyId) {
+                    $q->where('is_header', false)->where('is_active', true);
+                    if ($activeCompanyId) {
+                        $q->where('company_id', $activeCompanyId);
+                    }
+                }),
+            ],
             'status' => 'required|in:Active,Inactive',
             'keterangan' => 'nullable|string|max:500',
+        ], [
+            'nama_jenis_biaya.required' => 'Nama Jenis Biaya wajib diisi.',
+            'coa_id.required'           => 'Akun COA (Mapping) wajib dipilih.',
+            'coa_id.exists'             => 'Akun COA yang dipilih tidak valid, berupa akun header, non-aktif, atau bukan milik perusahaan ini.',
+            'alokasi_biaya.required'    => 'Alokasi Biaya wajib dipilih.',
+            'status.required'           => 'Status wajib dipilih.',
         ]);
 
         try {
@@ -85,7 +113,7 @@ class MasterJenisBiayaController extends Controller
                 'kode_biaya' => $request->kode_biaya,
                 'masuk_hpp' => $request->has('masuk_hpp') ? (bool)$request->masuk_hpp : false,
                 'alokasi_biaya' => $request->alokasi_biaya,
-                'coa_id' => $request->coa_id ?: null,
+                'coa_id' => (int) $request->coa_id,
                 'status' => $request->status,
                 'keterangan' => $request->keterangan,
             ]);
@@ -93,7 +121,7 @@ class MasterJenisBiayaController extends Controller
             return response()->json(['message' => 'Jenis Biaya berhasil diperbarui!']);
         } catch (\Exception $e) {
             Log::error('Error update Master Jenis Biaya: ' . $e->getMessage());
-            return response()->json(['message' => 'Gagal memperbarui Jenis Biaya.'], 500);
+            return response()->json(['message' => 'Gagal memperbarui Jenis Biaya: ' . $e->getMessage()], 500);
         }
     }
 

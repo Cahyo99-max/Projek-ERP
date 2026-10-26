@@ -415,13 +415,16 @@ class GoodsIssueController extends Controller
             $targetStatus = $request->input('status', 'Draft');
             $initialStatus = in_array($targetStatus, ['Draft', 'Pending']) ? $targetStatus : 'Draft';
 
+            $targetBranchId  = $gudang->cabang_id ?? session('active_branch_id');
+            $targetCompanyId = !empty($targetBranchId) ? null : ($gudang->company_id ?? session('active_company_id'));
+
             // ── Create GI Header ───────────────────────────────────────────
             $gi = GoodsIssue::create([
                 'nomor_gi'        => $nomorGi,
                 'tanggal_gi'      => $request->tanggal_gi,
                 'gudang_id'       => $gudang->id,
-                'company_id'      => $gudang->company_id ?? session('active_company_id'),
-                'branch_id'       => $gudang->cabang_id ?? session('active_branch_id'),
+                'company_id'      => $targetCompanyId,
+                'branch_id'       => $targetBranchId,
                 'tujuan'          => strip_tags($request->tujuan),
                 'tipe_pengeluaran'=> $request->tipe_pengeluaran,
                 'keterangan'      => $request->keterangan ? strip_tags($request->keterangan) : null,
@@ -773,11 +776,14 @@ class GoodsIssueController extends Controller
                 $targetStatus = 'Pending';
             }
 
+            $targetBranchId  = $gudang->cabang_id ?? session('active_branch_id');
+            $targetCompanyId = !empty($targetBranchId) ? null : ($gudang->company_id ?? session('active_company_id'));
+
             $goodsIssue->update([
                 'tanggal_gi'      => $request->tanggal_gi,
                 'gudang_id'       => $gudang->id,
-                'company_id'      => $gudang->company_id ?? session('active_company_id'),
-                'branch_id'       => $gudang->cabang_id ?? session('active_branch_id'),
+                'company_id'      => $targetCompanyId,
+                'branch_id'       => $targetBranchId,
                 'tujuan'          => strip_tags($request->tujuan),
                 'tipe_pengeluaran'=> $request->tipe_pengeluaran,
                 'keterangan'      => $request->keterangan ? strip_tags($request->keterangan) : null,

@@ -108,6 +108,13 @@ class PermissionDetailSeeder extends Seeder
             'edit-supplier',
             'hapus-supplier',
 
+            // ---- Pembelian: Alokasi Biaya (Landed Cost) ----
+            'lihat-alokasi-biaya',
+            'tambah-alokasi-biaya',
+            'detail-alokasi-biaya',
+            'posting-alokasi-biaya',
+            'batalkan-alokasi-biaya',
+
             // ---- Data Master: Customer ----
             'lihat-customer',
             'tambah-customer',
@@ -120,7 +127,9 @@ class PermissionDetailSeeder extends Seeder
             'edit-tender',
             'hapus-tender',
             'approve-tender',
-            'lihat-hpp-tender',
+            'kirim-lelang-tender',
+            'negosiasi-tender',
+            'keputusan-final-tender',
 
             // ---- Penjualan: Order Penjualan (Sales Order / POS) ----
             'lihat-sales-order',
@@ -143,7 +152,16 @@ class PermissionDetailSeeder extends Seeder
             'edit-po',
             'hapus-po',
             'approve-po',
+            'buka-po',
             'cetak-po',
+
+            // ---- Purchasing: Faktur Pembelian (Purchase Invoice / AP) ----
+            'lihat-purchase-invoice',
+            'tambah-purchase-invoice',
+            'edit-purchase-invoice',
+            'hapus-purchase-invoice',
+            'approve-purchase-invoice',
+            'cetak-purchase-invoice',
 
             // ---- Gudang: Penerimaan Barang / Goods Receipt, Barang Keluar & Kartu Stok ----
             'lihat-gr',
@@ -268,6 +286,7 @@ class PermissionDetailSeeder extends Seeder
             'cetak-penerimaan-barang-jadi',
             'lihat-jurnal-penerimaan-barang-jadi',
             'sesuaikan-hpp-penerimaan-barang-jadi',
+            'lihat-tracking-sn',
             'lihat-master-tahapan',
             'tambah-master-tahapan',
             'edit-master-tahapan',
@@ -276,11 +295,23 @@ class PermissionDetailSeeder extends Seeder
             // ---- Modul QC ----
             'akses-qc',
 
-            // ---- Modul Accounting ----
+            // ---- Modul Accounting & Keuangan ----
             'akses-accounting',
+            'lihat-kas-bank',
+            'detail-kas-bank',
+            'tambah-kas-bank',
+            'edit-kas-bank',
+            'lihat-mutasi-kas-bank',
+            'tambah-kas-masuk',
+            'tambah-kas-keluar',
+            'transfer-kas-bank',
+            'batalkan-mutasi-kas-bank',
+            'cetak-rekening-koran',
 
-            // ---- Modul Sales ----
+            // ---- Modul Sales & Piutang ----
             'akses-sales',
+            'lihat-piutang',
+            'cetak-piutang',
         ];
 
         // Buat permission jika belum ada
@@ -320,9 +351,9 @@ class PermissionDetailSeeder extends Seeder
                 'lihat-bundle', 'tambah-bundle', 'edit-bundle', 'hapus-bundle', 'rakit-bundle', 'kelola-kategori-bundle',
                 'lihat-supplier', 'tambah-supplier', 'edit-supplier', 'hapus-supplier',
                 'lihat-customer', 'tambah-customer', 'edit-customer', 'hapus-customer',
-                'lihat-tender', 'tambah-tender', 'edit-tender', 'hapus-tender', 'approve-tender',
+                'lihat-tender', 'tambah-tender', 'edit-tender', 'hapus-tender', 'approve-tender', 'kirim-lelang-tender', 'negosiasi-tender', 'keputusan-final-tender',
                 'lihat-pr', 'tambah-pr', 'edit-pr', 'hapus-pr', 'approve-pr',
-                'lihat-po', 'tambah-po', 'edit-po', 'hapus-po', 'approve-po',
+                'lihat-po', 'tambah-po', 'edit-po', 'hapus-po', 'approve-po', 'buka-po',
                 'lihat-gr', 'tambah-gr', 'hapus-gr', 'lihat-jurnal-gr',
                 'lihat-gi', 'tambah-gi', 'hapus-gi',
                 'lihat-transfer', 'tambah-transfer', 'edit-transfer', 'approve-transfer', 'hapus-transfer',
@@ -337,6 +368,7 @@ class PermissionDetailSeeder extends Seeder
                 'lihat-penerimaan-barang-jadi', 'tambah-penerimaan-barang-jadi', 'detail-penerimaan-barang-jadi', 'edit-penerimaan-barang-jadi', 'hapus-penerimaan-barang-jadi', 'cetak-penerimaan-barang-jadi',
                 'lihat-karyawan', 'tambah-karyawan', 'edit-karyawan',
                 'lihat-hak-akses',
+                'lihat-piutang', 'cetak-piutang',
             ]);
         }
 
@@ -415,6 +447,11 @@ class PermissionDetailSeeder extends Seeder
                 'tambah-supplier',
                 'edit-supplier',
                 'hapus-supplier',
+                'lihat-alokasi-biaya',
+                'tambah-alokasi-biaya',
+                'detail-alokasi-biaya',
+                'posting-alokasi-biaya',
+                'batalkan-alokasi-biaya',
                 'lihat-pr',
                 'tambah-pr',
                 'edit-pr',
@@ -458,6 +495,9 @@ class PermissionDetailSeeder extends Seeder
                 'tambah-tender',
                 'edit-tender',
                 'hapus-tender',
+                'kirim-lelang-tender',
+                'negosiasi-tender',
+                'keputusan-final-tender',
                 'lihat-sales-order',
                 'tambah-sales-order',
                 'edit-sales-order',
@@ -465,6 +505,8 @@ class PermissionDetailSeeder extends Seeder
                 'cetak-sales-order',
                 'lihat-bundle',
                 'akses-sales',
+                'lihat-piutang',
+                'cetak-piutang',
             ]);
         }
 
@@ -613,6 +655,7 @@ class PermissionDetailSeeder extends Seeder
                 'hapus-payment-method',
                 'lihat-po',
                 'approve-po',
+                'buka-po',
                 'cetak-po',
                 'lihat-pr',
                 'approve-pr',
@@ -621,7 +664,9 @@ class PermissionDetailSeeder extends Seeder
                 'lihat-jurnal-gr',
                 'lihat-tender',
                 'approve-tender',
-                'lihat-hpp-tender',
+                'kirim-lelang-tender',
+                'negosiasi-tender',
+                'keputusan-final-tender',
                 'lihat-stok-adjustment',
                 'approve-stok-adjustment',
                 'lihat-hpp-stok-adjustment',
@@ -644,6 +689,8 @@ class PermissionDetailSeeder extends Seeder
                 'lihat-supplier',
                 'lihat-customer',
                 'lihat-barang',
+                'lihat-piutang',
+                'cetak-piutang',
             ]);
         }
 
@@ -676,6 +723,7 @@ class PermissionDetailSeeder extends Seeder
                 'edit-po',
                 'hapus-po',
                 'approve-po',
+                'buka-po',
                 'cetak-po',
                 'lihat-pr',
                 'tambah-pr',
@@ -688,7 +736,9 @@ class PermissionDetailSeeder extends Seeder
                 'lihat-tender',
                 'edit-tender',
                 'approve-tender',
-                'lihat-hpp-tender',
+                'kirim-lelang-tender',
+                'negosiasi-tender',
+                'keputusan-final-tender',
                 'lihat-sales-order',
                 'edit-sales-order',
                 'hapus-sales-order',
@@ -716,11 +766,148 @@ class PermissionDetailSeeder extends Seeder
                 'lihat-supplier',
                 'lihat-customer',
                 'lihat-barang',
+                'lihat-piutang',
+                'cetak-piutang',
                 'lihat-departemen',
                 'lihat-jabatan',
                 'lihat-perusahaan',
                 'lihat-cabang',
             ]);
+        }
+
+        // Director Produksi role sync
+        $dirProduksi = Role::firstOrCreate(['name' => 'Director Produksi', 'guard_name' => 'web']);
+        if ($dirProduksi) {
+            $dirProduksi->syncPermissions([
+                'akses-produksi', 'akses-gudang', 'lihat-dashboard',
+                'lihat-bom', 'detail-bom', 'approve-bom', 'lihat-hpp-bom', 'cetak-bom',
+                'lihat-spk', 'detail-spk', 'lihat-bahan-spk', 'approve-spk', 'cetak-spk',
+                'lihat-realisasi-produksi', 'kontrol-tahapan-realisasi', 'approve-realisasi-produksi', 'cetak-progress-spk',
+                'lihat-pengeluaran-bahan', 'detail-pengeluaran-bahan', 'lihat-jurnal-pengeluaran-bahan',
+                'lihat-penerimaan-barang-jadi', 'detail-penerimaan-barang-jadi', 'lihat-jurnal-penerimaan-barang-jadi', 'sesuaikan-hpp-penerimaan-barang-jadi',
+                'lihat-master-tahapan', 'lihat-barang', 'lihat-satuan', 'lihat-brand', 'lihat-tipe-barang', 'lihat-warna',
+                'lihat-kategori-barang', 'lihat-bundle', 'lihat-gudang', 'lihat-stok-aktual', 'lihat-kartu-stok', 'lihat-tender',
+            ]);
+        }
+
+        // Director Accounting role sync
+        $dirAccounting = Role::firstOrCreate(['name' => 'Director Accounting', 'guard_name' => 'web']);
+        if ($dirAccounting) {
+            $dirAccounting->syncPermissions([
+                'akses-accounting', 'lihat-dashboard',
+                'lihat-kas-bank', 'detail-kas-bank', 'lihat-mutasi-kas-bank', 'cetak-rekening-koran',
+                'lihat-jurnal-umum', 'cetak-jurnal-umum',
+                'lihat-petty-cash', 'detail-petty-cash', 'filter-petty-cash', 'export-excel-petty-cash', 'cetak-pdf-petty-cash',
+                'lihat-pengaturan-akuntansi', 'edit-pengaturan-akuntansi',
+                'lihat-jurnal-gr', 'lihat-jurnal-delivery-order', 'lihat-jurnal-sales-payment',
+                'lihat-jurnal-stok-adjustment', 'lihat-jurnal-opname', 'lihat-jurnal-transfer',
+                'lihat-alokasi-biaya', 'detail-alokasi-biaya', 'lihat-jurnal-alokasi-biaya',
+                'lihat-pajak', 'lihat-currency', 'lihat-payment-term', 'lihat-payment-method',
+            ]);
+        }
+
+        // Director Sales role sync
+        $dirSales = Role::firstOrCreate(['name' => 'Director Sales', 'guard_name' => 'web']);
+        if ($dirSales) {
+            $dirSales->syncPermissions([
+                'akses-sales', 'lihat-dashboard',
+                'lihat-customer', 'lihat-tender', 'approve-tender',
+                'lihat-penawaran', 'approve-penawaran',
+                'lihat-sales-order', 'cetak-sales-order',
+                'lihat-delivery-order', 'approve-delivery-order',
+                'lihat-sales-invoice', 'approve-sales-invoice',
+                'lihat-sales-payment', 'approve-sales-payment',
+                'lihat-piutang', 'cetak-piutang', 'lihat-bundle', 'lihat-barang',
+            ]);
+        }
+
+        // Manager Sales role sync
+        $mgrSales = Role::firstOrCreate(['name' => 'Manager Sales', 'guard_name' => 'web']);
+        if ($mgrSales) {
+            $mgrSales->syncPermissions([
+                'akses-sales', 'lihat-dashboard',
+                'lihat-customer', 'tambah-customer', 'edit-customer',
+                'lihat-tender', 'tambah-tender', 'edit-tender', 'approve-tender', 'negosiasi-tender', 'keputusan-final-tender',
+                'lihat-penawaran', 'tambah-penawaran', 'edit-penawaran', 'approve-penawaran', 'cetak-penawaran', 'revisi-penawaran',
+                'lihat-sales-order', 'tambah-sales-order', 'edit-sales-order', 'cetak-sales-order',
+                'lihat-delivery-order', 'tambah-delivery-order', 'edit-delivery-order', 'approve-delivery-order',
+                'lihat-sales-invoice', 'tambah-sales-invoice', 'edit-sales-invoice', 'approve-sales-invoice',
+                'lihat-sales-payment', 'approve-sales-payment',
+                'lihat-piutang', 'cetak-piutang',
+                'lihat-bundle', 'lihat-barang',
+            ]);
+        }
+
+        // Staf Gudang role sync
+        $stafGudang = Role::firstOrCreate(['name' => 'Staf Gudang', 'guard_name' => 'web']);
+        if ($stafGudang) {
+            $stafGudang->syncPermissions([
+                'akses-gudang',
+                'lihat-barang', 'lihat-satuan', 'lihat-brand', 'lihat-tipe-barang', 'lihat-warna', 'lihat-kategori-barang',
+                'lihat-gr', 'tambah-gr',
+                'lihat-gi', 'tambah-gi', 'cetak-gi',
+                'lihat-stok-aktual', 'lihat-kartu-stok',
+                'lihat-opname', 'tambah-opname', 'input-fisik-opname',
+                'lihat-transfer', 'tambah-transfer',
+                'lihat-pengeluaran-bahan', 'tambah-pengeluaran-bahan', 'detail-pengeluaran-bahan',
+                'lihat-penerimaan-barang-jadi', 'tambah-penerimaan-barang-jadi', 'detail-penerimaan-barang-jadi',
+                'lihat-bundle', 'rakit-bundle',
+            ]);
+        }
+
+        // Manager Purchasing role sync
+        $mgrPurchasing = Role::firstOrCreate(['name' => 'Manager Purchasing', 'guard_name' => 'web']);
+        if ($mgrPurchasing) {
+            $mgrPurchasing->syncPermissions([
+                'akses-purchasing', 'lihat-dashboard-purchasing',
+                'lihat-supplier', 'tambah-supplier', 'edit-supplier', 'hapus-supplier',
+                'lihat-pr', 'tambah-pr', 'edit-pr', 'hapus-pr', 'approve-pr',
+                'lihat-po', 'tambah-po', 'edit-po', 'hapus-po', 'approve-po', 'cetak-po',
+                'lihat-purchase-invoice', 'approve-purchase-invoice',
+                'lihat-pembayaran-utang', 'lihat-hutang', 'cetak-hutang',
+                'lihat-alokasi-biaya', 'tambah-alokasi-biaya', 'detail-alokasi-biaya', 'posting-alokasi-biaya', 'batalkan-alokasi-biaya',
+                'lihat-barang', 'lihat-satuan', 'lihat-pajak', 'lihat-currency', 'lihat-payment-term', 'lihat-payment-method',
+            ]);
+        }
+
+        // PIC Helm & PIC Garmen role sync (Operasional Produksi)
+        $picPerms = [
+            'akses-produksi', 'lihat-dashboard-produksi',
+            'lihat-satuan', 'lihat-brand', 'lihat-tipe-barang', 'lihat-warna', 'lihat-barang', 'lihat-tender',
+            'lihat-bom', 'tambah-bom', 'detail-bom', 'edit-bom', 'cetak-bom',
+            'lihat-spk', 'tambah-spk', 'detail-spk', 'lihat-bahan-spk', 'edit-spk', 'cetak-spk',
+            'mulai-produksi-spk', 'selesai-produksi-spk',
+            'lihat-realisasi-produksi', 'kontrol-tahapan-realisasi', 'mulai-tahapan-produksi',
+            'input-hasil-harian-produksi', 'input-realisasi-produksi', 'lihat-riwayat-input-produksi', 'selesai-tahapan-produksi', 'cetak-progress-spk',
+            'lihat-pengeluaran-bahan', 'tambah-pengeluaran-bahan', 'detail-pengeluaran-bahan',
+            'lihat-penerimaan-barang-jadi', 'tambah-penerimaan-barang-jadi', 'detail-penerimaan-barang-jadi',
+            'lihat-master-tahapan', 'tambah-master-tahapan', 'edit-master-tahapan',
+            'lihat-bundle', 'rakit-bundle',
+        ];
+
+        $picHelm = Role::firstOrCreate(['name' => 'PIC Helm', 'guard_name' => 'web']);
+        if ($picHelm) {
+            $picHelm->syncPermissions(Permission::whereIn('name', $picPerms)->pluck('name')->toArray());
+        }
+
+        $picGarmen = Role::firstOrCreate(['name' => 'PIC Garmen', 'guard_name' => 'web']);
+        if ($picGarmen) {
+            $picGarmen->syncPermissions(Permission::whereIn('name', $picPerms)->pluck('name')->toArray());
+        }
+
+        // Ruang Meeting role sync (Display/Monitor Read-Only)
+        $meetingPerms = [
+            'lihat-dashboard', 'lihat-dashboard-produksi', 'lihat-dashboard-sales',
+            'lihat-dashboard-purchasing', 'lihat-dashboard-inventori', 'lihat-dashboard-keuangan',
+            'lihat-realisasi-produksi', 'kontrol-tahapan-realisasi',
+            'lihat-spk', 'detail-spk', 'lihat-bom', 'detail-bom',
+            'lihat-stok-aktual', 'lihat-kartu-stok', 'lihat-barang', 'lihat-bundle',
+            'lihat-sales-order', 'lihat-tender',
+        ];
+
+        $ruangMeeting = Role::firstOrCreate(['name' => 'Ruang Meeting', 'guard_name' => 'web']);
+        if ($ruangMeeting) {
+            $ruangMeeting->syncPermissions(Permission::whereIn('name', $meetingPerms)->pluck('name')->toArray());
         }
 
         $this->command->info('Permission detail berhasil dibuat dan di-assign ke role!');

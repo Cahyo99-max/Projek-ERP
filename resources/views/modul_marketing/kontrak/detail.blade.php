@@ -1,221 +1,5 @@
 {{-- ===== MODAL DETAIL TENDER (DUAL THEME ADAPTIVE: LIGHT & DARK) ===== --}}
-<style>
-    .modal-custom-xxl {
-        max-width: 1580px !important;
-        width: 96vw !important;
-    }
-    @media (min-width: 1600px) {
-        .modal-custom-xxl {
-            max-width: 1640px !important;
-        }
-    }
 
-    /* ═══════════════════════════════════════════════════════════
-       LIGHT THEME (Default) - Crisp, Clean, High Contrast
-       ═══════════════════════════════════════════════════════════ */
-    .tender-modal-cinematic {
-        background: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.15), 0 0 30px rgba(59, 130, 246, 0.06) !important;
-        color: #0f172a !important;
-    }
-    .tender-modal-cinematic .modal-header,
-    .tender-modal-cinematic .modal-footer {
-        background: #ffffff !important;
-        border-color: #f1f5f9 !important;
-    }
-    .tender-banner-cinematic {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 18px !important;
-    }
-    .tender-banner-cinematic h3,
-    .tender-banner-cinematic .tender-title {
-        color: #0f172a !important;
-    }
-    .tender-banner-cinematic .tender-customer-text {
-        color: #334155 !important;
-    }
-    .tender-card-metric {
-        background: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 16px !important;
-        padding: 16px 20px !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
-        transition: all 0.25s ease;
-    }
-    .tender-card-metric:hover {
-        transform: translateY(-2px);
-        border-color: #93c5fd !important;
-        box-shadow: 0 8px 24px -4px rgba(59, 130, 246, 0.12) !important;
-    }
-    .tender-card-metric .metric-label {
-        color: #64748b !important;
-    }
-    .tender-card-metric .metric-value {
-        color: #0f172a !important;
-    }
-    .tender-workflow-card {
-        background: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 16px !important;
-    }
-    .tender-pagu-card {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
-        border: 1px solid #e2e8f0 !important;
-    }
-    .tender-rab-table-cinematic {
-        background: #ffffff !important;
-        border-radius: 14px;
-        overflow: hidden;
-    }
-    .tender-rab-table-cinematic th {
-        background: #f8fafc !important;
-        text-transform: uppercase;
-        font-size: 0.73rem;
-        letter-spacing: 0.06em;
-        padding: 14px 16px;
-        color: #475569 !important;
-        font-weight: 700;
-        border-bottom: 2px solid #e2e8f0 !important;
-    }
-    .tender-rab-table-cinematic td {
-        padding: 14px 16px;
-        color: #1e293b !important;
-        border-bottom: 1px solid #f1f5f9 !important;
-        background: transparent !important;
-    }
-    .tender-rab-table-cinematic tr:hover td {
-        background: #f8fafc !important;
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       DARK THEME - Sleek Slate Glassmorphism & High Legibility
-       ═══════════════════════════════════════════════════════════ */
-    [data-bs-theme="dark"] .tender-modal-cinematic {
-        background: radial-gradient(120% 120% at 50% 0%, #171f2e 0%, #0d121c 100%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(59, 130, 246, 0.12) !important;
-        color: #f8fafc !important;
-    }
-    [data-bs-theme="dark"] .tender-modal-cinematic .modal-header,
-    [data-bs-theme="dark"] .tender-modal-cinematic .modal-footer {
-        background: transparent !important;
-        border-color: rgba(255, 255, 255, 0.08) !important;
-    }
-    [data-bs-theme="dark"] .tender-banner-cinematic {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        backdrop-filter: blur(12px);
-    }
-    [data-bs-theme="dark"] .tender-banner-cinematic h3,
-    [data-bs-theme="dark"] .tender-banner-cinematic .tender-title {
-        color: #ffffff !important;
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    }
-    [data-bs-theme="dark"] .tender-banner-cinematic .tender-customer-text {
-        color: #e2e8f0 !important;
-    }
-    [data-bs-theme="dark"] .tender-card-metric {
-        background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 100%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
-    }
-    [data-bs-theme="dark"] .tender-card-metric:hover {
-        border-color: rgba(96, 165, 250, 0.45) !important;
-        box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5) !important;
-    }
-    [data-bs-theme="dark"] .tender-card-metric .metric-label {
-        color: #94a3b8 !important;
-    }
-    [data-bs-theme="dark"] .tender-card-metric .metric-value {
-        color: #ffffff !important;
-    }
-    [data-bs-theme="dark"] .tender-workflow-card {
-        background: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 100%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
-    }
-    [data-bs-theme="dark"] .tender-pagu-card {
-        background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    }
-    [data-bs-theme="dark"] .tender-rab-table-cinematic {
-        background: transparent !important;
-    }
-    [data-bs-theme="dark"] .tender-rab-table-cinematic th {
-        background: rgba(255, 255, 255, 0.04) !important;
-        color: #cbd5e1 !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-    }
-    [data-bs-theme="dark"] .tender-rab-table-cinematic td {
-        color: #f1f5f9 !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-    }
-    [data-bs-theme="dark"] .tender-rab-table-cinematic tr:hover td {
-        background: rgba(255, 255, 255, 0.03) !important;
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       STEPPER NODES (Theme Adaptive)
-       ═══════════════════════════════════════════════════════════ */
-    .stepper-node {
-        opacity: 0.45;
-        transition: all 0.25s ease;
-    }
-    .stepper-node.active {
-        opacity: 1;
-    }
-    .stepper-node.completed {
-        opacity: 0.95;
-    }
-    .stepper-text {
-        font-weight: 700;
-        font-size: 0.82rem;
-    }
-    .stepper-dot {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.8rem;
-        background: rgba(100, 116, 139, 0.12);
-        color: #64748b;
-        border: 1.5px solid rgba(100, 116, 139, 0.25);
-    }
-    [data-bs-theme="dark"] .stepper-dot {
-        background: rgba(255, 255, 255, 0.06);
-        color: #94a3b8;
-        border-color: rgba(255, 255, 255, 0.15);
-    }
-    .stepper-node.active .stepper-dot {
-        background: #2563eb !important;
-        color: #ffffff !important;
-        border-color: #60a5fa !important;
-        box-shadow: 0 0 14px rgba(37, 99, 235, 0.5) !important;
-    }
-    .stepper-node.completed .stepper-dot {
-        background: #10b981 !important;
-        color: #ffffff !important;
-        border-color: #34d399 !important;
-        box-shadow: 0 0 10px rgba(16, 185, 129, 0.35) !important;
-    }
-    .stepper-node.rejected .stepper-dot {
-        background: #ef4444 !important;
-        color: #ffffff !important;
-        border-color: #f87171 !important;
-        box-shadow: 0 0 10px rgba(239, 68, 68, 0.35) !important;
-    }
-    .hover-scale {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .hover-scale:hover {
-        transform: scale(1.04);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-    }
-</style>
 
 <div class="modal modal-blur fade" id="modalDetailTender" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-custom-xxl modal-dialog-centered">
@@ -257,8 +41,9 @@
                                 </div>
                             </div>
                             <div class="text-lg-end tender-pagu-card p-3 px-4 rounded-4 border shadow-xs">
-                                <div class="text-success small fw-bold text-uppercase font-monospace" style="font-size:0.75rem; letter-spacing: 0.08em;">TOTAL ESTIMASI NILAI PROYEK:</div>
+                                <div class="text-success small fw-bold text-uppercase font-monospace" id="detail_pagu_label" style="font-size:0.75rem; letter-spacing: 0.08em;">TOTAL ESTIMASI NILAI PROYEK:</div>
                                 <h1 class="fw-black text-success font-monospace mb-0 display-6" id="detail_nilai_estimasi">Rp 0</h1>
+                                <div class="text-muted font-monospace small mt-0.5" id="detail_pagu_subtext" style="display:none; font-size:0.75rem;"></div>
                             </div>
                         </div>
                     </div>
@@ -436,31 +221,65 @@
 
                             <!-- TAB 3: LOG FOLLOW-UP -->
                             <div class="tab-pane fade" id="detail-followup" role="tabpanel">
-                                <div class="card p-4 border rounded-4 mb-3.5 tender-workflow-card shadow-xs">
-                                    <h6 class="fw-bold small mb-3"><i class="bi bi-plus-circle-fill text-primary me-1.5"></i> Tambah Catatan Aktivitas / Follow-Up Baru</h6>
-                                    <form id="form_add_followup">
-                                        <div class="row g-3">
-                                            <div class="col-md-4">
-                                                <input type="text" id="followup_aktivitas" class="form-control tender-input" placeholder="Judul aktivitas (mis: Aanwijzing Kantor...)" required>
+                                <div class="card p-4 border rounded-4 mb-4 tender-workflow-card shadow-xs">
+                                    <div class="d-flex align-items-center justify-content-between mb-3.5 flex-wrap gap-2">
+                                        <h6 class="fw-bold fs-6 mb-0 d-flex align-items-center gap-2.5">
+                                            <span class="p-2 rounded-3 bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center" style="width:36px;height:36px;">
+                                                <i class="bi bi-journal-plus fs-5"></i>
+                                            </span>
+                                            <span>Tambah Catatan Aktivitas / Log Follow-Up Baru</span>
+                                        </h6>
+                                        <span class="text-muted small" style="font-size: 0.78rem;">Catat riwayat pertemuan, progress negosiasi, atau hasil Aanwijzing</span>
+                                    </div>
+                                    <form id="form_add_followup" autocomplete="off">
+                                        <input type="hidden" id="followup_tanggal" value="{{ date('Y-m-d') }}">
+                                        <div class="row g-3 align-items-end">
+                                            <div class="col-12 col-md-5">
+                                                <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                                    <label class="form-label small fw-bold text-muted mb-0"><i class="bi bi-tag-fill me-1 text-primary"></i>Aktivitas / Kegiatan</label>
+                                                    <span id="counter_followup_aktivitas" class="badge bg-body-tertiary text-muted border font-monospace" style="font-size: 0.7rem;">0/60</span>
+                                                </div>
+                                                <input type="text" id="followup_aktivitas" class="form-control tender-input" placeholder="Contoh: Bertemu Panitia, Klarifikasi Teknis..." maxlength="60" autocomplete="off" required>
                                             </div>
-                                            <div class="col-md-6">
-                                                <input type="text" id="followup_keterangan" class="form-control tender-input" placeholder="Catatan hasil pertemuan/progress..." required>
-                                            </div>
-                                            <div class="col-md-2">
-                                                <button type="submit" class="btn btn-primary w-100 rounded-3 fw-bold h-100 shadow-xs">Kirim</button>
+                                            <div class="col-12 col-md-7">
+                                                <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                                    <label class="form-label small fw-bold text-muted mb-0"><i class="bi bi-card-text me-1 text-primary"></i>Catatan / Keterangan</label>
+                                                    <span id="counter_followup_keterangan" class="badge bg-body-tertiary text-muted border font-monospace" style="font-size: 0.7rem;">0/80</span>
+                                                </div>
+                                                <div class="d-flex gap-2">
+                                                    <input type="text" id="followup_keterangan" class="form-control tender-input flex-grow-1" placeholder="Rincian hasil pertemuan/progress..." maxlength="80" autocomplete="off" required>
+                                                    <button type="submit" class="btn btn-primary rounded-3 fw-bold px-4 shadow-sm d-inline-flex align-items-center gap-1.5 flex-shrink-0" id="btn_submit_followup" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border:none;">
+                                                        <i class="bi bi-send-fill"></i>
+                                                        <span>Kirim</span>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </form>
                                 </div>
 
-                                <div id="detail_followup_timeline" class="d-flex flex-column gap-2.5">
+                                <div class="d-flex align-items-center justify-content-between mb-3 px-1">
+                                    <h6 class="fw-bold mb-0 text-body fs-6 d-flex align-items-center gap-2">
+                                        <i class="bi bi-clock-history text-primary"></i>
+                                        <span>Riwayat Catatan Aktivitas Follow-Up</span>
+                                    </h6>
+                                    <span class="text-muted small" id="followup_total_count" style="font-size:0.78rem;"></span>
+                                </div>
+
+                                <div id="detail_followup_timeline" class="d-flex flex-column gap-3">
                                     <!-- Timeline items -->
                                 </div>
                             </div>
 
                             <!-- TAB 4: APPROVAL LOG -->
                             <div class="tab-pane fade" id="detail-approval" role="tabpanel">
-                                <div id="detail_approval_history">
+                                <div class="d-flex align-items-center justify-content-between mb-3 px-1">
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-body fs-6"><i class="bi bi-shield-check text-success me-1.5"></i>Riwayat Persetujuan & Lifecycle Tender</h6>
+                                        <div class="text-muted small" style="font-size:0.78rem;">Catatan lengkap seluruh tahapan tender, pengajuan, persetujuan atasan, penawaran, negosiasi, hingga keputusan akhir.</div>
+                                    </div>
+                                </div>
+                                <div id="detail_approval_history" class="d-flex flex-column gap-3">
                                     <!-- Approvals -->
                                 </div>
                             </div>
@@ -890,7 +709,7 @@
                     <label class="form-label fw-bold small">Nilai Kontrak / Kesepakatan Final (Rp)</label>
                     <div class="input-group">
                         <span class="input-group-text font-monospace fw-bold">Rp</span>
-                        <input type="text" id="input_nilai_deal_tender_mask" class="form-control text-end font-monospace fw-bold text-success fs-6" placeholder="0">
+                        <input type="text" id="input_nilai_deal_tender_mask" class="form-control text-end font-monospace fw-bold text-success fs-6" placeholder="0" autocomplete="off">
                         <input type="hidden" id="input_nilai_deal_tender">
                     </div>
                 </div>
@@ -920,11 +739,11 @@
                 <p class="text-muted small mb-3">Catat alasan kekalahan tender ini untuk bahan evaluasi strategi marketing di masa depan.</p>
                 <div class="mb-3">
                     <label class="form-label fw-bold small">Alasan Kekalahan <span class="text-danger">*</span></label>
-                    <textarea id="input_lost_reason_tender" class="form-control rounded-3" rows="3" placeholder="Contoh: Kalah penawaran harga dari kompetitor / Evaluasi teknis tidak memenuhi syarat..."></textarea>
+                    <textarea id="input_lost_reason_tender" class="form-control rounded-3" rows="3" placeholder="Contoh: Kalah penawaran harga dari kompetitor / Evaluasi teknis tidak memenuhi syarat..." autocomplete="off"></textarea>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold small">Kompetitor Pemenang (Opsional)</label>
-                    <input type="text" id="input_winning_competitor_tender" class="form-control rounded-3" placeholder="Contoh: PT Sumber Rezeki Makmur">
+                    <input type="text" id="input_winning_competitor_tender" class="form-control rounded-3" placeholder="Contoh: PT Sumber Rezeki Makmur" autocomplete="off">
                 </div>
                 <div class="d-flex justify-content-end gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-3.5" data-bs-dismiss="modal">Batal</button>
@@ -981,7 +800,23 @@
 
                 $('#detail_nama_tender').text(t.nama_tender);
                 $('#detail_customer').text(t.customer ? (t.customer.nama_perusahaan || t.customer.nama_customer) : '-');
-                $('#detail_nilai_estimasi').text(formatRp(t.nilai_estimasi));
+                
+                let dealVal = Number(t.nilai_deal) || 0;
+                let estVal = Number(t.nilai_estimasi) || 0;
+                if (t.status === 'Won' && dealVal > 0) {
+                    $('#detail_pagu_label').text('NILAI KESEPAKATAN FINAL (WON):');
+                    $('#detail_nilai_estimasi').text(formatRp(dealVal));
+                    if (estVal > 0 && dealVal !== estVal) {
+                        $('#detail_pagu_subtext').html(`<i class="bi bi-info-circle me-1"></i>Pagu Anggaran Awal: <strong class="text-body">${formatRp(estVal)}</strong>`).show();
+                    } else {
+                        $('#detail_pagu_subtext').hide();
+                    }
+                } else {
+                    $('#detail_pagu_label').text('TOTAL ESTIMASI NILAI PROYEK:');
+                    $('#detail_nilai_estimasi').text(formatRp(estVal));
+                    $('#detail_pagu_subtext').hide();
+                }
+
                 $('#detail_tanggal').text(t.tanggal ? t.tanggal.split('T')[0] : '-');
                 $('#detail_deadline').text(t.deadline ? t.deadline.split('T')[0] : '-');
                 $('#detail_estimasi_closing').text(t.estimasi_closing ? t.estimasi_closing.split('T')[0] : '-');
@@ -1066,12 +901,20 @@
                         </div>
                     `;
                 } else if (t.status === 'Approved') {
-                    actionsHtml = `
-                        <button type="button" class="btn btn-info text-white rounded-pill px-3.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_advance_to_sent">
-                            <i class="bi bi-send-fill fs-6"></i>
-                            <span>📤 Kirim Penawaran ke Klien / Panitia</span>
-                        </button>
-                    `;
+                    if (res.can_kirim_lelang) {
+                        actionsHtml = `
+                            <button type="button" class="btn btn-info text-white rounded-pill px-3.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_advance_to_sent">
+                                <i class="bi bi-send-fill fs-6"></i>
+                                <span>📤 Kirim Penawaran ke Klien / Panitia</span>
+                            </button>
+                        `;
+                    } else {
+                        actionsHtml = `
+                            <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill fw-bold font-monospace" style="font-size:0.78rem;">
+                                <i class="bi bi-patch-check-fill me-1"></i> Disetujui (Menunggu Pengiriman oleh Tim Berwenang)
+                            </span>
+                        `;
+                    }
                     let approverName = t.approver ? (t.approver.nama_lengkap || t.approver.name) : 'Atasan';
                     bannerHtml = `
                         <div class="p-3 rounded-3 bg-success-subtle border border-success-subtle d-flex align-items-center gap-3 shadow-2xs">
@@ -1104,12 +947,20 @@
                         </div>
                     `;
                 } else if (t.status === 'Sent') {
-                    actionsHtml = `
-                        <button type="button" class="btn btn-primary rounded-pill px-3.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_advance_to_negotiation">
-                            <i class="bi bi-chat-dots-fill fs-6"></i>
-                            <span>🤝 Mulai Tahap Aanwijzing & Negosiasi</span>
-                        </button>
-                    `;
+                    if (res.can_negosiasi) {
+                        actionsHtml = `
+                            <button type="button" class="btn btn-primary rounded-pill px-3.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_advance_to_negotiation">
+                                <i class="bi bi-chat-dots-fill fs-6"></i>
+                                <span>🤝 Mulai Tahap Aanwijzing & Negosiasi</span>
+                            </button>
+                        `;
+                    } else {
+                        actionsHtml = `
+                            <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill fw-bold font-monospace" style="font-size:0.78rem;">
+                                <i class="bi bi-send-check-fill me-1"></i> Penawaran Terkirim ke Panitia
+                            </span>
+                        `;
+                    }
                     bannerHtml = `
                         <div class="p-3 rounded-3 bg-info-subtle border border-info-subtle d-flex align-items-center gap-3 shadow-2xs">
                             <span class="p-2 rounded-circle bg-info text-white d-inline-flex align-items-center justify-content-center shadow-xs">
@@ -1122,16 +973,24 @@
                         </div>
                     `;
                 } else if (t.status === 'Negotiation') {
-                    actionsHtml = `
-                        <button type="button" class="btn btn-success rounded-pill px-3.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_trigger_won_modal">
-                            <i class="bi bi-trophy-fill fs-6"></i>
-                            <span>🏆 Tender Menang (Won)</span>
-                        </button>
-                        <button type="button" class="btn btn-danger rounded-pill px-3.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_trigger_lost_modal">
-                            <i class="bi bi-x-circle-fill fs-6"></i>
-                            <span>❌ Tender Kalah (Lost)</span>
-                        </button>
-                    `;
+                    if (res.can_keputusan_final) {
+                        actionsHtml = `
+                            <button type="button" class="btn btn-success rounded-pill px-3.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_trigger_won_modal">
+                                <i class="bi bi-trophy-fill fs-6"></i>
+                                <span>🏆 Tender Menang (Won)</span>
+                            </button>
+                            <button type="button" class="btn btn-danger rounded-pill px-3.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_trigger_lost_modal">
+                                <i class="bi bi-x-circle-fill fs-6"></i>
+                                <span>❌ Tender Kalah (Lost)</span>
+                            </button>
+                        `;
+                    } else {
+                        actionsHtml = `
+                            <span class="badge bg-indigo-subtle text-indigo border border-indigo-subtle px-3 py-2 rounded-pill fw-bold font-monospace" style="font-size:0.78rem;">
+                                <i class="bi bi-chat-quote-fill me-1"></i> Aanwijzing & Negosiasi Sedang Berlangsung
+                            </span>
+                        `;
+                    }
                     bannerHtml = `
                         <div class="p-3 rounded-3 bg-primary-subtle border border-primary-subtle d-flex align-items-center gap-3 shadow-2xs">
                             <span class="p-2 rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center shadow-xs">
@@ -1145,21 +1004,6 @@
                     `;
                 } else if (t.status === 'Won') {
                     actionsHtml = '';
-                    let soActionBtn = '';
-                    if (t.sales_order_id) {
-                        soActionBtn = `
-                            <a href="{{ route('marketing.sales-order.index') }}" class="btn btn-sm btn-outline-success rounded-pill px-3.5 py-2 fw-bold d-inline-flex align-items-center gap-1.5 shadow-xs">
-                                <i class="bi bi-box-arrow-up-right"></i> Buka Modul Order Penjualan
-                            </a>
-                        `;
-                    } else {
-                        soActionBtn = `
-                            <button type="button" class="btn btn-sm btn-success rounded-pill px-3.5 py-2 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_convert_tender_to_so">
-                                <i class="bi bi-file-earmark-check-fill"></i> <span>🏆 Konversi ke Order Penjualan (SO)</span>
-                            </button>
-                        `;
-                    }
-
                     bannerHtml = `
                         <div class="p-3.5 rounded-3 bg-success-subtle border border-success border-opacity-30 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 shadow-xs">
                             <div class="d-flex align-items-center gap-3">
@@ -1169,13 +1013,9 @@
                                 <div>
                                     <div class="fw-bold text-success fs-6">Tender Resmi Berhasil Dimenangkan (Won)! 🎉</div>
                                     <div class="text-secondary small mt-0.5">
-                                        Nilai Kesepakatan Final: <strong class="text-body">${formatRp(t.nilai_deal || t.nilai_estimasi)}</strong> • 
-                                        ${t.sales_order_id ? `Sales Order: <strong class="text-success font-monospace">SO-${t.sales_order_id}</strong>` : `Belum dikonversi ke Sales Order.`}
+                                        Nilai Kesepakatan Final: <strong class="text-body">${formatRp(t.nilai_deal || t.nilai_estimasi)}</strong>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                                ${soActionBtn}
                             </div>
                         </div>
                     `;
@@ -1294,7 +1134,7 @@
                 $('#detail_items_tbody').html(itemsHtml);
 
                 // Populate Pagu & Summary
-                let paguAnggaran = Number(t.nilai_deal || t.nilai_estimasi || t.grand_total || 0);
+                let paguAnggaran = Number((t.status === 'Won' && Number(t.nilai_deal) > 0) ? t.nilai_deal : (t.nilai_estimasi || 0));
                 $('#detail_grand_total_label').text(formatRp(paguAnggaran));
                 $('#detail_total_items_count').text(`${t.items ? t.items.length : 0} Item`);
                 $('#detail_currency_badge').text(t.currency || 'IDR');
@@ -1328,40 +1168,210 @@
                 // Populate Followups
                 let fHtml = '';
                 if (t.followups && t.followups.length > 0) {
-                    t.followups.forEach(f => {
+                    $('#followup_total_count').text(`${t.followups.length} Catatan Tersimpan`);
+                    t.followups.forEach((f, idx) => {
+                        let tglStr = f.tanggal ? (typeof f.tanggal === 'string' ? f.tanggal.split('T')[0] : f.tanggal) : '';
+                        let userName = f.user ? (f.user.name || f.user.username || 'User') : 'Sistem';
+                        let initial = (userName.substring(0, 2)).toUpperCase();
+                        
                         fHtml += `
-                            <div class="border-start border-3 border-primary ps-3 py-2 bg-body rounded-2 p-2.5 shadow-xs">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <strong class="text-primary fs-6">${escapeHtml(f.aktivitas)}</strong>
-                                    <span class="text-muted font-monospace small">${f.tanggal ? f.tanggal.split('T')[0] : (f.tanggal_followup ? f.tanggal_followup.split('T')[0] : '')}</span>
+                            <div class="tender-log-card transition-all">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2.5">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge tender-log-badge px-3 py-1.5 rounded-pill fw-bold font-monospace">
+                                            <i class="bi bi-chat-left-dots-fill me-1.5"></i>${escapeHtml(f.aktivitas)}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge tender-log-date px-3 py-1.5 rounded-pill font-monospace">
+                                            <i class="bi bi-calendar-event me-1.5 text-primary"></i>${escapeHtml(tglStr)}
+                                        </span>
+                                    </div>
                                 </div>
-                                <p class="mb-1 small text-secondary mt-1">${escapeHtml(f.keterangan || '')}</p>
-                                <span class="badge bg-body-tertiary text-muted font-monospace" style="font-size:0.68rem;">Oleh: ${f.user ? f.user.name : 'Sistem'}</span>
+                                <div class="tender-log-text my-2.5">${escapeHtml(f.keterangan || '')}</div>
+                                <div class="tender-log-footer d-flex align-items-center pt-2.5 mt-2.5 border-top">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="tender-log-avatar">${initial}</div>
+                                        <div class="small">
+                                            <span class="text-muted">Dicatat oleh:</span>
+                                            <strong class="text-body ms-1">${escapeHtml(userName)}</strong>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         `;
                     });
                 } else {
-                    fHtml = '<div class="text-muted small fst-italic py-2 text-center">Belum ada aktivitas follow-up yang tercatat.</div>';
+                    $('#followup_total_count').text('0 Catatan');
+                    fHtml = `
+                        <div class="text-center py-5 border rounded-4 bg-body-tertiary">
+                            <div class="p-3 rounded-circle bg-body text-muted d-inline-flex mb-2 shadow-2xs">
+                                <i class="bi bi-journal-x fs-2"></i>
+                            </div>
+                            <h6 class="fw-bold text-body mb-1">Belum Ada Catatan Aktivitas</h6>
+                            <p class="text-muted small mb-0">Gunakan formulir di atas untuk mencatat progress negosiasi, pertemuan, atau klarifikasi teknis.</p>
+                        </div>
+                    `;
                 }
                 $('#detail_followup_timeline').html(fHtml);
 
-                // Populate Approvals
+                // Populate Approvals & Stage Lifecycle History
                 let aHtml = '';
                 if (t.approvals && t.approvals.length > 0) {
                     t.approvals.forEach(a => {
-                        let aBadge = a.status === 'Approved' ? 'bg-success' : (a.status === 'Rejected' ? 'bg-danger' : 'bg-warning text-dark');
+                        let userName = a.user ? (a.user.nama_lengkap || a.user.name || a.user.username || 'User') : 'Sistem';
+                        let initial = (userName.substring(0, 2)).toUpperCase();
+                        
+                        let dtRaw = a.approved_at || a.created_at || '';
+                        let timeStr = '-';
+                        if (dtRaw) {
+                            try {
+                                let d = new Date(dtRaw);
+                                if (!isNaN(d.getTime())) {
+                                    let day = String(d.getDate()).padStart(2, '0');
+                                    let months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                                    let month = months[d.getMonth()] || '';
+                                    let year = d.getFullYear();
+                                    let hours = String(d.getHours()).padStart(2, '0');
+                                    let mins = String(d.getMinutes()).padStart(2, '0');
+                                    timeStr = `${day} ${month} ${year}, ${hours}:${mins}`;
+                                } else {
+                                    timeStr = dtRaw;
+                                }
+                            } catch (e) {
+                                timeStr = dtRaw;
+                            }
+                        }
+
+                        let statusCfg = {
+                            'Draft': {
+                                badgeClass: 'bg-secondary-subtle text-secondary border border-secondary-subtle',
+                                icon: 'bi-file-earmark-text',
+                                label: 'Draft Proposal',
+                                barColor: '#64748b'
+                            },
+                            'Pending Approval': {
+                                badgeClass: 'bg-warning-subtle text-warning border border-warning-subtle',
+                                icon: 'bi-hourglass-split',
+                                label: 'Menunggu Approval',
+                                barColor: '#f59e0b'
+                            },
+                            'Pending': {
+                                badgeClass: 'bg-warning-subtle text-warning border border-warning-subtle',
+                                icon: 'bi-hourglass-split',
+                                label: 'Menunggu Approval',
+                                barColor: '#f59e0b'
+                            },
+                            'Approved': {
+                                badgeClass: 'bg-success-subtle text-success border border-success-subtle',
+                                icon: 'bi-patch-check-fill',
+                                label: 'Disetujui (Approved)',
+                                barColor: '#10b981'
+                            },
+                            'Rejected': {
+                                badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle',
+                                icon: 'bi-x-octagon-fill',
+                                label: 'Ditolak (Rejected)',
+                                barColor: '#ef4444'
+                            },
+                            'Sent': {
+                                badgeClass: 'bg-info-subtle text-info border border-info-subtle',
+                                icon: 'bi-send-check-fill',
+                                label: 'Penawaran Dikirim',
+                                barColor: '#0284c7'
+                            },
+                            'Negotiation': {
+                                badgeClass: 'bg-indigo-subtle text-indigo border border-indigo-subtle',
+                                icon: 'bi-chat-quote-fill',
+                                label: 'Aanwijzing & Negosiasi',
+                                barColor: '#6366f1'
+                            },
+                            'Won': {
+                                badgeClass: 'bg-success-subtle text-success border border-success-subtle',
+                                icon: 'bi-trophy-fill',
+                                label: 'Pemenang (Won)',
+                                barColor: '#10b981'
+                            },
+                            'Lost': {
+                                badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle',
+                                icon: 'bi-x-circle-fill',
+                                label: 'Kalah Lelang (Lost)',
+                                barColor: '#ef4444'
+                            },
+                            'Converted to SO': {
+                                badgeClass: 'bg-teal-subtle text-teal border border-teal-subtle',
+                                icon: 'bi-trophy-fill',
+                                label: 'Pemenang (SPK)',
+                                barColor: '#10b981'
+                            },
+                            'Cancelled': {
+                                badgeClass: 'bg-secondary-subtle text-secondary border border-secondary-subtle',
+                                icon: 'bi-slash-circle',
+                                label: 'Dibatalkan',
+                                barColor: '#6b7280'
+                            }
+                        };
+
+                        let cfg = statusCfg[a.status] || {
+                            badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle',
+                            icon: 'bi-check2-circle',
+                            label: a.status,
+                            barColor: '#3b82f6'
+                        };
+
+                        let statusPill = '';
+                        if (a.status === 'Approved') {
+                            statusPill = `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 font-monospace" style="font-size:0.72rem;"><i class="bi bi-shield-check me-1"></i>Persetujuan Sah</span>`;
+                        } else if (a.status === 'Rejected') {
+                            statusPill = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 font-monospace" style="font-size:0.72rem;"><i class="bi bi-shield-x me-1"></i>Evaluasi / Revisi</span>`;
+                        } else if (a.status === 'Won' || a.status === 'Converted to SO') {
+                            statusPill = `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 font-monospace" style="font-size:0.72rem;"><i class="bi bi-trophy me-1"></i>Closing Berhasil</span>`;
+                        }
+
+                        let catatanText = a.catatan ? escapeHtml(a.catatan) : '<span class="text-muted fst-italic">Tidak ada catatan khusus.</span>';
+
                         aHtml += `
-                            <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-body small mb-2 shadow-xs">
-                                <div>
-                                    <div class="fw-bold fs-6">${a.user ? a.user.name : 'Approver'}</div>
-                                    <div class="text-muted small">${escapeHtml(a.catatan || 'Tidak ada catatan khusus.')}</div>
+                            <div class="tender-log-card transition-all" style="border-left-color: ${cfg.barColor} !important;">
+                                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge ${cfg.badgeClass} rounded-pill px-3 py-1.5 fw-bold font-monospace" style="font-size:0.8rem;">
+                                            <i class="bi ${cfg.icon} me-1.5"></i>${cfg.label}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge tender-log-date px-3 py-1.5 rounded-pill font-monospace">
+                                            <i class="bi bi-clock-history me-1.5 text-primary"></i>${escapeHtml(timeStr)}
+                                        </span>
+                                    </div>
                                 </div>
-                                <span class="badge ${aBadge} px-3 py-1.5 rounded-pill fs-7">${a.status}</span>
+                                <div class="tender-log-text my-2.5">
+                                    ${catatanText}
+                                </div>
+                                <div class="tender-log-footer d-flex align-items-center justify-content-between pt-2.5 mt-2.5 border-top flex-wrap gap-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="tender-log-avatar">${initial}</div>
+                                        <div class="small">
+                                            <span class="text-muted">Pelaksana / Approver:</span>
+                                            <strong class="text-body ms-1">${escapeHtml(userName)}</strong>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        ${statusPill}
+                                    </div>
+                                </div>
                             </div>
                         `;
                     });
                 } else {
-                    aHtml = '<div class="text-muted small fst-italic py-2 text-center">Belum ada log approval.</div>';
+                    aHtml = `
+                        <div class="text-center py-5 border rounded-4 bg-body-tertiary">
+                            <div class="p-3 rounded-circle bg-body text-muted d-inline-flex mb-2 shadow-2xs">
+                                <i class="bi bi-shield-slash fs-2"></i>
+                            </div>
+                            <h6 class="fw-bold text-body mb-1">Belum Ada Riwayat Persetujuan</h6>
+                            <p class="text-muted small mb-0">Riwayat persetujuan, validasi atasan, dan perubahan tahapan lelang akan tercatat otomatis di sini.</p>
+                        </div>
+                    `;
                 }
                 $('#detail_approval_history').html(aHtml);
 
@@ -1658,32 +1668,91 @@
             });
         });
 
+        // Live character counters for Follow-Up
+        $(document).on('input', '#followup_aktivitas', function () {
+            let len = $(this).val().length;
+            $('#counter_followup_aktivitas').text(`${len}/60`);
+            if (len >= 60) {
+                $('#counter_followup_aktivitas').removeClass('text-muted').addClass('text-danger fw-bold');
+            } else {
+                $('#counter_followup_aktivitas').removeClass('text-danger fw-bold').addClass('text-muted');
+            }
+        });
+
+        $(document).on('input', '#followup_keterangan', function () {
+            let len = $(this).val().length;
+            $('#counter_followup_keterangan').text(`${len}/80`);
+            if (len >= 80) {
+                $('#counter_followup_keterangan').removeClass('text-muted').addClass('text-danger fw-bold');
+            } else {
+                $('#counter_followup_keterangan').removeClass('text-danger fw-bold').addClass('text-muted');
+            }
+        });
+
         // Add Follow-Up Submit
         $('#form_add_followup').on('submit', function (e) {
             e.preventDefault();
-            if (!currentDetailTenderId) return;
+            if (!currentDetailTenderId) {
+                Swal.fire('Peringatan', 'ID Tender tidak ditemukan.', 'warning');
+                return;
+            }
 
-            let act = $('#followup_aktivitas').val();
-            let ket = $('#followup_keterangan').val();
+            let tgl = $('#followup_tanggal').val() || new Date().toISOString().split('T')[0];
+            let act = ($('#followup_aktivitas').val() || '').trim();
+            let ket = ($('#followup_keterangan').val() || '').trim();
 
-            $.post(`/tender/${currentDetailTenderId}/followup`, {
-                _token: '{{ csrf_token() }}',
-                aktivitas: act,
-                keterangan: ket
-            }, function (res) {
-                $('#followup_aktivitas').val('');
-                $('#followup_keterangan').val('');
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Aktivitas Dicatat!',
-                    text: res.message,
-                    timer: 1500,
-                    showConfirmButton: false
-                });
+            if (!act || !ket) {
+                Swal.fire('Peringatan', 'Aktivitas dan catatan follow-up wajib diisi.', 'warning');
+                return;
+            }
 
-                // Refresh Detail
-                window.loadTenderDetail(currentDetailTenderId, false);
-                refreshTenderViews();
+            if (act.length > 60) {
+                Swal.fire('Peringatan Karakter', 'Aktivitas / Kegiatan maksimal 60 karakter!', 'warning');
+                $('#followup_aktivitas').focus();
+                return;
+            }
+
+            if (ket.length > 80) {
+                Swal.fire('Peringatan Karakter', 'Catatan / Keterangan maksimal 80 karakter!', 'warning');
+                $('#followup_keterangan').focus();
+                return;
+            }
+
+            let btn = $('#btn_submit_followup');
+            let origHtml = btn.html();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Mengirim...');
+
+            $.ajax({
+                url: `/tender/${currentDetailTenderId}/followup`,
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    tanggal: tgl,
+                    aktivitas: act,
+                    keterangan: ket
+                },
+                success: function (res) {
+                    $('#followup_aktivitas').val('').trigger('input');
+                    $('#followup_keterangan').val('').trigger('input');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Aktivitas Dicatat!',
+                        text: res.message || 'Catatan aktivitas berhasil disimpan.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+
+                    // Refresh Detail
+                    window.loadTenderDetail(currentDetailTenderId, false);
+                    refreshTenderViews();
+                },
+                error: function (xhr) {
+                    let msg = xhr.responseJSON?.message || 'Gagal menyimpan catatan follow-up.';
+                    Swal.fire('Gagal Menyimpan', msg, 'error');
+                },
+                complete: function () {
+                    btn.prop('disabled', false).html(origHtml);
+                }
             });
         });
 

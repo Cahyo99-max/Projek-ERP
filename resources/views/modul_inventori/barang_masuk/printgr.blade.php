@@ -99,6 +99,37 @@
             padding: 36px 44px 44px;
             display: flex;
             flex-direction: column;
+            position: relative;
+        }
+
+        /* ── VOID WATERMARK & BANNER ── */
+        .void-stamp {
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-18deg);
+            font-size: 56px;
+            font-weight: 900;
+            color: rgba(220, 38, 38, 0.28);
+            border: 6px dashed rgba(220, 38, 38, 0.4);
+            padding: 10px 42px;
+            border-radius: 14px;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            pointer-events: none;
+            z-index: 50;
+            white-space: nowrap;
+        }
+
+        .void-banner {
+            background-color: #fee2e2;
+            border: 1px solid #f87171;
+            color: #991b1b;
+            padding: 8px 14px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 11px;
+            line-height: 1.5;
         }
 
         .sig-wrapper {
@@ -450,6 +481,18 @@
     <!-- SHEET CONTAINER -->
     <div class="sheet" id="print-sheet">
         
+        @if($goodsReceipt->status === 'Dibatalkan')
+            <div class="void-stamp">DIBATALKAN / VOID</div>
+            <div class="void-banner">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-weight: 800; font-size: 11.5px; text-transform: uppercase;"><i class="bi bi-x-octagon-fill"></i> DOKUMEN PENERIMAAN INI TELAH DIBATALKAN (VOID)</span>
+                    <span style="font-weight: 600; font-size: 10px;">Waktu: {{ $goodsReceipt->canceled_at ? $goodsReceipt->canceled_at->format('d/m/Y H:i') : '-' }}</span>
+                </div>
+                <div><strong>Alasan Pembatalan:</strong> {{ $goodsReceipt->alasan_pembatalan ?? 'Tidak ada catatan alasan khusus.' }}</div>
+                <div style="font-size: 10px; margin-top: 3px; color: #7f1d1d;"><strong>Dibatalkan Oleh:</strong> {{ $goodsReceipt->canceler ? $goodsReceipt->canceler->nama_lengkap : 'Admin' }} (Stok gudang & jurnal akuntansi telah dibatalkan secara otomatis)</div>
+            </div>
+        @endif
+        
         <!-- DOCUMENT HEADER -->
         <div class="header-container">
             <div class="doc-title-row">
@@ -519,6 +562,32 @@
                     {{ $destText }}
                 </td>
             </tr>
+            @php
+                $tenderPrint = $goodsReceipt->tender ?: ($goodsReceipt->po ? $goodsReceipt->po->tender : null);
+            @endphp
+            @if($tenderPrint)
+            <tr>
+                <td class="meta-label" style="vertical-align: top;">Tender / Proyek</td>
+                <td class="meta-sep" style="vertical-align: top;">:</td>
+                <td class="meta-val editable-text" colspan="4" style="vertical-align: top;">
+                    <strong>{{ $tenderPrint->nomor_kontrak ?: ($tenderPrint->nomor_tender ?: ('Tender #' . $tenderPrint->id)) }}</strong> - {{ $tenderPrint->nama_tender }}
+                </td>
+            </tr>
+            @endif
+            @php
+                $poPphTarifHeader = $goodsReceipt->po ? floatval($goodsReceipt->po->tarif_pph ?? 0) : 0;
+                $poPphNominalHeader = $goodsReceipt->po ? floatval($goodsReceipt->po->pph_nominal ?? $goodsReceipt->po->total_pph ?? 0) : 0;
+                $poPphNamaHeader = ($goodsReceipt->po && $goodsReceipt->po->pphPajak) ? $goodsReceipt->po->pphPajak->nama_pajak : ($poPphTarifHeader > 0 ? "PPh {$poPphTarifHeader}%" : 'PPh');
+            @endphp
+            @if($poPphTarifHeader > 0 || $poPphNominalHeader > 0)
+            <tr>
+                <td class="meta-label" style="vertical-align: top;">Ketentuan PPh</td>
+                <td class="meta-sep" style="vertical-align: top;">:</td>
+                <td class="meta-val editable-text" colspan="4" style="vertical-align: top; color: #b45309; font-weight: 600;">
+                    {{ $poPphNamaHeader }}{{ $poPphTarifHeader > 0 ? ' (' . $poPphTarifHeader . '%)' : '' }}
+                </td>
+            </tr>
+            @endif
         </table>
 
         <!-- ITEMS TABLE -->
@@ -539,6 +608,7 @@
             <tbody>
                 @php 
                     $subtotalReport = 0; 
+                    $totalTaxReport = 0;
                 @endphp
                 @foreach($goodsReceipt->details as $index => $detail)
                 @php
@@ -558,18 +628,55 @@
 
                     // Price and discount per received unit
                     $poHargaSatuan = $detail->poDetail ? floatval($detail->poDetail->harga_satuan) : 0;
-                    $hargaSatuan = ($poFaktor > 0) ? (($poHargaSatuan / poFaktor) * $detailFaktor) : $poHargaSatuan;
+                    $hargaSatuan = ($poFaktor > 0) ? (($poHargaSatuan / $poFaktor) * $detailFaktor) : $poHargaSatuan;
 
                     $diskonItemPO = $detail->poDetail ? floatval($detail->poDetail->diskon_item) : 0;
-                    $diskonItem = ($poFaktor > 0) ? (($diskonItemPO / poFaktor) * $detailFaktor) : $diskonItemPO;
+                    $diskonItem = ($poFaktor > 0) ? (($diskonItemPO / $poFaktor) * $detailFaktor) : $diskonItemPO;
+
+                    $diskonTipe = $detail->poDetail ? ($detail->poDetail->diskon_tipe ?? 'percent') : 'percent';
+                    $diskonPersen = $detail->poDetail ? floatval($detail->poDetail->diskon_persen ?? 0) : 0;
+
+                    $diskonDisplayText = '0';
+                    $hasDiskon = false;
+
+                    if ($diskonTipe === 'percent') {
+                        if ($diskonPersen > 0) {
+                            $hasDiskon = true;
+                            $diskonDisplayText = ((floor($diskonPersen) == $diskonPersen) ? number_format($diskonPersen, 0) : rtrim(rtrim(number_format($diskonPersen, 2, '.', ','), '0'), '.')) . '%';
+                        } elseif ($diskonItem > 0) {
+                            $hasDiskon = true;
+                            if ($currSymbol === 'Rp') {
+                                $diskonDisplayText = 'Rp ' . ((floor($diskonItem) == $diskonItem) ? number_format($diskonItem, 0, ',', '.') : number_format($diskonItem, 2, ',', '.'));
+                            } else {
+                                $diskonDisplayText = $currSymbol . ' ' . number_format($diskonItem, 2, '.', ',');
+                            }
+                        }
+                    } else {
+                        // diskonTipe === 'nominal'
+                        if ($diskonItem > 0) {
+                            $hasDiskon = true;
+                            if ($currSymbol === 'Rp') {
+                                $diskonDisplayText = 'Rp ' . ((floor($diskonItem) == $diskonItem) ? number_format($diskonItem, 0, ',', '.') : number_format($diskonItem, 2, ',', '.'));
+                            } else {
+                                $diskonDisplayText = $currSymbol . ' ' . number_format($diskonItem, 2, '.', ',');
+                            }
+                        } elseif ($diskonPersen > 0) {
+                            $hasDiskon = true;
+                            $diskonDisplayText = ((floor($diskonPersen) == $diskonPersen) ? number_format($diskonPersen, 0) : rtrim(rtrim(number_format($diskonPersen, 2, '.', ','), '0'), '.')) . '%';
+                        }
+                    }
 
                     $hargaNetto  = max(0, $hargaSatuan - $diskonItem);
                     $subtotalRow = $qtyReceived * $hargaNetto;
                     $subtotalReport += $subtotalRow;
 
-                    $taxRateRow = ($goodsReceipt->po && $goodsReceipt->po->pajak) ? floatval($goodsReceipt->po->pajak->tarif) : 0;
+                    $taxRateRow = $detail->poDetail ? floatval($detail->poDetail->tarif_ppn) : 0;
+                    $taxRowVal  = round($subtotalRow * ($taxRateRow / 100), 2);
+                    $totalTaxReport += $taxRowVal;
+
                     $fmtQ = function($v) {
-                        return (floor($v) == $v) ? number_format($v, 0, '.', ',') : rtrim(rtrim(number_format($v, 4, '.', ','), '0'), '.');
+                        $rv = round($v, 2);
+                        return (floor($rv) == $rv) ? number_format($rv, 0, '.', ',') : rtrim(rtrim(number_format($rv, 2, '.', ','), '0'), '.');
                     };
                 @endphp
                 <tr>
@@ -609,7 +716,13 @@
                         @endif
                     </td>
                     <td class="text-right editable-text">{{ number_format($hargaSatuan, 2, '.', ',') }}</td>
-                    <td class="text-right editable-text">{{ number_format($diskonItem, 2, '.', ',') }}</td>
+                    <td class="text-right editable-text" style="white-space: nowrap;">
+                        @if($hasDiskon)
+                            <span style="color: #dc2626; font-weight: 600;">{{ $diskonDisplayText }}</span>
+                        @else
+                            <span class="text-muted">0</span>
+                        @endif
+                    </td>
                     <td class="text-right editable-text">{{ number_format($subtotalRow, 2, '.', ',') }}</td>
                     <td class="text-right editable-text">{{ number_format($taxRateRow, 2, '.', ',') }}</td>
                 </tr>
@@ -619,15 +732,68 @@
 
         <!-- FOOTER TERBILANG & SALDO SUMMARY -->
         @php
-            $taxRateHeader = ($goodsReceipt->po && $goodsReceipt->po->pajak) ? floatval($goodsReceipt->po->pajak->tarif) : 0;
-            $totalTaxReport = $subtotalReport * ($taxRateHeader / 100);
-            $grandTotalReport = $subtotalReport + $totalTaxReport;
+            $poSubtotal = floatval($goodsReceipt->po->subtotal ?? 0);
+            $ratio = $poSubtotal > 0 ? ($subtotalReport / $poSubtotal) : 1;
+            $isFull = abs($ratio - 1) < 0.0001;
+
+            $poPphTarif = $goodsReceipt->po ? floatval($goodsReceipt->po->tarif_pph ?? 0) : 0;
+            $poPphNominal = $goodsReceipt->po ? floatval($goodsReceipt->po->pph_nominal ?? $goodsReceipt->po->total_pph ?? 0) : 0;
+            $poPphNama = ($goodsReceipt->po && $goodsReceipt->po->pphPajak) ? $goodsReceipt->po->pphPajak->nama_pajak : ($poPphTarif > 0 ? "PPh {$poPphTarif}%" : 'PPh');
+
+            $pphReport = 0;
+            if ($poPphTarif > 0) {
+                $pphReport = round($subtotalReport * ($poPphTarif / 100), 2);
+            } elseif ($poPphNominal > 0) {
+                $pphReport = $isFull ? $poPphNominal : round($poPphNominal * $ratio, 2);
+            }
+
+            $poBiayaLain = floatval($goodsReceipt->po->biaya_lain ?? 0);
+            $biayaLainReport = $isFull ? $poBiayaLain : round($poBiayaLain * $ratio, 2);
+            $deskripsiBiayaLain = $goodsReceipt->po->deskripsi_biaya_lain ?? 'Biaya Lain';
+
+            $poDp = floatval($goodsReceipt->po->down_payment ?? 0);
+            $dpReport = $isFull ? $poDp : round($poDp * $ratio, 2);
+
+            $totalSebelumDpReport = max(0, $subtotalReport + $totalTaxReport + $biayaLainReport - $pphReport);
+            $grandTotalReport = max(0, $totalSebelumDpReport - $dpReport);
             $grandTotalIdrReport = $grandTotalReport * $grKurs;
-            $terbilangTeks = terbilangRupiahGR($isValas ? $grandTotalIdrReport : $grandTotalReport) . ' Rupiah';
+            $terbilangTeks = $isValas 
+                ? (terbilangRupiahGR($grandTotalReport) . ' ' . $namaMataUang . ' (Setara ' . terbilangRupiahGR($grandTotalIdrReport) . ' Rupiah)')
+                : (terbilangRupiahGR($grandTotalReport) . ' Rupiah');
         @endphp
 
         <div class="footer-summary-container">
             <div class="summary-top-line"></div>
+            @if($biayaLainReport > 0)
+            <div style="display: flex; justify-content: flex-end; font-size: 11px; margin-bottom: 4px;">
+                <div style="display: flex; align-items: center; min-width: 280px;">
+                    <span style="width: 120px; text-align: left; color: #475569; font-weight: 600;">{{ $deskripsiBiayaLain }}</span>
+                    <span style="width: 20px; text-align: center;">:</span>
+                    <span style="width: 30px; text-align: left; color: #475569;">+{{ $currSymbol }}</span>
+                    <span style="font-weight: 700; text-align: right; flex: 1; color: #0f172a;" class="editable-text">{{ number_format($biayaLainReport, 2, '.', ',') }}</span>
+                </div>
+            </div>
+            @endif
+            @if($pphReport > 0)
+            <div style="display: flex; justify-content: flex-end; font-size: 11px; margin-bottom: 4px;">
+                <div style="display: flex; align-items: center; min-width: 280px;">
+                    <span style="width: 120px; text-align: left; color: #b45309; font-weight: 600;">{{ $poPphNama }}</span>
+                    <span style="width: 20px; text-align: center;">:</span>
+                    <span style="width: 30px; text-align: left; color: #b45309;">-{{ $currSymbol }}</span>
+                    <span style="font-weight: 700; text-align: right; flex: 1; color: #b45309;" class="editable-text">{{ number_format($pphReport, 2, '.', ',') }}</span>
+                </div>
+            </div>
+            @endif
+            @if($dpReport > 0)
+            <div style="display: flex; justify-content: flex-end; font-size: 11px; margin-bottom: 4px;">
+                <div style="display: flex; align-items: center; min-width: 280px;">
+                    <span style="width: 120px; text-align: left; color: #0284c7; font-weight: 600;">Uang Muka (DP)</span>
+                    <span style="width: 20px; text-align: center;">:</span>
+                    <span style="width: 30px; text-align: left; color: #0284c7;">-{{ $currSymbol }}</span>
+                    <span style="font-weight: 700; text-align: right; flex: 1; color: #0284c7;" class="editable-text">{{ number_format($dpReport, 2, '.', ',') }}</span>
+                </div>
+            </div>
+            @endif
             <div class="summary-flex-row">
                 <div class="terbilang-box">
                     <span>Terbilang : </span>

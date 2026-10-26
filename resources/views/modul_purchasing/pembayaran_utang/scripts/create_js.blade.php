@@ -1,7 +1,18 @@
 <script>
 $(document).ready(function () {
 
-    // ===== NUMBER & CURRENCY FORMATTING HELPERS =====
+    // ===== XSS PREVENTION HELPER =====
+    function escapeHtml(text) {
+        if (text === null || text === undefined) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // ===== NUMBER & CURRENCY FORMATTING HELPERS (DUA DESIMAL & FLEKSIBEL . / ,) =====
     function formatRp(num) {
         return 'Rp ' + Number(num || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
@@ -10,11 +21,37 @@ $(document).ready(function () {
         let opt = $('#createCurrencyId').find(':selected');
         let code = opt.data('code') || 'IDR';
         let symbol = opt.data('symbol') || (code === 'IDR' ? 'Rp' : code);
-        let kurs = parseFloat($('#createKurs').val() || 1);
-        if (isNaN(kurs) || kurs <= 0) kurs = 1;
+        let kurs = (code === 'IDR') ? 1 : (parseMoney($('#createKurs').val()) || 1);
         let isForeign = (code !== 'IDR');
 
         return { code, symbol, kurs, isForeign };
+    }
+
+    function syncCreateCurrencyState(targetKurs = null) {
+        let opt = $('#createCurrencyId').find(':selected');
+        let code = opt.data('code') || 'IDR';
+        let kursInput = $('#createKurs');
+
+        if (code === 'IDR') {
+            kursInput.val('1')
+                     .prop('readonly', true)
+                     .addClass('bg-body-secondary text-muted');
+        } else {
+            kursInput.prop('readonly', false)
+                     .removeClass('bg-body-secondary text-muted');
+
+            if (targetKurs !== null && targetKurs !== undefined && targetKurs !== '') {
+                kursInput.val(formatMoneyVal(targetKurs));
+            } else {
+                let currentVal = parseMoney(kursInput.val());
+                if (!currentVal || currentVal === 1) {
+                    kursInput.val('16.000,00');
+                } else {
+                    kursInput.val(formatMoneyVal(currentVal));
+                }
+            }
+        }
+        calculateCreateSummary();
     }
 
     function formatMoneyVal(val) {
@@ -22,6 +59,8 @@ $(document).ready(function () {
         let num = typeof val === 'number' ? val : parseFloat(val);
         if (isNaN(num) || num <= 0) return '';
 
+        // Presisi dua desimal
+        num = Math.round(num * 100) / 100;
         let parts = num.toFixed(2).split('.');
         let integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         let decimalPart = parts[1];
@@ -29,20 +68,48 @@ $(document).ready(function () {
         if (decimalPart === '00') {
             return integerPart;
         }
-        return integerPart + ',' + decimalPart.replace(/0+$/, '');
+        return integerPart + ',' + decimalPart;
     }
 
     function parseMoney(str) {
-        if (!str) return 0;
-        if (typeof str === 'number') return str;
-        let clean = str.toString().replace(/\./g, '').replace(/,/g, '.').replace(/[^\d.-]/g, '');
+        if (!str && str !== 0) return 0;
+        if (typeof str === 'number') return isNaN(str) ? 0 : Math.round(str * 100) / 100;
+        let s = str.toString().trim();
+        if (!s) return 0;
+
+        // Mendukung desimal titik (.) jika tidak ada koma e.g. "16.65"
+        if (s.includes('.') && !s.includes(',')) {
+            let dotParts = s.split('.');
+            if (dotParts.length === 2 && dotParts[1].length <= 2) {
+                let val = parseFloat(dotParts[0].replace(/\D/g, '') + '.' + dotParts[1].replace(/\D/g, ''));
+                return isNaN(val) ? 0 : Math.round(val * 100) / 100;
+            }
+        }
+
+        // Format standar Indonesia: . adalah pemisah ribuan, , adalah desimal
+        let clean = s.replace(/\./g, '').replace(/,/g, '.').replace(/[^\d.-]/g, '');
         let val = parseFloat(clean);
-        return isNaN(val) ? 0 : val;
+        return isNaN(val) ? 0 : Math.round(val * 100) / 100;
     }
 
     function maskMoneyInput(str) {
         if (!str) return '';
-        let clean = str.toString().replace(/[^\d,]/g, '');
+        let s = str.toString();
+
+        // Otomatis ubah titik menjadi koma desimal jika diketik sebagai desimal (e.g. 16.65)
+        if (s.includes('.') && !s.includes(',')) {
+            let dotParts = s.split('.');
+            if (dotParts.length === 2 && dotParts[1].length <= 2) {
+                s = dotParts[0] + ',' + dotParts[1];
+            } else if (dotParts.length > 2) {
+                s = dotParts.join('');
+            }
+        } else if (s.includes('.') && s.includes(',')) {
+            // Ada titik dan koma -> titik adalah ribuan, bersihkan
+            s = s.replace(/\./g, '');
+        }
+
+        let clean = s.replace(/[^\d,]/g, '');
         let commaParts = clean.split(',');
         let intPart = commaParts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
@@ -80,6 +147,24 @@ $(document).ready(function () {
         }
     }
 
+    // Intercept keyboard titik (.) pada input nominal agar langsung mengetik koma (,) desimal
+    $(document).on('keydown', '.money-input', function (e) {
+        if (e.key === '.' || e.keyCode === 190 || e.keyCode === 110) {
+            e.preventDefault();
+            let input = this;
+            let val = $(this).val();
+            if (!val.includes(',')) {
+                let start = input.selectionStart;
+                let end = input.selectionEnd;
+                let newVal = val.substring(0, start) + ',' + val.substring(end);
+                $(this).val(newVal).trigger('input');
+                if (input.setSelectionRange) {
+                    input.setSelectionRange(start + 1, start + 1);
+                }
+            }
+        }
+    });
+
     // ===== SELECT2 INITIALIZATION =====
     function initCreateSelect2() {
         if ($.fn.select2) {
@@ -95,6 +180,14 @@ $(document).ready(function () {
                 theme: 'bootstrap-5',
                 dropdownParent: $('#modalCreatePayment'),
                 placeholder: '-- Cari & Pilih Akun Kas / Bank --',
+                allowClear: true,
+                width: '100%'
+            });
+
+            $('#createPotonganCoaId').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#modalCreatePayment'),
+                placeholder: '-- Cari & Pilih Akun COA Potongan --',
                 allowClear: true,
                 width: '100%'
             });
@@ -202,17 +295,26 @@ $(document).ready(function () {
         $('#createSummaryKasWarning').hide().empty();
         $('#createKasBankId').removeClass('is-invalid border-danger');
         $('#btnSubmitCreatePost').prop('disabled', false).removeClass('opacity-50');
+
         $('#createSupplierId').val('').trigger('change');
         $('#createKasBankId').val('').trigger('change');
         $('#createPaymentMethodId').val('');
         $('#createTanggalBayar').val(new Date().toISOString().substring(0, 10));
         $('#createCurrencyId').val($('#createCurrencyId option[data-code="IDR"]').val() || $('#createCurrencyId option:first').val());
-        $('#createKurs').val('1.0000');
+        syncCreateCurrencyState(1);
         $('#createLampiran').val('');
         $('#createLampiranCameraInput').val('');
         $('#createLampiranPreviewWrapper').addClass('d-none');
         $('#createUploadActions').removeClass('d-none');
         $('#searchTableCreateInvoice').val('');
+
+        if ($.fn.select2 && $('#createPotonganCoaId').hasClass('select2-hidden-accessible')) {
+            $('#createPotonganCoaId').val('{{ $defaultPotonganCoaId ?? '' }}').trigger('change.select2');
+        } else {
+            $('#createPotonganCoaId').val('{{ $defaultPotonganCoaId ?? '' }}');
+        }
+        $('#createContainerPotonganCoa').addClass('d-none');
+
         calculateCreateSummary();
 
         // Fetch new payment voucher number
@@ -244,11 +346,22 @@ $(document).ready(function () {
     });
 
     // ===== CURRENCY OR KURS CHANGE -> UPDATE SUMMARY =====
-    $('#createCurrencyId, #createKurs').on('input change', function () {
+    $('#createCurrencyId').on('change', function () {
+        syncCreateCurrencyState();
+    });
+
+    $('#createKurs').on('input keyup paste change', function () {
+        let opt = $('#createCurrencyId').find(':selected');
+        let code = opt.data('code') || 'IDR';
+        if (code === 'IDR') {
+            $(this).val('1');
+        } else {
+            applyLiveMoneyMask($(this));
+        }
         calculateCreateSummary();
     });
 
-    // ===== ON SUPPLIER CHANGE -> FETCH UNPAID INVOICES & SHOW BANK INFO =====
+    // ===== ON SUPPLIER CHANGE -> FETCH UNPAID INVOICES =====
     $('#createSupplierId').on('change', function () {
         let opt = $(this).find(':selected');
         let bank = opt.data('bank') || '';
@@ -310,12 +423,12 @@ $(document).ready(function () {
                     if (res.invoices[0].currency_id) {
                         $('#createCurrencyId').val(res.invoices[0].currency_id);
                     }
-                    if (res.invoices[0].kurs) {
-                        $('#createKurs').val(res.invoices[0].kurs);
-                    }
                     if (res.invoices[0].payment_method_id) {
                         $('#createPaymentMethodId').val(res.invoices[0].payment_method_id);
                     }
+                    syncCreateCurrencyState(res.invoices[0].kurs);
+                } else {
+                    syncCreateCurrencyState();
                 }
 
                 let curInfo = getSelectedCurrencyInfo();
@@ -334,27 +447,36 @@ $(document).ready(function () {
                         ? `<div class="fw-bold">${inv.currency_symbol || '$'} ${Number(inv.grand_total).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</div><small class="text-muted d-block" style="font-size:0.72rem;">≈ Rp ${Number(inv.grand_total * invKurs).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</small>`
                         : `Rp ${Number(inv.grand_total).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
 
+                    let paidAmount = parseFloat(inv.paid_amount || 0);
+                    let terbayarDisplay = isForeign 
+                        ? `<div class="fw-bold text-success">${inv.currency_symbol || '$'} ${Number(paidAmount).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</div><small class="text-muted d-block" style="font-size:0.72rem;">≈ Rp ${Number(paidAmount * invKurs).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</small>`
+                        : `<span class="text-success fw-semibold">Rp ${Number(paidAmount).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</span>`;
+
                     let sisaUtangDisplay = isForeign 
                         ? `<div class="fw-bold text-dark">${inv.currency_symbol || '$'} ${Number(inv.remaining_balance).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</div><small class="text-muted d-block" style="font-size:0.72rem;">≈ Rp ${Number(inv.remaining_balance * invKurs).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</small>`
                         : `Rp ${Number(inv.remaining_balance).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
 
-                    let tr = `
-                        <tr data-invoice-id="${inv.id}" data-currency-id="${inv.currency_id || ''}" data-kurs="${inv.kurs || 1}" data-payment-method-id="${inv.payment_method_id || ''}" data-search="${(inv.nomor_faktur + ' ' + (inv.nomor_faktur_supplier || '')).toLowerCase()}" data-sisa-utang="${inv.remaining_balance}" data-is-overdue="${inv.is_overdue ? '1' : '0'}" class="${shouldCheck ? 'table-primary' : ''}">
+                    let initialBayar = shouldCheck ? formatMoneyVal(inv.remaining_balance) : '';
+
+                    let tr = $(`
+                        <tr data-invoice-id="${inv.id}" data-currency-id="${inv.currency_id || ''}" data-kurs="${inv.kurs || 1}" data-payment-method-id="${inv.payment_method_id || ''}" data-search="${escapeHtml(inv.nomor_faktur + ' ' + (inv.nomor_faktur_supplier || '') + ' ' + (inv.nomor_tender || '')).toLowerCase()}" data-sisa-utang="${inv.remaining_balance}" data-is-overdue="${inv.is_overdue ? '1' : '0'}" class="${shouldCheck ? 'table-primary' : ''}">
                             <td class="text-center">
                                 <input class="form-check-input check-create-invoice" type="checkbox" data-id="${inv.id}" ${shouldCheck ? 'checked' : ''}>
                             </td>
                             <td>
-                                <div class="fw-bold text-dark">${inv.nomor_faktur}</div>
-                                <small class="text-muted">No. Supp: ${inv.nomor_faktur_supplier}</small>
+                                <div class="fw-bold text-dark">${escapeHtml(inv.nomor_faktur)}</div>
+                                <small class="text-muted">No. Supp: ${escapeHtml(inv.nomor_faktur_supplier || '-')}</small>
+                                ${inv.nomor_tender ? `<div class="mt-0.5"><span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning-subtle font-monospace px-1.5 py-0.5 rounded-pill" style="font-size: 0.68rem;" title="Terkait Proyek Tender"><i class="bi bi-briefcase me-1"></i>${escapeHtml(inv.nomor_tender)}</span></div>` : ''}
                             </td>
                             <td>${inv.tanggal_faktur}</td>
                             <td>${overdueBadge}</td>
                             <td class="text-end fw-semibold">${totalFakturDisplay}</td>
+                            <td class="text-end fw-bold text-success col-terbayar">${terbayarDisplay}</td>
                             <td class="text-end fw-bold text-dark col-sisa-utang">${sisaUtangDisplay}</td>
                             <td class="text-end">
                                 <input type="text" 
                                     class="form-control form-control-sm text-end input-bayar money-input" 
-                                    value="" placeholder="0">
+                                    value="${initialBayar}" placeholder="0">
                             </td>
                             <td class="text-end">
                                 <input type="text" 
@@ -366,11 +488,15 @@ $(document).ready(function () {
                             </td>
                             <td>
                                 <input type="text" class="form-control form-control-sm input-catatan" 
-                                    placeholder="Catatan...">
+                                    maxlength="40" placeholder="Catatan (maks 40)...">
                             </td>
                         </tr>
-                    `;
+                    `);
                     tbody.append(tr);
+
+                    if (shouldCheck) {
+                        updateRowCalculations(tr);
+                    }
                 });
 
                 $('#createInvoiceFilterCount').text(`Total ${res.invoices.length} faktur tersedia`);
@@ -401,7 +527,7 @@ $(document).ready(function () {
 
         tbody.html(`
             <tr>
-                <td colspan="9" class="text-center py-4 text-muted">
+                <td colspan="10" class="text-center py-4 text-muted">
                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                     <span>Memuat daftar faktur pembelian...</span>
                 </td>
@@ -422,7 +548,7 @@ $(document).ready(function () {
                 if (!res.invoices || res.invoices.length === 0) {
                     tbody.html(`
                         <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">
+                            <td colspan="10" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-2 opacity-50 d-block mb-2"></i>
                                 <div class="fw-semibold">Tidak Ditemukan Faktur Pembelian Belum Lunas</div>
                                 <small>Coba sesuaikan filter kata kunci pencarian atau supplier.</small>
@@ -444,28 +570,35 @@ $(document).ready(function () {
                         ? `<div class="fw-bold">${inv.currency_symbol || '$'} ${Number(inv.grand_total).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</div><small class="text-muted d-block" style="font-size:0.72rem;">≈ Rp ${Number(inv.grand_total * invKurs).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</small>`
                         : `Rp ${Number(inv.grand_total).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
 
+                    let paidAmount = parseFloat(inv.paid_amount || 0);
+                    let terbayarDisplay = isForeign 
+                        ? `<div class="fw-bold text-success">${inv.currency_symbol || '$'} ${Number(paidAmount).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</div><small class="text-muted d-block" style="font-size:0.72rem;">≈ Rp ${Number(paidAmount * invKurs).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</small>`
+                        : `<span class="text-success fw-semibold">Rp ${Number(paidAmount).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</span>`;
+
                     let sisaUtangDisplay = isForeign 
                         ? `<div class="fw-bold text-primary">${inv.currency_symbol || '$'} ${Number(inv.remaining_balance).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</div><small class="text-muted d-block" style="font-size:0.72rem;">≈ Rp ${Number(inv.remaining_balance * invKurs).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}</small>`
                         : `Rp ${Number(inv.remaining_balance).toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
 
                     let tr = `
-                        <tr data-supplier-id="${inv.supplier_id}" data-supplier-name="${inv.supplier_name}" data-currency-id="${inv.currency_id || ''}" data-kurs="${inv.kurs || 1}" data-payment-method-id="${inv.payment_method_id || ''}" data-sisa-utang="${inv.remaining_balance}">
+                        <tr data-supplier-id="${inv.supplier_id}" data-supplier-name="${escapeHtml(inv.supplier_name)}" data-currency-id="${inv.currency_id || ''}" data-kurs="${inv.kurs || 1}" data-payment-method-id="${inv.payment_method_id || ''}" data-sisa-utang="${inv.remaining_balance}">
                             <td class="text-center">
-                                <input class="form-check-input check-lookup-item" type="checkbox" value="${inv.id}" data-supplier-id="${inv.supplier_id}" data-supplier-name="${inv.supplier_name}" data-currency-id="${inv.currency_id || ''}" data-kurs="${inv.kurs || 1}" data-payment-method-id="${inv.payment_method_id || ''}">
+                                <input class="form-check-input check-lookup-item" type="checkbox" value="${inv.id}" data-supplier-id="${inv.supplier_id}" data-supplier-name="${escapeHtml(inv.supplier_name)}" data-currency-id="${inv.currency_id || ''}" data-kurs="${inv.kurs || 1}" data-payment-method-id="${inv.payment_method_id || ''}">
                             </td>
                             <td>
-                                <div class="fw-bold text-dark">${inv.nomor_faktur}</div>
+                                <div class="fw-bold text-dark">${escapeHtml(inv.nomor_faktur)}</div>
+                                ${inv.nomor_tender ? `<div class="mt-0.5"><span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning-subtle font-monospace px-1.5 py-0.5 rounded-pill" style="font-size: 0.68rem;" title="Terkait Proyek Tender"><i class="bi bi-briefcase me-1"></i>${escapeHtml(inv.nomor_tender)}</span></div>` : ''}
                             </td>
                             <td>
-                                <span class="text-muted font-monospace">${inv.nomor_faktur_supplier || '-'}</span>
+                                <span class="text-muted font-monospace">${escapeHtml(inv.nomor_faktur_supplier || '-')}</span>
                             </td>
                             <td>
-                                <div class="fw-semibold text-dark">${inv.supplier_name}</div>
-                                <small class="text-muted">${inv.supplier_code}</small>
+                                <div class="fw-semibold text-dark">${escapeHtml(inv.supplier_name)}</div>
+                                <small class="text-muted">${escapeHtml(inv.supplier_code)}</small>
                             </td>
                             <td>${inv.tanggal_faktur}</td>
                             <td>${overdueBadge}</td>
                             <td class="text-end fw-semibold">${totalFakturDisplay}</td>
+                            <td class="text-end fw-bold text-success">${terbayarDisplay}</td>
                             <td class="text-end fw-bold text-primary">${sisaUtangDisplay}</td>
                             <td class="text-center">${overdueBadge}</td>
                         </tr>
@@ -477,7 +610,7 @@ $(document).ready(function () {
                 let msg = xhr.responseJSON?.message || 'Gagal memuat data faktur!';
                 tbody.html(`
                     <tr>
-                        <td colspan="9" class="text-center py-4 text-danger">
+                        <td colspan="10" class="text-center py-4 text-danger">
                             <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i> ${msg}
                         </td>
                     </tr>
@@ -560,15 +693,30 @@ $(document).ready(function () {
         if (invCurrencyId) {
             $('#createCurrencyId').val(invCurrencyId);
         }
-        if (invKurs) {
-            $('#createKurs').val(invKurs);
-        }
         if (invPaymentMethodId) {
             $('#createPaymentMethodId').val(invPaymentMethodId);
         }
+        syncCreateCurrencyState(invKurs);
 
-        // Set supplier dropdown & load invoices with empty initial amount
-        $('#createSupplierId').val(selectedSupplierId).trigger('change');
+        // Set supplier in dropdown
+        if ($.fn.select2 && $('#createSupplierId').hasClass('select2-hidden-accessible')) {
+            $('#createSupplierId').val(selectedSupplierId).trigger('change.select2');
+        } else {
+            $('#createSupplierId').val(selectedSupplierId);
+        }
+
+        // Show supplier bank info
+        let opt = $('#createSupplierId').find(':selected');
+        let bank = opt.data('bank') || '';
+        if (bank) {
+            $('#createSupplierBankInfo').html(`
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2 py-1">
+                    <i class="bi bi-bank me-1"></i>Rek. Tujuan: <strong>${bank}</strong>
+                </span>
+            `).show();
+        } else {
+            $('#createSupplierBankInfo').hide().empty();
+        }
 
         // Reload supplier invoices and pre-check selected ones
         loadSupplierUnpaidInvoices(selectedSupplierId, selectedInvoiceIds);
@@ -608,12 +756,10 @@ $(document).ready(function () {
             if (invCur) {
                 $('#createCurrencyId').val(invCur);
             }
-            if (invKurs) {
-                $('#createKurs').val(invKurs);
-            }
             if (invPm) {
                 $('#createPaymentMethodId').val(invPm);
             }
+            syncCreateCurrencyState(invKurs);
             tr.find('.input-bayar').focus();
         } else {
             tr.removeClass('table-primary');
@@ -690,19 +836,17 @@ $(document).ready(function () {
             if (invCur) {
                 $('#createCurrencyId').val(invCur);
             }
-            if (invKurs) {
-                $('#createKurs').val(invKurs);
-            }
             if (invPm) {
                 $('#createPaymentMethodId').val(invPm);
             }
+            syncCreateCurrencyState(invKurs);
         } else {
             tr.find('.check-create-invoice').prop('checked', false);
             tr.removeClass('table-primary');
         }
 
-        // Clamping to avoid exceeding remaining debt
-        if ((bayarVal + potongVal) > sisaUtang) {
+        // Clamping to avoid exceeding remaining debt (with slight float margin)
+        if ((bayarVal + potongVal) > (sisaUtang + 0.005)) {
             if ($(this).hasClass('input-bayar')) {
                 bayarVal = Math.max(0, sisaUtang - potongVal);
                 bayarInput.val(formatMoneyVal(bayarVal));
@@ -779,6 +923,10 @@ $(document).ready(function () {
         let totalPotonganIdr = totalPotongan * curInfo.kurs;
         let totalBayarIdr    = totalBayar * curInfo.kurs;
 
+        let symLabel = curInfo.isForeign ? `(${curInfo.symbol})` : '(Rp)';
+        $('#thCreateJumlahBayar').text(`Jumlah Bayar ${symLabel}`);
+        $('#thCreatePotongan').text(`Potongan ${symLabel}`);
+
         $('#createSummaryCount').text(`${selectedCount} Faktur`);
 
         if (curInfo.isForeign) {
@@ -807,6 +955,22 @@ $(document).ready(function () {
             $('#createSummaryTotalUtang').text(formatRp(totalUtang));
             $('#createSummaryTotalPotongan').text(formatRp(totalPotongan));
             $('#createSummaryTotalBayar').text(formatRp(totalBayar));
+        }
+
+        // Toggle Akun COA Potongan field (Hanya aktif/tampil jika ada potongan)
+        if (totalPotongan > 0) {
+            $('#createContainerPotonganCoa').removeClass('d-none');
+            if ($.fn.select2 && !$('#createPotonganCoaId').hasClass('select2-hidden-accessible')) {
+                $('#createPotonganCoaId').select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: $('#modalCreatePayment'),
+                    placeholder: '-- Cari & Pilih Akun COA Potongan --',
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+        } else {
+            $('#createContainerPotonganCoa').addClass('d-none');
         }
 
         validateCreateKasBalance(totalBayar);
@@ -840,7 +1004,7 @@ $(document).ready(function () {
             // 1. Top Warning Alert Banner
             $('#createSaldoWarningText').html(`
                 <span class="fw-bold"><i class="bi bi-exclamation-octagon-fill me-1"></i>Peringatan: Saldo Kas/Bank Tidak Mencukupi!</span><br>
-                Nominal pembayaran (<strong>${displayBayar}</strong>) melebihi saldo akun <strong>${namaKas}</strong> yang tersedia (<strong>${formatRp(saldoKas)}</strong>). Kekurangan dana: <strong class="text-danger">${formatRp(shortageIdr)}</strong>. Saldo tidak boleh minus saat posting!
+                Nominal pembayaran (<strong>${displayBayar}</strong>) melebihi saldo akun <strong>${namaKas}</strong> yang tersedia (<strong>${formatRp(saldoKas)}</strong>). Kekurangan dana: <strong class="text-danger">${formatRp(shortageIdr)}</strong>. Saldo tidak mencukupi untuk disimpan sebagai draf, diajukan, maupun diposting!
             `);
             $('#createSaldoWarning').removeClass('d-none').addClass('d-flex');
 
@@ -857,8 +1021,8 @@ $(document).ready(function () {
                 <i class="bi bi-exclamation-octagon-fill me-1"></i> Saldo Kas Kurang: ${formatRp(shortageIdr)}
             `).show();
 
-            // 4. Disable submit post button
-            $('#btnSubmitCreatePost').prop('disabled', true).addClass('opacity-50');
+            // 4. Disable all submit buttons (Draft, Ajukan, Posting)
+            $('#btnSubmitCreateDraft, #btnSubmitCreateSubmit, #btnSubmitCreatePost').prop('disabled', true).addClass('opacity-50');
             return false;
         } else {
             $('#createSaldoWarning').addClass('d-none').removeClass('d-flex');
@@ -876,19 +1040,36 @@ $(document).ready(function () {
                 $('#createKasBankSaldoInfo').hide().empty();
             }
 
-            $('#btnSubmitCreatePost').prop('disabled', false).removeClass('opacity-50');
+            // Enable all submit buttons
+            $('#btnSubmitCreateDraft, #btnSubmitCreateSubmit, #btnSubmitCreatePost').prop('disabled', false).removeClass('opacity-50');
             return true;
         }
     }
 
     // ===== SUBMIT CREATE DRAFT =====
     $('#btnSubmitCreateDraft').on('click', function () {
+        if (!validateCreateKasBalance()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Saldo Kas / Bank Tidak Mencukupi',
+                text: 'Nominal pembayaran melebihi saldo kas/bank yang tersedia. Transaksi tidak dapat disimpan baik sebagai draf maupun diajukan.'
+            });
+            return;
+        }
         $('#createActionType').val('draft');
         submitCreateForm();
     });
 
     // ===== SUBMIT CREATE AJUKAN (SUBMISSION FOR APPROVAL) =====
     $('#btnSubmitCreateSubmit').on('click', function () {
+        if (!validateCreateKasBalance()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Saldo Kas / Bank Tidak Mencukupi',
+                text: 'Nominal pembayaran melebihi saldo kas/bank yang tersedia. Transaksi tidak dapat disimpan baik sebagai draf maupun diajukan.'
+            });
+            return;
+        }
         $('#createActionType').val('submit');
 
         Swal.fire({
@@ -995,6 +1176,47 @@ $(document).ready(function () {
             return;
         }
 
+        // Security Balance Guard (Anti-Minus)
+        if (!validateCreateKasBalance(totalBayar)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Saldo Kas / Bank Tidak Mencukupi',
+                text: 'Nominal pembayaran melebihi saldo kas/bank yang tersedia. Transaksi tidak dapat disimpan baik sebagai draf maupun diajukan.'
+            });
+            return;
+        }
+
+        let noRef = ($('#createNomorReferensi').val() || '').trim();
+        if (noRef.length > 30) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No. Referensi / Giro Terlalu Panjang',
+                text: 'Nomor referensi / giro maksimal 30 karakter.'
+            });
+            return;
+        }
+
+        let ket = ($('#createKeterangan').val() || '').trim();
+        if (ket.length > 40) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Keterangan Terlalu Panjang',
+                text: 'Keterangan / catatan pembayaran maksimal 40 karakter.'
+            });
+            return;
+        }
+
+        for (let inv of invoices) {
+            if ((inv.catatan || '').length > 40) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Catatan Faktur Terlalu Panjang',
+                    text: 'Catatan per faktur maksimal 40 karakter.'
+                });
+                return;
+            }
+        }
+
         let formData = new FormData();
         formData.append('nomor_pembayaran', $('#createNomorPembayaran').val());
         formData.append('supplier_id', supplierId);
@@ -1003,14 +1225,34 @@ $(document).ready(function () {
         formData.append('payment_method_id', $('#createPaymentMethodId').val() || '');
         formData.append('nomor_referensi', $('#createNomorReferensi').val() || '');
         formData.append('currency_id', $('#createCurrencyId').val() || '');
-        formData.append('kurs', $('#createKurs').val() || 1);
+        formData.append('kurs', parseMoney($('#createKurs').val()) || 1);
         formData.append('keterangan', $('#createKeterangan').val() || '');
         formData.append('action_type', $('#createActionType').val());
 
-        let lampiranFile = $('#createLampiran')[0].files[0] || $('#createLampiranCameraInput')[0].files[0];
-        if (lampiranFile) {
-            formData.append('lampiran', lampiranFile);
+        let totalPotongan = invoices.reduce((acc, inv) => acc + (parseFloat(inv.potongan) || 0), 0);
+        if (totalPotongan > 0) {
+            let coaId = $('#createPotonganCoaId').val();
+            if (!coaId) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Akun COA Potongan Wajib Dipilih',
+                    text: 'Terdapat potongan/diskon pada faktur terpilih. Silakan pilih akun COA untuk alokasi potongan jurnal.'
+                });
+                return;
+            }
+            formData.append('potongan_coa_id', coaId);
         }
+
+        let lampiranFile = $('#createLampiran')[0].files[0] || $('#createLampiranCameraInput')[0].files[0];
+        if (!lampiranFile) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Dokumen Bukti Pembayaran Wajib Diisi',
+                text: 'Silakan unggah dokumen bukti pembayaran (pilih dari berkas atau ambil foto langsung).'
+            });
+            return;
+        }
+        formData.append('lampiran', lampiranFile);
 
         invoices.forEach((inv, index) => {
             formData.append(`invoices[${index}][purchase_invoice_id]`, inv.purchase_invoice_id);
@@ -1042,6 +1284,9 @@ $(document).ready(function () {
                 });
                 $('#modalCreatePayment').modal('hide');
                 $('#tablePayments').DataTable().ajax.reload(null, false);
+                if (typeof window.broadcastPaymentUpdated === 'function') {
+                    window.broadcastPaymentUpdated();
+                }
             },
             error: function (xhr) {
                 let msg = xhr.responseJSON?.message || 'Gagal menyimpan pembayaran utang!';

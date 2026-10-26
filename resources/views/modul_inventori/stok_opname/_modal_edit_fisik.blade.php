@@ -153,7 +153,7 @@
                     <button type="button" class="btn btn-sm btn-outline-light rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" onclick="switchCamera()" title="Ganti Kamera">
                         <i class="bi bi-arrow-repeat"></i>
                     </button>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="stopCameraScanner()"></button>
                 </div>
             </div>
             <div class="modal-body p-3 text-center">
@@ -178,7 +178,7 @@
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0 justify-content-center">
-                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-4 text-white" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-4 text-white" data-bs-dismiss="modal" onclick="stopCameraScanner()">Tutup</button>
             </div>
         </div>
     </div>
@@ -642,22 +642,97 @@ function processBarcodeInput(query) {
 
 let availableCameraIds = [];
 let currentCameraIndex = 0;
+let isCameraScannerActive = false;
+let cameraSessionToken = 0;
+let cameraStartTimer = null;
 
 function switchCamera() {
     if (!availableCameraIds || availableCameraIds.length <= 1) {
         Swal.fire({ icon: 'info', title: 'Info Kamera', text: 'Hanya 1 perangkat kamera yang terdeteksi pada perangkat ini.', timer: 1500, showConfirmButton: false });
         return;
     }
+    stopCameraScanner();
     currentCameraIndex = (currentCameraIndex + 1) % availableCameraIds.length;
     startCameraScanner(availableCameraIds[currentCameraIndex]);
 }
 
-function startCameraScanner(specificCameraId = null) {
-    if (html5QrcodeScanner) {
-        try {
-            html5QrcodeScanner.clear().catch(err => console.log(err));
-        } catch (e) {}
+function stopCameraScanner() {
+    isCameraScannerActive = false;
+    cameraSessionToken++; // Invalidate any pending async camera initializations
+
+    if (cameraStartTimer) {
+        clearTimeout(cameraStartTimer);
+        cameraStartTimer = null;
     }
+
+    // 1. Force stop all video MediaStreamTracks across the entire page immediately
+    try {
+        $('video').each(function() {
+            if (this.srcObject) {
+                let stream = this.srcObject;
+                if (stream && stream.getTracks) {
+                    stream.getTracks().forEach(track => {
+                        try {
+                            track.stop();
+                            track.enabled = false;
+                        } catch(e) {}
+                    });
+                }
+                this.srcObject = null;
+            }
+            try { this.pause(); } catch(e) {}
+            this.removeAttribute('src');
+            this.load();
+        });
+    } catch(e) {}
+
+    // 2. Stop and clear Html5Qrcode instance
+    if (html5QrcodeScanner) {
+        let scanner = html5QrcodeScanner;
+        html5QrcodeScanner = null;
+
+        try {
+            let isScanning = false;
+            try {
+                if (typeof scanner.getState === 'function') {
+                    let state = scanner.getState();
+                    isScanning = (state === 2 || state === 3); // 2: SCANNING, 3: PAUSED
+                }
+            } catch(e) {}
+
+            if (isScanning || scanner.isScanning) {
+                scanner.stop().then(() => {
+                    try { scanner.clear(); } catch(e) {}
+                }).catch(err => {
+                    try { scanner.clear(); } catch(e) {}
+                }).finally(() => {
+                    try {
+                        $('video').each(function() {
+                            if (this.srcObject && this.srcObject.getTracks) {
+                                this.srcObject.getTracks().forEach(t => { try { t.stop(); t.enabled = false; } catch(e) {} });
+                                this.srcObject = null;
+                            }
+                        });
+                    } catch(e) {}
+                });
+            } else {
+                try { scanner.clear(); } catch(e) {}
+            }
+        } catch (e) {
+            try { scanner.clear(); } catch(e) {}
+        }
+    }
+
+    // 3. Clear container DOM and hide overlay
+    $('#scanner_reader').empty();
+    $('.scanner-overlay').hide();
+}
+
+function startCameraScanner(specificCameraId = null) {
+    stopCameraScanner();
+
+    isCameraScannerActive = true;
+    const currentToken = ++cameraSessionToken;
 
     $('#scanner_reader').html('<div class="d-flex align-items-center justify-content-center text-white flex-column py-5" style="min-height: 220px;"><div class="spinner-border text-success mb-2" role="status"></div><span class="small text-success">Menginisialisasi Kamera...</span></div>');
     $('.scanner-overlay').hide();
@@ -682,10 +757,15 @@ function startCameraScanner(specificCameraId = null) {
         ];
     }
 
-    html5QrcodeScanner = new Html5Qrcode("scanner_reader", {
-        formatsToSupport: allFormats.length ? allFormats : undefined,
-        verbose: false
-    });
+    try {
+        html5QrcodeScanner = new Html5Qrcode("scanner_reader", {
+            formatsToSupport: allFormats.length ? allFormats : undefined,
+            verbose: false
+        });
+    } catch(e) {
+        console.error("Gagal instansiasi Html5Qrcode:", e);
+        return;
+    }
     
     let isProcessingScan = false;
     const qrCodeSuccessCallback = (decodedText, decodedResult) => {
@@ -698,12 +778,18 @@ function startCameraScanner(specificCameraId = null) {
         $('.scanner-target-box').css('box-shadow', '0 0 35px 12px #22c55e');
 
         setTimeout(() => {
+            stopCameraScanner();
             $('#modalScanner').modal('hide');
             processBarcodeInput(decodedText);
         }, 120);
     };
 
     const proceedStart = (cameraConfig) => {
+        if (!isCameraScannerActive || currentToken !== cameraSessionToken || !$('#modalScanner').hasClass('show')) {
+            stopCameraScanner();
+            return;
+        }
+
         const scanConfig = { 
             fps: 15,
             qrbox: function(viewfinderWidth, viewfinderHeight) {
@@ -719,8 +805,16 @@ function startCameraScanner(specificCameraId = null) {
             qrCodeSuccessCallback,
             (errorMessage) => {}
         ).then(() => {
+            if (!isCameraScannerActive || currentToken !== cameraSessionToken || !$('#modalScanner').hasClass('show')) {
+                stopCameraScanner();
+                return;
+            }
             $('.scanner-overlay').fadeIn(150);
         }).catch(err => {
+            if (!isCameraScannerActive || currentToken !== cameraSessionToken || !$('#modalScanner').hasClass('show')) {
+                stopCameraScanner();
+                return;
+            }
             console.error("Camera access failed:", err);
             let cleanError = err ? err.toString() : 'Unknown Error';
             
@@ -739,6 +833,11 @@ function startCameraScanner(specificCameraId = null) {
         proceedStart(specificCameraId);
     } else {
         Html5Qrcode.getCameras().then(devices => {
+            if (!isCameraScannerActive || currentToken !== cameraSessionToken || !$('#modalScanner').hasClass('show')) {
+                stopCameraScanner();
+                return;
+            }
+
             if (devices && devices.length) {
                 availableCameraIds = devices.map(d => d.id);
                 // Prefer rear / back camera (environment) on mobile
@@ -757,50 +856,13 @@ function startCameraScanner(specificCameraId = null) {
                 proceedStart({ facingMode: "environment" });
             }
         }).catch(() => {
+            if (!isCameraScannerActive || currentToken !== cameraSessionToken || !$('#modalScanner').hasClass('show')) {
+                stopCameraScanner();
+                return;
+            }
             proceedStart({ facingMode: "environment" });
         });
     }
-}
-
-function stopCameraScanner() {
-    // 1. Explicitly stop all video MediaStreamTracks to turn off camera hardware light immediately
-    try {
-        $('#scanner_reader video').each(function() {
-            if (this.srcObject) {
-                let stream = this.srcObject;
-                if (stream && stream.getTracks) {
-                    stream.getTracks().forEach(track => {
-                        try { track.stop(); } catch(e) {}
-                    });
-                }
-                this.srcObject = null;
-            }
-        });
-    } catch(e) {}
-
-    // 2. Stop Html5Qrcode instance
-    if (html5QrcodeScanner) {
-        try {
-            if (html5QrcodeScanner.isScanning) {
-                html5QrcodeScanner.stop().then(() => {
-                    try { html5QrcodeScanner.clear(); } catch(e) {}
-                    html5QrcodeScanner = null;
-                }).catch(err => {
-                    try { html5QrcodeScanner.clear(); } catch(e) {}
-                    html5QrcodeScanner = null;
-                });
-            } else {
-                try { html5QrcodeScanner.clear(); } catch(e) {}
-                html5QrcodeScanner = null;
-            }
-        } catch (e) {
-            html5QrcodeScanner = null;
-        }
-    }
-
-    // 3. Clear container DOM and hide overlay
-    $('#scanner_reader').empty();
-    $('.scanner-overlay').hide();
 }
 
 $(document).ready(function () {
@@ -932,20 +994,22 @@ $(document).ready(function () {
         }
     });
 
-    let cameraStartTimer = null;
-
     $(document).on('click', '#btn_scan_camera', function(e) {
         e.preventDefault();
         if (cameraStartTimer) clearTimeout(cameraStartTimer);
         $('#modalScanner').modal('show');
-        cameraStartTimer = setTimeout(() => { startCameraScanner(); }, 400);
+        cameraStartTimer = setTimeout(() => {
+            if ($('#modalScanner').hasClass('show')) {
+                startCameraScanner();
+            }
+        }, 300);
     });
 
     $('#modalScanner').on('hide.bs.modal hidden.bs.modal', function () {
-        if (cameraStartTimer) {
-            clearTimeout(cameraStartTimer);
-            cameraStartTimer = null;
-        }
+        stopCameraScanner();
+    });
+
+    $('#modalInputFisik').on('hide.bs.modal hidden.bs.modal', function () {
         stopCameraScanner();
     });
 
@@ -981,6 +1045,7 @@ $(document).ready(function () {
     });
 
     window.addEventListener('beforeunload', function (e) {
+        stopCameraScanner();
         const opnameId = $('#input_so_id').val();
         if (opnameId && $('#modalInputFisik').hasClass('show')) {
             const key = `so_draft_fisik_${opnameId}`;
@@ -991,7 +1056,10 @@ $(document).ready(function () {
         }
     });
 
+    window.addEventListener('pagehide', stopCameraScanner);
+
     document.getElementById('modalInputFisik')?.addEventListener('hidden.bs.modal', function () {
+        stopCameraScanner();
         document.getElementById('formInputFisik').reset();
         $('#input_fisik_tbody').empty();
         $('#deleted_items_container').empty();

@@ -188,7 +188,8 @@
                         $qty = floatval($item->stok_aktual);
                         $hpp = floatval($item->harga_pokok_rata_rata);
                         $beliTerakhir = floatval($item->harga_beli_terakhir);
-                        $nilai = $qty * $hpp;
+                        $isStokItem = (!$item->barang || $item->barang->tipe_item === 'Stok');
+                        $nilai = $isStokItem ? (floatval($item->nilai_persediaan) > 0 ? floatval($item->nilai_persediaan) : ($qty * $hpp)) : 0;
 
                         $totalQty += $qty;
                         $totalNilai += $nilai;
@@ -216,7 +217,10 @@
                         <td class="text-center">{{ ($item->barang && $item->barang->kategori) ? $item->barang->kategori->nama_kategori : '-' }}</td>
                         <td class="text-center">{{ $warna }}</td>
                         @php
-                            $formattedQty = (floor($qty) == $qty) ? number_format($qty, 0, ',', '.') : rtrim(rtrim(number_format($qty, 2, ',', '.'), '0'), ',');
+                            $roundedQty = round($qty, 2);
+                            $formattedQty = (floor($roundedQty) == $roundedQty)
+                                ? number_format($roundedQty, 0, ',', '.')
+                                : rtrim(rtrim(number_format($roundedQty, 2, ',', '.'), '0'), ',');
                         @endphp
                         <td class="text-center fw-bold num-cell">{{ $formattedQty }} <small class="text-muted fw-normal">{{ $satuan }}</small></td>
                         @if($canSeeHpp ?? true)
@@ -238,8 +242,14 @@
                     <tr style="background-color: #f8fafc; border-top: 2px solid #0f172a;">
                         <td colspan="{{ ($tampilkanFoto ?? true) ? '4' : '3' }}" class="fw-bold text-end py-2">TOTAL RINGKASAN:</td>
                         <td colspan="3" class="text-center text-secondary" style="font-size: 9px;">{{ $items->count() }} Baris Item</td>
+                        @php
+                            $roundedTotalQty = round($totalQty, 2);
+                            $formattedTotalQty = (floor($roundedTotalQty) == $roundedTotalQty)
+                                ? number_format($roundedTotalQty, 0, ',', '.')
+                                : rtrim(rtrim(number_format($roundedTotalQty, 2, ',', '.'), '0'), ',');
+                        @endphp
                         <td class="text-center fw-bold num-cell text-primary" style="font-size: 10.5px; border-bottom: 2px double #0f172a;">
-                            {{ number_format($totalQty, 0, ',', '.') }}
+                            {{ $formattedTotalQty }}
                         </td>
                         @if($canSeeHpp ?? true)
                         <td colspan="2" class="text-end text-secondary fw-semibold">Total Nilai Asset:</td>

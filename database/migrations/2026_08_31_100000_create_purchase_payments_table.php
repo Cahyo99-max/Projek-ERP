@@ -21,9 +21,9 @@ return new class extends Migration
                 $table->foreignId('company_id')->nullable()->constrained('companies')->nullOnDelete();
                 $table->foreignId('currency_id')->nullable()->constrained('master_currencies')->nullOnDelete();
                 $table->decimal('kurs', 15, 4)->default(1);
-                $table->decimal('total_faktur', 18, 2)->default(0);
-                $table->decimal('total_potongan', 18, 2)->default(0);
-                $table->decimal('total_bayar', 18, 2)->default(0);
+                $table->decimal('total_faktur', 20, 2)->default(0);
+                $table->decimal('total_potongan', 20, 2)->default(0);
+                $table->decimal('total_bayar', 20, 2)->default(0);
                 $table->enum('status', ['Draft', 'Posted', 'Cancelled'])->default('Draft');
                 $table->text('keterangan')->nullable();
                 $table->string('lampiran', 255)->nullable();
@@ -51,11 +51,11 @@ return new class extends Migration
                 $table->id();
                 $table->foreignId('purchase_payment_id')->constrained('purchase_payments')->cascadeOnDelete();
                 $table->foreignId('purchase_invoice_id')->constrained('purchase_invoices')->restrictOnDelete();
-                $table->decimal('total_faktur', 18, 2)->default(0);
-                $table->decimal('sisa_utang', 18, 2)->default(0);
-                $table->decimal('jumlah_bayar', 18, 2)->default(0);
-                $table->decimal('potongan', 18, 2)->default(0);
-                $table->decimal('sisa_akhir', 18, 2)->default(0);
+                $table->decimal('total_faktur', 20, 2)->default(0);
+                $table->decimal('sisa_utang', 20, 2)->default(0);
+                $table->decimal('jumlah_bayar', 20, 2)->default(0);
+                $table->decimal('potongan', 20, 2)->default(0);
+                $table->decimal('sisa_akhir', 20, 2)->default(0);
                 $table->string('catatan', 255)->nullable();
                 $table->timestamps();
 

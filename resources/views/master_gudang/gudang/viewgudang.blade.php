@@ -2,10 +2,41 @@
 
     @push('styles')
     <style>
-        #tableGudang tbody td { vertical-align: middle; }
+        #tableGudang {
+            min-width: 1050px !important;
+            width: 100% !important;
+        }
+        #tableGudang th, 
+        #tableGudang tbody td { 
+            vertical-align: middle; 
+            white-space: nowrap !important;
+        }
         .gdg-nama { font-weight: 600; color: var(--bs-body-color); }
         .gdg-text { color: var(--bs-body-color); }
         .gdg-sub { color: var(--bs-secondary-color, #6c757d); font-size: 0.8rem; display: block; }
+        
+        .tbl-card-header .btn {
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+        }
+        .table-responsive {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+        }
+        .table-responsive::-webkit-scrollbar {
+            height: 6px;
+        }
+        .table-responsive::-webkit-scrollbar-track {
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 999px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.35);
+            border-radius: 999px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.55);
+        }
         
         /* Custom badges for backward compatibility and dark mode visibility */
         .badge-jg {

@@ -254,14 +254,18 @@
                     // Tambahkan baris baru ke DataTable tanpa reload halaman
                     if (res.karyawan) {
                         let k = res.karyawan;
+                        let esc = function(str) {
+                            if (str === null || str === undefined) return '';
+                            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+                        };
                         tableLookup.row.add([
-                            '<span class="fw-semibold">' + k.nama_lengkap + '</span>',
-                            k.department_name,
-                            k.position_name,
+                            '<span class="fw-semibold">' + esc(k.nama_lengkap) + '</span>',
+                            esc(k.department_name || '-'),
+                            esc(k.position_name || '-'),
                             '<button type="button" class="btn btn-sm btn-primary rounded-pill px-3 btn-select-karyawan" ' +
-                                'data-id="' + k.id + '" ' +
-                                'data-nama="' + k.nama_lengkap + '" ' +
-                                'data-dept-id="' + (k.departemen_id || '') + '">' +
+                                'data-id="' + esc(k.id) + '" ' +
+                                'data-nama="' + esc(k.nama_lengkap) + '" ' +
+                                'data-dept-id="' + esc(k.departemen_id || '') + '">' +
                                 'Pilih' +
                             '</button>'
                         ]).draw(false);

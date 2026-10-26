@@ -24,8 +24,21 @@ class CustomerAddress extends Model
         'is_default',
     ];
 
+    protected $appends = ['alamat_lengkap'];
+
     public function customer()
     {
         return $this->belongsTo(MasterCustomer::class, 'customer_id');
+    }
+
+    public function getAlamatLengkapAttribute()
+    {
+        $parts = array_filter([
+            $this->alamat,
+            $this->kota,
+            $this->provinsi,
+            $this->kode_pos ? ('Kode Pos ' . $this->kode_pos) : null,
+        ]);
+        return implode(', ', $parts);
     }
 }

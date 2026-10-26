@@ -74,6 +74,15 @@
 
     <!-- Custom Vanilla JS -->
     <script src="{{ asset('js/main.js') }}"></script>
+    <!-- Global CSRF Header: Attach X-CSRF-TOKEN to ALL jQuery AJAX requests -->
+    <script>
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept':       'application/json'
+            }
+        });
+    </script>
     
     <!-- SweetAlert2 & Reusable Alert Component -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

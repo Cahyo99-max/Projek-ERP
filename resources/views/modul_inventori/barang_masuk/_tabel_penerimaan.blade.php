@@ -40,6 +40,16 @@
                         <span class="badge bg-light text-success border border-success border-opacity-25 rounded-pill px-2.5 py-1.5 fw-semibold shadow-sm">
                             {{ $gr->po ? $gr->po->nomor_po : '-' }}
                         </span>
+                        @php
+                            $tender = $gr->tender ?: ($gr->po ? $gr->po->tender : null);
+                        @endphp
+                        @if($tender)
+                            <div class="mt-1">
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 py-0.5" style="font-size: 0.7rem;" title="Tender: {{ $tender->nama_tender }}">
+                                    <i class="bi bi-briefcase me-1"></i>{{ $tender->nomor_tender }}
+                                </span>
+                            </div>
+                        @endif
                     </td>
                     <td data-label="Supplier">
                         <span class="fw-bold text-dark">{{ $gr->po && $gr->po->supplier ? $gr->po->supplier->nama_supplier : '-' }}</span>
@@ -51,6 +61,10 @@
                             <span class="badge bg-warning text-dark border border-warning rounded-pill px-2.5 py-1.5 fw-bold shadow-sm">
                                 <i class="bi bi-pencil-square me-1"></i>Draft
                             </span>
+                        @elseif($gr->status === 'Dibatalkan')
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-2.5 py-1.5 fw-bold shadow-sm" data-bs-toggle="tooltip" title="{{ $gr->alasan_pembatalan ? 'Alasan: ' . $gr->alasan_pembatalan : 'Transaksi Dibatalkan' }}">
+                                <i class="bi bi-x-circle me-1"></i>Dibatalkan
+                            </span>
                         @else
                             <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2.5 py-1.5 fw-bold shadow-sm">
                                 <i class="bi bi-check-circle me-1"></i>Diposting
@@ -59,13 +73,20 @@
                     </td>
                     <td data-label="Aksi" class="text-center">
                         <div class="d-flex justify-content-center gap-1">
-                            @if($gr->status === 'Draft' || $isAuthorizedAdmin)
+                            @if($gr->status === 'Draft')
                             @can('tambah-gr')
-                            <button type="button" class="btn btn-sm btn-outline-warning border-0 btn-edit-gr" data-id="{{ $gr->id }}" data-bs-toggle="tooltip" title="{{ $gr->status === 'Posted' ? 'Edit Penerimaan (Admin)' : 'Edit Draft' }}">
+                            <button type="button" class="btn btn-sm btn-outline-warning border-0 btn-edit-gr" data-id="{{ $gr->id }}" data-bs-toggle="tooltip" title="Edit Draft">
                                 <i class="bi bi-pencil-square"></i>
                             </button>
                             @endcan
                             @endif
+
+                            @if($gr->status === 'Draft')
+                            <button type="button" class="btn btn-sm btn-outline-success border-0 btn-post-gr" data-id="{{ $gr->id }}" data-nama="{{ $gr->nomor_gr }}" data-bs-toggle="tooltip" title="Posting Penerimaan">
+                                <i class="bi bi-send-check"></i>
+                            </button>
+                            @endif
+
                             @can('lihat-gr')
                             <button type="button" class="btn btn-sm btn-outline-primary border-0 btn-view-gr" data-id="{{ $gr->id }}" data-bs-toggle="tooltip" title="Lihat Rincian">
                                 <i class="bi bi-eye"></i>
@@ -74,9 +95,10 @@
                                 <i class="bi bi-printer"></i>
                             </a>
                             @endcan
+
                             @can('hapus-gr')
-                            @if($gr->status === 'Draft' || $isAuthorizedAdmin)
-                            <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-delete-gr" data-id="{{ $gr->id }}" data-nama="{{ $gr->nomor_gr }}" data-bs-toggle="tooltip" title="{{ $gr->status === 'Posted' ? 'Hapus Penerimaan (Admin)' : 'Hapus Transaksi' }}">
+                            @if($gr->status === 'Draft')
+                            <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-delete-gr" data-id="{{ $gr->id }}" data-nama="{{ $gr->nomor_gr }}" data-bs-toggle="tooltip" title="Hapus Draft">
                                 <i class="bi bi-trash"></i>
                             </button>
                             @endif
@@ -190,6 +212,7 @@
             });
         });
 
+
         // ===== DELETE GR =====
         $(document).on('click', '.btn-delete-gr', function () {
             let id = $(this).data('id');
@@ -222,7 +245,9 @@
                         },
                         error: function (xhr) {
                             let msg = 'Terjadi kesalahan saat menghapus penerimaan.';
-                            if (xhr.status === 403) {
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                msg = xhr.responseJSON.message;
+                            } else if (xhr.status === 403) {
                                 msg = 'Akun Anda tidak memiliki izin untuk menghapus Penerimaan Barang.';
                             }
                             Swal.fire('Gagal!', msg, 'error');
@@ -232,6 +257,6 @@
             });
         });
 
-    }); // end document.ready [tabel_penerimaan]
+    });
 </script>
 @endpush

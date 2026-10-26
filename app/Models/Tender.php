@@ -39,6 +39,7 @@ class Tender extends Model
         'tahap_tender',
         'priority',
         'nilai_estimasi',
+        'nilai_deal',
         'catatan',
         'sales_order_id',
         'created_by',
@@ -53,6 +54,7 @@ class Tender extends Model
         'rejected_at' => 'datetime',
         'submitted_at' => 'datetime',
         'nilai_estimasi' => 'decimal:2',
+        'nilai_deal' => 'decimal:2',
     ];
 
     protected static function booted()
@@ -61,17 +63,25 @@ class Tender extends Model
             if (auth()->check()) {
                 $model->created_by = auth()->id();
             }
-            if (empty($model->company_id) && session()->has('active_company_id')) {
+            // Strict Separation: if branch_id is filled, company_id MUST be null. If branch_id is null, company_id MUST be active_company_id
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            } elseif (empty($model->company_id) && session()->has('active_company_id')) {
                 $model->company_id = session('active_company_id');
-            }
-            if (!isset($model->branch_id) && session()->has('active_branch_id')) {
-                $model->branch_id = session('active_branch_id');
+                $model->branch_id = null;
             }
         });
 
         static::updating(function ($model) {
             if (auth()->check()) {
                 $model->updated_by = auth()->id();
+            }
+            // Strict Separation on update as well
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            } elseif (empty($model->company_id) && session()->has('active_company_id')) {
+                $model->company_id = session('active_company_id');
+                $model->branch_id = null;
             }
         });
     }
@@ -123,12 +133,12 @@ class Tender extends Model
 
     public function followups(): HasMany
     {
-        return $this->hasMany(TenderFollowup::class, 'tender_id');
+        return $this->hasMany(TenderFollowup::class, 'tender_id')->latest('id');
     }
 
     public function approvals(): HasMany
     {
-        return $this->hasMany(TenderApproval::class, 'tender_id');
+        return $this->hasMany(TenderApproval::class, 'tender_id')->latest('id');
     }
 
     public function approver(): BelongsTo
@@ -158,22 +168,22 @@ class Tender extends Model
      */
     public function scopeForActiveCompany($query)
     {
-        $activeCompanyId = session('active_company_id');
+        $activeCompanyId = session('active_company_id') ?: (auth()->check() ? auth()->user()->company_id : null);
         $activeBranchId  = session('active_branch_id');
-
-        if (!empty($activeCompanyId)) {
-            $query->where(function ($q) use ($activeCompanyId) {
-                $q->where('tenders.company_id', $activeCompanyId)
-                  ->orWhereNull('tenders.company_id');
-            });
-        }
+        $table = $this->getTable();
 
         if (!empty($activeBranchId)) {
-            // Aktif sebagai Cabang -> hanya data cabang ini
-            $query->where('tenders.branch_id', $activeBranchId);
+            // Aktif sebagai Cabang -> hanya data cabang ini (company_id NULL)
+            $query->where($table . '.branch_id', $activeBranchId)
+                  ->whereNull($table . '.company_id');
         } else {
-            // Aktif sebagai PT Pusat -> hanya data level PT (branch_id IS NULL)
-            $query->whereNull('tenders.branch_id');
+            // Aktif sebagai PT Pusat -> hanya data level PT (branch_id NULL)
+            $query->whereNull($table . '.branch_id');
+            if (!empty($activeCompanyId)) {
+                $query->where($table . '.company_id', $activeCompanyId);
+            } else {
+                $query->where($table . '.company_id', 0);
+            }
         }
 
         return $query;

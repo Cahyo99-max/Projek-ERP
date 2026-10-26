@@ -42,11 +42,16 @@ class GoodsIssue extends Model
             if (auth()->check()) {
                 $model->created_by = auth()->id();
             }
-            if (empty($model->company_id) && session()->has('active_company_id')) {
-                $model->company_id = session('active_company_id');
-            }
-            if (empty($model->branch_id) && session()->has('active_branch_id')) {
-                $model->branch_id = session('active_branch_id');
+
+            $branchId  = $model->branch_id ?: session('active_branch_id');
+            $companyId = $model->company_id ?: session('active_company_id');
+
+            if (!empty($branchId)) {
+                $model->branch_id  = $branchId;
+                $model->company_id = null;
+            } else {
+                $model->branch_id  = null;
+                $model->company_id = $companyId;
             }
         });
 

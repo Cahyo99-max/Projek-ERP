@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
+use App\Models\MasterTipeAkun;
 use App\Helpers\CodeGeneratorHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -136,7 +137,7 @@ class CompanyController extends Controller
                 $logoPath = $request->file('logo')->store('company_logos', 'public');
             }
 
-            Company::create([
+            $company = Company::create([
                 'kode_perusahaan' => strtoupper($kode),
                 'nama_perusahaan' => $request->nama_perusahaan,
                 'logo'            => $logoPath,
@@ -152,6 +153,9 @@ class CompanyController extends Controller
                 'status'          => $request->status,
                 'created_by'      => auth()->id(),
             ]);
+
+            // Auto-provision master tipe akun default untuk PT yang baru dibuat
+            MasterTipeAkun::seedDefaultsForCompany($company->id);
 
             DB::commit();
             return response()->json(['message' => 'Perusahaan (PT) berhasil ditambahkan!']);

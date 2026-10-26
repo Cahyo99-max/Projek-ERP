@@ -2,7 +2,27 @@
 <x-modal_form id="modalEditCabang" formId="formEditCabang" title="<i class='bi bi-pencil-square me-2'></i> Edit Cabang" autocomplete="off">
     <x-slot name="slot">
         <input type="hidden" id="edit_branch_id">
+        <input type="hidden" name="remove_logo" id="edit_remove_logo_cabang" value="0">
         <div class="row g-3">
+            {{-- Logo Cabang --}}
+            <div class="col-12 text-center mb-1">
+                <div class="d-inline-block position-relative">
+                    <div id="previewLogoEditCabang" class="rounded-3 border border-2 border-dashed d-flex align-items-center justify-content-center bg-body-tertiary shadow-sm" style="width:110px; height:110px; overflow:hidden;">
+                        <i class="bi bi-buildings fs-1 text-muted"></i>
+                    </div>
+                    <label for="edit_logo_cabang" class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0 shadow" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="Ubah Logo Cabang">
+                        <i class="bi bi-camera-fill"></i>
+                    </label>
+                    <input type="file" name="logo" id="edit_logo_cabang" class="d-none" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="previewImage(this, '#previewLogoEditCabang')">
+                </div>
+                <div class="d-flex justify-content-center align-items-center gap-2 mt-1">
+                    <span class="small text-muted">Logo Cabang (PNG/JPG maks 2MB)</span>
+                    <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-2 py-0.5 d-none" id="btnHapusLogoCabang" style="font-size: 0.72rem;">
+                        <i class="bi bi-trash me-1"></i>Hapus Logo
+                    </button>
+                </div>
+            </div>
+
             <div class="col-12">
                 <div class="section-title mb-2">
                     <i class="bi bi-info-circle text-primary me-2"></i><strong>Identitas Cabang</strong>
@@ -129,14 +149,36 @@
                 $('#edit_postal_code').val(b.postal_code);
                 $('#edit_manager_name').val(b.manager_name);
                 $('#edit_status').val(b.status);
+
+                $('#edit_remove_logo_cabang').val('0');
+                $('#edit_logo_cabang').val('');
+                if (b.logo_url) {
+                    $('#previewLogoEditCabang').html(`<img src="${b.logo_url}" class="w-100 h-100" style="object-fit:cover;">`);
+                    $('#btnHapusLogoCabang').removeClass('d-none');
+                } else {
+                    $('#previewLogoEditCabang').html('<i class="bi bi-buildings fs-1 text-muted"></i>');
+                    $('#btnHapusLogoCabang').addClass('d-none');
+                }
+
                 $('#modalEditCabang').modal('show');
             }).fail(function() {
                 Swal.fire('Gagal!', 'Data cabang tidak ditemukan.', 'error');
             });
         });
 
+        // Hapus Logo handler
+        $('#btnHapusLogoCabang').on('click', function () {
+            $('#edit_remove_logo_cabang').val('1');
+            $('#edit_logo_cabang').val('');
+            $('#previewLogoEditCabang').html('<i class="bi bi-buildings fs-1 text-muted"></i>');
+            $(this).addClass('d-none');
+        });
+
         $('#modalEditCabang').on('hidden.bs.modal', function () {
             $('#formEditCabang')[0].reset();
+            $('#edit_remove_logo_cabang').val('0');
+            $('#previewLogoEditCabang').html('<i class="bi bi-buildings fs-1 text-muted"></i>');
+            $('#btnHapusLogoCabang').addClass('d-none');
         });
 
         // ===== SIMPAN EDIT =====

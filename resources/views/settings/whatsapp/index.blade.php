@@ -193,6 +193,215 @@
             background-color: #1b2434 !important;
             color: #cbd5e1 !important;
         }
+
+        /* ─── Prune Modal Modern High-End Styling ─── */
+        #modalPruneWaLogs .modal-content {
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            background: #0f172a !important;
+            box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.9) !important;
+            border-radius: 22px !important;
+        }
+        [data-bs-theme="light"] #modalPruneWaLogs .modal-content,
+        html[data-theme="light"] #modalPruneWaLogs .modal-content {
+            background: #ffffff !important;
+            border-color: rgba(0, 0, 0, 0.12) !important;
+        }
+
+        .prune-header-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45) !important;
+        }
+
+        .prune-warning-box {
+            background: rgba(239, 68, 68, 0.14) !important;
+            border: 1px solid rgba(239, 68, 68, 0.5) !important;
+            border-radius: 14px !important;
+            padding: 0.95rem 1.15rem !important;
+            color: #f1f5f9 !important;
+        }
+        [data-bs-theme="light"] .prune-warning-box,
+        html[data-theme="light"] .prune-warning-box {
+            color: #1e293b !important;
+            background: #fef2f2 !important;
+            border-color: #fca5a5 !important;
+        }
+        .prune-warning-box strong {
+            color: #fca5a5 !important;
+        }
+        [data-bs-theme="light"] .prune-warning-box strong {
+            color: #dc2626 !important;
+        }
+
+        .prune-badge-danger {
+            background: rgba(239, 68, 68, 0.25) !important;
+            color: #fca5a5 !important;
+            border: 1px solid rgba(239, 68, 68, 0.55) !important;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.25rem 0.65rem;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            letter-spacing: 0.3px;
+        }
+
+        .prune-badge-recommend {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            font-size: 0.72rem;
+            padding: 0.28rem 0.8rem;
+            border-radius: 50rem;
+            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.35) !important;
+            letter-spacing: 0.3px;
+        }
+
+        .prune-badge-reset {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            font-size: 0.72rem;
+            padding: 0.28rem 0.8rem;
+            border-radius: 50rem;
+            box-shadow: 0 2px 10px rgba(239, 68, 68, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.35) !important;
+            letter-spacing: 0.3px;
+        }
+
+        .prune-option-card {
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            background: rgba(30, 41, 59, 0.5) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 14px !important;
+            padding: 0.9rem 1.15rem !important;
+            cursor: pointer;
+            user-select: none;
+        }
+        [data-bs-theme="light"] .prune-option-card,
+        html[data-theme="light"] .prune-option-card {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+        }
+        .prune-option-card:hover {
+            background: rgba(59, 130, 246, 0.12) !important;
+            border-color: rgba(59, 130, 246, 0.55) !important;
+            transform: translateX(3px);
+        }
+        .prune-option-card:has(input:checked) {
+            background: rgba(59, 130, 246, 0.2) !important;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.5);
+        }
+        .prune-option-card input[type="radio"] {
+            width: 1.25rem;
+            height: 1.25rem;
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
+
+        .prune-option-card.card-danger {
+            background: rgba(239, 68, 68, 0.1) !important;
+            border: 1px solid rgba(239, 68, 68, 0.4) !important;
+        }
+        .prune-option-card.card-danger:hover {
+            background: rgba(239, 68, 68, 0.18) !important;
+            border-color: rgba(239, 68, 68, 0.7) !important;
+            transform: translateX(3px);
+        }
+        .prune-option-card.card-danger:has(input:checked) {
+            background: rgba(239, 68, 68, 0.25) !important;
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 1.5px rgba(239, 68, 68, 0.6);
+        }
+        .prune-option-card.card-danger input[type="radio"] {
+            accent-color: #ef4444;
+        }
+
+        .prune-option-title {
+            color: #f8fafc !important;
+            font-size: 0.9rem !important;
+            font-weight: 600;
+        }
+        [data-bs-theme="light"] .prune-option-title,
+        html[data-theme="light"] .prune-option-title {
+            color: #0f172a !important;
+        }
+
+        .prune-option-desc {
+            color: #cbd5e1 !important;
+            font-size: 0.78rem !important;
+            margin-top: 2px;
+            font-weight: 400;
+        }
+        [data-bs-theme="light"] .prune-option-desc,
+        html[data-theme="light"] .prune-option-desc {
+            color: #64748b !important;
+        }
+
+        .prune-danger-title {
+            color: #fca5a5 !important;
+            font-size: 0.9rem !important;
+            font-weight: 700;
+        }
+        [data-bs-theme="light"] .prune-danger-title,
+        html[data-theme="light"] .prune-danger-title {
+            color: #dc2626 !important;
+        }
+        .prune-danger-sub {
+            color: #fecaca !important;
+            font-size: 0.78rem !important;
+            margin-top: 2px;
+            opacity: 0.95;
+        }
+        [data-bs-theme="light"] .prune-danger-sub,
+        html[data-theme="light"] .prune-danger-sub {
+            color: #ef4444 !important;
+        }
+
+        .swal2-container {
+            z-index: 10060 !important;
+        }
+
+        /* SweetAlert2 High-End Theme for Prune */
+        .prune-swal-popup {
+            background: #0f172a !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 22px !important;
+            box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.9) !important;
+            padding: 1.85rem 1.6rem !important;
+        }
+        [data-bs-theme="light"] .prune-swal-popup,
+        html[data-theme="light"] .prune-swal-popup {
+            background: #ffffff !important;
+            border-color: rgba(0, 0, 0, 0.12) !important;
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2) !important;
+        }
+        .prune-swal-popup .swal2-title {
+            color: #f8fafc !important;
+            font-size: 1.35rem !important;
+            font-weight: 700 !important;
+            padding-top: 0.5rem !important;
+        }
+        [data-bs-theme="light"] .prune-swal-popup .swal2-title,
+        html[data-theme="light"] .prune-swal-popup .swal2-title {
+            color: #0f172a !important;
+        }
+        .prune-swal-popup .swal2-html-container {
+            color: #cbd5e1 !important;
+            font-size: 0.88rem !important;
+            margin: 1rem 0 0.8rem 0 !important;
+        }
+        [data-bs-theme="light"] .prune-swal-popup .swal2-html-container {
+            color: #475569 !important;
+        }
     </style>
     @endpush
 
@@ -223,6 +432,36 @@
                 </div>
             </div>
         </div>
+
+        {{-- Flash Notifications --}}
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm d-flex align-items-center gap-2.5 mb-4 p-3" role="alert">
+                <i class="bi bi-check-circle-fill fs-5 text-success flex-shrink-0"></i>
+                <div class="fw-medium small">{{ session('success') }}</div>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm d-flex align-items-center gap-2.5 mb-4 p-3" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-5 text-danger flex-shrink-0"></i>
+                <div class="fw-medium small">{{ session('error') }}</div>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4 p-3" role="alert">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-x-circle-fill fs-5 text-danger"></i>
+                    <div class="fw-bold small">Terjadi Kesalahan:</div>
+                </div>
+                <ul class="mb-0 small ps-4">
+                    @foreach($errors->all() as $err)
+                        <li>{{ $err }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
 
         <div class="row g-4">
             <!-- LEFT COLUMN -->
@@ -527,49 +766,249 @@
 
             <!-- SECTION 7: ACTIVITY LOG -->
             <div class="col-12 col-lg-7">
-                <div class="card whatsapp-card mb-4 h-100">
+                <div class="card whatsapp-card mb-4 h-100" id="logActivityContainer">
                     <div class="card-body py-4">
-                        <h6 class="card-header-title mb-4">Log Aktivitas Pengiriman</h6>
-                        <div class="table-responsive">
-                            <table class="table table-vcenter card-table table-striped table-hover small">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
+                            <div>
+                                <h6 class="card-header-title mb-0 d-flex align-items-center gap-2">
+                                    <i class="bi bi-clock-history text-primary"></i>
+                                    <span>Log Aktivitas Pengiriman</span>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill font-monospace" style="font-size: 0.68rem;">
+                                        {{ number_format($logs->total()) }} Log
+                                    </span>
+                                </h6>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                @can('manage-whatsapp-gateway')
+                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 shadow-xs d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalPruneWaLogs" style="font-size: 0.78rem;">
+                                    <i class="bi bi-trash3-fill"></i>
+                                    <span>Bersihkan Log</span>
+                                </button>
+                                @endcan
+                            </div>
+                        </div>
+
+                        <!-- Search & Filter Toolbar -->
+                        <form action="{{ route('settings.whatsapp.index') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2 mb-3" id="formFilterLog">
+                            <!-- Search Input -->
+                            <div class="input-group input-group-sm flex-grow-1" style="min-width: 160px;">
+                                <span class="input-group-text bg-body-tertiary border-end-0 rounded-start-pill ps-3 text-muted">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" name="search_log" id="searchLogInput" value="{{ $searchLog ?? '' }}" 
+                                       class="form-control bg-body-tertiary border-start-0 pe-3" 
+                                       placeholder="Cari aksi, penerima, respon..." style="font-size: 0.8rem;"
+                                       onkeyup="liveFilterLogs(this.value)">
+                            </div>
+
+                            <!-- Filter Status -->
+                            <select name="status_log" class="form-select form-select-sm rounded-pill" style="width: auto; min-width: 110px; font-size: 0.8rem;" onchange="this.form.submit();">
+                                <option value="">Semua Status</option>
+                                <option value="Success" {{ ($statusLog ?? '') === 'Success' ? 'selected' : '' }}>Success</option>
+                                <option value="Failed" {{ ($statusLog ?? '') === 'Failed' ? 'selected' : '' }}>Failed</option>
+                                <option value="Pending" {{ ($statusLog ?? '') === 'Pending' ? 'selected' : '' }}>Pending</option>
+                            </select>
+
+                            <!-- Per Page (Default 10) -->
+                            <select name="per_page_log" class="form-select form-select-sm rounded-pill" style="width: auto; font-size: 0.8rem;" onchange="this.form.submit();" title="Jumlah data per halaman">
+                                <option value="10" {{ ($perPageLog ?? 10) == 10 ? 'selected' : '' }}>10 / hal</option>
+                                <option value="25" {{ ($perPageLog ?? 10) == 25 ? 'selected' : '' }}>25 / hal</option>
+                                <option value="50" {{ ($perPageLog ?? 10) == 50 ? 'selected' : '' }}>50 / hal</option>
+                                <option value="100" {{ ($perPageLog ?? 10) == 100 ? 'selected' : '' }}>100 / hal</option>
+                            </select>
+
+                            <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3 shadow-xs">
+                                <i class="bi bi-search me-1"></i> Cari
+                            </button>
+
+                            @if(!empty($searchLog) || !empty($statusLog) || ($perPageLog ?? 10) != 10)
+                                <a href="{{ route('settings.whatsapp.index') }}" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 shadow-xs" title="Reset Pencarian">
+                                    <i class="bi bi-x-circle me-1"></i> Reset
+                                </a>
+                            @endif
+                        </form>
+
+                        <div class="table-responsive rounded-3 border">
+                            <table class="table table-vcenter card-table table-striped table-hover small mb-0" id="tableWhatsappLog">
                                 <thead>
                                     <tr>
-                                        <th>Waktu</th>
-                                        <th>Event / Aksi</th>
-                                        <th>Penerima</th>
-                                        <th>Status</th>
-                                        <th>Respon API</th>
+                                        <th class="py-2.5">Waktu</th>
+                                        <th class="py-2.5">Event / Aksi</th>
+                                        <th class="py-2.5">Penerima</th>
+                                        <th class="py-2.5 text-center">Status</th>
+                                        <th class="py-2.5">Respon API</th>
                                     </tr>
                                 </thead>
                                 <tbody id="logTableBody">
                                     @forelse($logs as $log)
-                                        <tr>
-                                            <td class="text-nowrap">{{ $log->created_at->timezone('Asia/Jakarta')->format('Y-m-d H:i:s') }}</td>
-                                            <td class="fw-semibold">{{ $log->action }}</td>
-                                            <td class="text-nowrap">{{ $log->recipient }}</td>
-                                            <td>
+                                        <tr class="log-row">
+                                            <td class="text-nowrap" style="font-size: 0.76rem;">
+                                                <i class="bi bi-clock me-1 text-muted"></i>
+                                                {{ $log->created_at->timezone('Asia/Jakarta')->format('Y-m-d H:i:s') }}
+                                            </td>
+                                            <td class="fw-semibold text-body-emphasis log-action">{{ $log->action }}</td>
+                                            <td class="text-nowrap log-recipient font-monospace" style="font-size: 0.78rem;">{{ $log->recipient }}</td>
+                                            <td class="text-center">
                                                 @if($log->status === 'Success')
-                                                    <span class="badge bg-green text-green-fg">Success</span>
+                                                    <span class="badge rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1 font-monospace" 
+                                                          style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 0.72rem;">
+                                                        <i class="bi bi-check-circle-fill"></i>
+                                                        <span>Success</span>
+                                                    </span>
                                                 @elseif($log->status === 'Failed')
-                                                    <span class="badge bg-red text-red-fg">Failed</span>
+                                                    <span class="badge rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1 font-monospace" 
+                                                          style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-size: 0.72rem;">
+                                                        <i class="bi bi-x-circle-fill"></i>
+                                                        <span>Failed</span>
+                                                    </span>
                                                 @else
-                                                    <span class="badge bg-orange text-orange-fg">Pending</span>
+                                                    <span class="badge rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1 font-monospace" 
+                                                          style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.72rem;">
+                                                        <i class="bi bi-hourglass-split"></i>
+                                                        <span>Pending</span>
+                                                    </span>
                                                 @endif
                                             </td>
                                             <td>
-                                                <code class="text-truncate d-inline-block" style="max-width: 150px;" title="{{ $log->response }}">{{ $log->response }}</code>
+                                                <code class="text-truncate d-inline-block font-monospace log-response" style="max-width: 140px; font-size: 0.74rem;" title="{{ $log->response }}">{{ $log->response }}</code>
                                             </td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted py-4">Belum ada riwayat aktivitas pengiriman.</td>
+                                            <td colspan="5" class="text-center text-muted py-4">
+                                                <i class="bi bi-inbox fs-2 d-block text-secondary opacity-50 mb-1"></i>
+                                                Belum ada riwayat aktivitas pengiriman.
+                                            </td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Pagination Footer -->
+                        <div class="mt-3 pt-2 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+                            <span class="text-muted small" style="font-size: 0.76rem;">
+                                Menampilkan <b>{{ $logs->firstItem() ?? 0 }}</b> - <b>{{ $logs->lastItem() ?? 0 }}</b> dari <b>{{ number_format($logs->total()) }}</b> log
+                            </span>
+                            <div>
+                                {{ $logs->links('pagination::bootstrap-5') }}
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Bersihkan / Hapus Log WhatsApp Permanen -->
+    <div class="modal fade" id="modalPruneWaLogs" tabindex="-1" aria-labelledby="modalPruneWaLogsLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <form action="{{ route('settings.whatsapp.prune') }}" method="POST" id="formPruneWaLogs">
+                    @csrf
+                    @method('DELETE')
+                    <div class="modal-header border-bottom border-light-subtle pb-3 px-4 pt-3.5">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="prune-header-icon flex-shrink-0">
+                                <i class="bi bi-trash3-fill fs-5 text-white"></i>
+                            </div>
+                            <div>
+                                <h6 class="modal-title fw-bold text-body-emphasis mb-0" id="modalPruneWaLogsLabel">Bersihkan Log Pengiriman WhatsApp</h6>
+                                <span class="prune-badge-danger mt-1">
+                                    <i class="bi bi-shield-x"></i> Hapus Permanen
+                                </span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body py-3 px-4">
+                        <div class="prune-warning-box d-flex align-items-start gap-2.5 mb-3.5">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0 mt-0.5" style="color: #f87171;"></i>
+                            <div style="font-size: 0.84rem; line-height: 1.5;">
+                                <strong style="color: #fca5a5;">Peringatan:</strong> Data riwayat log pengiriman WhatsApp yang dipilih akan dihapus secara <strong>permanen</strong> dari database untuk menghemat ruang penyimpanan server. Pesan yang sudah terkirim ke nomor penerima tidak terpengaruh.
+                            </div>
+                        </div>
+
+                        <label class="form-label fw-bold text-body-emphasis small mb-2.5">Pilih Kriteria Pembersihan:</label>
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            <!-- Opsi 30 Hari -->
+                            <label class="form-check-label d-flex align-items-center justify-content-between cursor-pointer prune-option-card">
+                                <div class="d-flex align-items-center gap-2.5">
+                                    <input class="form-check-input flex-shrink-0 m-0" type="radio" name="prune_mode" id="waMode30" value="30_days" checked onchange="toggleWaCustomRange(false)">
+                                    <div>
+                                        <div class="prune-option-title">Lebih lama dari 30 hari yang lalu</div>
+                                        <div class="prune-option-desc">Menyimpan riwayat pengiriman 1 bulan terakhir (Disarankan)</div>
+                                    </div>
+                                </div>
+                                <span class="prune-badge-recommend">Rekomendasi</span>
+                            </label>
+
+                            <!-- Opsi 60 Hari -->
+                            <label class="form-check-label d-flex align-items-center gap-2.5 cursor-pointer prune-option-card">
+                                <input class="form-check-input flex-shrink-0 m-0" type="radio" name="prune_mode" id="waMode60" value="60_days" onchange="toggleWaCustomRange(false)">
+                                <div>
+                                    <div class="prune-option-title">Lebih lama dari 60 hari yang lalu</div>
+                                    <div class="prune-option-desc">Menyimpan riwayat pengiriman 2 bulan terakhir</div>
+                                </div>
+                            </label>
+
+                            <!-- Opsi 90 Hari -->
+                            <label class="form-check-label d-flex align-items-center gap-2.5 cursor-pointer prune-option-card">
+                                <input class="form-check-input flex-shrink-0 m-0" type="radio" name="prune_mode" id="waMode90" value="90_days" onchange="toggleWaCustomRange(false)">
+                                <div>
+                                    <div class="prune-option-title">Lebih lama dari 90 hari yang lalu</div>
+                                    <div class="prune-option-desc">Menyimpan riwayat pengiriman 3 bulan terakhir</div>
+                                </div>
+                            </label>
+
+                            <!-- Opsi Custom Range -->
+                            <label class="form-check-label d-flex align-items-center gap-2.5 cursor-pointer prune-option-card">
+                                <input class="form-check-input flex-shrink-0 m-0" type="radio" name="prune_mode" id="waModeCustom" value="custom_range" onchange="toggleWaCustomRange(true)">
+                                <div>
+                                    <div class="prune-option-title">Pilih Rentang Tanggal Spesifik</div>
+                                    <div class="prune-option-desc">Hapus log dari tanggal tertentu sampai tanggal tertentu</div>
+                                </div>
+                            </label>
+
+                            <!-- Form Input Custom Range (Hidden by default) -->
+                            <div id="waCustomRangeFields" class="p-3 bg-body-tertiary border rounded-3 d-none">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label for="wa_start_date" class="form-label small fw-semibold mb-1 text-body-emphasis">Dari Tanggal:</label>
+                                        <input type="date" class="form-control form-control-sm rounded-3" name="start_date" id="wa_start_date" max="{{ date('Y-m-d') }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="wa_end_date" class="form-label small fw-semibold mb-1 text-body-emphasis">Sampai Tanggal:</label>
+                                        <input type="date" class="form-control form-control-sm rounded-3" name="end_date" id="wa_end_date" max="{{ date('Y-m-d') }}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Opsi Semua Log -->
+                            <label class="form-check-label d-flex align-items-center justify-content-between cursor-pointer prune-option-card card-danger">
+                                <div class="d-flex align-items-center gap-2.5">
+                                    <input class="form-check-input flex-shrink-0 m-0" type="radio" name="prune_mode" id="waModeAll" value="all" onchange="toggleWaCustomRange(false)">
+                                    <div>
+                                        <div class="prune-danger-title">Kosongkan Semua Log (Reset Total)</div>
+                                        <div class="prune-danger-sub">Menghapus seluruh rekaman log pengiriman tanpa terkecuali</div>
+                                    </div>
+                                </div>
+                                <span class="prune-badge-reset">Reset Total</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-top border-light-subtle py-2.5 px-4 d-flex justify-content-between align-items-center">
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 py-1.5" data-bs-dismiss="modal">
+                            Batal
+                        </button>
+                        <button type="button" onclick="handlePruneWaSubmit()" class="btn btn-danger btn-sm rounded-pill px-4 py-1.5 fw-semibold d-inline-flex align-items-center gap-2 shadow-sm" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border: none;">
+                            <i class="bi bi-trash3-fill"></i>
+                            <span>Hapus Permanen</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -787,17 +1226,32 @@
             });
         }
 
+        // Live client-side instant filtering on current rows
+        function liveFilterLogs(query) {
+            let term = query.toLowerCase().trim();
+            $('#logTableBody tr.log-row').each(function() {
+                let rowText = $(this).text().toLowerCase();
+                if (!term || rowText.indexOf(term) > -1) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
+
         // Helper: Reload activity logs table
         function reloadActivityLogs() {
+            let currentUrl = new URL(window.location.href);
             $.ajax({
-                url: '{{ route("settings.whatsapp.index") }}',
+                url: currentUrl.toString(),
                 method: 'GET',
                 success: function(html) {
-                    // Extract table body from response
                     let parser = new DOMParser();
                     let doc = parser.parseFromString(html, 'text/html');
-                    let newRows = doc.getElementById('logTableBody').innerHTML;
-                    $('#logTableBody').html(newRows);
+                    let newContainer = doc.getElementById('logActivityContainer');
+                    if (newContainer) {
+                        $('#logActivityContainer').html(newContainer.innerHTML);
+                    }
                 }
             });
         }
@@ -894,6 +1348,140 @@
                     }
                 }
             });
+        }
+
+        // Toggle custom date range inputs in WhatsApp Log Prune modal
+        function toggleWaCustomRange(show) {
+            const container = document.getElementById('waCustomRangeFields');
+            const startDate = document.getElementById('wa_start_date');
+            const endDate = document.getElementById('wa_end_date');
+            if (show) {
+                container.classList.remove('d-none');
+                startDate.required = true;
+                endDate.required = true;
+            } else {
+                container.classList.add('d-none');
+                startDate.required = false;
+                endDate.required = false;
+            }
+        }
+
+        // Confirm and submit WhatsApp delivery log pruning
+        function handlePruneWaSubmit() {
+            const mode = document.querySelector('input[name="prune_mode"]:checked').value;
+            let title = 'Konfirmasi Pembersihan Log WhatsApp';
+            let htmlText = '';
+
+            if (mode === 'all') {
+                title = 'Kosongkan Semua Log?';
+                htmlText = '<div style="text-align: left; background: rgba(239, 68, 68, 0.18); border: 1.5px solid rgba(239, 68, 68, 0.55); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;">'
+                         + '<div style="color: #ffffff; font-weight: 700; font-size: 0.88rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">'
+                         + '<span style="background: #ef4444; color: #ffffff; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; letter-spacing: 0.3px;">PERINGATAN</span> <span style="color: #fca5a5;">Tindakan Permanen!</span>'
+                         + '</div>'
+                         + '<div style="color: #fecaca; font-size: 0.82rem; line-height: 1.5;">'
+                         + 'Anda akan menghapus <strong>SELURUH</strong> riwayat log pengiriman WhatsApp tanpa terkecuali. Data tidak dapat dipulihkan kembali.'
+                         + '</div>'
+                         + '</div>'
+                         + '<p style="color: #e2e8f0; font-size: 0.86rem; margin: 0; font-weight: 500;">Apakah Anda yakin ingin mengosongkan seluruh log WhatsApp?</p>';
+            } else if (mode === '30_days') {
+                title = 'Hapus Log > 30 Hari?';
+                htmlText = '<div style="text-align: left; background: rgba(59, 130, 246, 0.16); border: 1.5px solid rgba(59, 130, 246, 0.45); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;">'
+                         + '<div style="color: #ffffff; font-size: 0.88rem; line-height: 1.5;">'
+                         + 'Semua data log yang lebih lama dari <strong style="color: #93c5fd;">30 hari yang lalu</strong> akan dihapus permanen dari database.'
+                         + '</div>'
+                         + '<div style="color: #94a3b8; font-size: 0.78rem; margin-top: 8px; display: flex; align-items: center; gap: 5px;">'
+                         + '<i class="bi bi-shield-check text-success"></i> <span style="color: #cbd5e1;">Log 1 bulan terakhir tetap tersimpan aman.</span>'
+                         + '</div>'
+                         + '</div>'
+                         + '<p style="color: #e2e8f0; font-size: 0.86rem; margin: 0;">Lanjutkan penghapusan permanen log?</p>';
+            } else if (mode === '60_days') {
+                title = 'Hapus Log > 60 Hari?';
+                htmlText = '<div style="text-align: left; background: rgba(59, 130, 246, 0.16); border: 1.5px solid rgba(59, 130, 246, 0.45); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;">'
+                         + '<div style="color: #ffffff; font-size: 0.88rem; line-height: 1.5;">'
+                         + 'Semua data log yang lebih lama dari <strong style="color: #93c5fd;">60 hari yang lalu</strong> akan dihapus permanen dari database.'
+                         + '</div>'
+                         + '<div style="color: #94a3b8; font-size: 0.78rem; margin-top: 8px; display: flex; align-items: center; gap: 5px;">'
+                         + '<i class="bi bi-shield-check text-success"></i> <span style="color: #cbd5e1;">Log 2 bulan terakhir tetap tersimpan aman.</span>'
+                         + '</div>'
+                         + '</div>'
+                         + '<p style="color: #e2e8f0; font-size: 0.86rem; margin: 0;">Lanjutkan penghapusan permanen log?</p>';
+            } else if (mode === '90_days') {
+                title = 'Hapus Log > 90 Hari?';
+                htmlText = '<div style="text-align: left; background: rgba(59, 130, 246, 0.16); border: 1.5px solid rgba(59, 130, 246, 0.45); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;">'
+                         + '<div style="color: #ffffff; font-size: 0.88rem; line-height: 1.5;">'
+                         + 'Semua data log yang lebih lama dari <strong style="color: #93c5fd;">90 hari yang lalu</strong> akan dihapus permanen dari database.'
+                         + '</div>'
+                         + '<div style="color: #94a3b8; font-size: 0.78rem; margin-top: 8px; display: flex; align-items: center; gap: 5px;">'
+                         + '<i class="bi bi-shield-check text-success"></i> <span style="color: #cbd5e1;">Log 3 bulan terakhir tetap tersimpan aman.</span>'
+                         + '</div>'
+                         + '</div>'
+                         + '<p style="color: #e2e8f0; font-size: 0.86rem; margin: 0;">Lanjutkan penghapusan permanen log?</p>';
+            } else if (mode === 'custom_range') {
+                const s = document.getElementById('wa_start_date').value;
+                const e = document.getElementById('wa_end_date').value;
+                if (!s || !e) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Pilih Rentang Tanggal',
+                            text: 'Harap tentukan Tanggal Mulai dan Tanggal Selesai terlebih dahulu.',
+                            confirmButtonColor: '#3b82f6',
+                            confirmButtonText: 'Mengerti',
+                            customClass: { popup: 'prune-swal-popup' }
+                        });
+                    } else {
+                        alert('Harap tentukan Tanggal Mulai dan Tanggal Selesai.');
+                    }
+                    return;
+                }
+                title = 'Hapus Rentang Tanggal?';
+                htmlText = '<div style="text-align: left; background: rgba(59, 130, 246, 0.16); border: 1.5px solid rgba(59, 130, 246, 0.45); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;">'
+                         + '<div style="color: #ffffff; font-size: 0.88rem; line-height: 1.5;">'
+                         + 'Semua data log pengiriman WhatsApp dari tanggal <strong style="color: #93c5fd;">' + s + '</strong> sampai <strong style="color: #93c5fd;">' + e + '</strong> akan dihapus permanen dari sistem.'
+                         + '</div>'
+                         + '</div>'
+                         + '<p style="color: #e2e8f0; font-size: 0.86rem; margin: 0;">Lanjutkan penghapusan permanen log?</p>';
+            }
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: title,
+                    html: htmlText,
+                    icon: 'warning',
+                    iconColor: '#f87171',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#475569',
+                    confirmButtonText: '<i class="bi bi-trash3-fill me-1.5"></i> Ya, Hapus Permanen',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    backdrop: `rgba(15, 23, 42, 0.8)`,
+                    customClass: {
+                        popup: 'prune-swal-popup',
+                        confirmButton: 'rounded-pill px-4 py-2.5 fw-semibold shadow-sm',
+                        cancelButton: 'rounded-pill px-4 py-2.5 fw-semibold'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'Sedang Membersihkan Log...',
+                            html: '<span style="color: #cbd5e1;">Mohon tunggu, proses penghapusan permanen sedang berjalan di database.</span>',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            customClass: { popup: 'prune-swal-popup' },
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        document.getElementById('formPruneWaLogs').submit();
+                    }
+                });
+            } else {
+                if (confirm('Apakah Anda yakin ingin menghapus log ini secara permanen?')) {
+                    document.getElementById('formPruneWaLogs').submit();
+                }
+            }
         }
     </script>
     @endpush

@@ -50,8 +50,8 @@
                     <div class="px-4 py-3 border-bottom d-flex align-items-center gap-4 flex-wrap"
                          style="background: rgba(99,102,241,0.05);">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="text-muted fw-semibold" style="font-size: 11px; letter-spacing: 0.3px;">TOTAL SESI</span>
-                            <span id="jurnal_spk_total_sesi" class="fw-bold text-dark font-monospace" style="font-size: 13px;">0</span>
+                            <span class="spk-text-muted fw-semibold" style="font-size: 11px; letter-spacing: 0.3px;">TOTAL SESI</span>
+                            <span id="jurnal_spk_total_sesi" class="fw-bold spk-text-main font-monospace" style="font-size: 13px;">0</span>
                         </div>
                         <div class="vr opacity-25 d-none d-md-block"></div>
                         <div class="d-flex align-items-center gap-2">

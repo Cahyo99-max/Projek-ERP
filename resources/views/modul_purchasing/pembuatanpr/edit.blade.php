@@ -300,6 +300,15 @@
                 items: items
             };
 
+            if (!payload.diminta_oleh) {
+                Swal.fire({
+                    title: 'Perhatian!',
+                    text: 'Harap isikan peminta barang.',
+                    icon: 'warning'
+                });
+                return;
+            }
+
             saveBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
 
             $.ajax({

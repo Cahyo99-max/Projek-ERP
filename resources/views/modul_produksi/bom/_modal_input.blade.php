@@ -19,14 +19,14 @@
                             Buat Resep Produksi Garmen <span class="opacity-75 fs-6 fw-normal">(Bill of Materials)</span>
                         </h5>
                         <small class="text-white-50 d-block mt-0.5" style="font-size: 12px;">
-                            Formula komposisi bahan baku, waste %, biaya konveksi (CMT), dan estimasi HPP per produk
+                            Formula komposisi bahan baku, waste %, biaya konveksi, dan estimasi HPP per produk
                         </small>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white position-relative" data-bs-dismiss="modal" aria-label="Close" style="z-index: 2;"></button>
             </div>
 
-            <form id="formTambahBom" autocomplete="off">
+            <form id="formTambahBom" autocomplete="off" onsubmit="return false;">
                 @csrf
                 <div class="modal-body bom-modal-body p-3 p-md-4" style="background: var(--bg-main, #0f172a);">
                     
@@ -118,17 +118,30 @@
 
                                     {{-- Link Tender / Project --}}
                                     <div class="col-12">
-                                        <label class="form-label fw-semibold text-theme-muted small mb-1">
-                                            <i class="bi bi-briefcase text-primary me-1"></i> Tender / Project Terkait <small class="text-muted">(Opsional)</small>
+                                        <label class="form-label fw-semibold text-theme-muted small mb-1 d-flex align-items-center justify-content-between">
+                                            <span>
+                                                <i class="bi bi-briefcase text-primary me-1"></i> Tender / Project Terkait <small class="text-muted">(Opsional)</small>
+                                            </span>
+                                            <span class="badge rounded-pill px-2 py-0.5" style="font-size: 10px; background: rgba(59, 130, 246, 0.1); color: #3b82f6;">Make to Order</span>
                                         </label>
-                                        <select name="tender_id" id="inp_tender_id" class="form-select rounded-3">
-                                            <option value="">-- Tanpa Tender (Produksi Standar Mandiri) --</option>
-                                            @if(isset($tenders) && count($tenders) > 0)
-                                                @foreach($tenders as $t)
-                                                    <option value="{{ $t->id }}">[{{ $t->nomor_kontrak ?: 'TENDER' }}] {{ $t->nama_tender }}</option>
-                                                @endforeach
-                                            @endif
-                                        </select>
+                                        <input type="hidden" name="tender_id" id="inp_tender_id" value="">
+                                        <div class="input-group shadow-xs rounded-3 overflow-hidden">
+                                            <span class="input-group-text bg-light-theme border-end-0 text-primary">
+                                                <i class="bi bi-briefcase-fill"></i>
+                                            </span>
+                                            <input type="text" id="inp_tender_display" class="form-control border-start-0 border-end-0 bg-light-theme" 
+                                                   placeholder="-- Klik tombol cari untuk memilih Tender / Project --" readonly style="cursor: pointer;"
+                                                   onclick="bukaModalLookupTenderBom('input')">
+                                            <button type="button" class="btn btn-outline-danger border-start-0 border-end-0 d-none" id="btn_clear_tender_input" 
+                                                    onclick="clearTenderBom('input')" title="Hapus Tender Terpilih">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-primary px-3 d-flex align-items-center gap-1.5 fw-semibold" 
+                                                    onclick="bukaModalLookupTenderBom('input')" title="Cari Tender / Project">
+                                                <i class="bi bi-search"></i>
+                                                <span class="d-none d-sm-inline">Cari Tender</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -244,7 +257,7 @@
                         <div class="row g-3 align-items-center mb-3">
                             <div class="col-12 col-md-4">
                                 <label class="form-label fw-semibold text-theme-muted small mb-1">
-                                    <i class="bi bi-person-gear text-primary me-1"></i> Biaya Tenaga Kerja / CMT (Rp)
+                                    <i class="bi bi-person-gear text-primary me-1"></i> Biaya Tenaga Kerja (Rp)
                                 </label>
                                 <input type="text" name="biaya_tenaga_kerja" id="inp_biaya_tk" class="form-control text-end inp-hpp-formatted"
                                        maxlength="15" placeholder="0" oninput="kalkulasiTotalBomInput()">
@@ -268,7 +281,7 @@
                                         <i class="bi bi-check2-circle me-1"></i> Estimasi Total HPP / Satuan
                                     </small>
                                     <span class="fs-4 fw-extrabold text-success font-monospace d-block mt-1" id="lblTotalHppInput">Rp 0 / Pcs</span>
-                                    <small class="text-theme-muted d-block mt-0.5" style="font-size: 10.5px;">Bahan + CMT + Overhead</small>
+                                    <small class="text-theme-muted d-block mt-0.5" style="font-size: 10.5px;">Bahan + Overhead</small>
                                 </div>
                             </div>
                         </div>
@@ -369,7 +382,9 @@
     }
 
     function bukaModalTambahBom() {
+        resetBtnBomInputState();
         $('#formTambahBom')[0].reset();
+        clearTenderBom('input');
         $('#inp_jumlah_hasil').val('1');
         $('#tbodyItemBomInput').empty();
         updatePreviewFotoInput([]);
@@ -553,7 +568,25 @@
         });
     }
 
+    let isSubmittingBomInput = false;
+
+    function resetBtnBomInputState() {
+        isSubmittingBomInput = false;
+        $('#btnSimpanDraftBomInput')
+            .prop('disabled', false)
+            .html('<i class="bi bi-file-earmark-text-fill me-1 text-warning"></i> Simpan Draft');
+        $('#btnSimpanPendingBomInput')
+            .prop('disabled', false)
+            .html('<i class="bi bi-send-fill me-1"></i> Simpan & Kirim (Pending)');
+    }
+
+    $('#modalTambahBom').on('hidden.bs.modal', function () {
+        resetBtnBomInputState();
+    });
+
     function submitFormInputBom(statusTarget = 'Draft') {
+        if (isSubmittingBomInput) return;
+
         if (!statusTarget || typeof statusTarget !== 'string') {
             statusTarget = 'Draft';
         }
@@ -595,10 +628,53 @@
             return;
         }
 
+        const items = [];
+        $('#tbodyItemBomInput tr').each(function() {
+            const barangMentahId = $(this).find('.inp-barang-mentah-id').val();
+            const qty = parseFloat($(this).find('.inp-qty-bom').val()) || 0;
+            const satuanId = $(this).find('.select-satuan').val();
+            const waste = parseFloat($(this).find('.inp-waste-bom').val()) || 0;
+            const hpp = unformatNumberID($(this).find('.inp-hpp-bom').val());
+
+            if (barangMentahId && qty > 0 && satuanId) {
+                items.push({
+                    barang_mentah_id: barangMentahId,
+                    jumlah_kebutuhan: qty,
+                    satuan_id: satuanId,
+                    waste_percent: waste,
+                    estimasi_harga_satuan: hpp
+                });
+            }
+        });
+
+        if (items.length === 0) {
+            Swal.fire('Validasi Gagal', 'Silakan masukkan minimal 1 bahan baku yang valid!', 'warning');
+            return;
+        }
+
+        if (items.length > 50) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Batas Maksimal Bahan!',
+                text: `Maksimal bahan baku / aksesoris adalah 50 item! (Saat ini: ${items.length} item). Silakan hapus item yang berlebih.`,
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        // Kunci tombol & aktifkan spinner pada tombol target untuk mencegah double submit
+        isSubmittingBomInput = true;
         const $btnDraft = $('#btnSimpanDraftBomInput');
         const $btnPending = $('#btnSimpanPendingBomInput');
+
         $btnDraft.prop('disabled', true);
         $btnPending.prop('disabled', true);
+
+        if (statusTarget === 'Draft') {
+            $btnDraft.html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Menyimpan Draft...');
+        } else {
+            $btnPending.html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Mengajukan...');
+        }
 
         const formData = {
             _token: '{{ csrf_token() }}',
@@ -614,45 +690,8 @@
             biaya_tenaga_kerja: unformatNumberID($('#inp_biaya_tk').val()),
             biaya_overhead: unformatNumberID($('#inp_biaya_oh').val()),
             keterangan: $('#inp_keterangan_bom').val(),
-            items: []
+            items: items
         };
-
-        $('#tbodyItemBomInput tr').each(function() {
-            const barangMentahId = $(this).find('.inp-barang-mentah-id').val();
-            const qty = parseFloat($(this).find('.inp-qty-bom').val()) || 0;
-            const satuanId = $(this).find('.select-satuan').val();
-            const waste = parseFloat($(this).find('.inp-waste-bom').val()) || 0;
-            const hpp = unformatNumberID($(this).find('.inp-hpp-bom').val());
-
-            if (barangMentahId && qty > 0 && satuanId) {
-                formData.items.push({
-                    barang_mentah_id: barangMentahId,
-                    jumlah_kebutuhan: qty,
-                    satuan_id: satuanId,
-                    waste_percent: waste,
-                    estimasi_harga_satuan: hpp
-                });
-            }
-        });
-
-        if (formData.items.length === 0) {
-            $btnDraft.prop('disabled', false);
-            $btnPending.prop('disabled', false);
-            Swal.fire('Validasi Gagal', 'Silakan masukkan minimal 1 bahan baku yang valid!', 'warning');
-            return;
-        }
-
-        if (formData.items.length > 50) {
-            $btnDraft.prop('disabled', false);
-            $btnPending.prop('disabled', false);
-            Swal.fire({
-                icon: 'warning',
-                title: 'Batas Maksimal Bahan!',
-                text: `Maksimal bahan baku / aksesoris adalah 50 item! (Saat ini: ${formData.items.length} item). Silakan hapus item yang berlebih.`,
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
 
         $.ajax({
             url: '{{ route("produksi.bom.store") }}',
@@ -661,8 +700,6 @@
             contentType: 'application/json',
             success: function(res) {
                 $('#modalTambahBom').modal('hide');
-                $btnDraft.prop('disabled', false);
-                $btnPending.prop('disabled', false);
                 Swal.fire({
                     icon: 'success',
                     title: statusTarget === 'Draft' ? 'Draft Tersimpan!' : 'Berhasil Diajukan!',
@@ -670,14 +707,19 @@
                     timer: 2200,
                     showConfirmButton: false
                 }).then(() => {
-                    reloadTableBom();
+                    if (typeof reloadTableBom === 'function') {
+                        reloadTableBom();
+                    } else {
+                        location.reload();
+                    }
                 });
             },
             error: function(xhr) {
-                $btnDraft.prop('disabled', false);
-                $btnPending.prop('disabled', false);
                 const res = xhr.responseJSON ?? {};
                 Swal.fire('Gagal', res.message || 'Terjadi kesalahan saat menyimpan BOM.', 'error');
+            },
+            complete: function() {
+                resetBtnBomInputState();
             }
         });
     }

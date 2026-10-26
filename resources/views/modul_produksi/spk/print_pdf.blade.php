@@ -2,10 +2,11 @@
     $appLogoSetting = \App\Models\AppSetting::where('key', 'app_logo')->value('value');
     $appLogoPath = null;
 
-    if ($company && !empty($company->logo) && file_exists(public_path('storage/' . $company->logo))) {
-        $appLogoPath = public_path('storage/' . $company->logo);
-    } elseif ($appLogoSetting && file_exists(public_path('storage/' . $appLogoSetting))) {
+    // Prioritaskan Logo Aplikasi Resmi dari AppSetting / default logo.png
+    if ($appLogoSetting && file_exists(public_path('storage/' . $appLogoSetting))) {
         $appLogoPath = public_path('storage/' . $appLogoSetting);
+    } elseif ($appLogoSetting && file_exists(storage_path('app/public/' . $appLogoSetting))) {
+        $appLogoPath = storage_path('app/public/' . $appLogoSetting);
     } elseif (file_exists(public_path('gambar/logo.png'))) {
         $appLogoPath = public_path('gambar/logo.png');
     }
@@ -16,6 +17,28 @@
         $mime = ($ext === 'png') ? 'image/png' : (($ext === 'webp') ? 'image/webp' : 'image/jpeg');
         $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($appLogoPath));
     }
+
+    // Resolusi Foto Produk Barang Jadi yang sedang diproduksi
+    $barangFoto = $spk->barangJadi?->primaryFoto ?? ($spk->barangJadi?->fotos?->first());
+    $fotoProdukSrc = null;
+    if ($barangFoto && !empty($barangFoto->foto_path)) {
+        $candidatePaths = [
+            public_path('storage/' . ltrim($barangFoto->foto_path, '/')),
+            storage_path('app/public/' . ltrim($barangFoto->foto_path, '/')),
+            public_path(ltrim($barangFoto->foto_path, '/')),
+        ];
+        foreach ($candidatePaths as $p) {
+            if (file_exists($p)) {
+                $extF = strtolower(pathinfo($p, PATHINFO_EXTENSION));
+                $mimeF = in_array($extF, ['png', 'webp', 'gif', 'svg']) ? ('image/' . $extF) : 'image/jpeg';
+                $fotoProdukSrc = 'data:' . $mimeF . ';base64,' . base64_encode(file_get_contents($p));
+                break;
+            }
+        }
+        if (!$fotoProdukSrc) {
+            $fotoProdukSrc = asset('storage/' . ltrim($barangFoto->foto_path, '/'));
+        }
+    }
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -23,10 +46,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Surat Perintah Kerja - {{ $spk->nomor_spk }}</title>
-    @if($logoBase64)
-    <link rel="icon" href="{{ $logoBase64 }}">
-    <link rel="shortcut icon" href="{{ $logoBase64 }}">
-    @endif
+    <link rel="icon" href="{{ $logoBase64 ?: ($appLogo ?? asset('gambar/logo.png')) }}" type="image/png">
+    <link rel="shortcut icon" href="{{ $logoBase64 ?: ($appLogo ?? asset('gambar/logo.png')) }}" type="image/png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -144,11 +165,12 @@
         .info-label {
             color: #64748b;
             font-weight: 600;
-            width: 22%;
+            width: 20%;
         }
         .info-val {
             color: #0f172a;
             font-weight: 700;
+            width: 30%;
         }
         .info-val-primary {
             color: #1e40af;
@@ -157,15 +179,70 @@
             font-weight: 800;
         }
 
+        /* PRODUCT PHOTO PREVIEW IN SPK INFO CARD */
+        .spk-product-photo-card {
+            width: 125px;
+            max-width: 125px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 5px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            box-sizing: border-box;
+            vertical-align: middle;
+        }
+        .spk-product-photo-inner {
+            width: 100%;
+            height: 105px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 5px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+        .spk-product-photo-img {
+            max-width: 100%;
+            max-height: 105px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+            transition: transform 0.2s ease;
+        }
+        .spk-product-photo-img:hover {
+            transform: scale(1.05);
+        }
+        .spk-product-photo-caption {
+            font-size: 6.8pt;
+            font-weight: 700;
+            color: #1e40af;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-top: 4px;
+            line-height: 1.1;
+        }
+        .spk-product-photo-code {
+            font-size: 6.2pt;
+            color: #64748b;
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 1px;
+            line-height: 1.1;
+        }
+
         /* BADGES */
         .badge-pill-custom {
             display: inline-block;
-            padding: 2px 8px;
+            padding: 2.5px 10px;
             border-radius: 20px;
             font-size: 7.5pt;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.3px;
+            white-space: nowrap;
+            line-height: 1.3;
+            vertical-align: middle;
         }
         .badge-priority-normal {
             background-color: #dbeafe;
@@ -496,6 +573,10 @@
                 {{-- SWITCH TOGGLES PILL BOX --}}
                 <div class="d-flex align-items-center gap-2 gap-md-3 spk-switch-pill-box">
                     <div class="form-check form-switch mb-0 ps-4">
+                        <input class="form-check-input cursor-pointer" type="checkbox" id="chkShowFoto" checked onchange="togglePdfSection('spk-product-photo-card', this.checked)">
+                        <label class="form-check-label small text-white cursor-pointer" for="chkShowFoto"><i class="bi bi-image me-1 text-info"></i>Foto</label>
+                    </div>
+                    <div class="form-check form-switch mb-0 ps-4">
                         <input class="form-check-input cursor-pointer" type="checkbox" id="chkShowTtd" {{ (!isset($showTtd) || $showTtd) ? 'checked' : '' }} onchange="togglePdfSection('box-ttd-img', this.checked)">
                         <label class="form-check-label small text-white cursor-pointer" for="chkShowTtd"><i class="bi bi-vector-pen me-1 text-info"></i>TTD</label>
                     </div>
@@ -535,11 +616,8 @@
                 <table style="width: 100%;">
                     <tr>
                         <td style="width: 58%; vertical-align: middle;">
-                            <div class="company-name">{{ $company->nama_perusahaan ?? 'PERUSAHAAN GARMEN & TEKSTIL' }}</div>
-                            <div class="company-sub">
-                                {{ $company->alamat ?? 'Manufaktur & Produksi Industri Garmen' }}
-                                @if(!empty($company->telepon)) | Telp: {{ $company->telepon }} @endif
-                            </div>
+                            <div class="company-name">{{ $entityName ?? ($company->nama_perusahaan ?? 'PERUSAHAAN GARMEN & TEKSTIL') }}</div>
+                            <div class="company-sub">Manufaktur & Produksi Industri Garmen</div>
                         </td>
                         <td style="width: 42%; vertical-align: middle;">
                             <div class="doc-badge-box">
@@ -554,47 +632,107 @@
 
             {{-- KARTU INFORMASI UTAMA SPK --}}
             <div class="info-card">
-                <table class="info-table">
+                <table style="width: 100%; border-collapse: collapse;">
                     <tr>
-                        <td class="info-label">Produk Barang Jadi:</td>
-                        <td class="info-val" style="width: 36%;">
-                            [{{ $spk->barangJadi->kode_barang ?? '-' }}] {{ $spk->barangJadi->nama_barang ?? '-' }}
+                        <td style="vertical-align: top; padding-right: 12px;">
+                            <table class="info-table">
+                                <tr>
+                                    <td class="info-label">Produk Barang Jadi:</td>
+                                    <td class="info-val" style="width: 38%;">
+                                        [{{ $spk->barangJadi->kode_barang ?? '-' }}] {{ $spk->barangJadi->nama_barang ?? '-' }}
+                                    </td>
+                                    <td class="info-label" style="width: 18%;">Target Selesai:</td>
+                                    <td class="info-val font-mono">
+                                        {{ $spk->target_selesai ? $spk->target_selesai->format('d/m/Y') : 'Sesuai Antrean' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="info-label">Acuan Resep BOM:</td>
+                                    <td class="info-val">
+                                        [{{ $spk->bom->kode_bom ?? '-' }}] {{ $spk->bom->nama_bom ?? '-' }}
+                                    </td>
+                                    <td class="info-label">Tingkat Prioritas:</td>
+                                    <td class="info-val">
+                                        @if($spk->prioritas === 'Tinggi (Urgent)')
+                                            <span class="badge-pill-custom badge-priority-urgent">🔥 Urgent</span>
+                                        @else
+                                            <span class="badge-pill-custom badge-priority-normal">Normal</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="info-label">Target Produksi:</td>
+                                    <td class="info-val-primary">
+                                        {{ number_format($spk->jumlah_rencana, 0, ',', '.') }} {{ $spk->satuan->nama_satuan ?? 'Pcs' }}
+                                    </td>
+                                    <td class="info-label">PIC Produksi:</td>
+                                    <td class="info-val">
+                                        {{ $spk->penanggungJawab->nama_lengkap ?? 'Kepala Line Produksi' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="info-label">Tipe Produksi:</td>
+                                    <td class="info-val">{{ $spk->tipe_spk ?? 'Make to Stock' }}</td>
+                                    <td class="info-label">Status SPK:</td>
+                                    <td class="info-val">
+                                        <span class="badge-pill-custom badge-status-spk">{{ $spk->status }}</span>
+                                    </td>
+                                </tr>
+                                @php
+                                    $printTender = $spk->tender ?? ($spk->bom?->tender);
+                                @endphp
+                                @if($printTender)
+                                <tr>
+                                    <td class="info-label">Terkait Tender:</td>
+                                    <td class="info-val" colspan="3">
+                                        <span class="badge-pill-custom" style="background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;font-size:8pt;">
+                                            {{ $printTender->nama_tender }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                @endif
+                                @if($spk->nomor_batch || $spk->serial_numbers)
+                                <tr>
+                                    <td class="info-label">No. Batch / Lot:</td>
+                                    <td class="info-val" colspan="{{ $spk->serial_numbers ? '1' : '3' }}">
+                                        <span class="badge-pill-custom" style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;font-size:7.5pt;font-weight:700;">
+                                            🏷️ {{ $spk->nomor_batch ?: '-' }}
+                                        </span>
+                                    </td>
+                                    @if($spk->serial_numbers)
+                                        @php
+                                            $snArray = array_filter(array_map('trim', preg_split('/[\n,]+/', $spk->serial_numbers)));
+                                        @endphp
+                                        <td class="info-label">Total SN:</td>
+                                        <td class="info-val">
+                                            <span class="badge-pill-custom" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-size:7.5pt;font-weight:700;">
+                                                {{ count($snArray) }} UNIT TERDAFTAR
+                                            </span>
+                                        </td>
+                                    @endif
+                                </tr>
+                                @endif
+                            </table>
                         </td>
-                        <td class="info-label" style="width: 18%;">Target Selesai:</td>
-                        <td class="info-val font-mono">
-                            {{ $spk->target_selesai ? $spk->target_selesai->format('d/m/Y') : 'Sesuai Antrean' }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="info-label">Acuan Resep BOM:</td>
-                        <td class="info-val">
-                            [{{ $spk->bom->kode_bom ?? '-' }}] {{ $spk->bom->nama_bom ?? '-' }}
-                        </td>
-                        <td class="info-label">Tingkat Prioritas:</td>
-                        <td class="info-val">
-                            @if($spk->prioritas === 'Tinggi (Urgent)')
-                                <span class="badge-pill-custom badge-priority-urgent">🔥 Urgent</span>
-                            @else
-                                <span class="badge-pill-custom badge-priority-normal">Normal</span>
-                            @endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="info-label">Target Produksi:</td>
-                        <td class="info-val-primary">
-                            {{ number_format($spk->jumlah_rencana, 0, ',', '.') }} {{ $spk->satuan->nama_satuan ?? 'Pcs' }}
-                        </td>
-                        <td class="info-label">PIC Produksi:</td>
-                        <td class="info-val">
-                            {{ $spk->penanggungJawab->nama_lengkap ?? 'Kepala Line Produksi' }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="info-label">Tipe Produksi:</td>
-                        <td class="info-val">{{ $spk->tipe_spk ?? 'Make to Stock' }}</td>
-                        <td class="info-label">Status SPK:</td>
-                        <td class="info-val">
-                            <span class="badge-pill-custom badge-status-spk">{{ $spk->status }}</span>
+                        <td style="width: 125px; vertical-align: middle; text-align: center;" class="spk-product-photo-card" id="spk-product-photo-card">
+                            <div class="spk-product-photo-inner">
+                                @if($fotoProdukSrc)
+                                    <a href="javascript:void(0)" onclick="openProductPhotoModal('{{ $fotoProdukSrc }}', '{{ addslashes($spk->barangJadi->nama_barang ?? 'Produk Jadi') }}')" title="Klik untuk memperbesar gambar">
+                                        <img src="{{ $fotoProdukSrc }}" alt="{{ $spk->barangJadi->nama_barang ?? 'Produk Jadi' }}" class="spk-product-photo-img">
+                                    </a>
+                                @else
+                                    <div class="text-center p-2">
+                                        <i class="bi bi-image text-muted" style="font-size: 26pt; display: block; opacity: 0.5;"></i>
+                                        <span style="font-size: 6.8pt; color: #94a3b8; font-weight: 600; display: block; margin-top: 3px;">Tidak Ada Foto</span>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="spk-product-photo-caption">
+                                Visual Produk Jadi
+                            </div>
+                            <div class="spk-product-photo-code text-truncate" title="{{ $spk->barangJadi->kode_barang ?? '' }}">
+                                {{ $spk->barangJadi->kode_barang ?? '-' }}
+                            </div>
                         </td>
                     </tr>
                 </table>
@@ -622,8 +760,8 @@
                         @forelse($spk->materials as $idx => $mat)
                         @php
                             $satName = $mat->satuan->nama_satuan ?? ($mat->barangMentah->satuan->nama_satuan ?? 'Pcs');
-                            $needPerUnitFmt = (float)$mat->kebutuhan_per_unit == (int)$mat->kebutuhan_per_unit ? number_format($mat->kebutuhan_per_unit, 0, ',', '.') : number_format($mat->kebutuhan_per_unit, 2, ',', '.');
-                            $totalNeedFmt   = (float)$mat->total_kebutuhan == (int)$mat->total_kebutuhan ? number_format($mat->total_kebutuhan, 0, ',', '.') : number_format($mat->total_kebutuhan, 2, ',', '.');
+                            $needPerUnitFmt = (float)$mat->kebutuhan_per_unit == (int)$mat->kebutuhan_per_unit ? number_format($mat->kebutuhan_per_unit, 0, ',', '.') : rtrim(rtrim(number_format((float)$mat->kebutuhan_per_unit, 4, ',', '.'), '0'), ',');
+                            $totalNeedFmt   = (float)$mat->total_kebutuhan == (int)$mat->total_kebutuhan ? number_format($mat->total_kebutuhan, 0, ',', '.') : rtrim(rtrim(number_format((float)$mat->total_kebutuhan, 4, ',', '.'), '0'), ',');
                         @endphp
                         <tr>
                             <td class="text-center">{{ $idx + 1 }}</td>
@@ -715,6 +853,8 @@
                 </table>
             </div>
 
+
+
             {{-- CATATAN / INSTRUKSI KHUSUS --}}
             @if($spk->keterangan)
             <div class="catatan-box">
@@ -805,11 +945,7 @@
                 </table>
             </div>
 
-            {{-- DOCUMENT FOOTER BRANDING --}}
-            <div class="doc-footer">
-                <div>Dokumen Sistem ERP Produksi • Nomor SPK: <b>{{ $spk->nomor_spk }}</b></div>
-                <div>Dicetak: {{ now()->timezone('Asia/Jakarta')->format('d/m/Y H:i:s') }} WIB • Halaman 1 dari 1</div>
-            </div>
+            {{-- DOCUMENT FOOTER BRANDING REMOVED --}}
 
         </div>
     </div>
@@ -897,6 +1033,40 @@
             scaleA4ToScreen();
         });
         $(window).on('resize', scaleA4ToScreen);
+
+        function openProductPhotoModal(imgSrc, title) {
+            if (!imgSrc) return;
+            $('#modalFotoProdukImg').attr('src', imgSrc);
+            if (title) $('#modalFotoProdukTitle').html('<i class="bi bi-image text-info"></i> ' + title);
+            const modalEl = document.getElementById('modalPreviewFotoProduk');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        }
     </script>
+
+    <!-- MODAL PREVIEW FOTO PRODUK HD (NO PRINT) -->
+    <div class="modal fade no-print" id="modalPreviewFotoProduk" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden bg-dark text-white">
+                <div class="modal-header border-bottom border-secondary py-2.5 px-3">
+                    <h6 class="modal-title fw-bold text-white d-flex align-items-center gap-2 mb-0" id="modalFotoProdukTitle">
+                        <i class="bi bi-image text-info"></i> Visual Produk Jadi
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-2 text-center bg-black d-flex align-items-center justify-content-center" style="min-height: 350px;">
+                    <img id="modalFotoProdukImg" src="" alt="Foto Produk" class="img-fluid rounded-3" style="max-height: 75vh; object-fit: contain;">
+                </div>
+                <div class="modal-footer border-top border-secondary py-2 px-3 justify-content-between">
+                    <small class="text-secondary font-monospace">{{ $spk->barangJadi->kode_barang ?? '' }} - {{ $spk->barangJadi->nama_barang ?? '' }}</small>
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

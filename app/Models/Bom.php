@@ -48,8 +48,8 @@ class Bom extends Model
 
     /**
      * Scope: Filter berdasarkan active company + pisah PT Pusat vs Cabang.
-     * - Jika aktif sebagai PT Pusat (branch_id = null) → hanya tampilkan BOM milik PT (branch_id IS NULL)
-     * - Jika aktif sebagai Cabang → hanya tampilkan BOM milik cabang tersebut (branch_id = active_branch_id)
+     * - Jika aktif sebagai Cabang (branch_id ada)  → branch_id = active_branch_id & company_id (PT) NULL.
+     * - Jika aktif sebagai PT Pusat (branch_id null) → branch_id (Cabang) NULL & company_id = active_company_id.
      */
     public function scopeForActiveCompany($query)
     {
@@ -57,14 +57,14 @@ class Bom extends Model
         $activeBranchId  = session('active_branch_id');
         $table = $this->getTable();
 
-        if (!empty($activeCompanyId)) {
-            $query->where($table . '.company_id', $activeCompanyId);
-        }
-
         if (!empty($activeBranchId)) {
-            $query->where($table . '.branch_id', $activeBranchId);
+            $query->where($table . '.branch_id', $activeBranchId)
+                  ->whereNull($table . '.company_id');
         } else {
             $query->whereNull($table . '.branch_id');
+            if (!empty($activeCompanyId)) {
+                $query->where($table . '.company_id', $activeCompanyId);
+            }
         }
 
         return $query;
@@ -75,8 +75,22 @@ class Bom extends Model
         $activeBranchId = session('active_branch_id');
         $table = $this->getTable();
         return !empty($activeBranchId)
-            ? $query->where($table . '.branch_id', $activeBranchId)
+            ? $query->where($table . '.branch_id', $activeBranchId)->whereNull($table . '.company_id')
             : $query->whereNull($table . '.branch_id');
+    }
+
+    /**
+     * Scope: Filter data yang boleh dilihat user aktif.
+     * Jika status Draft, HANYA boleh dilihat oleh user yang membuatnya (created_by == auth()->id()).
+     */
+    public function scopeVisibleToUser($query, $userId = null)
+    {
+        $targetUserId = $userId ?: (auth()->check() ? auth()->id() : 0);
+        $table = $this->getTable();
+        return $query->where(function ($q) use ($table, $targetUserId) {
+            $q->where($table . '.status', '!=', 'Draft')
+              ->orWhere($table . '.created_by', $targetUserId);
+        });
     }
 
     public function company(): BelongsTo

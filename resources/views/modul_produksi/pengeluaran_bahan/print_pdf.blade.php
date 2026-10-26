@@ -1,13 +1,20 @@
 @php
     $appLogoSetting = \App\Models\AppSetting::where('key', 'app_logo')->value('value');
     $appLogoPath = null;
+    $appLogoUrl  = null;
 
-    if ($company && !empty($company->logo) && file_exists(public_path('storage/' . $company->logo))) {
-        $appLogoPath = public_path('storage/' . $company->logo);
-    } elseif ($appLogoSetting && file_exists(public_path('storage/' . $appLogoSetting))) {
+    if ($appLogoSetting && file_exists(public_path('storage/' . $appLogoSetting))) {
         $appLogoPath = public_path('storage/' . $appLogoSetting);
+        $appLogoUrl  = asset('storage/' . $appLogoSetting);
+    } elseif (file_exists(public_path('gambar/logo_1786070712.png'))) {
+        $appLogoPath = public_path('gambar/logo_1786070712.png');
+        $appLogoUrl  = asset('gambar/logo_1786070712.png');
+    } elseif ($company && !empty($company->logo) && file_exists(public_path('storage/' . $company->logo))) {
+        $appLogoPath = public_path('storage/' . $company->logo);
+        $appLogoUrl  = asset('storage/' . $company->logo);
     } elseif (file_exists(public_path('gambar/logo.png'))) {
         $appLogoPath = public_path('gambar/logo.png');
+        $appLogoUrl  = asset('gambar/logo.png');
     }
 
     $logoBase64 = null;
@@ -45,6 +52,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pengeluaran Bahan Baku - {{ $pengeluaran->nomor_pengeluaran }}</title>
+    @if(!empty($appLogoUrl))
+    <link rel="icon" href="{{ $appLogoUrl }}" type="image/png">
+    @elseif(!empty($logoBase64))
+    <link rel="icon" href="{{ $logoBase64 }}">
+    @endif
     <!-- GOOGLE FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -505,7 +517,7 @@
                 <div class="company-badge-wrap">
                     <div class="company-accent-line"></div>
                     <div>
-                        <div class="company-name editable-field" contenteditable="true" spellcheck="false" title="Klik untuk mengedit nama perusahaan">{{ $company->nama_perusahaan ?? 'PT PERSADA AMAN SENTOSA' }}</div>
+                        <div class="company-name editable-field" contenteditable="true" spellcheck="false" title="Klik untuk mengedit nama entitas">{{ $entityName ?? ($company->nama_perusahaan ?? 'PT PERSADA AMAN SENTOSA') }}</div>
                     </div>
                 </div>
                 <div class="doc-header-right">

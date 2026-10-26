@@ -7,28 +7,28 @@
 
     <div class="sidebar-nav">
         <ul class="nav flex-column">
-            @can('lihat-dashboard')
+            @canany(['lihat-dashboard', 'lihat-dashboard-purchasing', 'lihat-dashboard-inventori', 'lihat-dashboard-produksi', 'lihat-dashboard-sales', 'lihat-dashboard-keuangan'])
             <li class="nav-item">
-                <a href="/dashbord" class="nav-link {{ request()->is('dashbord*') ? 'active' : '' }}" data-bs-toggle="tooltip" data-bs-placement="right"
+                <a href="/dashbord" class="nav-link {{ request()->is('dashbord*') || request()->is('finance/dashboard*') || request()->routeIs('finance.dashboard') || request()->routeIs('dashboard') || request()->routeIs('produksi.dashboard') || request()->routeIs('sales.dashboard') ? 'active' : '' }}" data-bs-toggle="tooltip" data-bs-placement="right"
                     title="{{ __('messages.dashboard') }}">
                     <i class="bi bi-grid-1x2-fill"></i>
                     <span class="nav-text">{{ __('messages.dashboard') }}</span>
                 </a>
             </li>
-            @endcan
+            @endcanany
 
             <div class="nav-label">{{ __('messages.modules') }}</div>
 
             <!-- Accordion Menu: Master Produk -->
-            @canany(['lihat-barang','lihat-kategori-barang','lihat-satuan','lihat-brand','lihat-tipe-barang','lihat-warna'])
+            @canany(['lihat-barang','lihat-kategori-barang','lihat-satuan','lihat-brand','lihat-tipe-barang','lihat-warna','lihat-bundle','tambah-bundle'])
             <li class="nav-item">
-                <a href="#menuMasterProduk" class="nav-link {{ request()->is('barang*') || request()->is('kategori-barang*') || request()->is('satuan*') || request()->is('brand*') || request()->is('tipe-barang*') || request()->is('warna*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('barang*') || request()->is('kategori-barang*') || request()->is('satuan*') || request()->is('brand*') || request()->is('tipe-barang*') || request()->is('warna*') ? 'true' : 'false' }}"
+                <a href="#menuMasterProduk" class="nav-link {{ request()->is('barang*') || request()->is('kategori-barang*') || request()->is('satuan*') || request()->is('brand*') || request()->is('tipe-barang*') || request()->is('warna*') || request()->is('master-bundle') || (request()->is('master-bundle*') && !request()->is('master-bundle/pengaturan*')) ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('barang*') || request()->is('kategori-barang*') || request()->is('satuan*') || request()->is('brand*') || request()->is('tipe-barang*') || request()->is('warna*') || request()->is('master-bundle') || (request()->is('master-bundle*') && !request()->is('master-bundle/pengaturan*')) ? 'true' : 'false' }}"
                     data-tooltip-title="{{ __('messages.master_product') }}">
                     <i class="bi bi-boxes"></i>
                     <span class="nav-text">{{ __('messages.master_product') }}</span>
                     <i class="bi bi-chevron-down nav-arrow"></i>
                 </a>
-                <div class="collapse {{ request()->is('barang*') || request()->is('kategori-barang*') || request()->is('satuan*') || request()->is('brand*') || request()->is('tipe-barang*') || request()->is('warna*') ? 'show' : '' }}" id="menuMasterProduk">
+                <div class="collapse {{ request()->is('barang*') || request()->is('kategori-barang*') || request()->is('satuan*') || request()->is('brand*') || request()->is('tipe-barang*') || request()->is('warna*') || request()->is('master-bundle') || (request()->is('master-bundle*') && !request()->is('master-bundle/pengaturan*')) ? 'show' : '' }}" id="menuMasterProduk">
                     <ul class="sub-menu">
                         @can('lihat-barang')
                         <li><a href="/barang" class="nav-link {{ request()->is('barang*') ? 'active' : '' }}"><i class="bi bi-box-seam"></i> {{ __('messages.product') }}</a></li>
@@ -48,40 +48,13 @@
                         @can('lihat-warna')
                         <li><a href="/warna" class="nav-link {{ request()->is('warna*') ? 'active' : '' }}"><i class="bi bi-palette"></i> {{ __('messages.color') }}</a></li>
                         @endcan
+                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-bundle') || auth()->user()->can('tambah-bundle'))
+                        <li><a href="/master-bundle" class="nav-link {{ request()->is('master-bundle') || (request()->is('master-bundle*') && !request()->is('master-bundle/pengaturan*')) ? 'active' : '' }}"><i class="bi bi-boxes text-info"></i> Daftar Paket Bundle</a></li>
+                        @endif
                     </ul>
                 </div>
             </li>
             @endcanany
-
-            <!-- Accordion Menu: Master Bundle Produk -->
-            @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->canany(['lihat-bundle','tambah-bundle','edit-bundle','hapus-bundle','rakit-bundle','kelola-kategori-bundle']))
-            <li class="nav-item">
-                <a href="#menuMasterBundle" class="nav-link {{ request()->is('master-bundle*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('master-bundle*') ? 'true' : 'false' }}"
-                    data-tooltip-title="Master Bundle Produk">
-                    <i class="bi bi-boxes text-info"></i>
-                    <span class="nav-text fw-bold">Master Bundle Produk</span>
-                    <i class="bi bi-chevron-down nav-arrow"></i>
-                </a>
-                <div class="collapse {{ request()->is('master-bundle*') ? 'show' : '' }}" id="menuMasterBundle">
-                    <ul class="sub-menu">
-                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-bundle') || auth()->user()->can('tambah-bundle'))
-                        <li>
-                            <a href="/master-bundle" class="nav-link {{ request()->is('master-bundle') || (request()->is('master-bundle*') && !request()->is('master-bundle/pengaturan*')) ? 'active' : '' }}">
-                                <i class="bi bi-box-seam"></i> Daftar Paket Bundle
-                            </a>
-                        </li>
-                        @endif
-                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('kelola-kategori-bundle'))
-                        <li>
-                            <a href="/master-bundle/pengaturan-kategori" class="nav-link {{ request()->is('master-bundle/pengaturan*') ? 'active' : '' }}">
-                                <i class="bi bi-sliders2-vertical text-warning"></i> Setting Visibilitas Kategori
-                            </a>
-                        </li>
-                        @endif
-                    </ul>
-                </div>
-            </li>
-            @endif
 
             <!-- Accordion Menu: Master Gudang -->
             @canany(['lihat-gudang','lihat-jenis-gudang','lihat-perusahaan','lihat-cabang','lihat-lokasi-rak'])
@@ -210,29 +183,40 @@
             </li>
             @endcanany
 
-            <!-- Accordion Menu: Penjualan -->
-            @canany(['lihat-sales-order', 'tambah-sales-order', 'lihat-tender', 'lihat-penawaran', 'lihat-customer', 'akses-sales'])
+            @canany(['lihat-dashboard-sales', 'lihat-sales-order', 'tambah-sales-order', 'lihat-tender', 'lihat-penawaran', 'lihat-customer', 'akses-sales', 'lihat-delivery-order', 'lihat-sales-invoice', 'lihat-sales-payment', 'lihat-piutang'])
             <li class="nav-item">
-                <a href="#menuSales" class="nav-link {{ (request()->is('customer*') || request()->is('tender*') || request()->is('penawaran*') || request()->is('marketing/sales-order*') || request()->is('marketing/delivery-order*')) ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ (request()->is('customer*') || request()->is('tender*') || request()->is('penawaran*') || request()->is('marketing/sales-order*') || request()->is('marketing/delivery-order*')) ? 'true' : 'false' }}"
+                <a href="#menuSales" class="nav-link {{ (request()->is('sales/dashboard*') || request()->is('customer*') || request()->is('tender*') || request()->is('penawaran*') || request()->is('marketing/sales-order*') || request()->is('marketing/delivery-order*') || request()->is('modul-marketing/faktur-penjualan*') || request()->is('modul-marketing/pembayaran*') || request()->is('modul-marketing/piutang*')) ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ (request()->is('sales/dashboard*') || request()->is('customer*') || request()->is('tender*') || request()->is('penawaran*') || request()->is('marketing/sales-order*') || request()->is('marketing/delivery-order*') || request()->is('modul-marketing/faktur-penjualan*') || request()->is('modul-marketing/pembayaran*') || request()->is('modul-marketing/piutang*')) ? 'true' : 'false' }}"
                     data-tooltip-title="{{ __('messages.sales') }}">
                     <i class="bi bi-cart3"></i>
                     <span class="nav-text">{{ __('messages.sales') }}</span>
                     <i class="bi bi-chevron-down nav-arrow"></i>
                 </a>
-                <div class="collapse {{ (request()->is('customer*') || request()->is('tender*') || request()->is('penawaran*') || request()->is('marketing/sales-order*') || request()->is('marketing/delivery-order*')) ? 'show' : '' }}" id="menuSales">
+                <div class="collapse {{ (request()->is('sales/dashboard*') || request()->is('customer*') || request()->is('tender*') || request()->is('penawaran*') || request()->is('marketing/sales-order*') || request()->is('marketing/delivery-order*') || request()->is('modul-marketing/faktur-penjualan*') || request()->is('modul-marketing/pembayaran*') || request()->is('modul-marketing/piutang*')) ? 'show' : '' }}" id="menuSales">
                     <ul class="sub-menu">
+                      
                         @can('lihat-customer')
                         <li><a href="/customer" class="nav-link {{ request()->is('customer*') ? 'active' : '' }}"><i class="bi bi-people-fill"></i> Customer</a></li>
                         @endcan
                         @can('lihat-tender')
-                        <li><a href="/tender" class="nav-link {{ request()->is('tender*') ? 'active' : '' }}"><i class="bi bi-briefcase-fill"></i> Tender & Proyek</a></li>
+                        <li><a href="/tender" class="nav-link {{ request()->is('tender*') ? 'active' : '' }}"><i class="bi bi-briefcase-fill"></i> Tender</a></li>
                         @endcan
                         @can('lihat-penawaran')
-                        <li><a href="{{ route('penawaran.index') }}" class="nav-link {{ request()->is('penawaran*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled-fill"></i> Penawaran Harga (SQ)</a></li>
+                        <li><a href="{{ route('penawaran.index') }}" class="nav-link {{ request()->is('penawaran*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled-fill"></i> Penawaran Harga</a></li>
                         @endcan
                         @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-sales-order') || auth()->user()->can('tambah-sales-order') || auth()->user()->can('akses-sales'))
-                        <li><a href="{{ route('marketing.sales-order.index') }}" class="nav-link {{ request()->is('marketing/sales-order*') ? 'active' : '' }}"><i class="bi bi-cart-check-fill"></i> Order Penjualan (SO / POS)</a></li>
-                        <li><a href="{{ route('marketing.delivery-order.index') }}" class="nav-link {{ request()->is('marketing/delivery-order*') ? 'active' : '' }}"><i class="bi bi-truck"></i> Pengiriman &amp; Surat Jalan</a></li>
+                        <li><a href="{{ route('marketing.sales-order.index') }}" class="nav-link {{ request()->is('marketing/sales-order*') ? 'active' : '' }}"><i class="bi bi-cart-check-fill"></i> Order Penjualan</a></li>
+                        @endif
+                        @can('lihat-delivery-order')
+                        <li><a href="{{ route('marketing.delivery-order.index') }}" class="nav-link {{ request()->is('marketing/delivery-order*') ? 'active' : '' }}"><i class="bi bi-truck"></i> Pengiriman</a></li>
+                        @endcan
+                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-sales-invoice'))
+                        <li><a href="{{ route('modul_marketing.faktur_penjualan.index') }}" class="nav-link {{ request()->is('modul-marketing/faktur-penjualan*') ? 'active' : '' }}"><i class="bi bi-receipt-cutoff"></i> Faktur Penjualan</a></li>
+                        @endif
+                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-sales-payment'))
+                        <li><a href="{{ route('modul_marketing.pembayaran.index') }}" class="nav-link {{ request()->is('modul-marketing/pembayaran*') ? 'active' : '' }}"><i class="bi bi-cash-stack"></i> Penerimaan Pembayaran</a></li>
+                        @endif
+                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-piutang'))
+                        <li><a href="{{ route('modul_marketing.piutang.index') }}" class="nav-link {{ request()->is('modul-marketing/piutang*') ? 'active' : '' }}"><i class="bi bi-wallet2 text-warning"></i> Rekap Piutang Pelanggan</a></li>
                         @endif
                     </ul>
                 </div>
@@ -240,63 +224,79 @@
             @endcanany
 
             <!-- Accordion Menu: Pembelian -->
-            @canany(['lihat-supplier', 'lihat-pr', 'tambah-pr', 'approve-pr', 'lihat-po', 'tambah-po', 'approve-po'])
+            @canany(['lihat-supplier', 'lihat-alokasi-biaya', 'lihat-pr', 'tambah-pr', 'approve-pr', 'lihat-po', 'tambah-po', 'approve-po', 'lihat-purchase-invoice', 'lihat-pembayaran-utang', 'lihat-hutang'])
             <li class="nav-item">
-                <a href="#menuPurchase" class="nav-link {{ request()->is('purchase-requisition*') || request()->is('supplier*') || request()->is('purchase-order*') || request()->is('purchase-invoices*') || request()->is('purchase-payments*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('purchase-requisition*') || request()->is('supplier*') || request()->is('purchase-order*') || request()->is('purchase-invoices*') || request()->is('purchase-payments*') ? 'true' : 'false' }}"
+                <a href="#menuPurchase" class="nav-link {{ request()->is('purchase-requisition*') || request()->is('supplier*') || request()->is('purchase-order*') || request()->is('purchase-invoices*') || request()->is('purchase-payments*') || request()->is('alokasi-biaya*') || request()->is('modul-purchasing/hutang*') || request()->is('supplier-payables*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('purchase-requisition*') || request()->is('supplier*') || request()->is('purchase-order*') || request()->is('purchase-invoices*') || request()->is('purchase-payments*') || request()->is('alokasi-biaya*') || request()->is('modul-purchasing/hutang*') || request()->is('supplier-payables*') ? 'true' : 'false' }}"
                     data-tooltip-title="{{ __('messages.purchase') }}">
                     <i class="bi bi-bag"></i>
                     <span class="nav-text">{{ __('messages.purchase') }}</span>
                     <i class="bi bi-chevron-down nav-arrow"></i>
                 </a>
-                <div class="collapse {{ request()->is('purchase-requisition*') || request()->is('supplier*') || request()->is('purchase-order*') || request()->is('purchase-invoices*') || request()->is('purchase-payments*') ? 'show' : '' }}" id="menuPurchase">
+                <div class="collapse {{ request()->is('purchase-requisition*') || request()->is('supplier*') || request()->is('purchase-order*') || request()->is('purchase-invoices*') || request()->is('purchase-payments*') || request()->is('alokasi-biaya*') || request()->is('modul-purchasing/hutang*') || request()->is('supplier-payables*') ? 'show' : '' }}" id="menuPurchase">
                     <ul class="sub-menu">
                         @can('lihat-supplier')
                         <li><a href="/supplier" class="nav-link {{ request()->is('supplier*') ? 'active' : '' }}"><i class="bi bi-people-fill"></i> Supplier</a></li>
                         @endcan
+                      
                         @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-pr') || auth()->user()->can('tambah-pr') || auth()->user()->can('approve-pr'))
                         <li><a href="/purchase-requisition" class="nav-link {{ request()->is('purchase-requisition*') ? 'active' : '' }}"><i class="bi bi-file-earmark-text-fill"></i> Pengajuan (PR)</a></li>
                         @endif
                         @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-po') || auth()->user()->can('tambah-po') || auth()->user()->can('approve-po'))
                         <li><a href="/purchase-order" class="nav-link {{ request()->is('purchase-order*') ? 'active' : '' }}"><i class="bi bi-cart-check-fill"></i> {{ __('messages.purchase_order') }}</a></li>
                         @endif
-                        <li><a href="/purchase-invoices" class="nav-link {{ request()->is('purchase-invoices*') ? 'active' : '' }}"><i class="bi bi-receipt-cutoff"></i> Faktur Pembelian (AP)</a></li>
-                        @can('lihat-pembayaran-utang')
-                        <li><a href="{{ route('purchase-payments.index') }}" class="nav-link {{ request()->is('purchase-payments*') ? 'active' : '' }}"><i class="bi bi-credit-card-2-front-fill text-success"></i> Pembayaran Utang (AP)</a></li>
+                          @can('lihat-alokasi-biaya')
+                        <li><a href="{{ route('alokasi-biaya.index') }}" class="nav-link {{ request()->is('alokasi-biaya*') ? 'active' : '' }}"><i class="bi bi-calculator-fill text-warning"></i> Alokasi Biaya</a></li>
                         @endcan
-                        <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> {{ __('messages.purchase_return') }}</a></li>
+                        @can('lihat-purchase-invoice')
+                        <li><a href="/purchase-invoices" class="nav-link {{ request()->is('purchase-invoices*') ? 'active' : '' }}"><i class="bi bi-receipt-cutoff"></i> Faktur Pembelian</a></li>
+                        @endcan
+                        @can('lihat-pembayaran-utang')
+                        <li><a href="{{ route('purchase-payments.index') }}" class="nav-link {{ request()->is('purchase-payments*') ? 'active' : '' }}"><i class="bi bi-credit-card-2-front-fill text-success"></i> Pembayaran Utang</a></li>
+                        @endcan
+                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-hutang'))
+                        <li><a href="{{ route('modul_purchasing.hutang.index') }}" class="nav-link {{ request()->is('modul-purchasing/hutang*') || request()->is('supplier-payables*') ? 'active' : '' }}"><i class="bi bi-wallet2 text-danger"></i> Rekap Utang Supplier</a></li>
+                        @endif
+                        <!-- <li><a href="#" class="nav-link"><i class="bi bi-circle-fill"></i> {{ __('messages.purchase_return') }}</a></li> -->
                     </ul>
                 </div>
             </li>
             @endcanany
 
             <!-- Accordion Menu: Keuangan -->
+            @canany(['lihat-dashboard-keuangan', 'lihat-kas-bank', 'lihat-mutasi-kas-bank', 'lihat-jurnal-umum', 'lihat-petty-cash', 'lihat-pengaturan-akuntansi'])
             <li class="nav-item">
-                <a href="#menuFinance" class="nav-link {{ request()->is('accounting/*') || request()->is('fixed-assets*') || request()->is('registrasi-jasa*') || request()->is('settings/akuntansi*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('accounting/*') || request()->is('fixed-assets*') || request()->is('registrasi-jasa*') || request()->is('settings/akuntansi*') ? 'true' : 'false' }}"
+                <a href="#menuFinance" class="nav-link {{ request()->is('finance/dashboard*') || request()->is('accounting/*') || request()->is('fixed-assets*') || request()->is('registrasi-jasa*') || request()->is('settings/akuntansi*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('finance/dashboard*') || request()->is('accounting/*') || request()->is('fixed-assets*') || request()->is('registrasi-jasa*') || request()->is('settings/akuntansi*') ? 'true' : 'false' }}"
                     data-tooltip-title="{{ __('messages.finance') }}">
                     <i class="bi bi-wallet2"></i>
                     <span class="nav-text">{{ __('messages.finance') }}</span>
                     <i class="bi bi-chevron-down nav-arrow"></i>
                 </a>
-                <div class="collapse {{ request()->is('accounting/*') || request()->is('fixed-assets*') || request()->is('registrasi-jasa*') || request()->is('settings/akuntansi*') ? 'show' : '' }}" id="menuFinance">
+                <div class="collapse {{ request()->is('finance/dashboard*') || request()->is('accounting/*') || request()->is('fixed-assets*') || request()->is('registrasi-jasa*') || request()->is('settings/akuntansi*') ? 'show' : '' }}" id="menuFinance">
                     <ul class="sub-menu">
-                        <li><a href="{{ route('accounting.kas-bank.index') }}" class="nav-link {{ request()->routeIs('accounting.kas-bank.index') ? 'active' : '' }}"><i class="bi bi-bank2 text-success"></i> Kas &amp; Rekening Bank</a></li>
-                        <li><a href="{{ route('accounting.petty-cash.index') }}" class="nav-link {{ request()->is('accounting/petty-cash*') || request()->is('accounting/paty-cas*') ? 'active' : '' }}"><i class="bi bi-wallet2 text-warning"></i> Kas Kecil (Petty Cash)</a></li>
-                        <li><a href="{{ route('accounting.kas-bank.ledger') }}" class="nav-link {{ request()->is('accounting/kas-bank/ledger*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill text-info"></i> Buku Kas &amp; Rekening Koran</a></li>
-                        <li><a href="{{ route('accounting.jurnal-umum.index') }}" class="nav-link {{ request()->is('accounting/jurnal-umum*') ? 'active' : '' }}"><i class="bi bi-journal-text text-primary"></i> Jurnal Umum</a></li>
-
-                        <li><a href="/settings/akuntansi" class="nav-link {{ request()->is('settings/akuntansi*') ? 'active' : '' }}"><i class="bi bi-sliders text-warning"></i> Pengaturan Akuntansi</a></li>
-                        @can('lihat-gr')
-                        <li><a href="/fixed-assets" class="nav-link {{ request()->is('fixed-assets*') ? 'active' : '' }}"><i class="bi bi-shield-check"></i> Aset Tetap</a></li>
+                       
+                        @can('lihat-kas-bank')
+                        <li><a href="{{ route('accounting.kas-bank.index') }}" class="nav-link {{ request()->routeIs('accounting.kas-bank.index') ? 'active' : '' }}"><i class="bi bi-bank2 text-success"></i> Kas &amp; Bank</a></li>
                         @endcan
-                        @can('lihat-barang')
-                        <li><a href="/registrasi-jasa" class="nav-link {{ request()->is('registrasi-jasa*') ? 'active' : '' }}"><i class="bi bi-gear-wide-connected"></i> Registrasi Jasa</a></li>
+                        @can('lihat-mutasi-kas-bank')
+                        <li><a href="{{ route('accounting.kas-bank.ledger') }}" class="nav-link {{ request()->is('accounting/kas-bank/ledger*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill text-info"></i> Buku Kas</a></li>
+                        @endcan
+                        @can('lihat-jurnal-umum')
+                        <li><a href="{{ route('accounting.jurnal-umum.index') }}" class="nav-link {{ request()->is('accounting/jurnal-umum*') ? 'active' : '' }}"><i class="bi bi-journal-text text-primary"></i> Jurnal Umum</a></li>
+                        @endcan
+                        @can('lihat-petty-cash')
+                        <li><a href="{{ route('accounting.petty-cash.index') }}" class="nav-link {{ request()->is('accounting/petty-cash*') || request()->is('accounting/paty-cas*') ? 'active' : '' }}"><i class="bi bi-wallet2 text-warning"></i> Kas Kecil</a></li>
+                        @endcan
+
+                        @can('lihat-pengaturan-akuntansi')
+                        <li><a href="/settings/akuntansi" class="nav-link {{ request()->is('settings/akuntansi*') ? 'active' : '' }}"><i class="bi bi-sliders text-warning"></i> Pengaturan Akuntansi</a></li>
                         @endcan
                     </ul>
                 </div>
             </li>
+            @endcanany
 
             <!-- Accordion Menu: Produksi Garmen -->
-            @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->canany(['lihat-bom','tambah-bom','approve-bom','lihat-spk','tambah-spk','approve-spk','lihat-realisasi-produksi','kontrol-tahapan-realisasi','input-hasil-harian-produksi','input-realisasi-produksi','approve-realisasi-produksi','lihat-pengeluaran-bahan','lihat-penerimaan-barang-jadi','lihat-master-tahapan','akses-produksi']))
+            @canany(['lihat-bom','tambah-bom','approve-bom','lihat-spk','tambah-spk','approve-spk','lihat-realisasi-produksi','kontrol-tahapan-realisasi','input-hasil-harian-produksi','input-realisasi-produksi','approve-realisasi-produksi','lihat-pengeluaran-bahan','lihat-penerimaan-barang-jadi','lihat-tracking-sn','lihat-master-tahapan','cetak-spk'])
             <li class="nav-item">
                 <a href="#menuProduction" class="nav-link {{ request()->is('produksi*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('produksi*') ? 'true' : 'false' }}"
                     data-tooltip-title="Produksi">
@@ -306,60 +306,82 @@
                 </a>
                 <div class="collapse {{ request()->is('produksi*') ? 'show' : '' }}" id="menuProduction">
                     <ul class="sub-menu">
-                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-bom') || auth()->user()->can('tambah-bom') || auth()->user()->can('approve-bom') || auth()->user()->can('akses-produksi'))
-                        <li><a href="{{ route('produksi.bom.index') }}" class="nav-link {{ request()->is('produksi/bom*') ? 'active' : '' }}"><i class="bi bi-box-seam"></i> Master BOM (Resep)</a></li>
-                        @endif
-                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-spk') || auth()->user()->can('tambah-spk') || auth()->user()->can('approve-spk') || auth()->user()->can('akses-produksi'))
-                        <li><a href="{{ route('produksi.spk.index') }}" class="nav-link {{ request()->is('produksi/spk*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled"></i> SPK / Work Order</a></li>
-                        @endif
-                        @if(auth()->user()->can('lihat-realisasi-produksi') || auth()->user()->can('kontrol-tahapan-realisasi') || auth()->user()->can('input-hasil-harian-produksi') || auth()->user()->can('input-realisasi-produksi') || auth()->user()->can('approve-realisasi-produksi') || auth()->user()->hasAnyRole(['Super Admin', 'Owner']))
-                        <li><a href="{{ route('produksi.realisasi.index') }}" class="nav-link {{ request()->is('produksi/realisasi-produksi*') ? 'active' : '' }}"><i class="bi bi-clock-history"></i> Realisasi & Kontrol Tahapan</a></li>
-                        @endif
-                        @if(auth()->user()->can('lihat-pengeluaran-bahan') || auth()->user()->hasAnyRole(['Super Admin', 'Owner']))
-                        <li><a href="{{ route('produksi.pengeluaran-bahan.index') }}" class="nav-link {{ request()->is('produksi/pengeluaran-bahan*') ? 'active' : '' }}"><i class="bi bi-box-arrow-right"></i> Pengeluaran Bahan Baku</a></li>
-                        @endif
-                        @if(auth()->user()->can('lihat-penerimaan-barang-jadi') || auth()->user()->hasAnyRole(['Super Admin', 'Owner']))
-                        <li><a href="{{ route('produksi.barang-jadi.index') }}" class="nav-link {{ request()->is('produksi/barang-jadi*') ? 'active' : '' }}"><i class="bi bi-box-arrow-in-down-right"></i> Penerimaan Barang Jadi</a></li>
-                        @endif
-                        @if(auth()->user()->can('lihat-master-tahapan') || auth()->user()->hasAnyRole(['Super Admin', 'Owner']))
+                       
+
+                        @canany(['lihat-bom', 'tambah-bom', 'approve-bom', 'detail-bom', 'edit-bom'])
+                        <li><a href="{{ route('produksi.bom.index') }}" class="nav-link {{ request()->is('produksi/bom*') ? 'active' : '' }}"><i class="bi bi-box-seam"></i> Master BOM</a></li>
+                        @endcanany
+
+                        @canany(['lihat-spk', 'tambah-spk', 'approve-spk', 'detail-spk', 'edit-spk'])
+                        <li><a href="{{ route('produksi.spk.index') }}" class="nav-link {{ request()->is('produksi/spk*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled"></i> SPK</a></li>
+                        @endcanany
+
+                        @canany(['lihat-realisasi-produksi', 'kontrol-tahapan-realisasi', 'input-hasil-harian-produksi', 'input-realisasi-produksi', 'approve-realisasi-produksi'])
+                        <li><a href="{{ route('produksi.realisasi.index') }}" class="nav-link {{ request()->is('produksi/realisasi-produksi*') ? 'active' : '' }}"><i class="bi bi-clock-history"></i> Kontrol Tahapan</a></li>
+                        @endcanany
+
+                        @can('lihat-pengeluaran-bahan')
+                        <li><a href="{{ route('produksi.pengeluaran-bahan.index') }}" class="nav-link {{ request()->is('produksi/pengeluaran-bahan*') ? 'active' : '' }}"><i class="bi bi-box-arrow-right"></i> Bahan Baku</a></li>
+                        @endcan
+
+                        @can('lihat-penerimaan-barang-jadi')
+                        <li><a href="{{ route('produksi.barang-jadi.index') }}" class="nav-link {{ request()->is('produksi/barang-jadi*') ? 'active' : '' }}"><i class="bi bi-box-arrow-in-down-right"></i> Barang Jadi</a></li>
+                        @endcan
+
+                        @can('lihat-tracking-sn')
+                        <li><a href="{{ route('produksi.tracking-sn.index') }}" class="nav-link {{ request()->is('produksi/tracking-sn*') ? 'active' : '' }}"><i class="bi bi-upc-scan text-info"></i> Pelacakan SN</a></li>
+                        @endcan
+
+                        @can('lihat-master-tahapan')
                         <li><a href="{{ route('produksi.master-tahapan.index') }}" class="nav-link {{ request()->is('produksi/master-tahapan*') ? 'active' : '' }}"><i class="bi bi-diagram-3-fill"></i> Master Tahapan</a></li>
-                        @endif
+                        @endcan
+
+                        @canany(['cetak-spk', 'lihat-penerimaan-barang-jadi'])
+                        <!-- <li><a href="{{ route('produksi.cetak-label.index') }}" class="nav-link {{ request()->is('produksi/cetak-label*') ? 'active' : '' }}"><i class="bi bi-printer-fill text-warning"></i> Cetak Label QR &amp; Barcode</a></li> -->
+                        @endcanany
                     </ul>
                 </div>
             </li>
-            @endif
+            @endcanany
 
             <div class="nav-label">{{ __('messages.system') }}</div>
 
-            <li class="nav-item">
+            <!-- <li class="nav-item">
                 <a href="#" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right"
                     title="{{ __('messages.reports') }}">
                     <i class="bi bi-file-earmark-bar-graph"></i>
                     <span class="nav-text">{{ __('messages.reports') }}</span>
                 </a>
-            </li>
+            </li> -->
             <!-- Accordion Menu: Pengaturan -->
-            @canany(['lihat-karyawan','tambah-karyawan','lihat-hak-akses','edit-hak-akses','akses-whatsapp-gateway'])
+            @canany(['lihat-karyawan','tambah-karyawan','lihat-hak-akses','edit-hak-akses','lihat-pengaturan-aplikasi','edit-pengaturan-aplikasi','lihat-log-aktivitas-user','akses-whatsapp-gateway','kelola-kategori-bundle'])
             <li class="nav-item">
-                <a href="#menuSettings" class="nav-link {{ request()->is('viewusers*') || request()->is('roles*') || request()->is('app-settings*') || request()->is('activity-logs*') || request()->is('settings/whatsapp*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('viewusers*') || request()->is('roles*') || request()->is('app-settings*') || request()->is('activity-logs*') || request()->is('settings/whatsapp*') ? 'true' : 'false' }}"
+                <a href="#menuSettings" class="nav-link {{ request()->is('viewusers*') || request()->is('roles*') || request()->is('app-settings*') || request()->is('activity-logs*') || request()->is('settings/whatsapp*') || request()->is('master-bundle/pengaturan*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('viewusers*') || request()->is('roles*') || request()->is('app-settings*') || request()->is('activity-logs*') || request()->is('settings/whatsapp*') || request()->is('master-bundle/pengaturan*') ? 'true' : 'false' }}"
                     data-tooltip-title="{{ __('messages.settings') }}">
                     <i class="bi bi-gear"></i>
                     <span class="nav-text">{{ __('messages.settings') }}</span>
                     <i class="bi bi-chevron-down nav-arrow"></i>
                 </a>
-                <div class="collapse {{ request()->is('viewusers*') || request()->is('roles*') || request()->is('app-settings*') || request()->is('activity-logs*') || request()->is('settings/whatsapp*') ? 'show' : '' }}" id="menuSettings">
+                <div class="collapse {{ request()->is('viewusers*') || request()->is('roles*') || request()->is('app-settings*') || request()->is('activity-logs*') || request()->is('settings/whatsapp*') || request()->is('master-bundle/pengaturan*') ? 'show' : '' }}" id="menuSettings">
                     <ul class="sub-menu">
                         @can('lihat-karyawan')
                         <li><a href="/viewusers" class="nav-link {{ request()->is('viewusers*') ? 'active' : '' }}"><i class="bi bi-people"></i> Manajemen User</a></li>
                         @endcan
                         @can('lihat-hak-akses')
                         <li><a href="/roles" class="nav-link {{ request()->is('roles*') ? 'active' : '' }}"><i class="bi bi-shield-lock"></i> {{ __('messages.roles') }}</a></li>
+                        @endcan
+                        @can('lihat-pengaturan-aplikasi')
                         <li><a href="/app-settings" class="nav-link {{ request()->is('app-settings*') ? 'active' : '' }}"><i class="bi bi-sliders"></i> Pengaturan Aplikasi</a></li>
+                        @endcan
+                        @can('lihat-log-aktivitas-user')
                         <li><a href="/activity-logs" class="nav-link {{ request()->is('activity-logs*') ? 'active' : '' }}"><i class="bi bi-clock-history"></i> Log Aktivitas User</a></li>
                         @endcan
                         @can('akses-whatsapp-gateway')
                         <li><a href="/settings/whatsapp" class="nav-link {{ request()->is('settings/whatsapp*') ? 'active' : '' }}"><i class="bi bi-whatsapp text-success"></i> WhatsApp Gateway</a></li>
                         @endcan
+                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('kelola-kategori-bundle'))
+                        <li><a href="/master-bundle/pengaturan-kategori" class="nav-link {{ request()->is('master-bundle/pengaturan*') ? 'active' : '' }}"><i class="bi bi-sliders2-vertical text-warning"></i> Visibilitas Kategori Bundle</a></li>
+                        @endif
                     </ul>
                 </div>
             </li>

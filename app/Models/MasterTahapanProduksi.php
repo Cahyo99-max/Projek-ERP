@@ -35,6 +35,18 @@ class MasterTahapanProduksi extends Model
     ];
 
     /**
+     * Booted Model Event: Otomatis hapus file fisik foto dari storage saat tahapan dihapus.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function ($tahapan) {
+            if (!empty($tahapan->foto) && \Illuminate\Support\Facades\Storage::disk('public')->exists($tahapan->foto)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($tahapan->foto);
+            }
+        });
+    }
+
+    /**
      * Accessor URL Foto Tahapan
      */
     public function getFotoUrlAttribute()
@@ -46,18 +58,39 @@ class MasterTahapanProduksi extends Model
     }
 
     /**
-     * Scope: filter berdasarkan company aktif di session.
+     * Scope: Filter berdasarkan active company + pisah PT Pusat vs Cabang.
+     * - Jika input/sesi Cabang (active_branch_id ada)  → branch_id = active_branch_id & company_id (PT) NULL.
+     * - Jika input/sesi PT Pusat (active_branch_id null) → branch_id (Cabang) NULL & company_id = active_company_id.
      */
     public function scopeForActiveCompany($query)
     {
         $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId) {
-            return $query->where(function ($q) use ($activeCompanyId) {
-                $q->where('master_tahapan_produksi.company_id', $activeCompanyId)
-                  ->orWhereNull('master_tahapan_produksi.company_id');
-            });
+        $activeBranchId  = session('active_branch_id');
+        $table = $this->getTable();
+
+        if (!empty($activeBranchId)) {
+            $query->where($table . '.branch_id', $activeBranchId)
+                  ->whereNull($table . '.company_id');
+        } else {
+            $query->whereNull($table . '.branch_id');
+            if (!empty($activeCompanyId)) {
+                $query->where($table . '.company_id', $activeCompanyId);
+            }
         }
+
         return $query;
+    }
+
+    /**
+     * Scope: Filter berdasarkan active branch.
+     */
+    public function scopeForActiveBranch($query)
+    {
+        $activeBranchId = session('active_branch_id');
+        $table = $this->getTable();
+        return !empty($activeBranchId)
+            ? $query->where($table . '.branch_id', $activeBranchId)->whereNull($table . '.company_id')
+            : $query->whereNull($table . '.branch_id');
     }
 
     /**

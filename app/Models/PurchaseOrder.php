@@ -34,6 +34,11 @@ class PurchaseOrder extends Model
         'subtotal',
         'total_diskon',
         'total_pajak',
+        'pph_pajak_id',
+        'tarif_pph',
+        'pph_nominal',
+        'total_pph',
+        'pph_coa_id',
         'grand_total',
         'grand_total_idr',
         'down_payment',
@@ -54,13 +59,16 @@ class PurchaseOrder extends Model
     protected $casts = [
         'tanggal_po'         => 'date',
         'tanggal_pengiriman' => 'date',
-        'approved_at'         => 'datetime',
-        'kurs'               => 'decimal:2',
+        'approved_at'        => 'datetime',
+        'kurs'               => 'decimal:4',
         'diskon_persen'      => 'decimal:2',
         'diskon_nominal'     => 'decimal:2',
         'subtotal'           => 'decimal:2',
         'total_diskon'       => 'decimal:2',
         'total_pajak'        => 'decimal:2',
+        'tarif_pph'          => 'decimal:2',
+        'pph_nominal'        => 'decimal:2',
+        'total_pph'          => 'decimal:2',
         'grand_total'        => 'decimal:2',
         'grand_total_idr'    => 'decimal:2',
         'down_payment'       => 'decimal:2',
@@ -74,13 +82,25 @@ class PurchaseOrder extends Model
             if (auth()->check()) {
                 $model->created_by = auth()->id();
             }
-            if (session()->has('active_branch_id')) {
-                $model->branch_id = session('active_branch_id');
+            $activeBranchId = session('active_branch_id');
+            if (!empty($activeBranchId)) {
+                $model->branch_id = $activeBranchId;
+                $model->company_id = null;
+            } else {
+                $model->branch_id = null;
+                if (empty($model->company_id)) {
+                    $model->company_id = session('active_company_id') ?: 1;
+                }
             }
         });
         static::updating(function ($model) {
             if (auth()->check()) {
                 $model->updated_by = auth()->id();
+            }
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            } elseif (!empty($model->company_id)) {
+                $model->branch_id = null;
             }
         });
         static::deleting(function ($model) {
@@ -96,6 +116,8 @@ class PurchaseOrder extends Model
     public function supplier(): BelongsTo { return $this->belongsTo(MasterSupplier::class, 'supplier_id'); }
     public function currency(): BelongsTo { return $this->belongsTo(MasterCurrency::class, 'currency_id'); }
     public function pajak(): BelongsTo { return $this->belongsTo(MasterPajak::class, 'pajak_id'); }
+    public function pphPajak(): BelongsTo { return $this->belongsTo(MasterPajak::class, 'pph_pajak_id'); }
+    public function pphCoa(): BelongsTo { return $this->belongsTo(ChartOfAccount::class, 'pph_coa_id'); }
     public function paymentTerm(): BelongsTo { return $this->belongsTo(PaymentTerm::class, 'payment_term_id'); }
     public function paymentMethod(): BelongsTo { return $this->belongsTo(PaymentMethod::class, 'payment_method_id'); }
     public function pr(): BelongsTo { return $this->belongsTo(PurchaseRequisition::class, 'pr_id'); }
@@ -107,9 +129,15 @@ class PurchaseOrder extends Model
     public function deleter(): BelongsTo { return $this->belongsTo(User::class, 'deleted_by'); }
 
     public function details(): HasMany { return $this->hasMany(PurchaseOrderDetail::class, 'po_id'); }
+    public function goodsReceipts(): HasMany { return $this->hasMany(GoodsReceipt::class, 'po_id'); }
+    public function purchaseInvoices(): HasMany { return $this->hasMany(PurchaseInvoice::class, 'po_id'); }
+    public function invoices(): HasMany { return $this->hasMany(PurchaseInvoice::class, 'po_id'); }
 
     public function scopeForActiveCompany($query)
     {
+        if (!empty(session('active_branch_id'))) {
+            return $query;
+        }
         $companyId = session('active_company_id');
         if ($companyId) {
             return $query->where('company_id', $companyId);

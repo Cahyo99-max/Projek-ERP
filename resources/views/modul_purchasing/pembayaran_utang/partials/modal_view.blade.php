@@ -41,7 +41,7 @@
                             <div class="small text-muted" id="viewNomorReferensi"></div>
                         </div>
 
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-2">
                             <div class="text-muted small text-uppercase fw-bold">Tanggal Pembayaran</div>
                             <div class="fs-6 fw-semibold" id="viewTanggalBayar">-</div>
                             <div class="small text-muted" id="viewMetodeBayar">-</div>
@@ -53,19 +53,28 @@
                             <div class="small text-muted" id="viewSupplierKode">-</div>
                         </div>
 
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-2">
                             <div class="text-muted small text-uppercase fw-bold">Sumber Kas / Bank</div>
                             <div class="fs-6 fw-bold" id="viewKasBankNama">-</div>
                             <div class="small text-muted" id="viewKasBankCoa">-</div>
+                        </div>
+
+                        <div class="col-12 col-md-2">
+                            <div class="text-muted small text-uppercase fw-bold"><i class="bi bi-currency-exchange me-1 text-success"></i>Kurs Pas Bayar</div>
+                            <div class="fs-6 fw-bold text-success" id="viewKursBayarHeader">-</div>
+                            <div class="small text-muted" id="viewMataUangHeader">Mata Uang: IDR</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 2. Allocated Invoices Table -->
                 <div class="card border-0 shadow-sm rounded-3 p-3 mb-4">
-                    <h6 class="fw-bold mb-3 text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.05em;">
-                        <i class="bi bi-receipt-cutoff me-1 text-primary"></i> Daftar Faktur Pembelian yang Dibayar
-                    </h6>
+                    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 mb-3">
+                        <h6 class="fw-bold mb-0 text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.05em;">
+                            <i class="bi bi-receipt-cutoff me-1 text-primary"></i> Daftar Faktur Pembelian yang Dibayar
+                        </h6>
+                        <div id="viewForexSummaryPill" class="d-none"></div>
+                    </div>
 
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover align-middle mb-0" style="font-size: 0.85rem;">
@@ -75,6 +84,7 @@
                                     <th>No. Faktur</th>
                                     <th>Tgl Faktur</th>
                                     <th>Jatuh Tempo</th>
+                                    <th class="text-center" style="min-width: 185px;">Perbandingan Kurs</th>
                                     <th class="text-end">Total Faktur</th>
                                     <th class="text-end">Sisa Sblm Bayar</th>
                                     <th class="text-end text-primary">Jumlah Bayar</th>
@@ -88,7 +98,9 @@
                             </tbody>
                             <tfoot class="fw-bold">
                                 <tr>
-                                    <td colspan="6" class="text-end">TOTAL ALOKASI:</td>
+                                    <td colspan="5" class="text-end">TOTAL ALOKASI:</td>
+                                    <td class="text-end" id="viewTotalFaktur">Rp 0</td>
+                                    <td class="text-end text-muted" id="viewTotalSisaUtang">Rp 0</td>
                                     <td class="text-end text-primary" id="viewTotalBayar">Rp 0</td>
                                     <td class="text-end text-danger" id="viewTotalPotongan">Rp 0</td>
                                     <td class="text-end" id="viewTotalSisaAkhir">Rp 0</td>
@@ -105,13 +117,24 @@
                     <!-- Keterangan & Jurnal Info -->
                     <div class="col-12 col-lg-7">
                         <div class="card border-0 shadow-sm rounded-3 p-3 h-100">
-                            <h6 class="fw-bold mb-2 text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.05em;">
+                            <h6 class="fw-bold mb-2 text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.05em;" id="viewJurnalCardHeaderTitle">
                                 <i class="bi bi-journal-text me-1 text-primary"></i> Catatan &amp; Jurnal Akuntansi
                             </h6>
 
                             <div class="mb-3">
                                 <label class="text-muted small">Keterangan:</label>
                                 <div class="p-2 rounded border small" id="viewKeterangan" style="background: rgba(37,99,235,0.04);">-</div>
+                            </div>
+
+                            <!-- Akun COA Potongan Pembelian (Tampil jika ada potongan) -->
+                            <div class="mb-3 d-none" id="viewPotonganCoaWrapper">
+                                <label class="text-muted small fw-bold text-uppercase mb-1">
+                                    <i class="bi bi-journal-arrow-down text-warning me-1"></i>Akun COA Potongan / Diskon:
+                                </label>
+                                <div class="p-2 rounded border bg-body-tertiary d-flex align-items-center gap-2">
+                                    <span class="badge bg-warning bg-opacity-25 text-warning-emphasis border border-warning-subtle font-monospace px-2 py-1" id="viewPotonganCoaBadge">-</span>
+                                    <span class="small fw-semibold text-dark" id="viewPotonganCoaName">-</span>
+                                </div>
                             </div>
 
                             <!-- Bukti Transfer / Lampiran Foto -->
@@ -138,52 +161,65 @@
                                 </div>
                             </div>
 
-                            <div class="d-none" id="viewJurnalWrapper">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span class="text-muted small fw-bold"><i class="bi bi-journal-check text-primary me-1"></i>Jurnal Posting Asli:</span>
-                                    <span class="badge bg-primary text-white" id="viewNomorJurnal">-</span>
+                            <!-- Container Khusus Jurnal Akuntansi (Dibatasi Hak Akses: lihat-jurnal-pembayaran-utang) -->
+                            <div id="viewJurnalMainContainer">
+                                <div class="d-none" id="viewJurnalWrapper">
+                                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                            <span class="text-muted small fw-bold"><i class="bi bi-journal-check text-primary me-1"></i>Jurnal Posting Asli:</span>
+                                            <span class="badge bg-primary text-white" id="viewNomorJurnal">-</span>
+                                            <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning-subtle font-monospace px-2 py-0.5 rounded-pill d-none" id="viewJurnalTenderBadge" title="Kode / Proyek Tender Terkait">
+                                                <i class="bi bi-briefcase me-1"></i><span id="viewJurnalTenderText"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0" style="font-size: 0.78rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>Akun COA</th>
+                                                    <th class="text-end">Debit</th>
+                                                    <th class="text-end">Kredit</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="viewJurnalTbody">
+                                                <!-- Journal lines populated via AJAX -->
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-bordered mb-0" style="font-size: 0.78rem;">
-                                        <thead>
-                                            <tr>
-                                                <th>Akun COA</th>
-                                                <th class="text-end">Debit</th>
-                                                <th class="text-end">Kredit</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="viewJurnalTbody">
-                                            <!-- Journal lines populated via AJAX -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
 
-                            <!-- Jurnal Pembalik (Reversal) jika transaksi Dibatalkan -->
-                            <div class="d-none mt-3 pt-3 border-top" id="viewReversalJurnalWrapper">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span class="text-danger small fw-bold"><i class="bi bi-arrow-counterclockwise text-danger me-1"></i>Jurnal Pembalik (Reversal):</span>
-                                    <span class="badge bg-danger text-white" id="viewNomorReversalJurnal">-</span>
+                                <!-- Jurnal Pembalik (Reversal) jika transaksi Dibatalkan -->
+                                <div class="d-none mt-3 pt-3 border-top" id="viewReversalJurnalWrapper">
+                                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                            <span class="text-danger small fw-bold"><i class="bi bi-arrow-counterclockwise text-danger me-1"></i>Jurnal Pembalik (Reversal):</span>
+                                            <span class="badge bg-danger text-white" id="viewNomorReversalJurnal">-</span>
+                                            <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning-subtle font-monospace px-2 py-0.5 rounded-pill d-none" id="viewReversalJurnalTenderBadge" title="Kode / Proyek Tender Terkait">
+                                                <i class="bi bi-briefcase me-1"></i><span id="viewReversalJurnalTenderText"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0" style="font-size: 0.78rem;">
+                                            <thead>
+                                                <tr class="table-danger border-danger-subtle">
+                                                    <th>Akun COA (Pembalikan)</th>
+                                                    <th class="text-end">Debit</th>
+                                                    <th class="text-end">Kredit</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="viewReversalJurnalTbody">
+                                                <!-- Reversal Journal lines populated via AJAX -->
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-bordered mb-0" style="font-size: 0.78rem;">
-                                        <thead>
-                                            <tr class="table-danger border-danger-subtle">
-                                                <th>Akun COA (Pembalikan)</th>
-                                                <th class="text-end">Debit</th>
-                                                <th class="text-end">Kredit</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="viewReversalJurnalTbody">
-                                            <!-- Reversal Journal lines populated via AJAX -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
 
-                            <div id="viewJurnalDraftNotice" class="alert alert-info py-2 px-3 small border-info align-items-center gap-2 mb-0 d-none">
-                                <i class="bi bi-info-circle-fill fs-5 text-info"></i>
-                                <span>Status pembayaran ini masih <strong>Draft</strong>. Jurnal akuntansi dan mutasi kas akan diterbitkan otomatis saat pembayaran <strong>Diposting</strong>.</span>
+                                <div id="viewJurnalDraftNotice" class="alert alert-info py-2 px-3 small border-info align-items-center gap-2 mb-0 d-none">
+                                    <i class="bi bi-info-circle-fill fs-5 text-info"></i>
+                                    <span>Status pembayaran ini masih <strong>Draft</strong>. Jurnal akuntansi dan mutasi kas akan diterbitkan otomatis saat pembayaran <strong>Diposting</strong>.</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -343,9 +379,19 @@
 
             <!-- Modal Footer -->
             <div class="modal-footer border-top px-4 py-3 d-flex align-items-center justify-content-between">
-                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">
-                    <i class="bi bi-x-lg me-1"></i> Tutup
-                </button>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i> Tutup
+                    </button>
+                    <!-- Tombol Hapus Draf (Hanya tampil jika berstatus Draft / Ditolak & memiliki izin) -->
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm d-none" id="btnViewDeletePayment" title="Hapus Draf Pembayaran">
+                        <i class="bi bi-trash me-1"></i> Hapus Draf
+                    </button>
+                    <!-- Tombol Batalkan Pembayaran (Hanya tampil jika berstatus Posted & memiliki izin batalkan-pembayaran-utang) -->
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm d-none" id="btnViewCancelPayment" title="Batalkan Transaksi Pembayaran (Void)">
+                        <i class="bi bi-x-octagon me-1"></i> Batalkan Transaksi (Void)
+                    </button>
+                </div>
                 <div class="d-flex align-items-center gap-2">
                     @can('cetak-pembayaran-utang')
                     <a href="#" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm" id="btnViewPrintVoucher">

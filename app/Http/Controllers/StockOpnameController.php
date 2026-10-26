@@ -246,13 +246,15 @@ class StockOpnameController extends Controller
         // 🛑 COOLDOWN RULE: Pembatasan pengajuan Stock Opname minimal 20 hari sekali per Gudang & PT & Cabang
         $minIntervalDays = 20;
         $lastOpnameQuery = StockOpname::where('gudang_id', $gudang->id)
-            ->where('company_id', $gudang->company_id)
             ->whereNotIn('status', ['Rejected']);
 
         if (!empty($gudang->cabang_id)) {
             $lastOpnameQuery->where('branch_id', $gudang->cabang_id);
         } else {
             $lastOpnameQuery->whereNull('branch_id');
+            if (!empty($gudang->company_id)) {
+                $lastOpnameQuery->where('company_id', $gudang->company_id);
+            }
         }
 
         $lastOpname = $lastOpnameQuery->orderBy('tanggal_opname', 'desc')
@@ -357,14 +359,17 @@ class StockOpnameController extends Controller
 
             // Create Proposal (Draft state or direct Submission to approval)
             $initialStatus = $request->submit_directly ? 'Menunggu Persetujuan' : 'Draft';
+            $targetBranchId  = $gudang->cabang_id ?? session('active_branch_id');
+            $targetCompanyId = !empty($targetBranchId) ? null : ($gudang->company_id ?? session('active_company_id'));
+
             $so = StockOpname::create([
                 'nomor_opname'    => $nomorOpname,
                 'tanggal_opname'  => $request->tanggal_opname,
                 'tanggal_mulai'   => $request->tanggal_mulai,
                 'tanggal_selesai' => $request->tanggal_selesai,
                 'gudang_id'       => $gudang->id,
-                'company_id'      => $gudang->company_id,
-                'branch_id'       => $gudang->cabang_id,
+                'company_id'      => $targetCompanyId,
+                'branch_id'       => $targetBranchId,
                 'jenis_opname'    => $request->jenis_opname,
                 'keterangan'      => strip_tags($request->keterangan),
                 'status'          => $initialStatus,
@@ -512,13 +517,12 @@ class StockOpnameController extends Controller
         $minIntervalDays = 20;
         $lastOpnameQuery = StockOpname::where('gudang_id', $gudang->id)
             ->where('id', '!=', $stockOpname->id)
-            ->where('company_id', $gudang->company_id)
             ->whereNotIn('status', ['Rejected']);
 
         if (!empty($gudang->cabang_id)) {
             $lastOpnameQuery->where('branch_id', $gudang->cabang_id);
         } else {
-            $lastOpnameQuery->whereNull('branch_id');
+            $lastOpnameQuery->whereNull('branch_id')->where('company_id', $gudang->company_id);
         }
 
         $lastOpname = $lastOpnameQuery->orderBy('tanggal_opname', 'desc')
@@ -601,13 +605,16 @@ class StockOpnameController extends Controller
         try {
             DB::beginTransaction();
 
+            $targetBranchId  = $gudang->cabang_id ?? session('active_branch_id');
+            $targetCompanyId = !empty($targetBranchId) ? null : ($gudang->company_id ?? session('active_company_id'));
+
             $updateData = [
                 'tanggal_opname'  => $request->tanggal_opname,
                 'tanggal_mulai'   => $request->tanggal_mulai,
                 'tanggal_selesai' => $request->tanggal_selesai,
                 'gudang_id'       => $gudang->id,
-                'company_id'      => $gudang->company_id,
-                'branch_id'       => $gudang->cabang_id,
+                'company_id'      => $targetCompanyId,
+                'branch_id'       => $targetBranchId,
                 'jenis_opname'    => $request->jenis_opname,
                 'keterangan'      => strip_tags($request->keterangan),
             ];

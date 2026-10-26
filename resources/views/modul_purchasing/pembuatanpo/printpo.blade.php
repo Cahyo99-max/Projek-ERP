@@ -787,28 +787,50 @@
                                 @endif
                             </td>
                             <td class="r"><span class="editable-text">{{ number_format(floatval($detail->harga_satuan), 2, ',', '.') }}</span></td>
-                            <td class="c">
-                                @if(floatval($detail->diskon_item) > 0)
-                                    @php
-                                        $discPct = floatval($detail->harga_satuan) > 0 ? (floatval($detail->diskon_item) / floatval($detail->harga_satuan)) * 100 : 0;
-                                    @endphp
+                            <td class="c" style="white-space: nowrap;">
+                                @php
+                                    $itemDiskonTipe = $detail->diskon_tipe ?? 'percent';
+                                    $itemDiskonPersen = floatval($detail->diskon_persen ?? 0);
+                                    $itemDiskonNominal = floatval($detail->diskon_item ?? 0);
+                                @endphp
+                                @if($itemDiskonTipe === 'nominal' && $itemDiskonNominal > 0)
                                     <span class="editable-text" style="color: #dc2626; font-weight: 600;">
-                                        @if(abs($discPct - round($discPct, 2)) < 0.001)
-                                            {{ $discPct == floor($discPct) ? number_format($discPct, 0) : number_format($discPct, 1) }}%
+                                        @if($currSym === 'Rp')
+                                            Rp {{ (floor($itemDiskonNominal) == $itemDiskonNominal) ? number_format($itemDiskonNominal, 0, ',', '.') : number_format($itemDiskonNominal, 2, ',', '.') }}
                                         @else
-                                            {{ number_format(floatval($detail->diskon_item), 0, ',', '.') }}
+                                            {{ $currSym }} {{ number_format($itemDiskonNominal, 2, ',', '.') }}
                                         @endif
                                     </span>
-                                @elseif($discPercent > 0)
+                                @elseif($itemDiskonPersen > 0)
                                     <span class="editable-text" style="color: #dc2626; font-weight: 600;">
-                                        {{ $discPercent == floor($discPercent) ? number_format($discPercent, 0, ',', '.') : number_format($discPercent, 1, ',', '.') }}%
+                                        {{ (floor($itemDiskonPersen) == $itemDiskonPersen) ? number_format($itemDiskonPersen, 0) : rtrim(rtrim(number_format($itemDiskonPersen, 2, ',', '.'), '0'), '.') }}%
+                                    </span>
+                                @elseif($itemDiskonNominal > 0)
+                                    <span class="editable-text" style="color: #dc2626; font-weight: 600;">
+                                        @if($currSym === 'Rp')
+                                            Rp {{ (floor($itemDiskonNominal) == $itemDiskonNominal) ? number_format($itemDiskonNominal, 0, ',', '.') : number_format($itemDiskonNominal, 2, ',', '.') }}
+                                        @else
+                                            {{ $currSym }} {{ number_format($itemDiskonNominal, 2, ',', '.') }}
+                                        @endif
                                     </span>
                                 @else
                                     <span class="editable-text text-muted">-</span>
                                 @endif
                             </td>
                             <td class="r fw-semibold"><span class="editable-text">{{ number_format(floatval($detail->subtotal), 2, ',', '.') }}</span></td>
-                            <td class="c text-muted"><span class="editable-text">{{ $purchaseOrder->pajak ? number_format($purchaseOrder->pajak->tarif, 0) . '%' : '-' }}</span></td>
+                            <td class="c text-muted">
+                                <span class="editable-text">
+                                    @if(floatval($detail->tarif_ppn) > 0)
+                                        {{ rtrim(rtrim(number_format($detail->tarif_ppn, 2, ',', '.'), '0'), ',') }}%
+                                    @elseif($detail->ppnPajak)
+                                        {{ rtrim(rtrim(number_format($detail->ppnPajak->tarif, 2, ',', '.'), '0'), ',') }}%
+                                    @elseif($purchaseOrder->pajak)
+                                        {{ rtrim(rtrim(number_format($purchaseOrder->pajak->tarif, 2, ',', '.'), '0'), ',') }}%
+                                    @else
+                                        -
+                                    @endif
+                                </span>
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -828,13 +850,6 @@
                 @php
                     $currSym = $purchaseOrder->currency ? $purchaseOrder->currency->simbol : 'Rp';
                     $totalDiskonVal = floatval($purchaseOrder->total_diskon ?: $purchaseOrder->diskon_nominal);
-                    if ($totalDiskonVal == 0 && floatval($purchaseOrder->diskon_persen) > 0) {
-                        $totalDiskonVal = floatval($purchaseOrder->subtotal) * (floatval($purchaseOrder->diskon_persen) / 100);
-                    }
-                    $poDiscPercent = floatval($purchaseOrder->diskon_persen);
-                    if ($poDiscPercent <= 0 && $totalDiskonVal > 0 && floatval($purchaseOrder->subtotal) > 0) {
-                        $poDiscPercent = ($totalDiskonVal / floatval($purchaseOrder->subtotal)) * 100;
-                    }
                 @endphp
                 <table class="summary-table">
                     <tr>
@@ -846,7 +861,7 @@
                     @if($totalDiskonVal > 0)
                     <tr>
                         <td class="summary-key" style="color: #dc2626; font-weight: 500;">
-                            Diskon PO @if($poDiscPercent > 0)({{ $poDiscPercent == floor($poDiscPercent) ? number_format($poDiscPercent, 0, ',', '.') : number_format($poDiscPercent, 1, ',', '.') }}%)@endif
+                            Total Diskon Barang
                         </td>
                         <td class="summary-colon">:</td>
                         <td class="summary-curr" style="color: #dc2626; font-weight: 600;">{{ $currSym }}</td>
@@ -860,7 +875,7 @@
                         <td class="summary-val" style="font-weight: 600;"><span class="editable-text">{{ number_format(max(0, floatval($purchaseOrder->subtotal) - $totalDiskonVal), 2, ',', '.') }}</span></td>
                     </tr>
                     <tr>
-                        <td class="summary-key">PPN {{ $purchaseOrder->pajak ? '(' . number_format($purchaseOrder->pajak->tarif, 0) . '%)' : '(0%)' }}</td>
+                        <td class="summary-key">Total PPN (Pajak Barang)</td>
                         <td class="summary-colon">:</td>
                         <td class="summary-curr">{{ $currSym }}</td>
                         <td class="summary-val"><span class="editable-text">{{ number_format(floatval($purchaseOrder->total_pajak), 2, ',', '.') }}</span></td>
@@ -871,6 +886,22 @@
                         <td class="summary-colon">:</td>
                         <td class="summary-curr">{{ $currSym }}</td>
                         <td class="summary-val"><span class="editable-text">{{ number_format(floatval($purchaseOrder->biaya_lain), 2, ',', '.') }}</span></td>
+                    </tr>
+                    @endif
+                    @php
+                        $pphNomPrint = floatval($purchaseOrder->pph_nominal ?? $purchaseOrder->total_pph ?? 0);
+                    @endphp
+                    @if($pphNomPrint > 0)
+                    <tr>
+                        <td class="summary-key" style="color: #b45309 !important;">
+                            Potongan {{ $purchaseOrder->pphPajak?->nama_pajak ?: 'PPh' }}
+                            @if(floatval($purchaseOrder->tarif_pph) > 0)
+                                ({{ rtrim(rtrim(number_format($purchaseOrder->tarif_pph, 2, ',', '.'), '0'), ',') }}%)
+                            @endif
+                        </td>
+                        <td class="summary-colon" style="color: #b45309 !important;">:</td>
+                        <td class="summary-curr" style="color: #b45309 !important;">{{ $currSym }}</td>
+                        <td class="summary-val" style="color: #b45309 !important;"><span class="editable-text">- {{ number_format($pphNomPrint, 2, ',', '.') }}</span></td>
                     </tr>
                     @endif
                     <tr class="summary-total-row">
@@ -897,8 +928,12 @@
                     <tr>
                         <td class="summary-key" style="font-size: 10px; color: #64748b; padding-top: 6px; border-top: 1px dashed #cbd5e1;">Kurs Rupiah</td>
                         <td class="summary-colon" style="font-size: 10px; color: #64748b; padding-top: 6px; border-top: 1px dashed #cbd5e1;">:</td>
+                        @php
+                            $kursVal = floatval($purchaseOrder->kurs);
+                            $kursDecimals = ($kursVal == round($kursVal, 2)) ? 2 : 4;
+                        @endphp
                         <td class="summary-curr" style="font-size: 10px; color: #64748b; padding-top: 6px; border-top: 1px dashed #cbd5e1;">Rp</td>
-                        <td class="summary-val" style="font-size: 10px; color: #64748b; padding-top: 6px; border-top: 1px dashed #cbd5e1;"><span class="editable-text">{{ number_format(floatval($purchaseOrder->kurs), 2, ',', '.') }}</span></td>
+                        <td class="summary-val" style="font-size: 10px; color: #64748b; padding-top: 6px; border-top: 1px dashed #cbd5e1;"><span class="editable-text">{{ number_format($kursVal, $kursDecimals, ',', '.') }}</span></td>
                     </tr>
                     <tr>
                         <td class="summary-key" style="font-weight: 700; color: #334155;">Grand Total (IDR)</td>

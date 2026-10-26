@@ -150,14 +150,14 @@
 /* ===== PRODUCT CARD GRID (TOKOPEDIA STYLE) ===== */
 .tkpd-product-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+    gap: 20px;
 }
 
 @media (max-width: 576px) {
     .tkpd-product-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
+        gap: 12px;
     }
 }
 
@@ -237,7 +237,7 @@
 
 /* Card Body */
 .tkpd-card-body {
-    padding: 12px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
@@ -245,30 +245,31 @@
 }
 
 .tkpd-card-title {
-    font-size: 0.88rem;
-    font-weight: 600;
+    font-size: 0.9rem;
+    font-weight: 700;
     color: var(--tkpd-text-main);
     line-height: 1.35;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    min-height: 2.38rem;
+    min-height: 2.45rem;
 }
 
 .tkpd-card-meta {
-    font-size: 0.72rem;
+    font-size: 0.74rem;
     color: var(--tkpd-text-sub);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .tkpd-card-price {
-    font-size: 1.05rem;
+    font-size: 1.08rem;
     font-weight: 800;
     font-family: var(--bs-font-monospace);
     color: var(--tkpd-text-main);
-    margin-bottom: 8px;
+    margin-top: 4px;
+    margin-bottom: 10px;
 }
 
 .tkpd-price-retail { color: #10b981; }
@@ -347,13 +348,13 @@
 
 .tkpd-cart-item {
     display: flex;
-    gap: 12px;
-    padding: 10px;
-    margin-bottom: 8px;
-    border-radius: 10px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 12px;
     background: var(--tkpd-card-bg);
     border: 1px solid var(--tkpd-card-border);
-    align-items: center;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -740,9 +741,48 @@
     color: #10b981 !important;
 }
 
+
+/* ===== OFFCANVAS CART: Sticky Footer Fix =====
+   Ensures checkout button is ALWAYS visible at bottom.
+   Uses ID for maximum CSS specificity.
+   ============================================= */
+#offcanvasCart.tkpd-offcanvas-cart {
+    height: 100dvh !important;       /* use dvh for mobile browser chrome */
+    height: 100vh !important;        /* fallback */
+    max-height: 100vh !important;
+    width: 420px;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;     /* clip everything outside */
+}
+
+/* Scrollable content area */
+#offcanvasCart.tkpd-offcanvas-cart .offcanvas-body {
+    flex: 1 1 0 !important;          /* 0 basis forces flex to calculate correctly */
+    min-height: 0 !important;        /* critical: allow shrinking below natural size */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-bottom: 0.75rem !important;
+}
+
+/* Sticky checkout button footer - always pinned to bottom */
+#offcanvasCart.tkpd-offcanvas-cart .tkpd-cart-footer {
+    flex: 0 0 auto !important;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
+    z-index: 10;
+}
+
+[data-bs-theme="dark"] #offcanvasCart.tkpd-offcanvas-cart .tkpd-cart-footer {
+    background: #0b1329 !important;
+    border-top-color: #1e293b !important;
+}
+
 @media (max-width: 576px) {
-    .tkpd-offcanvas-cart {
+    #offcanvasCart.tkpd-offcanvas-cart {
         width: 100% !important;
     }
 }
-

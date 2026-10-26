@@ -1,393 +1,10 @@
 <x-layouts title="Edit Penawaran Harga {{ $quotation->nomor_quotation }}">
 
     @push('styles')
-    <style>
-        /* Base Card Styling */
-        .sq-form-section {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.025);
-            transition: background-color 0.2s ease, border-color 0.2s ease;
-        }
-        [data-bs-theme="dark"] .sq-form-section {
-            background: #182234 !important;
-            border-color: rgba(255, 255, 255, 0.09) !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-            color: #f8fafc;
-        }
-
-        /* Section Titles */
-        .sq-section-title {
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #4f46e5;
-            margin-bottom: 1.15rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        [data-bs-theme="dark"] .sq-section-title {
-            color: #818cf8 !important;
-        }
-
-        /* Labels */
-        .form-label, label {
-            color: #334155;
-            font-weight: 600;
-        }
-        [data-bs-theme="dark"] .form-label, 
-        [data-bs-theme="dark"] label {
-            color: #e2e8f0 !important;
-        }
-
-        /* Inputs & Form Controls */
-        .form-control, .form-select {
-            background-color: #ffffff;
-            color: #0f172a;
-            border: 1px solid #cbd5e1;
-            transition: all 0.2s ease;
-        }
-        [data-bs-theme="dark"] .form-control, 
-        [data-bs-theme="dark"] .form-select {
-            background-color: #0f172a !important;
-            color: #f8fafc !important;
-            border-color: rgba(255, 255, 255, 0.16) !important;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: #6366f1 !important;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
-        }
-
-        /* Readonly & Input Groups */
-        .input-group-text {
-            background-color: #f1f5f9;
-            color: #475569;
-            border-color: #cbd5e1;
-        }
-        [data-bs-theme="dark"] .input-group-text {
-            background-color: #1e293b !important;
-            color: #94a3b8 !important;
-            border-color: rgba(255, 255, 255, 0.16) !important;
-        }
-        .form-control[readonly], .form-control:disabled {
-            background-color: #f8fafc !important;
-            color: #64748b !important;
-        }
-        [data-bs-theme="dark"] .form-control[readonly], 
-        [data-bs-theme="dark"] .form-control:disabled {
-            background-color: #1e293b !important;
-            color: #94a3b8 !important;
-            border-color: rgba(255, 255, 255, 0.12) !important;
-        }
-
-        /* Table Items */
-        .table-items th {
-            font-size: 0.78rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            background: #f8fafc;
-            color: #475569;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 0.75rem 0.6rem;
-        }
-        [data-bs-theme="dark"] .table-items th {
-            background: #0f172a !important;
-            color: #e2e8f0 !important;
-            border-bottom-color: rgba(255, 255, 255, 0.12) !important;
-        }
-        .table-items td {
-            background-color: #ffffff;
-            color: #1e293b;
-            border-color: #e2e8f0;
-            padding: 0.65rem 0.6rem;
-        }
-        [data-bs-theme="dark"] .table-items td {
-            background-color: #182234 !important;
-            color: #f8fafc !important;
-            border-color: rgba(255, 255, 255, 0.08) !important;
-        }
-        .select-price-tier {
-            font-size: 0.73rem !important;
-            border-radius: 6px;
-            background-color: #f8fafc;
-            color: #334155;
-            border: 1px solid #cbd5e1;
-        }
-        [data-bs-theme="dark"] .select-price-tier {
-            background-color: #0f172a !important;
-            color: #e2e8f0 !important;
-            border-color: rgba(255, 255, 255, 0.15) !important;
-        }
-        .item-subtotal-display {
-            color: #0f172a;
-            font-family: var(--bs-font-monospace);
-            font-weight: 700;
-        }
-        [data-bs-theme="dark"] .item-subtotal-display {
-            color: #f8fafc !important;
-        }
-
-        /* Grand Total Box */
-        .sq-grand-total-box {
-            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-            border: 1px solid #c7d2fe;
-            border-radius: 12px;
-            padding: 1rem 1.25rem;
-        }
-        [data-bs-theme="dark"] .sq-grand-total-box {
-            background: linear-gradient(135deg, rgba(79, 70, 229, 0.28) 0%, rgba(99, 102, 241, 0.12) 100%) !important;
-            border-color: rgba(99, 102, 241, 0.4) !important;
-        }
-        .sq-grand-total-title {
-            color: #4f46e5;
-            font-weight: 700;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        [data-bs-theme="dark"] .sq-grand-total-title {
-            color: #a5b4fc !important;
-        }
-        .sq-grand-total-amount {
-            color: #3730a3;
-            font-weight: 800;
-        }
-        [data-bs-theme="dark"] .sq-grand-total-amount {
-            color: #ffffff !important;
-        }
-
-        /* HPP & Margin Box */
-        .sq-hpp-box {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1rem 1.25rem;
-        }
-        [data-bs-theme="dark"] .sq-hpp-box {
-            background: rgba(255, 255, 255, 0.04) !important;
-            border-color: rgba(255, 255, 255, 0.1) !important;
-        }
-
-        /* Sticky Sidebar */
-        .sticky-summary {
-            position: sticky;
-            top: 80px;
-        }
-
-        /* Badges */
-        .badge-soft-emerald { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .badge-soft-amber   { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-        .badge-soft-sky     { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
-        .badge-soft-indigo  { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
-        .badge-soft-danger  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .badge-soft-neutral { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
-
-        [data-bs-theme="dark"] .badge-soft-emerald { background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
-        [data-bs-theme="dark"] .badge-soft-amber   { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
-        [data-bs-theme="dark"] .badge-soft-sky     { background: rgba(14, 165, 233, 0.2); color: #7dd3fc; border-color: rgba(14, 165, 233, 0.3); }
-        [data-bs-theme="dark"] .badge-soft-indigo  { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border-color: rgba(99, 102, 241, 0.3); }
-        [data-bs-theme="dark"] .badge-soft-danger  { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); }
-        [data-bs-theme="dark"] .badge-soft-neutral { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.3); }
-
-        /* Select2 Dark Mode Override */
-        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection {
-            background-color: #0f172a !important;
-            border-color: rgba(255, 255, 255, 0.16) !important;
-            color: #f8fafc !important;
-        }
-        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-            color: #f8fafc !important;
-        }
-        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
-            color: #64748b !important;
-        }
-        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown {
-            background-color: #182234 !important;
-            border-color: rgba(255, 255, 255, 0.2) !important;
-            color: #f8fafc !important;
-        }
-        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field {
-            background-color: #0f172a !important;
-            border-color: rgba(255, 255, 255, 0.16) !important;
-            color: #f8fafc !important;
-        }
-        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option {
-            color: #e2e8f0 !important;
-            background-color: transparent;
-        }
-        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option--highlighted {
-            background-color: #4f46e5 !important;
-            color: #ffffff !important;
-        }
-        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option[aria-selected="true"] {
-            background-color: rgba(99, 102, 241, 0.25) !important;
-            color: #a5b4fc !important;
-        }
-
-        /* Modal Picker Dark Mode */
-        [data-bs-theme="dark"] #modalPickerBarang .modal-content {
-            background-color: #182234 !important;
-            color: #f8fafc !important;
-            border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        }
-        [data-bs-theme="dark"] #modalPickerBarang .modal-header,
-        [data-bs-theme="dark"] #modalPickerBarang .modal-footer {
-            border-color: rgba(255, 255, 255, 0.1) !important;
-        }
-        [data-bs-theme="dark"] #modalPickerBarang .table thead th {
-            background-color: #0f172a !important;
-            color: #e2e8f0 !important;
-            border-color: rgba(255, 255, 255, 0.1) !important;
-        }
-        [data-bs-theme="dark"] #modalPickerBarang .table tbody td {
-            background-color: transparent !important;
-            color: #f8fafc !important;
-            border-color: rgba(255, 255, 255, 0.06) !important;
-        }
-
-        /* Modal Lookup Table & Filter Chips (Dual Light & Dark Theme) */
-        .modal-lookup-table th {
-            font-size: 0.72rem !important;
-            font-weight: 700 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.5px !important;
-            background-color: #f8fafc !important;
-            color: #64748b !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-            padding: 0.65rem 0.75rem !important;
-            white-space: nowrap !important;
-        }
-        [data-bs-theme="dark"] .modal-lookup-table th {
-            background-color: #182234 !important;
-            color: #94a3b8 !important;
-            border-bottom-color: rgba(255, 255, 255, 0.1) !important;
-        }
-        .modal-lookup-table td {
-            background-color: #ffffff !important;
-            color: #1e293b !important;
-            border-bottom: 1px solid #f1f5f9 !important;
-            padding: 0.75rem 0.75rem !important;
-            transition: background-color 0.15s ease !important;
-        }
-        [data-bs-theme="dark"] .modal-lookup-table td {
-            background-color: #0f172a !important;
-            color: #f1f5f9 !important;
-            border-bottom-color: rgba(255, 255, 255, 0.06) !important;
-        }
-        .modal-lookup-table tr:hover td {
-            background-color: #f1f5f9 !important;
-        }
-        [data-bs-theme="dark"] .modal-lookup-table tr:hover td {
-            background-color: #1e293b !important;
-        }
-
-        /* Filter Chips Styling */
-        .filter-chip-cust, .filter-chip-tender {
-            font-size: 0.75rem !important;
-            font-weight: 600 !important;
-            border-radius: 9999px !important;
-            padding: 0.3rem 0.75rem !important;
-            transition: all 0.15s ease !important;
-            white-space: nowrap !important;
-        }
-        .filter-chip-cust.btn-outline-secondary, .filter-chip-tender.btn-outline-secondary {
-            background-color: #f8fafc;
-            border-color: #e2e8f0;
-            color: #475569;
-        }
-        .filter-chip-cust.btn-outline-secondary:hover, .filter-chip-tender.btn-outline-secondary:hover {
-            background-color: #e2e8f0;
-            color: #0f172a;
-        }
-        [data-bs-theme="dark"] .filter-chip-cust.btn-outline-secondary, 
-        [data-bs-theme="dark"] .filter-chip-tender.btn-outline-secondary {
-            background-color: #1e293b !important;
-            border-color: rgba(255, 255, 255, 0.12) !important;
-            color: #cbd5e1 !important;
-        }
-        [data-bs-theme="dark"] .filter-chip-cust.btn-outline-secondary:hover, 
-        [data-bs-theme="dark"] .filter-chip-tender.btn-outline-secondary:hover {
-            background-color: #334155 !important;
-            color: #ffffff !important;
-            border-color: rgba(255, 255, 255, 0.25) !important;
-        }
-
-        /* Modal Dialog Theme */
-        [data-bs-theme="dark"] .modal-content {
-            background-color: #0f172a !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        }
-        [data-bs-theme="dark"] .modal-header {
-            background-color: #182234 !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-        }
-
-        /* Mobile Responsive Optimizations */
-        @media (max-width: 767.98px) {
-            .sq-form-section {
-                padding: 1rem 1.1rem !important;
-                border-radius: 14px !important;
-                margin-bottom: 1rem !important;
-            }
-            .sq-section-title {
-                font-size: 0.8rem !important;
-                margin-bottom: 0.85rem !important;
-            }
-            .page-header-title {
-                font-size: 1.15rem !important;
-                line-height: 1.35 !important;
-            }
-            /* Table Horizontal Scrolling Protection */
-            .table-items-wrapper {
-                position: relative;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                border-radius: 12px;
-                border: 1px solid rgba(0,0,0,0.08);
-            }
-            [data-bs-theme="dark"] .table-items-wrapper {
-                border-color: rgba(255,255,255,0.1);
-            }
-            #itemsTable {
-                min-width: 680px !important;
-            }
-            /* Add item buttons grid */
-            .btn-add-item-group {
-                display: grid !important;
-                grid-template-columns: 1fr 1fr;
-                gap: 0.5rem;
-                width: 100%;
-            }
-            .btn-add-item-group .btn {
-                padding: 0.45rem 0.5rem !important;
-                font-size: 0.75rem !important;
-                text-align: center;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                white-space: nowrap;
-            }
-            /* Tender Info Box Responsive */
-            #tenderPaguInfoBox {
-                padding: 0.65rem 0.8rem !important;
-            }
-            #tenderPaguInfoBox .d-flex {
-                flex-direction: column !important;
-                align-items: flex-start !important;
-                gap: 0.4rem !important;
-            }
-            /* Floating Scroll Button Safety */
-            .sticky-summary {
-                margin-bottom: 4.5rem !important;
-            }
-        }
-    </style>
+    <!-- Select2 CSS with Bootstrap 5 Theme -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ asset('modul_smd/penawaran.css') }}">
     @endpush
 
     <div class="container-fluid px-2 px-sm-3 px-md-4 py-3 py-md-4">
@@ -395,13 +12,6 @@
         <!-- Page Header -->
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-4 gap-2.5">
             <div>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-1 fs-9 fs-md-8">
-                        <li class="breadcrumb-item"><a href="/dashbord" class="text-decoration-none">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('penawaran.index') }}" class="text-decoration-none">Penawaran Harga</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Edit Penawaran</li>
-                    </ol>
-                </nav>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <h3 class="fw-bold mb-0 text-body page-header-title">Edit Penawaran <span class="font-monospace text-primary">{{ $quotation->nomor_quotation }}</span></h3>
                     <span class="badge badge-soft-indigo fs-9 px-2 py-0.5 rounded-pill fw-semibold">REV.{{ $quotation->revisi }}</span>
@@ -416,17 +26,12 @@
             </div>
         </div>
 
-        <form id="formQuotation" action="{{ route('penawaran.update', $quotation->id) }}" method="POST">
+        <form id="formQuotation" action="{{ route('penawaran.update', $quotation->id) }}" method="POST" autocomplete="off">
             @csrf
             <input type="hidden" name="status" id="inputQuotationStatus" value="{{ $quotation->status ?? 'Sent' }}">
 
-            <div class="row g-3 g-md-4">
-                
-                <!-- Main Form Column (Left: col-12 col-xl-8) -->
-                <div class="col-12 col-xl-8">
-                    
-                    <!-- 1. Identitas Dokumen & Klien -->
-                    <div class="sq-form-section">
+            <!-- 1. Identitas Dokumen & Klien (Full Width) -->
+            <div class="sq-form-section mb-3 mb-md-4">
                         <div class="sq-section-title">
                             <i class="bi bi-building me-1"></i> 1. Identitas Klien & Dokumen Penawaran
                         </div>
@@ -489,13 +94,17 @@
                             </div>
 
                             <div class="col-12 col-md-8">
-                                <label class="form-label fs-8">Perihal / Judul Penawaran <span class="text-danger">*</span></label>
-                                <input type="text" name="perihal" class="form-control form-control-sm" value="{{ $quotation->perihal }}" required>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fs-8 mb-0">Perihal / Judul Penawaran <span class="text-danger">*</span></label>
+                                    <small id="counter_perihal" class="text-muted fs-9 font-monospace">0/40</small>
+                                </div>
+                                <input type="text" name="perihal" id="input_perihal" maxlength="40" class="form-control form-control-sm" value="{{ $quotation->perihal }}" required autocomplete="off">
+                                <div id="warn_perihal" class="text-danger fs-9 mt-1" style="display:none;"><i class="bi bi-exclamation-circle me-1"></i>Judul penawaran maksimal 40 karakter!</div>
                             </div>
 
                             <div class="col-12 col-md-4">
                                 <label class="form-label fs-8">Sales / PIC</label>
-                                <select name="sales_id" class="form-select form-select-sm select2">
+                                <select name="sales_id" id="selectSales" class="form-select form-select-sm select2" data-placeholder="-- Pilih Sales PIC --">
                                     <option value="">-- Pilih Sales PIC --</option>
                                     @foreach($salesList as $s)
                                         <option value="{{ $s->id }}" {{ $quotation->sales_id == $s->id ? 'selected' : '' }}>{{ $s->nama_lengkap }}</option>
@@ -505,8 +114,8 @@
                         </div>
                     </div>
 
-                    <!-- 2. Rincian Item Penawaran -->
-                    <div class="sq-form-section">
+                    <!-- 2. Rincian Item Penawaran (Full Width) -->
+                    <div class="sq-form-section mb-3 mb-md-4">
                         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-3 gap-2">
                             <div class="sq-section-title mb-0">
                                 <i class="bi bi-cart-check me-1"></i> 2. Rincian Item Barang & Harga
@@ -515,27 +124,27 @@
                                 <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" id="btnAddMasterItem">
                                     <i class="bi bi-plus-circle me-1"></i> Tambah Master
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="btnAddCustomItem">
-                                    <i class="bi bi-pencil-square me-1"></i> Item Bebas / Custom
-                                </button>
                             </div>
                         </div>
 
-                        <div class="d-md-none text-muted fs-9 mb-2 d-flex align-items-center gap-1.5 px-1">
-                            <i class="bi bi-arrows-expand text-primary"></i>
-                            <span>Geser tabel ke samping untuk melihat seluruh kolom</span>
+                        <div class="d-md-none mb-2.5">
+                            <span class="badge badge-soft-indigo rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1.5 fs-9">
+                                <i class="bi bi-arrows-left-right text-primary"></i>
+                                <span>Geser tabel ke samping untuk kolom lengkap</span>
+                            </span>
                         </div>
 
-                        <div class="table-responsive table-items-wrapper mb-3">
-                            <table class="table table-bordered align-middle table-items w-100 mb-0" id="itemsTable">
+                        <div class="table-items-wrapper mb-3">
+                            <table class="table align-middle table-items w-100 mb-0" id="itemsTable">
                                 <thead>
                                     <tr>
-                                        <th style="width: 32%;">Item Barang & Spesifikasi</th>
-                                        <th style="width: 14%;">Qty & Satuan</th>
-                                        <th style="width: 20%;">Harga Satuan (Rp)</th>
-                                        <th style="width: 12%;">Diskon (%)</th>
-                                        <th style="width: 16%;">Subtotal (Rp)</th>
-                                        <th style="width: 6%;" class="text-center"><i class="bi bi-trash"></i></th>
+                                        <th class="ps-3"><i class="bi bi-box-seam me-1 text-muted"></i> Item Barang & Spesifikasi</th>
+                                        <th class="text-center" style="min-width: 140px; width: 145px;"><i class="bi bi-layers me-1 text-muted"></i> Qty & Satuan</th>
+                                        <th style="min-width: 185px; width: 195px;"><i class="bi bi-tag me-1 text-muted"></i> Harga Satuan (Rp)</th>
+                                        <th style="min-width: 165px; width: 175px;"><i class="bi bi-percent me-1 text-muted"></i> Diskon</th>
+                                        <th class="text-end" style="min-width: 140px; width: 150px;"><i class="bi bi-cash-stack me-1 text-muted"></i> Subtotal (Rp)</th>
+                                        <th style="min-width: 175px; width: 185px;"><i class="bi bi-receipt me-1 text-muted"></i> PPN</th>
+                                        <th class="text-center pe-3" style="min-width: 48px; width: 50px;"><i class="bi bi-gear text-muted"></i></th>
                                     </tr>
                                 </thead>
                                 <tbody id="itemsTableBody">
@@ -555,60 +164,105 @@
                                         } elseif ($currentPrice == $hRetail && $hRetail > 0) {
                                             $tierSelected = 'satuan';
                                         }
+                                        $itDiscPersen = (float)$it->diskon_persen;
+                                        $itDiscNominal = (float)$it->diskon_nominal;
+                                        $itDiscTipe = ($itDiscNominal > 0 && $itDiscPersen == 0) ? 'nominal' : 'persen';
+                                        $itDiscVal = ($itDiscTipe === 'nominal') ? number_format($itDiscNominal, 0, ',', '.') : $itDiscPersen;
                                     @endphp
                                     <tr id="itemRow_{{ $idx + 1 }}" class="item-calc-row">
                                         <td>
-                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                            <div class="d-flex align-items-center gap-2.5">
                                                 @if($it->barang_id)
-                                                    <img src="{{ $pUrl }}" alt="Foto" style="width: 36px; height: 36px; object-fit: cover; border-radius: 8px;" class="border shadow-xs flex-shrink-0" onerror="this.onerror=null;this.src='/uploads/barang/placeholder_garment.png'">
-                                                    <div>
-                                                        <div class="fw-bold text-body fs-8">{{ $it->barang?->nama_barang }}</div>
-                                                        <code class="badge badge-soft-neutral fs-9 px-1.5 py-0.5">{{ $it->barang?->kode_barang }}</code>
+                                                    <img src="{{ $pUrl }}" alt="Foto" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px;" class="border shadow-xs flex-shrink-0" onerror="this.onerror=null;this.src='/uploads/barang/placeholder_garment.png'">
+                                                    <div class="min-w-0">
+                                                        <div class="fw-semibold text-body fs-8 text-truncate mb-0.5" title="{{ $it->barang?->nama_barang }}">{{ $it->barang?->nama_barang }}</div>
+                                                        <span class="badge badge-soft-neutral fs-9 px-1.5 py-0.5 font-monospace">{{ $it->barang?->kode_barang }}</span>
                                                     </div>
                                                     <input type="hidden" name="items[{{ $idx + 1 }}][barang_id]" value="{{ $it->barang_id }}">
                                                 @else
-                                                    <input type="text" name="items[{{ $idx + 1 }}][nama_barang_custom]" class="form-control form-control-sm fw-bold" value="{{ $it->nama_barang_custom }}" placeholder="Nama item..." required>
+                                                    <input type="text" name="items[{{ $idx + 1 }}][nama_barang_custom]" class="form-control form-control-sm fw-bold" value="{{ $it->nama_barang_custom }}" placeholder="Nama item / jasa / pekerjaan..." required>
                                                 @endif
                                             </div>
-                                            <input type="text" name="items[{{ $idx + 1 }}][deskripsi_item]" class="form-control form-control-sm fs-9" value="{{ $it->deskripsi_item }}" placeholder="Catatan spesifikasi...">
+                                            <div class="mt-1.5">
+                                                <input type="text" name="items[{{ $idx + 1 }}][deskripsi_item]" class="form-control form-control-xs item-desc-input" value="{{ $it->deskripsi_item }}" placeholder="+ Catatan spesifikasi / detail item...">
+                                            </div>
                                             <input type="hidden" name="items[{{ $idx + 1 }}][kategori_id]" value="{{ $it->kategori_id }}">
                                             <input type="hidden" name="items[{{ $idx + 1 }}][satuan_id]" value="{{ $it->satuan_id }}">
-                                            <input type="hidden" name="items[{{ $idx + 1 }}][hpp_satuan]" class="item-hpp-satuan" value="{{ $it->hpp_satuan }}">
+                                            <input type="hidden" name="items[{{ $idx + 1 }}][hpp_satuan]" class="item-hpp-satuan" value="{{ $canSeeHpp ? $it->hpp_satuan : 0 }}">
                                         </td>
                                         <td>
                                             <div class="input-group input-group-sm">
-                                                <input type="number" step="0.01" min="0.01" name="items[{{ $idx + 1 }}][qty]" class="form-control form-control-sm text-end item-qty" value="{{ (float)$it->qty }}" required>
-                                                <input type="text" name="items[{{ $idx + 1 }}][nama_satuan]" class="form-control form-control-sm" value="{{ $it->nama_satuan ?: ($it->satuan?->nama_satuan ?? 'Pcs') }}" style="max-width: 60px;" readonly>
+                                                <input type="number" step="0.01" min="0.01" name="items[{{ $idx + 1 }}][qty]" class="form-control form-control-sm text-end fw-bold font-monospace item-qty" value="{{ (float)$it->qty }}" required>
+                                                <span class="input-group-text fs-9 px-2 text-muted fw-semibold item-satuan-label bg-body-tertiary" title="{{ $it->nama_satuan ?: ($it->satuan?->nama_satuan ?? 'Pcs') }}">{{ $it->nama_satuan ?: ($it->satuan?->nama_satuan ?? 'Pcs') }}</span>
+                                                <input type="hidden" name="items[{{ $idx + 1 }}][nama_satuan]" value="{{ $it->nama_satuan ?: ($it->satuan?->nama_satuan ?? 'Pcs') }}">
                                             </div>
                                         </td>
                                         <td>
                                             <div class="input-group input-group-sm mb-1">
-                                                <span class="input-group-text fs-9 px-1.5">Rp</span>
+                                                <span class="input-group-text fs-9 px-1.5 text-muted">Rp</span>
                                                 <input type="text" inputmode="numeric" name="items[{{ $idx + 1 }}][harga]" class="form-control form-control-sm text-end item-price fw-bold font-monospace" value="{{ number_format($currentPrice, 0, ',', '.') }}" required>
                                             </div>
                                             @if($it->barang_id)
-                                            <select class="form-select form-select-xs py-0.5 px-1 fs-9 select-price-tier"
+                                            <select class="form-select form-select-xs select-price-tier"
                                                 data-harga-retail="{{ $hRetail }}"
                                                 data-harga-grosir="{{ $hGrosir }}"
                                                 data-harga-tender="{{ $hTender }}">
                                                 <option value="tender" {{ $tierSelected === 'tender' ? 'selected' : '' }}>🏷️ Tender: Rp {{ number_format($hTender, 0, ',', '.') }}</option>
                                                 <option value="grosir" {{ $tierSelected === 'grosir' ? 'selected' : '' }}>📦 Grosir: Rp {{ number_format($hGrosir, 0, ',', '.') }}</option>
                                                 <option value="satuan" {{ $tierSelected === 'satuan' ? 'selected' : '' }}>🛍️ Satuan: Rp {{ number_format($hRetail, 0, ',', '.') }}</option>
-                                                <option value="custom" {{ $tierSelected === 'custom' ? 'selected' : '' }}>✏️ Custom / Manual</option>
                                             </select>
                                             @else
                                             <span class="badge badge-soft-neutral border fs-9 w-100 py-1">Item Bebas / Custom</span>
                                             @endif
                                         </td>
                                         <td>
-                                            <input type="number" step="0.01" min="0" max="100" name="items[{{ $idx + 1 }}][diskon_persen]" class="form-control form-control-sm text-end item-disc-persen" value="{{ (float)$it->diskon_persen }}">
+                                            <div class="input-group input-group-sm sq-disc-group flex-nowrap">
+                                                <div class="btn-group btn-group-sm flex-shrink-0 sq-disc-toggle border rounded-start-2 overflow-hidden" role="group">
+                                                    <button type="button" class="btn btn-xs fw-bold btn-item-disc-mode {{ $itDiscTipe === 'persen' ? 'active' : '' }}" data-mode="persen">%</button>
+                                                    <button type="button" class="btn btn-xs fw-bold btn-item-disc-mode {{ $itDiscTipe === 'nominal' ? 'active' : '' }}" data-mode="nominal">Rp</button>
+                                                </div>
+                                                <input type="hidden" class="item-disc-tipe" value="{{ $itDiscTipe }}">
+                                                <input type="text" class="form-control form-control-sm text-end font-monospace item-disc-nilai" value="{{ $itDiscVal }}">
+                                                <input type="hidden" name="items[{{ $idx + 1 }}][diskon_persen]" class="item-disc-persen" value="{{ $itDiscPersen }}">
+                                                <input type="hidden" name="items[{{ $idx + 1 }}][diskon_nominal]" class="item-disc-nominal" value="{{ $itDiscNominal }}">
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mt-1 px-1">
+                                                <span class="fs-9 text-muted">Potongan:</span>
+                                                <span class="text-danger fs-9 font-monospace fw-semibold item-disc-display">
+                                                    @if($itDiscTipe === 'nominal' && $itDiscNominal > 0)
+                                                        ({{ number_format($itDiscPersen, 1) }}%)
+                                                    @elseif($itDiscPersen > 0)
+                                                        - Rp {{ number_format($itDiscNominal, 0, ',', '.') }}
+                                                    @else
+                                                        - Rp 0
+                                                    @endif
+                                                </span>
+                                            </div>
                                         </td>
                                         <td class="text-end">
-                                            <span class="item-subtotal-display fs-8">Rp {{ number_format($it->subtotal, 0, ',', '.') }}</span>
+                                            <div class="item-subtotal-display fs-7 fw-bold font-monospace text-body">Rp {{ number_format($it->subtotal, 0, ',', '.') }}</div>
+                                        </td>
+                                        <td>
+                                            <select name="items[{{ $idx + 1 }}][ppn_pajak_id]" class="form-select form-select-sm select-item-ppn fs-8" data-placeholder="Pilih PPN">
+                                                <option value="" data-tarif="0" {{ empty($it->ppn_pajak_id) ? 'selected' : '' }}>Non PPN (0%)</option>
+                                                @foreach($pajakPpnList as $p)
+                                                    <option value="{{ $p->id }}" data-tarif="{{ (float)$p->tarif }}" {{ $it->ppn_pajak_id == $p->id ? 'selected' : '' }}>
+                                                        {{ $p->nama_pajak }} ({{ (float)$p->tarif }}%)
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <input type="hidden" name="items[{{ $idx + 1 }}][tarif_ppn]" class="item-tarif-ppn" value="{{ (float)$it->tarif_ppn }}">
+                                            <input type="hidden" name="items[{{ $idx + 1 }}][nilai_ppn]" class="item-nilai-ppn" value="{{ (float)$it->nilai_ppn }}">
+                                            <div class="d-flex justify-content-between align-items-center mt-1 px-1">
+                                                <span class="fs-9 text-muted">Pajak:</span>
+                                                <span class="text-primary fs-9 font-monospace fw-semibold item-ppn-display">
+                                                    {{ (float)$it->nilai_ppn > 0 ? '+ Rp ' . number_format($it->nilai_ppn, 0, ',', '.') : 'Rp 0' }}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td class="text-center">
-                                            <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1 btn-remove-item" data-id="{{ $idx + 1 }}">
-                                                <i class="bi bi-trash"></i>
+                                            <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle btn-remove-item p-1.5" data-id="{{ $idx + 1 }}" title="Hapus Item">
+                                                <i class="bi bi-trash3"></i>
                                             </button>
                                         </td>
                                     </tr>
@@ -623,162 +277,160 @@
                         </div>
                     </div>
 
-                    <!-- 3. Syarat & Ketentuan -->
-                    <div class="sq-form-section">
+            <!-- Bottom Section Below Table: Ketentuan & Catatan (Kiri) + Ringkasan & Aksi (Kanan) -->
+            <div class="row g-3 g-md-4">
+                
+                <!-- Kolom Kiri: Ketentuan Pembayaran, DP, Catatan & Syarat -->
+                <div class="col-12 col-lg-7">
+                    
+                    <!-- 3. Ketentuan Pembayaran & Uang Muka (DP) -->
+                    <div class="sq-form-section mb-3 mb-md-4">
                         <div class="sq-section-title">
-                            <i class="bi bi-card-text me-1"></i> 3. Syarat, Ketentuan, & Catatan
+                            <i class="bi bi-credit-card-2-front me-1"></i> 3. Ketentuan Pembayaran & Uang Muka (DP)
                         </div>
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
-                                <label class="form-label fs-8">Syarat & Ketentuan (Terms & Conditions)</label>
-                                <textarea name="syarat_ketentuan" class="form-control form-control-sm" rows="3">{{ $quotation->syarat_ketentuan }}</textarea>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <label class="form-label fs-8">Catatan Internal / Eksternal</label>
-                                <textarea name="catatan" class="form-control form-control-sm" rows="3">{{ $quotation->catatan }}</textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Summary Sidebar (Right: col-12 col-xl-4) -->
-                <div class="col-12 col-xl-4">
-                    <div class="sticky-summary">
-                        
-                        <!-- Calculation Breakdown Card -->
-                        <div class="sq-form-section mb-4">
-                            <div class="sq-section-title text-success">
-                                <i class="bi bi-calculator me-1"></i> Ringkasan Nilai Penawaran
-                            </div>
-
-                            <div class="d-flex justify-content-between fs-8 mb-2">
-                                <span class="text-muted">Subtotal Item:</span>
-                                <span class="fw-bold font-monospace" id="displaySubtotal">Rp {{ number_format($quotation->subtotal, 0, ',', '.') }}</span>
-                                <input type="hidden" name="subtotal" id="inputSubtotal" value="{{ $quotation->subtotal }}">
-                            </div>
-
-                            <!-- Diskon Global -->
-                            <div class="mb-3 pt-2 border-top">
-                                <div class="d-flex justify-content-between align-items-center mb-1.5">
-                                    <label class="fs-8 mb-0">Diskon Global:</label>
-                                    <div class="input-group input-group-sm" style="width: 130px;">
-                                        <input type="number" step="0.01" min="0" name="diskon_persen" id="inputDiskonPersen" class="form-control form-control-sm text-end" value="{{ (float)$quotation->diskon_persen }}">
-                                        <span class="input-group-text">%</span>
-                                    </div>
-                                </div>
-                                <div class="d-flex justify-content-between fs-9 text-danger">
-                                    <span>Nominal Diskon:</span>
-                                    <span id="displayDiskonNominal" class="font-monospace">- Rp {{ number_format($quotation->diskon_nominal, 0, ',', '.') }}</span>
-                                    <input type="hidden" name="diskon_nominal" id="inputDiskonNominal" value="{{ $quotation->diskon_nominal }}">
-                                </div>
-                            </div>
-
-                            <!-- Pajak PPN -->
-                            <div class="mb-3 pt-2 border-top">
-                                <label class="fs-8 mb-1">Pajak Pertambahan Nilai (PPN):</label>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <select name="tipe_ppn" id="selectTipePpn" class="form-select form-select-sm">
-                                            <option value="None" {{ $quotation->tipe_ppn === 'None' ? 'selected' : '' }}>Tanpa PPN</option>
-                                            <option value="Exclude" {{ $quotation->tipe_ppn === 'Exclude' ? 'selected' : '' }}>Exclude PPN</option>
-                                            <option value="Include" {{ $quotation->tipe_ppn === 'Include' ? 'selected' : '' }}>Include PPN</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-6">
-                                        <select name="ppn_pajak_id" id="selectPpnPajak" class="form-select form-select-sm" {{ $quotation->tipe_ppn === 'None' ? 'disabled' : '' }}>
-                                            <option value="" data-tarif="0" {{ $quotation->tipe_ppn === 'None' || !$quotation->ppn_pajak_id ? 'selected' : '' }}>Non PPN (0%)</option>
-                                            @foreach($pajakPpnList as $p)
-                                                <option value="{{ $p->id }}" data-tarif="{{ (float)$p->tarif }}" {{ ($quotation->ppn_pajak_id == $p->id && $quotation->tipe_ppn !== 'None') ? 'selected' : '' }}>
-                                                    {{ $p->nama_pajak }} ({{ (float)$p->tarif }}%)
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <input type="hidden" name="tarif_ppn" id="inputTarifPpn" value="{{ $quotation->tipe_ppn === 'None' ? 0 : ($quotation->tarif_ppn ?: 11) }}">
-                                    </div>
-                                </div>
-                                <div class="d-flex justify-content-between fs-9 text-info mt-1">
-                                    <span>Nilai PPN:</span>
-                                    <span id="displayNilaiPpn" class="font-monospace">+ Rp {{ number_format($quotation->nilai_ppn ?: 0, 0, ',', '.') }}</span>
-                                    <input type="hidden" name="nilai_ppn" id="inputNilaiPpn" value="{{ $quotation->nilai_ppn ?: 0 }}">
-                                </div>
-                            </div>
-
-                            <!-- Biaya Pengiriman / Ekstra -->
-                            <div class="mb-3 pt-2 border-top">
-                                <label class="fs-8 mb-1">Biaya Pengiriman / Ekstra (Rp):</label>
-                                <input type="text" inputmode="numeric" name="biaya_pengiriman" id="inputBiayaPengiriman" class="form-control form-control-sm text-end fw-semibold font-monospace" value="{{ number_format($quotation->biaya_pengiriman ?: 0, 0, ',', '.') }}">
-                            </div>
-
-                            <!-- Grand Total Box -->
-                            <div class="sq-grand-total-box mb-3">
-                                <div class="sq-grand-total-title mb-1">Grand Total Penawaran</div>
-                                <div class="fs-4 sq-grand-total-amount font-monospace" id="displayGrandTotal">Rp {{ number_format($quotation->grand_total ?: 0, 0, ',', '.') }}</div>
-                                <input type="hidden" name="grand_total" id="inputGrandTotal" value="{{ $quotation->grand_total ?: 0 }}">
-                            </div>
-
-                            <!-- HPP & Profit Analysis (Authorized Only) -->
-                            @if($canSeeHpp)
-                            <div class="sq-hpp-box mb-3">
-                                <div class="fs-8 fw-bold text-secondary text-uppercase mb-1.5"><i class="bi bi-graph-up-arrow me-1"></i> Analisis HPP & Margin</div>
-                                <div class="d-flex justify-content-between fs-8 mb-1">
-                                    <span class="text-muted">Total HPP:</span>
-                                    <span class="fw-semibold font-monospace" id="displayTotalHpp">Rp {{ number_format($quotation->total_hpp ?: 0, 0, ',', '.') }}</span>
-                                    <input type="hidden" name="total_hpp" id="inputTotalHpp" value="{{ $quotation->total_hpp ?: 0 }}">
-                                </div>
-                                <div class="d-flex justify-content-between fs-8 mb-1">
-                                    <span class="text-muted">Estimasi Laba Kotor:</span>
-                                    <span class="fw-bold text-success font-monospace" id="displayLabaKotor">Rp {{ number_format($quotation->estimasi_laba_kotor ?: 0, 0, ',', '.') }}</span>
-                                    <input type="hidden" name="estimasi_laba_kotor" id="inputLabaKotor" value="{{ $quotation->estimasi_laba_kotor ?: 0 }}">
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center fs-8">
-                                    <span class="text-muted">Margin Keuntungan:</span>
-                                    <span class="badge badge-soft-emerald fw-bold fs-8" id="displayMarginPersen">{{ number_format($quotation->margin_persen ?: 0, 1) }}%</span>
-                                    <input type="hidden" name="margin_persen" id="inputMarginPersen" value="{{ $quotation->margin_persen ?: 0 }}">
-                                </div>
-                            </div>
-                            @endif
-
-                            <!-- Ketentuan Pembayaran -->
-                            <div class="mb-3 pt-2 border-top">
-                                <label class="fs-8 mb-1">Tenor / Termin Pembayaran:</label>
-                                <select name="payment_term_id" class="form-select form-select-sm">
+                                <label class="form-label fs-8 mb-1">Tenor / Termin Pembayaran:</label>
+                                <select name="payment_term_id" id="selectPaymentTerm" class="form-select form-select-sm select2" data-placeholder="-- Pilih Termin --">
                                     <option value="">-- Pilih Termin --</option>
                                     @foreach($paymentTerms as $pt)
                                         <option value="{{ $pt->id }}" {{ $quotation->payment_term_id == $pt->id ? 'selected' : '' }}>{{ $pt->nama_term }} ({{ $pt->jumlah_hari }} Hari)</option>
                                     @endforeach
                                 </select>
                             </div>
-
-                            <div class="row g-2 mb-3">
-                                <div class="col-6">
-                                    <label class="fs-8 mb-1">Uang Muka (DP):</label>
-                                    <select name="tipe_dp" id="selectTipeDp" class="form-select form-select-sm">
-                                        <option value="None" {{ $quotation->tipe_dp === 'None' ? 'selected' : '' }}>Tanpa DP</option>
-                                        <option value="Persen" {{ $quotation->tipe_dp === 'Persen' ? 'selected' : '' }}>Persen (%)</option>
-                                        <option value="Nominal" {{ $quotation->tipe_dp === 'Nominal' ? 'selected' : '' }}>Nominal (Rp)</option>
-                                    </select>
+                            <div class="col-12 col-md-6">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="form-label fs-8 mb-1">Uang Muka (DP):</label>
+                                        <select name="tipe_dp" id="selectTipeDp" class="form-select form-select-sm select2" data-placeholder="Pilih Tipe DP">
+                                            <option value="None" {{ $quotation->tipe_dp === 'None' ? 'selected' : '' }}>Tanpa DP</option>
+                                            <option value="Persen" {{ $quotation->tipe_dp === 'Persen' ? 'selected' : '' }}>Persen (%)</option>
+                                            <option value="Nominal" {{ $quotation->tipe_dp === 'Nominal' ? 'selected' : '' }}>Nominal (Rp)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fs-8 mb-1">Nilai DP:</label>
+                                        <input type="number" step="0.01" min="0" max="100" name="dp_persen" id="inputDpPersen" class="form-control form-control-sm text-end" value="{{ (float)$quotation->dp_persen }}" placeholder="Contoh: 50%" style="{{ $quotation->tipe_dp === 'Persen' ? '' : 'display:none;' }}">
+                                        <input type="text" inputmode="numeric" name="dp_nominal" id="inputDpNominal" class="form-control form-control-sm text-end font-monospace" value="{{ number_format($quotation->dp_nominal ?: 0, 0, ',', '.') }}" placeholder="Nominal DP..." style="{{ $quotation->tipe_dp === 'Nominal' ? '' : 'display:none;' }}">
+                                    </div>
                                 </div>
-                                <div class="col-6">
-                                    <label class="fs-8 mb-1">Nilai DP:</label>
-                                    <input type="number" step="0.01" min="0" max="100" name="dp_persen" id="inputDpPersen" class="form-control form-control-sm text-end" value="{{ (float)$quotation->dp_persen }}" placeholder="Contoh: 50%" style="{{ $quotation->tipe_dp === 'Persen' ? '' : 'display:none;' }}">
-                                    <input type="text" inputmode="numeric" name="dp_nominal" id="inputDpNominal" class="form-control form-control-sm text-end font-monospace" value="{{ number_format($quotation->dp_nominal ?: 0, 0, ',', '.') }}" placeholder="Nominal DP..." style="{{ $quotation->tipe_dp === 'Nominal' ? '' : 'display:none;' }}">
+                                <div id="displayDpBreakdown" class="col-12 fs-9 text-primary mt-1" style="{{ $quotation->tipe_dp !== 'None' && $quotation->dp_nominal > 0 ? '' : 'display:none;' }}">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Nominal DP:</span>
+                                        <strong id="displayDpCalculatedNominal" class="font-monospace">Rp {{ number_format($quotation->dp_nominal ?: 0, 0, ',', '.') }}</strong>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
-                            <!-- Action Buttons -->
-                            <div class="d-grid gap-2 pt-3 border-top">
-                                <button type="submit" name="status_btn" value="Sent" class="btn btn-primary rounded-pill py-2 fw-bold shadow-sm btn-submit-quotation">
-                                    <i class="bi bi-send-fill me-1"></i> Simpan & Kirim Penawaran
-                                </button>
-                                <button type="submit" name="status_btn" value="Draft" class="btn btn-outline-secondary rounded-pill py-2 fs-8 fw-semibold btn-submit-quotation">
-                                    <i class="bi bi-save me-1"></i> Simpan Sebagai Draft
-                                </button>
-                                <a href="{{ route('penawaran.index') }}" class="btn btn-link text-decoration-none text-muted py-1 fs-9 text-center">
-                                    Batal & Kembali
-                                </a>
+                    <!-- 4. Syarat, Ketentuan, & Catatan -->
+                    <div class="sq-form-section">
+                        <div class="sq-section-title">
+                            <i class="bi bi-card-text me-1"></i> 4. Syarat, Ketentuan, & Catatan
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fs-8 mb-0">Syarat & Ketentuan (Terms & Conditions)</label>
+                                    <small id="counter_syarat_ketentuan" class="text-muted fs-9 font-monospace">0/400</small>
+                                </div>
+                                <textarea name="syarat_ketentuan" id="input_syarat_ketentuan" maxlength="400" class="form-control form-control-sm" rows="4">{{ $quotation->syarat_ketentuan }}</textarea>
+                                <div id="warn_syarat_ketentuan" class="text-danger fs-9 mt-1" style="display:none;"><i class="bi bi-exclamation-circle me-1"></i>Syarat & Ketentuan maksimal 400 karakter!</div>
                             </div>
+                            <div class="col-12 col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fs-8 mb-0">Catatan Internal / Eksternal</label>
+                                    <small id="counter_catatan" class="text-muted fs-9 font-monospace">0/60</small>
+                                </div>
+                                <textarea name="catatan" id="input_catatan" maxlength="60" class="form-control form-control-sm" rows="4">{{ $quotation->catatan }}</textarea>
+                                <div id="warn_catatan" class="text-danger fs-9 mt-1" style="display:none;"><i class="bi bi-exclamation-circle me-1"></i>Catatan maksimal 60 karakter!</div>
+                            </div>
+                        </div>
+                    </div>
 
+                </div>
+
+                <!-- Kolom Kanan: Ringkasan Nilai Penawaran & Action Buttons -->
+                <div class="col-12 col-lg-5">
+                    <div class="sq-form-section">
+                        <div class="sq-section-title text-success">
+                            <i class="bi bi-calculator me-1"></i> Ringkasan Nilai Penawaran
+                        </div>
+
+                        <div class="d-flex justify-content-between fs-8 mb-2">
+                            <span class="text-muted">Subtotal Item:</span>
+                            <span class="fw-bold font-monospace" id="displaySubtotal">Rp {{ number_format($quotation->subtotal, 0, ',', '.') }}</span>
+                            <input type="hidden" name="subtotal" id="inputSubtotal" value="{{ $quotation->subtotal }}">
+                        </div>
+
+                        <!-- Total PPN (Akumulasi Item) -->
+                        <div class="d-flex justify-content-between fs-8 mb-2 pt-2 border-top">
+                            <span class="text-muted">Total PPN:</span>
+                            <span class="fw-bold font-monospace text-primary" id="displayNilaiPpn">+ Rp {{ number_format($quotation->nilai_ppn ?: 0, 0, ',', '.') }}</span>
+                            <input type="hidden" name="nilai_ppn" id="inputNilaiPpn" value="{{ $quotation->nilai_ppn ?: 0 }}">
+                            <input type="hidden" name="tarif_ppn" id="inputTarifPpn" value="{{ $quotation->tarif_ppn ?: 0 }}">
+                            <input type="hidden" name="tipe_ppn" id="selectTipePpn" value="Exclude">
+                            <input type="hidden" name="diskon_tipe" value="Nominal">
+                            <input type="hidden" name="diskon_persen" id="inputDiskonPersen" value="0">
+                            <input type="hidden" name="diskon_nominal" id="inputDiskonNominal" value="0">
+                        </div>
+
+                            <input type="hidden" name="pph_pajak_id" value="">
+                            <input type="hidden" name="tipe_pph" value="None">
+                            <input type="hidden" name="tarif_pph" value="0">
+                            <input type="hidden" name="nilai_pph" value="0">
+
+                        <!-- Biaya Pengiriman / Ekstra -->
+                        <div class="mb-3 pt-2 border-top">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="fs-8 mb-0">Biaya Pengiriman / Ekstra (Rp):</label>
+                                <small id="counter_ongkir" class="text-muted fs-9 font-monospace">Maks 10 digit</small>
+                            </div>
+                            <input type="text" inputmode="numeric" name="biaya_pengiriman" id="inputBiayaPengiriman" class="form-control form-control-sm text-end fw-semibold font-monospace" value="{{ number_format($quotation->biaya_pengiriman ?: 0, 0, ',', '.') }}">
+                            <div id="warn_ongkir" class="text-danger fs-9 mt-1" style="display:none;"><i class="bi bi-exclamation-circle me-1"></i>Biaya pengiriman maksimal 10 digit angka!</div>
+                        </div>
+
+                        <!-- Grand Total Box -->
+                        <div class="sq-grand-total-box mb-3">
+                            <div class="sq-grand-total-title mb-1">Grand Total Penawaran</div>
+                            <div class="fs-4 sq-grand-total-amount font-monospace" id="displayGrandTotal">Rp {{ number_format($quotation->grand_total ?: 0, 0, ',', '.') }}</div>
+                            <input type="hidden" name="grand_total" id="inputGrandTotal" value="{{ $quotation->grand_total ?: 0 }}">
+                        </div>
+
+                        <!-- HPP & Profit Analysis (Authorized Only) -->
+                        @if($canSeeHpp)
+                        <div class="sq-hpp-box mb-3">
+                            <div class="fs-8 fw-bold text-secondary text-uppercase mb-1.5"><i class="bi bi-graph-up-arrow me-1"></i> Analisis HPP & Margin</div>
+                            <div class="d-flex justify-content-between fs-8 mb-1">
+                                <span class="text-muted">Total HPP:</span>
+                                <span class="fw-semibold font-monospace" id="displayTotalHpp">Rp {{ number_format($quotation->total_hpp ?: 0, 0, ',', '.') }}</span>
+                                <input type="hidden" name="total_hpp" id="inputTotalHpp" value="{{ $canSeeHpp ? ($quotation->total_hpp ?: 0) : 0 }}">
+                            </div>
+                            <div class="d-flex justify-content-between fs-8 mb-1">
+                                <span class="text-muted">Estimasi Laba Kotor:</span>
+                                <span class="fw-bold text-success font-monospace" id="displayLabaKotor">Rp {{ number_format($quotation->estimasi_laba_kotor ?: 0, 0, ',', '.') }}</span>
+                                <input type="hidden" name="estimasi_laba_kotor" id="inputLabaKotor" value="{{ $quotation->estimasi_laba_kotor ?: 0 }}">
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center fs-8">
+                                <span class="text-muted">Margin Keuntungan:</span>
+                                <span class="badge badge-soft-emerald fw-bold fs-8" id="displayMarginPersen">{{ number_format($quotation->margin_persen ?: 0, 1) }}%</span>
+                                <input type="hidden" name="margin_persen" id="inputMarginPersen" value="{{ $quotation->margin_persen ?: 0 }}">
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2 pt-3 border-top">
+                            <button type="submit" name="status_btn" value="Sent" class="btn btn-primary rounded-pill py-2 fw-bold shadow-sm btn-submit-quotation">
+                                <i class="bi bi-send-fill me-1"></i> Simpan & Kirim Penawaran
+                            </button>
+                            <button type="submit" name="status_btn" value="Draft" class="btn btn-outline-secondary rounded-pill py-2 fs-8 fw-semibold btn-submit-quotation">
+                                <i class="bi bi-save me-1"></i> Simpan Sebagai Draft
+                            </button>
+                            <a href="{{ route('penawaran.index') }}" class="btn btn-link text-decoration-none text-muted py-1 fs-9 text-center">
+                                Batal & Kembali
+                            </a>
                         </div>
 
                     </div>
@@ -792,7 +444,7 @@
 
     <!-- Modal Picker Barang Master -->
     <div class="modal fade" id="modalPickerBarang" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable" style="max-width: 1200px; width: 95%;">
             <div class="modal-content rounded-4 border-0 shadow">
                 <div class="modal-header px-4 py-3 border-bottom">
                     <h5 class="modal-title fw-bold text-body mb-0">
@@ -805,15 +457,22 @@
                     <div class="mb-3">
                         <input type="text" id="searchBarangInput" class="form-control rounded-pill px-3.5" placeholder="Ketik nama atau kode barang untuk mencari...">
                     </div>
-                    <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                    <div class="d-md-none mb-2.5">
+                        <span class="badge badge-soft-indigo rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1.5 fs-9">
+                            <i class="bi bi-arrows-left-right text-primary"></i>
+                            <span>Geser tabel ke samping untuk melihat opsi harga & pilih</span>
+                        </span>
+                    </div>
+
+                    <div class="table-responsive rounded-3 border" style="max-height: 420px; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch;">
                         <table class="table table-hover align-middle mb-0" id="pickerBarangTable">
                             <thead class="sticky-top">
                                 <tr>
-                                    <th style="width: 40%;">Kode & Nama Produk</th>
-                                    <th style="width: 18%;">Kategori</th>
-                                    <th style="width: 10%;">Satuan</th>
-                                    <th style="width: 22%;" class="text-end">Pilihan Harga Jual</th>
-                                    <th style="width: 10%;" class="text-center">Aksi</th>
+                                    <th>Kode & Nama Produk</th>
+                                    <th>Kategori</th>
+                                    <th class="text-center">Satuan</th>
+                                    <th class="text-end">Pilihan Harga Jual</th>
+                                    <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1126,6 +785,8 @@
     </div>
 
     @push('scripts')
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window._tendersMap = @json($tendersMap ?? []);
@@ -1143,12 +804,167 @@
         }
 
         $(document).ready(function() {
-            if ($.fn.select2) {
-                $('.select2').select2({
-                    theme: 'bootstrap-5',
-                    width: '100%'
+            $('#formQuotation, #formQuotation input, #formQuotation textarea').attr('autocomplete', 'off');
+
+            // Security Character Limit Counters & Live Warning Handlers
+            function initFieldSecurityCounters() {
+                function checkPerihal() {
+                    let val = $('input[name="perihal"]').val() || '';
+                    let len = val.length;
+                    $('#counter_perihal').text(len + '/40');
+                    if (len >= 40) {
+                        $('#counter_perihal').removeClass('text-muted').addClass('text-danger fw-bold');
+                        $('#warn_perihal').show();
+                    } else {
+                        $('#counter_perihal').removeClass('text-danger fw-bold').addClass('text-muted');
+                        $('#warn_perihal').hide();
+                    }
+                }
+                $('input[name="perihal"]').on('input change keyup paste', function() {
+                    let val = $(this).val() || '';
+                    if (val.length > 40) {
+                        $(this).val(val.substring(0, 40));
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Batas Karakter Tercapai',
+                            text: 'Judul Penawaran maksimal 40 karakter!',
+                            timer: 2200,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    }
+                    checkPerihal();
+                });
+                checkPerihal();
+
+                function checkCatatan() {
+                    let val = $('textarea[name="catatan"]').val() || '';
+                    let len = val.length;
+                    $('#counter_catatan').text(len + '/60');
+                    if (len >= 60) {
+                        $('#counter_catatan').removeClass('text-muted').addClass('text-danger fw-bold');
+                        $('#warn_catatan').show();
+                    } else {
+                        $('#counter_catatan').removeClass('text-danger fw-bold').addClass('text-muted');
+                        $('#warn_catatan').hide();
+                    }
+                }
+                $('textarea[name="catatan"]').on('input change keyup paste', function() {
+                    let val = $(this).val() || '';
+                    if (val.length > 60) {
+                        $(this).val(val.substring(0, 60));
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Batas Karakter Tercapai',
+                            text: 'Catatan maksimal 60 karakter!',
+                            timer: 2200,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    }
+                    checkCatatan();
+                });
+                checkCatatan();
+
+                function checkSyarat() {
+                    let val = $('textarea[name="syarat_ketentuan"]').val() || '';
+                    let len = val.length;
+                    $('#counter_syarat_ketentuan').text(len + '/400');
+                    if (len >= 400) {
+                        $('#counter_syarat_ketentuan').removeClass('text-muted').addClass('text-danger fw-bold');
+                        $('#warn_syarat_ketentuan').show();
+                    } else {
+                        $('#counter_syarat_ketentuan').removeClass('text-danger fw-bold').addClass('text-muted');
+                        $('#warn_syarat_ketentuan').hide();
+                    }
+                }
+                $('textarea[name="syarat_ketentuan"]').on('input change keyup paste', function() {
+                    let val = $(this).val() || '';
+                    if (val.length > 400) {
+                        $(this).val(val.substring(0, 400));
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Batas Karakter Tercapai',
+                            text: 'Syarat & Ketentuan maksimal 400 karakter!',
+                            timer: 2200,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    }
+                    checkSyarat();
+                });
+                checkSyarat();
+
+                $('#inputBiayaPengiriman').on('input change keyup paste', function() {
+                    let rawDigits = ($(this).val() || '').replace(/\D/g, '');
+                    if (rawDigits.length > 10) {
+                        let truncated = rawDigits.substring(0, 10);
+                        $(this).val(formatRupiah(truncated));
+                        $('#warn_ongkir').show();
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Batas Nilai Tercapai',
+                            text: 'Biaya Pengiriman maksimal 10 digit angka!',
+                            timer: 2200,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    } else {
+                        $('#warn_ongkir').hide();
+                    }
                 });
             }
+            initFieldSecurityCounters();
+
+            // Initialize Select2 with Searchable Support and Auto Focus
+            function initSelect2Dropdowns() {
+                if ($.fn.select2) {
+                    $('.select2').each(function() {
+                        let placeholder = $(this).data('placeholder') || '-- Pilih --';
+                        let hasEmpty = $(this).find('option[value=""]').length > 0;
+                        if (!$(this).hasClass('select2-hidden-accessible')) {
+                            $(this).select2({
+                                theme: 'bootstrap-5',
+                                width: '100%',
+                                placeholder: placeholder,
+                                allowClear: hasEmpty
+                            });
+                        }
+                    });
+                }
+            }
+            initSelect2Dropdowns();
+
+            // Initialize Searchable PPN Select2
+            function initPpnSelect2(container) {
+                if (!$.fn.select2) return;
+                let target = container ? $(container).find('.select-item-ppn') : $('.select-item-ppn');
+                target.each(function() {
+                    if (!$(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            placeholder: $(this).data('placeholder') || 'Pilih PPN',
+                            minimumResultsForSearch: 0
+                        });
+                    }
+                });
+            }
+            initPpnSelect2();
+
+            // Auto-focus search input immediately when Select2 dropdown opens
+            $(document).on('select2:open', function() {
+                setTimeout(function() {
+                    let searchField = document.querySelector('.select2-container--open .select2-search__field');
+                    if (searchField) {
+                        searchField.focus();
+                    }
+                }, 30);
+            });
 
             let itemIndex = {{ $quotation->items->count() + 10 }};
 
@@ -1189,23 +1005,6 @@
                 $('#modalPickerBarang').modal('hide');
             });
 
-            // Add Custom Item
-            $('#btnAddCustomItem').on('click', function() {
-                addItemRow({
-                    barang_id: '',
-                    kode: 'CUSTOM',
-                    nama: '',
-                    satuan_id: '',
-                    satuan_nama: 'Pcs',
-                    kategori_id: '',
-                    harga: 0,
-                    harga_retail: 0,
-                    harga_grosir: 0,
-                    harga_tender: 0,
-                    hpp: 0,
-                    is_custom: true
-                });
-            });
 
             // Function to append Row
             function addItemRow(data) {
@@ -1215,11 +1014,11 @@
                 let safeCustomName = data.nama_barang_custom || data.nama || '';
                 let nameInput = data.is_custom 
                     ? `<input type="text" name="items[${itemIndex}][nama_barang_custom]" class="form-control form-control-sm fw-bold" value="${$('<div>').text(safeCustomName).html()}" placeholder="Nama item / jasa / pekerjaan..." required>`
-                    : `<div class="d-flex align-items-center gap-2">
-                            ${data.photo_url ? `<img src="${data.photo_url}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;" class="border shadow-xs flex-shrink-0" onerror="this.onerror=null;this.src='/uploads/barang/placeholder_garment.png'">` : ''}
-                            <div>
-                                <div class="fw-bold text-body fs-8">${$('<div>').text(data.nama).html()}</div>
-                                <code class="badge badge-soft-neutral fs-9 px-1.5 py-0.5">${$('<div>').text(data.kode).html()}</code>
+                    : `<div class="d-flex align-items-center gap-2.5">
+                            <img src="${data.photo_url || '/uploads/barang/placeholder_garment.png'}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;" class="border shadow-xs flex-shrink-0" onerror="this.onerror=null;this.src='/uploads/barang/placeholder_garment.png'">
+                            <div class="min-w-0">
+                                <div class="fw-semibold text-body fs-8 text-truncate mb-0.5" title="${$('<div>').text(data.nama).html()}">${$('<div>').text(data.nama).html()}</div>
+                                <span class="badge badge-soft-neutral fs-9 px-1.5 py-0.5 font-monospace">${$('<div>').text(data.kode).html()}</span>
                             </div>
                        </div>
                        <input type="hidden" name="items[${itemIndex}][barang_id]" value="${data.barang_id}">`;
@@ -1231,61 +1030,108 @@
                 let tierDef = data.tier_default || 'tender';
 
                 let priceSelectorHtml = !data.is_custom ? `
-                    <select class="form-select form-select-xs py-0.5 px-1 fs-9 select-price-tier"
+                    <select class="form-select form-select-xs select-price-tier"
                         data-harga-retail="${hRetail}"
                         data-harga-grosir="${hGrosir}"
                         data-harga-tender="${hTender}">
                         <option value="tender" ${tierDef === 'tender' ? 'selected' : ''}>🏷️ Tender: Rp ${hTender.toLocaleString('id-ID')}</option>
                         <option value="grosir" ${tierDef === 'grosir' ? 'selected' : ''}>📦 Grosir: Rp ${hGrosir.toLocaleString('id-ID')}</option>
                         <option value="satuan" ${tierDef === 'satuan' ? 'selected' : ''}>🛍️ Satuan: Rp ${hRetail.toLocaleString('id-ID')}</option>
-                        <option value="custom" ${tierDef === 'custom' ? 'selected' : ''}>✏️ Custom / Manual</option>
                     </select>
                 ` : `<span class="badge badge-soft-neutral border fs-9 w-100 py-1">Item Bebas / Custom</span>`;
+
+                let ppnOptionsHtml = `
+                    <option value="" data-tarif="0" selected>Non PPN (0%)</option>
+                    @foreach($pajakPpnList as $p)
+                        <option value="{{ $p->id }}" data-tarif="{{ (float)$p->tarif }}" ${data.ppn_pajak_id == '{{ $p->id }}' ? 'selected' : ''}>
+                            {{ $p->nama_pajak }} ({{ (float)$p->tarif }}%)
+                        </option>
+                    @endforeach
+                `;
+
+                let discPersen = parseFloat(data.diskon_persen) || 0;
+                let discNominal = parseFloat(data.diskon_nominal) || 0;
+                let discTipe = (discNominal > 0 && discPersen === 0) ? 'nominal' : 'persen';
+                let discVal = (discTipe === 'nominal') ? formatRupiah(discNominal) : discPersen;
 
                 let rowHtml = `
                     <tr id="itemRow_${itemIndex}" class="item-calc-row">
                         <td>
                             ${nameInput}
-                            <input type="text" name="items[${itemIndex}][deskripsi_item]" class="form-control form-control-sm mt-1 fs-9 text-muted" value="${$('<div>').text(data.deskripsi_item || '').html()}" placeholder="Catatan spesifikasi / detail item...">
+                            <div class="mt-1.5">
+                                <input type="text" name="items[${itemIndex}][deskripsi_item]" class="form-control form-control-xs item-desc-input" value="${$('<div>').text(data.deskripsi_item || '').html()}" placeholder="+ Catatan spesifikasi / detail item...">
+                            </div>
                             <input type="hidden" name="items[${itemIndex}][kategori_id]" value="${data.kategori_id || ''}">
                             <input type="hidden" name="items[${itemIndex}][satuan_id]" value="${data.satuan_id || ''}">
                             <input type="hidden" name="items[${itemIndex}][hpp_satuan]" class="item-hpp-satuan" value="${data.hpp || 0}">
                         </td>
                         <td>
                             <div class="input-group input-group-sm">
-                                <input type="number" step="0.01" min="0.01" name="items[${itemIndex}][qty]" class="form-control form-control-sm text-end item-qty" value="${parseFloat(data.qty) || 1}" required>
-                                <input type="text" name="items[${itemIndex}][nama_satuan]" class="form-control form-control-sm" value="${$('<div>').text(data.satuan_nama || 'Pcs').html()}" style="max-width: 60px;" readonly>
+                                <input type="number" step="0.01" min="0.01" name="items[${itemIndex}][qty]" class="form-control form-control-sm text-end fw-bold font-monospace item-qty" value="${parseFloat(data.qty) || 1}" required>
+                                <span class="input-group-text fs-9 px-2 text-muted fw-semibold item-satuan-label bg-body-tertiary" title="${$('<div>').text(data.satuan_nama || 'Pcs').html()}">${$('<div>').text(data.satuan_nama || 'Pcs').html()}</span>
+                                <input type="hidden" name="items[${itemIndex}][nama_satuan]" value="${$('<div>').text(data.satuan_nama || 'Pcs').html()}">
                             </div>
                         </td>
                         <td>
                             <div class="input-group input-group-sm mb-1">
-                                <span class="input-group-text fs-9 px-1.5">Rp</span>
+                                <span class="input-group-text fs-9 px-1.5 text-muted">Rp</span>
                                 <input type="text" inputmode="numeric" name="items[${itemIndex}][harga]" class="form-control form-control-sm text-end item-price fw-bold font-monospace" value="${formatRupiah(currentPrice)}" required>
                             </div>
                             ${priceSelectorHtml}
                         </td>
                         <td>
-                            <input type="number" step="0.01" min="0" max="100" name="items[${itemIndex}][diskon_persen]" class="form-control form-control-sm text-end item-disc-persen" value="${parseFloat(data.diskon_persen) || 0}">
+                            <div class="input-group input-group-sm sq-disc-group flex-nowrap">
+                                <div class="btn-group btn-group-sm flex-shrink-0 sq-disc-toggle border rounded-start-2 overflow-hidden" role="group">
+                                    <button type="button" class="btn btn-xs fw-bold btn-item-disc-mode ${discTipe === 'persen' ? 'active' : ''}" data-mode="persen">%</button>
+                                    <button type="button" class="btn btn-xs fw-bold btn-item-disc-mode ${discTipe === 'nominal' ? 'active' : ''}" data-mode="nominal">Rp</button>
+                                </div>
+                                <input type="hidden" class="item-disc-tipe" value="${discTipe}">
+                                <input type="text" class="form-control form-control-sm text-end font-monospace item-disc-nilai" value="${discVal}">
+                                <input type="hidden" name="items[${itemIndex}][diskon_persen]" class="item-disc-persen" value="${discPersen}">
+                                <input type="hidden" name="items[${itemIndex}][diskon_nominal]" class="item-disc-nominal" value="${discNominal}">
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-1 px-1">
+                                <span class="fs-9 text-muted">Potongan:</span>
+                                <span class="text-danger fs-9 font-monospace fw-semibold item-disc-display">- Rp 0</span>
+                            </div>
                         </td>
                         <td class="text-end">
-                            <span class="item-subtotal-display fs-8">Rp 0</span>
+                            <div class="item-subtotal-display fs-7 fw-bold font-monospace text-body">Rp 0</div>
+                        </td>
+                        <td>
+                            <select name="items[${itemIndex}][ppn_pajak_id]" class="form-select form-select-sm select-item-ppn fs-8" data-placeholder="Pilih PPN">
+                                ${ppnOptionsHtml}
+                            </select>
+                            <input type="hidden" name="items[${itemIndex}][tarif_ppn]" class="item-tarif-ppn" value="${parseFloat(data.tarif_ppn) || 0}">
+                            <input type="hidden" name="items[${itemIndex}][nilai_ppn]" class="item-nilai-ppn" value="${parseFloat(data.nilai_ppn) || 0}">
+                            <div class="d-flex justify-content-between align-items-center mt-1 px-1">
+                                <span class="fs-9 text-muted">Pajak:</span>
+                                <span class="text-primary fs-9 font-monospace fw-semibold item-ppn-display">Rp 0</span>
+                            </div>
                         </td>
                         <td class="text-center">
-                            <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1 btn-remove-item" data-id="${itemIndex}">
-                                <i class="bi bi-trash"></i>
+                            <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle btn-remove-item p-1.5" data-id="${itemIndex}" title="Hapus Item">
+                                <i class="bi bi-trash3"></i>
                             </button>
                         </td>
                     </tr>
                 `;
 
                 $('#itemsTableBody').append(rowHtml);
+                initPpnSelect2($(`#itemRow_${itemIndex}`));
                 calculateTotal();
             }
 
             // Remove Row
             $(document).on('click', '.btn-remove-item', function() {
                 const id = $(this).data('id');
-                $(`#itemRow_${id}`).remove();
+                const $row = $(`#itemRow_${id}`);
+                $row.find('.select-item-ppn').each(function() {
+                    if ($(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2('destroy');
+                    }
+                });
+                $row.remove();
                 if ($('#itemsTableBody tr').length === 0) {
                     $('#emptyItemNotice').show();
                 }
@@ -1300,6 +1146,53 @@
                 } else {
                     $(this).val(parseInt(raw, 10).toLocaleString('id-ID'));
                 }
+            });
+
+            // Format nominal discount with dot separators when tipe is nominal
+            $(document).on('input', '.item-disc-nilai', function() {
+                let row = $(this).closest('tr');
+                let tipe = row.find('.item-disc-tipe').val();
+                if (tipe === 'nominal') {
+                    let raw = $(this).val().replace(/[^0-9]/g, '');
+                    $(this).val(raw === '' ? '0' : parseInt(raw, 10).toLocaleString('id-ID'));
+                }
+            });
+
+            // Handle toggle click between % and Rp
+            $(document).on('click', '.btn-item-disc-mode', function(e) {
+                e.preventDefault();
+                let btn = $(this);
+                if (btn.hasClass('active')) return;
+
+                let group = btn.closest('.sq-disc-toggle');
+                group.find('.btn-item-disc-mode').removeClass('active');
+                btn.addClass('active');
+
+                let mode = btn.data('mode');
+                let row = btn.closest('tr');
+                let tipeInput = row.find('.item-disc-tipe');
+                tipeInput.val(mode).trigger('change');
+            });
+
+            // Handle switch between % and Rp
+            $(document).on('change', '.item-disc-tipe', function() {
+                let row = $(this).closest('tr');
+                let tipe = $(this).val();
+                let inputValEl = row.find('.item-disc-nilai');
+                let discPersen = parseFloat(row.find('.item-disc-persen').val()) || 0;
+                let discNominal = parseFloat(row.find('.item-disc-nominal').val()) || 0;
+
+                // Sync toggle button active state
+                let group = row.find('.sq-disc-toggle');
+                group.find('.btn-item-disc-mode').removeClass('active');
+                group.find(`.btn-item-disc-mode[data-mode="${tipe}"]`).addClass('active');
+
+                if (tipe === 'nominal') {
+                    inputValEl.val(discNominal > 0 ? formatRupiah(discNominal) : '0');
+                } else {
+                    inputValEl.val(discPersen > 0 ? parseFloat(discPersen.toFixed(2)) : '0');
+                }
+                calculateTotal();
             });
 
             // Handle Price Tier Selection
@@ -1338,50 +1231,13 @@
                     } else if (currentVal === hRetail && hRetail > 0) {
                         tierSelect.val('satuan');
                     } else {
-                        tierSelect.val('custom');
+                        tierSelect.val(null);
                     }
                 }
             });
 
             // Live Calculation Trigger
-            $(document).on('input change', '.item-qty, .item-price, .item-disc-persen, #inputDiskonNominal, #inputDiskonPersen, #selectDiskonTipe, #selectTipePpn, #selectPpnPajak, #inputBiayaPengiriman, #selectTipeDp, #inputDpPersen, #inputDpNominal', function() {
-                calculateTotal();
-            });
-
-            // Update PPN percentage when tax select changes
-            $('#selectPpnPajak').on('change', function() {
-                if ($('#selectTipePpn').val() !== 'None') {
-                    let tarif = $(this).find(':selected').data('tarif');
-                    if (typeof tarif === 'undefined' || isNaN(tarif) || tarif === 0) {
-                        tarif = 11;
-                    }
-                    $('#inputTarifPpn').val(tarif);
-                } else {
-                    $('#inputTarifPpn').val(0);
-                }
-                calculateTotal();
-            });
-
-            // Toggle PPN Active / Inactive
-            $('#selectTipePpn').on('change', function() {
-                let val = $(this).val();
-                if (val === 'None') {
-                    $('#selectPpnPajak').val('').prop('disabled', true);
-                    $('#inputTarifPpn').val(0);
-                } else {
-                    $('#selectPpnPajak').prop('disabled', false);
-                    if (!$('#selectPpnPajak').val()) {
-                        let defaultOption = $('#selectPpnPajak option[data-tarif!="0"]').first();
-                        if (defaultOption.length) {
-                            $('#selectPpnPajak').val(defaultOption.val());
-                        }
-                    }
-                    let tarif = $('#selectPpnPajak').find(':selected').data('tarif');
-                    if (typeof tarif === 'undefined' || isNaN(tarif) || tarif === 0) {
-                        tarif = 11;
-                    }
-                    $('#inputTarifPpn').val(tarif);
-                }
+            $(document).on('input change select2:select select2:clear', '.item-qty, .item-price, .item-disc-tipe, .item-disc-nilai, .select-item-ppn, #inputBiayaPengiriman, #selectTipeDp, #inputDpPersen, #inputDpNominal', function() {
                 calculateTotal();
             });
 
@@ -1584,55 +1440,81 @@
             function calculateTotal() {
                 let subtotal = 0;
                 let totalHpp = 0;
+                let totalNilaiPpn = 0;
 
                 $('.item-calc-row').each(function() {
                     let qty = parseFloat($(this).find('.item-qty').val()) || 0;
                     let price = parseRupiah($(this).find('.item-price').val());
-                    let discPersen = parseFloat($(this).find('.item-disc-persen').val()) || 0;
                     let hppSatuan = parseFloat($(this).find('.item-hpp-satuan').val()) || 0;
-
                     let gross = qty * price;
-                    let discNominal = (gross * (discPersen / 100));
+
+                    // Discount calculation (% or Rp)
+                    let discTipe = $(this).find('.item-disc-tipe').val() || 'persen';
+                    let discInput = $(this).find('.item-disc-nilai').val();
+                    let discPersen = 0;
+                    let discNominal = 0;
+
+                    if (discTipe === 'nominal') {
+                        discNominal = parseRupiah(discInput);
+                        if (discNominal > gross) {
+                            discNominal = gross;
+                        }
+                        discPersen = gross > 0 ? (discNominal / gross) * 100 : 0;
+                        if (discNominal > 0) {
+                            $(this).find('.item-disc-display').text('(' + discPersen.toFixed(1) + '%)');
+                        } else {
+                            $(this).find('.item-disc-display').text('- Rp 0');
+                        }
+                    } else {
+                        discPersen = parseFloat(discInput) || 0;
+                        if (discPersen > 100) discPersen = 100;
+                        discNominal = gross * (discPersen / 100);
+                        if (discPersen > 0) {
+                            $(this).find('.item-disc-display').text('- Rp ' + Math.round(discNominal).toLocaleString('id-ID'));
+                        } else {
+                            $(this).find('.item-disc-display').text('- Rp 0');
+                        }
+                    }
+
+                    $(this).find('.item-disc-persen').val(discPersen);
+                    $(this).find('.item-disc-nominal').val(discNominal);
+
                     let itemSubtotal = Math.max(0, gross - discNominal);
 
+                    // Item PPN
+                    let selectedPpnOpt = $(this).find('.select-item-ppn option:selected');
+                    let tarifPpn = parseFloat(selectedPpnOpt.data('tarif') !== undefined ? selectedPpnOpt.data('tarif') : selectedPpnOpt.attr('data-tarif')) || 0;
+                    $(this).find('.item-tarif-ppn').val(tarifPpn);
+                    let itemNilaiPpn = itemSubtotal * (tarifPpn / 100);
+                    $(this).find('.item-nilai-ppn').val(itemNilaiPpn);
+
                     $(this).find('.item-subtotal-display').text('Rp ' + itemSubtotal.toLocaleString('id-ID'));
+                    if (tarifPpn > 0) {
+                        $(this).find('.item-ppn-display').text('+ Rp ' + Math.round(itemNilaiPpn).toLocaleString('id-ID'));
+                    } else {
+                        $(this).find('.item-ppn-display').text('Rp 0');
+                    }
 
                     subtotal += itemSubtotal;
+                    totalNilaiPpn += itemNilaiPpn;
                     totalHpp += (qty * hppSatuan);
                 });
 
                 $('#displaySubtotal').text('Rp ' + subtotal.toLocaleString('id-ID'));
                 $('#inputSubtotal').val(subtotal);
 
-                // Global Discount
-                let discGlobalPersen = parseFloat($('#inputDiskonPersen').val()) || 0;
-                let discGlobalNominal = subtotal * (discGlobalPersen / 100);
-                $('#displayDiskonNominal').text('- Rp ' + Math.round(discGlobalNominal).toLocaleString('id-ID'));
-                $('#inputDiskonNominal').val(discGlobalNominal);
+                // Global Discount removed / 0
+                $('#inputDiskonPersen').val(0);
+                $('#inputDiskonNominal').val(0);
 
-                let dpp = Math.max(0, subtotal - discGlobalNominal);
+                // Total PPN
+                $('#displayNilaiPpn').text('+ Rp ' + Math.round(totalNilaiPpn).toLocaleString('id-ID'));
+                $('#inputNilaiPpn').val(totalNilaiPpn);
+                $('#inputTarifPpn').val(subtotal > 0 ? (totalNilaiPpn / subtotal) * 100 : 0);
 
-                // PPN
-                let tipePpn = $('#selectTipePpn').val();
-                let tarifPpn = parseFloat($('#inputTarifPpn').val()) || 0;
-                let nilaiPpn = 0;
-                let grandTotal = 0;
 
                 let shipping = parseRupiah($('#inputBiayaPengiriman').val());
-
-                if (tipePpn === 'Exclude') {
-                    nilaiPpn = dpp * (tarifPpn / 100);
-                    grandTotal = dpp + nilaiPpn + shipping;
-                } else if (tipePpn === 'Include') {
-                    nilaiPpn = (tarifPpn > 0) ? (dpp - (dpp / (1 + (tarifPpn / 100)))) : 0;
-                    grandTotal = dpp + shipping;
-                } else {
-                    nilaiPpn = 0;
-                    grandTotal = dpp + shipping;
-                }
-
-                $('#displayNilaiPpn').text('+ Rp ' + Math.round(nilaiPpn).toLocaleString('id-ID'));
-                $('#inputNilaiPpn').val(nilaiPpn);
+                let grandTotal = subtotal + totalNilaiPpn + shipping;
 
                 // Grand Total
                 $('#displayGrandTotal').text('Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
@@ -1662,11 +1544,12 @@
                     $('#tenderPaguInfoBox').addClass('d-none');
                 }
 
-                // HPP & Margin
+                // HPP & Margin Calculation (Gross Profit = Net Product Revenue [DPP] - Total HPP)
                 $('#displayTotalHpp').text('Rp ' + Math.round(totalHpp).toLocaleString('id-ID'));
                 $('#inputTotalHpp').val(totalHpp);
 
-                let labaKotor = grandTotal - totalHpp;
+                let netRevenue = subtotal;
+                let labaKotor = netRevenue - totalHpp;
                 let labaDisplayEl = $('#displayLabaKotor');
                 let marginBadgeEl = $('#displayMarginPersen');
 
@@ -1677,17 +1560,93 @@
                 }
                 $('#inputLabaKotor').val(labaKotor);
 
-                let margin = grandTotal > 0 ? (labaKotor / grandTotal) * 100 : 0;
+                let margin = netRevenue > 0 ? (labaKotor / netRevenue) * 100 : 0;
                 if (margin < 0) {
                     marginBadgeEl.removeClass('badge-soft-emerald').addClass('badge-soft-danger').html('<i class="bi bi-exclamation-triangle me-1"></i>' + margin.toFixed(1) + '% (Minus)');
                 } else {
                     marginBadgeEl.removeClass('badge-soft-danger').addClass('badge-soft-emerald').text(margin.toFixed(1) + '%');
                 }
                 $('#inputMarginPersen').val(margin);
+
+                // Live DP Calculation
+                let tipeDp = $('#selectTipeDp').val();
+                let dpNominal = 0;
+                let dpPersen = 0;
+                let roundedGrandTotal = Math.round(grandTotal);
+
+                if (tipeDp === 'Persen') {
+                    dpPersen = parseFloat($('#inputDpPersen').val()) || 0;
+                    dpNominal = Math.round(roundedGrandTotal * (dpPersen / 100));
+                } else if (tipeDp === 'Nominal') {
+                    dpNominal = Math.round(parseRupiah($('#inputDpNominal').val())) || 0;
+                    dpPersen = roundedGrandTotal > 0 ? ((dpNominal / roundedGrandTotal) * 100).toFixed(1) : 0;
+                }
+
+                if (tipeDp !== 'None' && dpNominal > 0) {
+                    let sisa = Math.max(0, roundedGrandTotal - dpNominal);
+                    $('#displayDpCalculatedNominal').text('Rp ' + dpNominal.toLocaleString('id-ID') + (tipeDp === 'Nominal' && dpPersen > 0 ? ` (${dpPersen}%)` : ''));
+                    $('#displayDpSisaPelunasan').text('Rp ' + sisa.toLocaleString('id-ID'));
+                    $('#displayDpBreakdown').show();
+                } else {
+                    $('#displayDpBreakdown').hide();
+                }
             }
 
             // Form Submission Validation Guard & Currency Unmasking
             $('#formQuotation').on('submit', function(e) {
+                // Character limit security guards
+                let perihalVal = ($('input[name="perihal"]').val() || '').trim();
+                if (perihalVal.length > 40) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan Validasi',
+                        text: 'Perihal / Judul Penawaran maksimal 40 karakter! (Saat ini: ' + perihalVal.length + ' karakter)',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    $('input[name="perihal"]').focus();
+                    return false;
+                }
+
+                let catatanVal = ($('textarea[name="catatan"]').val() || '').trim();
+                if (catatanVal.length > 60) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan Validasi',
+                        text: 'Catatan Penawaran maksimal 60 karakter! (Saat ini: ' + catatanVal.length + ' karakter)',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    $('textarea[name="catatan"]').focus();
+                    return false;
+                }
+
+                let syaratVal = ($('textarea[name="syarat_ketentuan"]').val() || '').trim();
+                if (syaratVal.length > 400) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan Validasi',
+                        text: 'Syarat & Ketentuan maksimal 400 karakter! (Saat ini: ' + syaratVal.length + ' karakter)',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    $('textarea[name="syarat_ketentuan"]').focus();
+                    return false;
+                }
+
+                let rawOngkirDigits = ($('#inputBiayaPengiriman').val() || '').replace(/\D/g, '');
+                if (rawOngkirDigits.length > 10) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan Validasi',
+                        text: 'Biaya Pengiriman maksimal 10 digit angka!',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    $('#inputBiayaPengiriman').focus();
+                    return false;
+                }
+
                 if ($('#itemsTableBody tr.item-calc-row').length === 0) {
                     e.preventDefault();
                     Swal.fire({
@@ -1766,6 +1725,9 @@
 
                 let rawDp = parseRupiah($('#inputDpNominal').val());
                 $('#inputDpNominal').val(rawDp);
+
+                // Mencegah double-submit / spam klik tombol simpan
+                $('.btn-submit-quotation').prop('disabled', true).addClass('disabled');
             });
 
             // Handle submit button click for status assignment (Draft vs Sent)

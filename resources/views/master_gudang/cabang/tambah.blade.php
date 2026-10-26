@@ -2,6 +2,20 @@
 <x-modal_form id="modalTambahCabang" formId="formTambahCabang" title="<i class='bi bi-buildings me-2'></i> Tambah Cabang Baru" autocomplete="off">
     <x-slot name="slot">
         <div class="row g-3">
+            {{-- Logo Cabang --}}
+            <div class="col-12 text-center mb-1">
+                <div class="d-inline-block position-relative">
+                    <div id="previewLogoTambahCabang" class="rounded-3 border border-2 border-dashed d-flex align-items-center justify-content-center bg-body-tertiary shadow-sm" style="width:110px; height:110px; overflow:hidden;">
+                        <i class="bi bi-buildings fs-1 text-muted"></i>
+                    </div>
+                    <label for="tambah_logo_cabang" class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0 shadow" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="Upload Logo Cabang">
+                        <i class="bi bi-camera-fill"></i>
+                    </label>
+                    <input type="file" name="logo" id="tambah_logo_cabang" class="d-none" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="previewImage(this, '#previewLogoTambahCabang')">
+                </div>
+                <div class="small text-muted mt-1">Logo Khusus Cabang (Opsional, PNG/JPG maks 2MB)</div>
+            </div>
+
             {{-- SECTION: Identitas Cabang --}}
             <div class="col-12">
                 <div class="section-title mb-2">
@@ -153,6 +167,7 @@
 
         $('#modalTambahCabang').on('hidden.bs.modal', function () {
             $('#formTambahCabang')[0].reset();
+            $('#previewLogoTambahCabang').html('<i class="bi bi-buildings fs-1 text-muted"></i>');
         });
     });
 </script>

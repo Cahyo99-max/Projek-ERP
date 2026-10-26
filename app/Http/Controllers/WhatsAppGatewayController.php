@@ -8,13 +8,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 
 class WhatsAppGatewayController extends Controller
 {
     /**
      * Display the WhatsApp Gateway settings dashboard.
      */
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('akses-whatsapp-gateway');
 
@@ -58,14 +60,94 @@ class WhatsAppGatewayController extends Controller
         $enableStockAlert = $settings['wa_enable_stock_alert'] ?? '0';
         $enableReminder = $settings['wa_enable_reminder'] ?? '0';
 
-        // Fetch logs for active company
-        $logs = WhatsAppLog::forActiveCompany()->latest()->limit(20)->get();
+        // Fetch logs for active company with search and pagination (Default 10)
+        $searchLog = $request->query('search_log');
+        $statusLog = $request->query('status_log');
+        $perPageLog = (int) $request->query('per_page_log', 10);
+        if (!in_array($perPageLog, [10, 25, 50, 100])) {
+            $perPageLog = 10;
+        }
+
+        $logQuery = WhatsAppLog::forActiveCompany()->latest();
+
+        if (!empty($searchLog)) {
+            $logQuery->where(function ($q) use ($searchLog) {
+                $q->where('action', 'like', "%{$searchLog}%")
+                  ->orWhere('recipient', 'like', "%{$searchLog}%")
+                  ->orWhere('response', 'like', "%{$searchLog}%");
+            });
+        }
+
+        if (!empty($statusLog)) {
+            $logQuery->where('status', $statusLog);
+        }
+
+        $logs = $logQuery->paginate($perPageLog, ['*'], 'log_page')->withQueryString();
 
         return view('settings.whatsapp.index', compact(
             'provider', 'apiToken', 'status', 'phoneNumber', 'deviceName', 'lastConnected',
             'enableNotification', 'enableApproval', 'enablePurchase', 'enableStockAlert', 'enableReminder',
-            'logs'
+            'logs', 'searchLog', 'statusLog', 'perPageLog'
         ));
+    }
+
+    /**
+     * Delete / Prune WhatsApp Delivery Logs permanently.
+     */
+    public function pruneLogs(Request $request)
+    {
+        $this->authorize('manage-whatsapp-gateway');
+
+        $request->validate([
+            'prune_mode' => 'required|in:30_days,60_days,90_days,custom_range,all',
+            'start_date' => 'nullable|required_if:prune_mode,custom_range|date',
+            'end_date'   => 'nullable|required_if:prune_mode,custom_range|date|after_or_equal:start_date',
+        ], [
+            'prune_mode.required' => 'Pilih mode pembersihan log.',
+            'start_date.required_if' => 'Tanggal mulai wajib diisi untuk rentang tanggal.',
+            'end_date.required_if' => 'Tanggal akhir wajib diisi untuk rentang tanggal.',
+            'end_date.after_or_equal' => 'Tanggal akhir harus sama atau setelah tanggal mulai.',
+        ]);
+
+        $mode = $request->input('prune_mode');
+        $deletedCount = 0;
+
+        switch ($mode) {
+            case '30_days':
+                $cutoff = Carbon::now()->subDays(30);
+                $deletedCount = WhatsAppLog::forActiveCompany()->where('created_at', '<', $cutoff)->delete();
+                $message = "Berhasil menghapus {$deletedCount} log pengiriman WhatsApp yang lebih lama dari 30 hari.";
+                break;
+
+            case '60_days':
+                $cutoff = Carbon::now()->subDays(60);
+                $deletedCount = WhatsAppLog::forActiveCompany()->where('created_at', '<', $cutoff)->delete();
+                $message = "Berhasil menghapus {$deletedCount} log pengiriman WhatsApp yang lebih lama dari 60 hari.";
+                break;
+
+            case '90_days':
+                $cutoff = Carbon::now()->subDays(90);
+                $deletedCount = WhatsAppLog::forActiveCompany()->where('created_at', '<', $cutoff)->delete();
+                $message = "Berhasil menghapus {$deletedCount} log pengiriman WhatsApp yang lebih lama dari 90 hari.";
+                break;
+
+            case 'custom_range':
+                $start = Carbon::parse($request->input('start_date'))->startOfDay();
+                $end = Carbon::parse($request->input('end_date'))->endOfDay();
+                $deletedCount = WhatsAppLog::forActiveCompany()->whereBetween('created_at', [$start, $end])->delete();
+                $message = "Berhasil menghapus {$deletedCount} log pengiriman WhatsApp dari tanggal " . $start->format('d/m/Y') . " sampai " . $end->format('d/m/Y') . ".";
+                break;
+
+            case 'all':
+                $deletedCount = WhatsAppLog::forActiveCompany()->delete();
+                $message = "Berhasil mengosongkan seluruh data log pengiriman WhatsApp ({$deletedCount} rekaman).";
+                break;
+
+            default:
+                return redirect()->route('settings.whatsapp.index')->with('error', 'Pilihan mode pembersihan log tidak valid.');
+        }
+
+        return redirect()->route('settings.whatsapp.index')->with('success', $message);
     }
 
     /**
@@ -399,8 +481,13 @@ class WhatsAppGatewayController extends Controller
         try {
             // Load relationships with company, branch, color, and unit details
             $pr->load(['company', 'branch', 'details.barang.warna', 'details.barang.satuan', 'details.satuan', 'requester', 'creator.karyawan']);
-            $companyName = $pr->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $pr->branch ? 'Cabang ' . $pr->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($pr, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
             
             // Format items list
             $itemsText = "";
@@ -461,12 +548,19 @@ class WhatsAppGatewayController extends Controller
 
                 // Construct message with Supervisor Name, PT Name, and Branch Origin
                 $message = "*PEMBERITAHUAN PERSETUJUAN PR* 🔔\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo " . $supervisorName . ",\n";
                 $message .= "Ada pengajuan Purchase Request (PR) baru yang membutuhkan persetujuan Anda.\n\n";
                 $message .= "*Detail Pengajuan:*\n";
-                $message .= "- *Perusahaan*: " . $companyName . "\n";
-                $message .= "- *Asal Pengajuan*: " . $asalPengajuan . "\n";
+                if ($isCabang) {
+                $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+            } else {
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
+            }
                 $message .= "- *No. PR*: " . $nomorPr . "\n";
                 $message .= "- *Tanggal & Waktu*: " . $tanggalJam . "\n";
                 $message .= "- *Diminta Oleh*: " . $requesterName . "\n";
@@ -507,6 +601,60 @@ class WhatsAppGatewayController extends Controller
      * - Otherwise, run the callback directly (synchronous) — still very fast due to
      *   Fonnte HTTP timeout being set to 5s max and WA check returning early if disabled.
      */
+        /**
+     * Resolve and format entity display for WhatsApp notifications.
+     * Rule: If the transaction is from a Branch (Cabang), do NOT show the PT / Perusahaan name.
+     * Only show the Branch name in header and details.
+     * If the transaction is from PT Pusat (no branch), show the PT / Perusahaan name.
+     *
+     * @param mixed $model
+     * @param int|null $companyId
+     * @return array
+     */
+    public static function resolveEntityDisplay($model, $companyId = null)
+    {
+        $companyId = $companyId ?: (is_object($model) && isset($model->company_id) ? $model->company_id : (session('active_company_id') ?: 1));
+        
+        $companyName = 'Perusahaan';
+        if (is_object($model) && isset($model->company) && !empty($model->company->nama_perusahaan)) {
+            $companyName = $model->company->nama_perusahaan;
+        } else {
+            $comp = \App\Models\Company::find($companyId);
+            if ($comp && !empty($comp->nama_perusahaan)) {
+                $companyName = $comp->nama_perusahaan;
+            }
+        }
+
+        $branch = null;
+        if (is_object($model)) {
+            if (isset($model->branch) && !empty($model->branch)) {
+                $branch = $model->branch;
+            } elseif (!empty($model->branch_id)) {
+                $branch = \App\Models\Branch::find($model->branch_id);
+            }
+        }
+
+        $isCabang = !empty($branch);
+        $rawCabang = trim($branch?->nama_cabang ?? '');
+        $namaCabangDisplay = $isCabang ? (stripos($rawCabang, 'cabang') === 0 ? $rawCabang : ('Cabang ' . $rawCabang)) : null;
+
+        $headerEntitas = $isCabang ? mb_strtoupper($namaCabangDisplay) : mb_strtoupper($companyName);
+        $asalUnitText  = $isCabang ? $namaCabangDisplay : ($companyName . ' (Pusat)');
+        
+        $detailLine = $isCabang 
+            ? "- *Cabang*: " . $namaCabangDisplay . "\n"
+            : "- *Perusahaan*: " . $companyName . "\n";
+
+        return [
+            'isCabang'          => $isCabang,
+            'companyName'       => $companyName,
+            'namaCabangDisplay' => $namaCabangDisplay,
+            'headerEntitas'     => $headerEntitas,
+            'asalUnitText'      => $asalUnitText,
+            'detailLine'        => $detailLine,
+        ];
+    }
+
     public static function runAsync(callable $callback)
     {
         // Defer execution to script shutdown so response is sent immediately (sub-second / instant)
@@ -514,6 +662,16 @@ class WhatsAppGatewayController extends Controller
             @ignore_user_abort(true);
             if (function_exists('fastcgi_finish_request')) {
                 @fastcgi_finish_request();
+            } else {
+                // Non-FastCGI fallback (Windows CLI server, Apache, etc.):
+                // Flush all buffers and close HTTP connection so browser receives instant response
+                if (!headers_sent()) {
+                    @header("Connection: close");
+                }
+                while (ob_get_level() > 0) {
+                    @ob_end_flush();
+                }
+                @flush();
             }
             try {
                 $callback();
@@ -540,8 +698,13 @@ class WhatsAppGatewayController extends Controller
         try {
             // Load relationships with company, branch, color, unit, creator, requester, and approver details
             $pr->load(['company', 'branch', 'details.barang.warna', 'details.barang.satuan', 'details.satuan', 'creator.karyawan', 'requester', 'approver.karyawan']);
-            $companyName = $pr->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $pr->branch ? 'Cabang ' . $pr->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($pr, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
             
             // Creator (Pembuat PR) phone number and name
             $creator = $pr->creator;
@@ -585,12 +748,19 @@ class WhatsAppGatewayController extends Controller
 
             // Construct message with PT Name and Branch Origin
             $message = "*PERMINTAAN PEMBELIAN: PR DISETUJUI* ✅\n";
-            $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+            $message .= "*" . $headerEntitas . "*\n\n";
             $message .= "Halo " . $creatorName . ",\n";
             $message .= "Kabar baik! Pengajuan Purchase Request (PR) Anda telah disetujui oleh atasan.\n\n";
             $message .= "*Detail Pengajuan:*\n";
-            $message .= "- *Perusahaan*: " . $companyName . "\n";
-            $message .= "- *Asal Pengajuan*: " . $asalPengajuan . "\n";
+            if ($isCabang) {
+                $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+            } else {
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
+            }
             $message .= "- *No. PR*: " . $nomorPr . "\n";
             $message .= "- *Disetujui Oleh*: " . $approverName . "\n";
             $message .= "- *Tanggal & Waktu*: " . $tanggalJam . "\n";
@@ -640,8 +810,13 @@ class WhatsAppGatewayController extends Controller
         try {
             // Load relationships with company, branch, color, unit, creator, requester, and approver details
             $pr->load(['company', 'branch', 'details.barang.warna', 'details.barang.satuan', 'details.satuan', 'creator.karyawan', 'requester', 'approver.karyawan']);
-            $companyName = $pr->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $pr->branch ? 'Cabang ' . $pr->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($pr, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
             
             // Creator (Pembuat PR) phone number and name
             $creator = $pr->creator;
@@ -685,12 +860,19 @@ class WhatsAppGatewayController extends Controller
 
             // Construct message with PT Name and Branch Origin
             $message = "*PEMBERITAHUAN: PENGAJUAN PR DITOLAK* ❌\n";
-            $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+            $message .= "*" . $headerEntitas . "*\n\n";
             $message .= "Halo " . $creatorName . ",\n";
             $message .= "Mohon maaf, pengajuan Purchase Request (PR) Anda *ditolak* oleh atasan/pemeriksa.\n\n";
             $message .= "*Detail Pengajuan:*\n";
-            $message .= "- *Perusahaan*: " . $companyName . "\n";
-            $message .= "- *Asal Pengajuan*: " . $asalPengajuan . "\n";
+            if ($isCabang) {
+                $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+            } else {
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
+            }
             $message .= "- *No. PR*: " . $nomorPr . "\n";
             $message .= "- *Ditolak Oleh*: " . $approverName . "\n";
             $message .= "- *Tanggal & Waktu*: " . $tanggalJam . "\n";
@@ -742,8 +924,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $po->load(['company', 'branch', 'details.barang.warna', 'details.barang.satuan', 'details.satuan', 'supplier', 'creator', 'currency']);
-            $companyName = $po->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $po->branch ? 'Cabang ' . $po->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($po, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
             
             // Format items list with prices
             $itemsText = "";
@@ -807,12 +994,19 @@ class WhatsAppGatewayController extends Controller
 
                 // Construct personalized message
                 $message = "*PEMBERITAHUAN PERSETUJUAN PO* 🔔\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $supervisorName . "*,\n";
                 $message .= "Ada pengajuan Purchase Order (PO) baru yang membutuhkan persetujuan Anda.\n\n";
                 $message .= "*Detail Pengajuan:*\n";
-                $message .= "- *Perusahaan*: " . $companyName . "\n";
-                $message .= "- *Asal Pengajuan*: " . $asalPengajuan . "\n";
+                if ($isCabang) {
+                $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+            } else {
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
+            }
                 $message .= "- *No. PO*: " . $nomorPo . "\n";
                 $message .= "- *Supplier*: " . $supplierName . "\n";
                 $message .= "- *Total Nilai PO*: " . $symbol . " " . $grandTotal . "\n";
@@ -862,8 +1056,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $po->load(['company', 'branch', 'details.barang.warna', 'details.barang.satuan', 'details.satuan', 'supplier', 'creator.karyawan', 'currency', 'updater']);
-            $companyName = $po->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $po->branch ? 'Cabang ' . $po->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($po, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
             
             $creator = $po->creator;
             $creatorPhone = $creator?->no_hp ?: $creator?->karyawan?->no_hp;
@@ -913,12 +1112,19 @@ class WhatsAppGatewayController extends Controller
 
             // Construct message
             $message = "*PENGATURAN PEMBELIAN: PO DISETUJUI* ✅\n";
-            $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+            $message .= "*" . $headerEntitas . "*\n\n";
             $message .= "Halo *" . $creatorName . "*,\n";
             $message .= "Kabar baik! Pengajuan Purchase Order (PO) Anda telah disetujui oleh atasan.\n\n";
             $message .= "*Detail Pengajuan:*\n";
-            $message .= "- *Perusahaan*: " . $companyName . "\n";
-            $message .= "- *Asal Pengajuan*: " . $asalPengajuan . "\n";
+            if ($isCabang) {
+                $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+            } else {
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
+            }
             $message .= "- *No. PO*: " . $nomorPo . "\n";
             $message .= "- *Disetujui Oleh*: *" . $approverName . "*\n";
             $message .= "- *Supplier*: " . $supplierName . "\n";
@@ -967,8 +1173,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $po->load(['company', 'branch', 'details.barang.warna', 'details.barang.satuan', 'details.satuan', 'supplier', 'creator.karyawan', 'currency']);
-            $companyName = $po->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $po->branch ? 'Cabang ' . $po->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($po, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
             
             $creator = $po->creator;
             $creatorPhone = $creator?->no_hp ?: $creator?->karyawan?->no_hp;
@@ -1018,12 +1229,19 @@ class WhatsAppGatewayController extends Controller
 
             // Construct message
             $message = "*PEMBERITAHUAN: PENGAJUAN PO DITOLAK* ❌\n";
-            $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+            $message .= "*" . $headerEntitas . "*\n\n";
             $message .= "Halo *" . $creatorName . "*,\n";
             $message .= "Mohon maaf, pengajuan Purchase Order (PO) Anda *ditolak* oleh atasan/pemeriksa.\n\n";
             $message .= "*Detail Pengajuan:*\n";
-            $message .= "- *Perusahaan*: " . $companyName . "\n";
-            $message .= "- *Asal Pengajuan*: " . $asalPengajuan . "\n";
+            if ($isCabang) {
+                $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+            } else {
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
+            }
             $message .= "- *No. PO*: " . $nomorPo . "\n";
             $message .= "- *Ditolak Oleh*: *" . $rejectorName . "*\n";
             $message .= "- *Supplier*: " . $supplierName . "\n";
@@ -1129,8 +1347,13 @@ class WhatsAppGatewayController extends Controller
             $creatorName = $poCreator?->nama_lengkap ?: $poCreator?->karyawan?->nama_lengkap ?: 'Pembuat PO';
 
             // Company & branch info
-            $companyName    = $po->company?->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan  = $po->branch ? 'Cabang ' . $po->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($gr, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
 
             // GR & PO info
             $nomorGr        = $gr->nomor_gr;
@@ -1162,7 +1385,7 @@ class WhatsAppGatewayController extends Controller
 
             // Compose the WA message
             $message  = "*BARANG TELAH DITERIMA (GR POSTED)* 📦✅\n";
-            $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+            $message .= "*" . $headerEntitas . "*\n\n";
             $message .= "Halo *{$creatorName}*,\n";
             $message .= "Barang dari PO yang Anda buat telah berhasil diterima di gudang.\n\n";
             $message .= "*Detail Penerimaan:*\n";
@@ -1220,8 +1443,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $stockOpname->load(['company', 'branch', 'gudang', 'creator.karyawan', 'details']);
-            $companyName = $stockOpname->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $isCabang = !empty($stockOpname->branch_id) && $stockOpname->branch;
+            $entity = self::resolveEntityDisplay($stockOpname, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$isCabang = !empty($stockOpname->branch_id) && $stockOpname->branch;
             $entityHeader = $isCabang ? ('CABANG ' . mb_strtoupper($stockOpname->branch->nama_cabang)) : mb_strtoupper($companyName);
             $entityLine = $isCabang ? ("- *Cabang*: " . $stockOpname->branch->nama_cabang . "\n") : ("- *Perusahaan*: " . $companyName . "\n");
 
@@ -1331,8 +1559,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $stockOpname->load(['company', 'branch', 'gudang', 'creator.karyawan', 'approver.karyawan']);
-            $companyName = $stockOpname->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $isCabang = !empty($stockOpname->branch_id) && $stockOpname->branch;
+            $entity = self::resolveEntityDisplay($stockOpname, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$isCabang = !empty($stockOpname->branch_id) && $stockOpname->branch;
             $entityHeader = $isCabang ? ('CABANG ' . mb_strtoupper($stockOpname->branch->nama_cabang)) : mb_strtoupper($companyName);
             $entityLine = $isCabang ? ("- *Cabang*: " . $stockOpname->branch->nama_cabang . "\n") : ("- *Perusahaan*: " . $companyName . "\n");
 
@@ -1414,8 +1647,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $stockOpname->load(['company', 'branch', 'gudang', 'creator.karyawan', 'approver.karyawan']);
-            $companyName = $stockOpname->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $isCabang = !empty($stockOpname->branch_id) && $stockOpname->branch;
+            $entity = self::resolveEntityDisplay($stockOpname, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$isCabang = !empty($stockOpname->branch_id) && $stockOpname->branch;
             $entityHeader = $isCabang ? ('CABANG ' . mb_strtoupper($stockOpname->branch->nama_cabang)) : mb_strtoupper($companyName);
             $entityLine = $isCabang ? ("- *Cabang*: " . $stockOpname->branch->nama_cabang . "\n") : ("- *Perusahaan*: " . $companyName . "\n");
 
@@ -1492,8 +1730,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $stockOpname->load(['company', 'branch', 'gudang', 'creator.karyawan', 'approver.karyawan', 'closer.karyawan', 'details']);
-            $companyName = $stockOpname->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $isCabang = !empty($stockOpname->branch_id) && $stockOpname->branch;
+            $entity = self::resolveEntityDisplay($stockOpname, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$isCabang = !empty($stockOpname->branch_id) && $stockOpname->branch;
             $entityHeader = $isCabang ? ('CABANG ' . mb_strtoupper($stockOpname->branch->nama_cabang)) : mb_strtoupper($companyName);
             $entityLine = $isCabang ? ("- *Cabang*: " . $stockOpname->branch->nama_cabang . "\n") : ("- *Perusahaan*: " . $companyName . "\n");
 
@@ -1584,8 +1827,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $stockOpname->load(['company', 'branch', 'gudang', 'creator.karyawan', 'details']);
-            $companyName = $stockOpname->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $isCabang = !empty($stockOpname->branch_id) && $stockOpname->branch;
+            $entity = self::resolveEntityDisplay($stockOpname, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$isCabang = !empty($stockOpname->branch_id) && $stockOpname->branch;
             $entityHeader = $isCabang ? ('CABANG ' . mb_strtoupper($stockOpname->branch->nama_cabang)) : mb_strtoupper($companyName);
             $entityLine = $isCabang ? ("- *Cabang*: " . $stockOpname->branch->nama_cabang . "\n") : ("- *Perusahaan*: " . $companyName . "\n");
 
@@ -1711,8 +1959,13 @@ class WhatsAppGatewayController extends Controller
                 return;
             }
 
-            $companyName = $warehouseTransfer->gudangAsal->company->nama_perusahaan ?? 'Perusahaan';
-            $nomorTransfer = $warehouseTransfer->nomor_transfer;
+            $entity = self::resolveEntityDisplay($warehouseTransfer, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$nomorTransfer = $warehouseTransfer->nomor_transfer;
             $jenisTransfer = $warehouseTransfer->jenis_transfer ?: 'Intra-PT';
             
             $asalGudang  = $warehouseTransfer->gudangAsal->nama_gudang ?? '-';
@@ -1772,7 +2025,7 @@ class WhatsAppGatewayController extends Controller
                 $supervisorName = $supervisor->nama_lengkap ?: ($supervisor->karyawan?->nama_lengkap ?: 'Atasan');
 
                 $message = "*PEMBERITAHUAN PENGAJUAN TRANSFER GUDANG* 🚚\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $supervisorName . "*,\n";
                 $message .= "Ada pengajuan Transfer Gudang baru yang membutuhkan konfirmasi/persetujuan Anda.\n\n";
                 $message .= "*Detail Transfer:*\n";
@@ -1840,8 +2093,13 @@ class WhatsAppGatewayController extends Controller
                 return;
             }
 
-            $companyName = $warehouseTransfer->gudangAsal->company->nama_perusahaan ?? 'Perusahaan';
-            $nomorTransfer = $warehouseTransfer->nomor_transfer;
+            $entity = self::resolveEntityDisplay($warehouseTransfer, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$nomorTransfer = $warehouseTransfer->nomor_transfer;
             $jenisTransfer = $warehouseTransfer->jenis_transfer ?: 'Intra-PT';
             
             $asalGudang  = $warehouseTransfer->gudangAsal->nama_gudang ?? '-';
@@ -1890,7 +2148,7 @@ class WhatsAppGatewayController extends Controller
                 $sentTargets[] = $target;
 
                 $message = "*PEMBERITAHUAN TRANSFER GUDANG DIKONFIRMASI / APPROVED* ✅\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Pengajuan Transfer Gudang Anda telah *DIKONFIRMASI & DIPOSTING*.\n\n";
                 $message .= "*Detail Transfer:*\n";
@@ -1954,8 +2212,13 @@ class WhatsAppGatewayController extends Controller
                 return;
             }
 
-            $companyName = $openingStock->gudang->company->nama_perusahaan ?? 'Perusahaan';
-            $nomorDokumen = $openingStock->nomor_opening_stock;
+            $entity = self::resolveEntityDisplay($openingStock, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$nomorDokumen = $openingStock->nomor_opening_stock;
             $gudangName = $openingStock->gudang->nama_gudang ?? '-';
             $cabangName = $openingStock->gudang->cabang ? $openingStock->gudang->cabang->nama_cabang : 'Pusat';
             $tanggal = \Carbon\Carbon::parse($openingStock->tanggal_opening_stock)->locale('id')->translatedFormat('d F Y');
@@ -2025,7 +2288,7 @@ class WhatsAppGatewayController extends Controller
                     . "⏰ _Waktu Pengajuan: {$tanggalJam}_\n\n"
                     . "Mohon masuk ke sistem ERP untuk melakukan verifikasi dan konfirmasi dokumen ini.\n\n"
                     . "Terima kasih,\n"
-                    . "🤖 *{$companyName} - ERP System Automated Bot*";
+                    . "🤖 *{$headerEntitas} - ERP System Automated Bot*";
 
                 $resBody = self::dispatchFonnteMessage($apiToken, $targetPhone, $message);
                 $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
@@ -2071,8 +2334,13 @@ class WhatsAppGatewayController extends Controller
                 return;
             }
 
-            $companyName = $openingStock->gudang->company->nama_perusahaan ?? 'Perusahaan';
-            $nomorDokumen = $openingStock->nomor_opening_stock;
+            $entity = self::resolveEntityDisplay($openingStock, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$nomorDokumen = $openingStock->nomor_opening_stock;
             $gudangName = $openingStock->gudang->nama_gudang ?? '-';
             $cabangName = $openingStock->gudang->cabang ? $openingStock->gudang->cabang->nama_cabang : 'Pusat';
             $tanggal = \Carbon\Carbon::parse($openingStock->tanggal_opening_stock)->locale('id')->translatedFormat('d F Y');
@@ -2112,7 +2380,7 @@ class WhatsAppGatewayController extends Controller
                     . "⏰ *Waktu Posting:* {$tanggalJam}\n\n"
                     . "✨ _Stok fisik, HPP rata-rata, dan Jurnal Akuntansi otomatis telah terposting._\n\n"
                     . "Terima kasih,\n"
-                    . "🤖 *{$companyName} - ERP System Automated Bot*";
+                    . "🤖 *{$headerEntitas} - ERP System Automated Bot*";
 
                 $resBody = self::dispatchFonnteMessage($apiToken, $targetPhone, $message);
                 $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
@@ -2153,8 +2421,13 @@ class WhatsAppGatewayController extends Controller
                 return;
             }
 
-            $companyName   = $stockAdjustment->gudang->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $nomorAdj      = $stockAdjustment->nomor_adjustment;
+            $entity = self::resolveEntityDisplay($stockAdjustment, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$nomorAdj      = $stockAdjustment->nomor_adjustment;
             $gudangName    = $stockAdjustment->gudang->nama_gudang ?? '-';
             $tipe          = $stockAdjustment->tipe_adjustment;
             $kategori      = $stockAdjustment->kategori_alasan;
@@ -2205,7 +2478,7 @@ class WhatsAppGatewayController extends Controller
                 $supervisorName = $supervisor->nama_lengkap ?? 'Atasan';
 
                 $message = "*PEMBERITAHUAN PENGAJUAN STOK ADJUSTMENT* 📦🔔\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $supervisorName . "*,\n";
                 $message .= "Ada pengajuan Penyesuaian Stok (Stock Adjustment) baru yang membutuhkan persetujuan/konfirmasi Anda.\n\n";
                 $message .= "*Detail Pengajuan:*\n";
@@ -2268,8 +2541,13 @@ class WhatsAppGatewayController extends Controller
                 return;
             }
 
-            $companyName   = $stockAdjustment->gudang->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $nomorAdj      = $stockAdjustment->nomor_adjustment;
+            $entity = self::resolveEntityDisplay($stockAdjustment, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$nomorAdj      = $stockAdjustment->nomor_adjustment;
             $gudangName    = $stockAdjustment->gudang->nama_gudang ?? '-';
             $tipe          = $stockAdjustment->tipe_adjustment;
             $kategori      = $stockAdjustment->kategori_alasan;
@@ -2313,7 +2591,7 @@ class WhatsAppGatewayController extends Controller
                 $sentTargets[] = $target;
 
                 $message = "*PEMBERITAHUAN STOK ADJUSTMENT DIKONFIRMASI / APPROVED* ✅📦\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Dokumen Penyesuaian Stok (Stock Adjustment) Anda telah *DIKONFIRMASI & DIPOSTING*.\n\n";
                 $message .= "*Detail Adjustment:*\n";
@@ -2381,10 +2659,15 @@ class WhatsAppGatewayController extends Controller
                 return;
             }
 
-            $companyName = $goodsIssue->company?->nama_perusahaan ?? ($goodsIssue->gudang?->company?->nama_perusahaan ?? 'Perusahaan');
-            $branchName  = $goodsIssue->branch?->nama_cabang ?? ($goodsIssue->gudang?->cabang?->nama_cabang ?? null);
+            $entity = self::resolveEntityDisplay($goodsIssue, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$branchName  = $goodsIssue->branch?->nama_cabang ?? ($goodsIssue->gudang?->cabang?->nama_cabang ?? null);
 
-            $headerEntity = mb_strtoupper($companyName);
+            $headerEntity = $headerEntitas;
             if ($branchName && !in_array(strtolower($branchName), ['pusat', 'kantor pusat', 'head office', 'pt pusat', '-'])) {
                 $headerEntity .= " - CABANG " . mb_strtoupper($branchName);
                 $unitPengeluar = "Cabang " . $branchName;
@@ -2515,10 +2798,15 @@ class WhatsAppGatewayController extends Controller
                 return;
             }
 
-            $companyName = $goodsIssue->company?->nama_perusahaan ?? ($goodsIssue->gudang?->company?->nama_perusahaan ?? 'Perusahaan');
-            $branchName  = $goodsIssue->branch?->nama_cabang ?? ($goodsIssue->gudang?->cabang?->nama_cabang ?? null);
+            $entity = self::resolveEntityDisplay($goodsIssue, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$branchName  = $goodsIssue->branch?->nama_cabang ?? ($goodsIssue->gudang?->cabang?->nama_cabang ?? null);
 
-            $headerEntity = mb_strtoupper($companyName);
+            $headerEntity = $headerEntitas;
             if ($branchName && !in_array(strtolower($branchName), ['pusat', 'kantor pusat', 'head office', 'pt pusat', '-'])) {
                 $headerEntity .= " - CABANG " . mb_strtoupper($branchName);
                 $unitPengeluar = "Cabang " . $branchName;
@@ -2636,8 +2924,13 @@ class WhatsAppGatewayController extends Controller
                 'items.satuan',
             ]);
 
-            $companyName   = $bom->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $bom->branch ? 'Cabang ' . $bom->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($bom, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
 
             $creatorName = $bom->creator?->nama_lengkap ?: $bom->creator?->karyawan?->nama_lengkap ?: 'Tim Produksi';
             $kodeBom     = $bom->kode_bom;
@@ -2711,12 +3004,19 @@ class WhatsAppGatewayController extends Controller
                 $supervisorName = $supervisor->nama_lengkap ?? 'Atasan';
 
                 $message = "*PEMBERITAHUAN PENGAJUAN RESEP BOM (PENDING APPROVAL)* 🔔\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $supervisorName . "*,\n";
                 $message .= "Ada pengajuan Resep Produksi Garmen (Bill of Materials) baru yang membutuhkan persetujuan Anda.\n\n";
                 $message .= "*Detail Pengajuan BOM:*\n";
-                $message .= "- *Perusahaan*: " . $companyName . "\n";
-                $message .= "- *Asal Pengajuan*: " . $asalPengajuan . "\n";
+                if ($isCabang) {
+                $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+            } else {
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
+            }
                 $message .= "- *No. Kode BOM*: " . $kodeBom . "\n";
                 $message .= "- *Nama Resep*: " . $namaBom . "\n";
                 $message .= "- *Produk Barang Jadi*: " . $barangJadi . "\n";
@@ -2779,8 +3079,13 @@ class WhatsAppGatewayController extends Controller
                 'approver.karyawan',
             ]);
 
-            $companyName   = $bom->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $bom->branch ? 'Cabang ' . $bom->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($bom, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
 
             $creator = $bom->creator ?: \App\Models\User::with('karyawan')->find($bom->created_by);
             $creatorPhone = $creator?->no_hp ?: $creator?->karyawan?->no_hp;
@@ -2807,12 +3112,19 @@ class WhatsAppGatewayController extends Controller
             $tanggalJam  = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
 
             $message = "*RESEP BOM PRODUKSI: TELAH DISETUJUI (APPROVED)* ✅\n";
-            $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+            $message .= "*" . $headerEntitas . "*\n\n";
             $message .= "Halo *" . $creatorName . "*,\n";
             $message .= "Kabar baik! Resep Produksi Garmen (Bill of Materials) yang Anda susun telah *DISETUJUI (APPROVED)* oleh atasan.\n\n";
             $message .= "*Detail Resep BOM:*\n";
-            $message .= "- *Perusahaan*: " . $companyName . "\n";
-            $message .= "- *Asal Pengajuan*: " . $asalPengajuan . "\n";
+            if ($isCabang) {
+                $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+            } else {
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
+            }
             $message .= "- *No. Kode BOM*: " . $kodeBom . "\n";
             $message .= "- *Nama Resep*: " . $namaBom . "\n";
             $message .= "- *Produk Barang Jadi*: " . $barangJadi . "\n";
@@ -2869,8 +3181,13 @@ class WhatsAppGatewayController extends Controller
                 'creator.karyawan',
             ]);
 
-            $companyName = $bom->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $creator     = $bom->creator ?: \App\Models\User::find($bom->created_by);
+            $entity = self::resolveEntityDisplay($bom, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$creator     = $bom->creator ?: \App\Models\User::find($bom->created_by);
             $creatorPhone = $creator?->no_hp ?: $creator?->karyawan?->no_hp;
 
             if (!$creatorPhone) {
@@ -2887,11 +3204,15 @@ class WhatsAppGatewayController extends Controller
             $tanggalJam = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
 
             $message = "*PEMBERITAHUAN RESEP BOM DITOLAK (REJECTED)* ❌\n";
-            $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+            $message .= "*" . $headerEntitas . "*\n\n";
             $message .= "Halo *" . $creatorName . "*,\n";
             $message .= "Mohon maaf, pengajuan Resep Produksi Garmen (BOM) Anda telah *DITOLAK (REJECTED)* oleh atasan dengan catatan revisi berikut:\n\n";
             $message .= "*Detail Penolakan:*\n";
-            $message .= "- *Perusahaan*: " . $companyName . "\n";
+            if ($isCabang) {
+                $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+            } else {
+                $message .= "- *Perusahaan*: " . $companyName . "\n";
+            }
             $message .= "- *No. Kode BOM*: " . $kodeBom . "\n";
             $message .= "- *Nama Resep*: " . $namaBom . "\n";
             $message .= "- *Produk Barang Jadi*: " . $barangJadi . "\n";
@@ -2948,8 +3269,13 @@ class WhatsAppGatewayController extends Controller
                 'creator',
             ]);
 
-            $companyName   = $spk->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $spk->branch ? 'Cabang ' . $spk->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($spk, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
 
             $creatorName   = $spk->creator?->nama_lengkap ?: 'Tim Produksi';
             $nomorSpk      = $spk->nomor_spk;
@@ -3000,12 +3326,19 @@ class WhatsAppGatewayController extends Controller
                 $supervisorName = $supervisor->nama_lengkap ?? 'Atasan';
 
                 $message = "*PEMBERITAHUAN PENGAJUAN SPK PRODUKSI (PENDING APPROVAL)* 📋\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $supervisorName . "*,\n";
                 $message .= "Ada Surat Perintah Kerja (SPK / Work Order) Produksi baru yang membutuhkan persetujuan Anda.\n\n";
                 $message .= "*Detail SPK Produksi:*\n";
-                $message .= "- *Perusahaan*: " . $companyName . "\n";
-                $message .= "- *Asal Unit*: " . $asalPengajuan . "\n";
+                if ($isCabang) {
+                $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+            } else {
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
+            }
                 $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
                 $message .= "- *Produk Barang Jadi*: " . $barangJadi . "\n";
                 $message .= "- *Resep BOM*: " . $namaBom . "\n";
@@ -3065,8 +3398,13 @@ class WhatsAppGatewayController extends Controller
                 'creator',
             ]);
 
-            $companyName   = $spk->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $spk->branch ? 'Cabang ' . $spk->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($spk, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
 
             // 1. Pengaju SPK (user yang menginput / created_by)
             $creatorId = $spk->created_by;
@@ -3150,7 +3488,11 @@ class WhatsAppGatewayController extends Controller
                     $message .= "Ada pekerjaan produksi baru nih! 🛠️\n\n";
                     $message .= "Surat Perintah Kerja (SPK) *" . $nomorSpk . "* telah disetujui dan ditugaskan kepada Anda.\n\n";
                     $message .= "*Detail Pekerjaan Produksi:*\n";
-                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                    if ($isCabang) {
+                        $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                    } else {
+                        $message .= "- *Perusahaan*: " . $companyName . "\n";
+                    }
                     $message .= "- *Unit*: " . $asalPengajuan . "\n";
                     $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
                     $message .= "- *Produk*: " . $barangJadi . "\n";
@@ -3162,11 +3504,15 @@ class WhatsAppGatewayController extends Controller
                 } else {
                     // Pesan Khusus Pengaju SPK
                     $message  = "*SPK PRODUKSI DISETUJUI & SIAP DIKERJAKAN (APPROVED)* 🚀\n";
-                    $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                    $message .= "*" . $headerEntitas . "*\n\n";
                     $message .= "Halo *" . $rec['name'] . "*,\n";
                     $message .= "Kabar baik! Surat Perintah Kerja (SPK / Work Order) yang Anda ajukan telah *DISETUJUI (APPROVED)* oleh atasan.\n\n";
                     $message .= "*Detail SPK Produksi:*\n";
-                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                    if ($isCabang) {
+                        $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                    } else {
+                        $message .= "- *Perusahaan*: " . $companyName . "\n";
+                    }
                     $message .= "- *Unit*: " . $asalPengajuan . "\n";
                     $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
                     $message .= "- *Produk*: " . $barangJadi . "\n";
@@ -3224,8 +3570,13 @@ class WhatsAppGatewayController extends Controller
                 'creator',
             ]);
 
-            $companyName   = $spk->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $spk->branch ? 'Cabang ' . $spk->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($spk, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
 
             // Cari PIC / Penanggung Jawab Produksi
             $pj = $spk->penanggungJawab ?: \App\Models\Karyawan::find($spk->penanggung_jawab_id);
@@ -3275,7 +3626,11 @@ class WhatsAppGatewayController extends Controller
             $message .= "Produksi sudah resmi berjalan! 🚀⚙️\n\n";
             $message .= "Surat Perintah Kerja (SPK) *" . $nomorSpk . "* telah dimulai pengerjaannya di line produksi.\n\n";
             $message .= "*Detail Pengerjaan SPK:*\n";
-            $message .= "- *Perusahaan*: " . $companyName . "\n";
+            if ($isCabang) {
+                $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+            } else {
+                $message .= "- *Perusahaan*: " . $companyName . "\n";
+            }
             $message .= "- *Unit*: " . $asalPengajuan . "\n";
             $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
             $message .= "- *Produk*: " . $barangJadi . "\n";
@@ -3333,8 +3688,13 @@ class WhatsAppGatewayController extends Controller
                 'tahapans'
             ]);
 
-            $companyName   = $spk->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $spk->branch ? 'Cabang ' . $spk->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($spk, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
 
             $recipients = [];
             if ($spk->creator) {
@@ -3402,11 +3762,15 @@ class WhatsAppGatewayController extends Controller
                 $sentTargets[] = $target;
 
                 $message = "*PRODUKSI SPK SELESAI 100% (COMPLETED)* ✅🎉\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Seluruh tahapan pengerjaan Surat Perintah Kerja (SPK / Work Order) telah *SELESAI (COMPLETED)* dengan sukses!\n\n";
                 $message .= "*Ringkasan Hasil Produksi:*\n";
-                $message .= "- *Perusahaan*: " . $companyName . "\n";
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
                 $message .= "- *Unit*: " . $asalPengajuan . "\n";
                 $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
                 $message .= "- *Produk*: " . $barangJadi . "\n";
@@ -3462,8 +3826,13 @@ class WhatsAppGatewayController extends Controller
                 'creator',
             ]);
 
-            $companyName   = $spk->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $spk->branch ? 'Cabang ' . $spk->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($spk, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
 
             // Kirim notif WA ke pengaju SPK (user yang menginput / created_by)
             $creatorId = $spk->created_by;
@@ -3515,11 +3884,15 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $message  = "*SPK PRODUKSI DITOLAK (REJECTED)* ❌\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Mohon maaf, Surat Perintah Kerja (SPK / Work Order) yang Anda ajukan telah *DITOLAK (REJECTED)* oleh atasan.\n\n";
                 $message .= "*Detail SPK yang Ditolak:*\n";
-                $message .= "- *Perusahaan*: " . $companyName . "\n";
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
                 $message .= "- *Unit*: " . $asalPengajuan . "\n";
                 $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
                 $message .= "- *Produk*: " . $barangJadi . "\n";
@@ -3570,8 +3943,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $tender->load(['company', 'branch', 'customer', 'sales.department', 'items.barang']);
-            $companyName = $tender->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $tender->branch ? 'Cabang ' . $tender->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($tender, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
 
             // Find all approvers with permission 'approve-tender'
             $approvers = \App\Models\User::permission('approve-tender')
@@ -3620,11 +3998,15 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $message  = "🔔 *PENGAJUAN APPROVAL TENDER BARU*\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Terdapat pengajuan proposal tender baru yang *membutuhkan persetujuan (approval)* Anda.\n\n";
                 $message .= "*Rincian Proposal Tender:*\n";
-                $message .= "- *Perusahaan*: " . $companyName . "\n";
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
                 $message .= "- *Unit Entitas*: " . $asalPengajuan . "\n";
                 $message .= "- *No. Tender*: *" . $nomorTender . "*\n";
                 $message .= "- *Nama Proyek*: *" . $namaProyek . "*\n";
@@ -3675,9 +4057,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $tender->load(['company', 'branch', 'customer', 'sales', 'creator.karyawan']);
-            $companyName = $tender->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-
-            // Target: Sales PIC & Creator
+            $entity = self::resolveEntityDisplay($tender, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];// Target: Sales PIC & Creator
             $recipients = [];
             if ($tender->sales) {
                 $salesPhone = $tender->sales->no_hp ?: $tender->sales->telepon;
@@ -3712,7 +4098,7 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $message  = "✅ *PROPOSAL TENDER DISETUJUI (APPROVED)*\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Kabar baik! Proposal tender yang Anda ajukan telah *DISETUJUI (APPROVED)* oleh atasan.\n\n";
                 $message .= "*Rincian Tender yang Disetujui:*\n";
@@ -3764,9 +4150,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $tender->load(['company', 'branch', 'customer', 'sales', 'creator.karyawan']);
-            $companyName = $tender->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-
-            // Target: Sales PIC & Creator
+            $entity = self::resolveEntityDisplay($tender, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];// Target: Sales PIC & Creator
             $recipients = [];
             if ($tender->sales) {
                 $salesPhone = $tender->sales->no_hp ?: $tender->sales->telepon;
@@ -3801,7 +4191,7 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $message  = "❌ *PROPOSAL TENDER DITOLAK (REJECTED)*\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Mohon maaf, proposal tender yang Anda ajukan telah *DITOLAK (REJECTED)* oleh atasan.\n\n";
                 $message .= "*Rincian Penolakan Tender:*\n";
@@ -3852,9 +4242,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $tender->load(['company', 'branch', 'customer', 'sales']);
-            $companyName = $tender->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-
-            // Broadcast to Approvers & Sales PIC
+            $entity = self::resolveEntityDisplay($tender, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];// Broadcast to Approvers & Sales PIC
             $users = \App\Models\User::role(['Super Admin', 'Owner', 'Direktur', 'Manager Marketing'])->get();
 
             $recipients = [];
@@ -3888,7 +4282,7 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $message  = "🏆 *SELAMAT! PROYEK TENDER MENANG (WON)* 🎉\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Kabar gembira! Proyek tender berikut telah berhasil ditetapkan sebagai *PEMENANG (WON)*:\n\n";
                 $message .= "*Detail Tender Pemenang:*\n";
@@ -3940,8 +4334,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $quotation->load(['company', 'branch', 'customer', 'tender', 'sales', 'creator.karyawan']);
-            $companyName = $quotation->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $quotation->branch ? 'Cabang ' . $quotation->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($quotation, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
 
             // Find approvers with permission 'approve-penawaran'
             $approvers = \App\Models\User::permission('approve-penawaran')
@@ -3989,11 +4388,15 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $message  = "🔔 *PENGAJUAN SURAT PENAWARAN HARGA BARU*\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Terdapat Surat Penawaran Harga (Sales Quotation) baru yang *membutuhkan persetujuan (approval)* Anda.\n\n";
                 $message .= "*Rincian Penawaran:*\n";
-                $message .= "- *Perusahaan*: " . $companyName . "\n";
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Perusahaan*: " . $companyName . "\n";
+                }
                 $message .= "- *Unit Entitas*: " . $asalPengajuan . "\n";
                 $message .= "- *No. Penawaran*: *" . $nomorQuotation . "*\n";
                 $message .= "- *Nama Klien / Instansi*: *" . $customerName . "*\n";
@@ -4046,9 +4449,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $quotation->load(['company', 'branch', 'customer', 'tender', 'sales', 'creator.karyawan']);
-            $companyName = $quotation->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-
-            // Target: Sales PIC & Creator
+            $entity = self::resolveEntityDisplay($quotation, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];// Target: Sales PIC & Creator
             $recipients = [];
             $salesUser = $quotation->sales;
             if ($salesUser) {
@@ -4088,7 +4495,7 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $message  = "✅ *SURAT PENAWARAN HARGA DISETUJUI (APPROVED)*\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Kabar baik! Surat Penawaran Harga berikut telah *disetujui (Approved)*:\n\n";
                 $message .= "*Rincian Penawaran:*\n";
@@ -4139,9 +4546,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $quotation->load(['company', 'branch', 'customer', 'tender', 'sales', 'creator.karyawan']);
-            $companyName = $quotation->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-
-            // Target: Sales PIC & Creator
+            $entity = self::resolveEntityDisplay($quotation, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];// Target: Sales PIC & Creator
             $recipients = [];
             $salesUser = $quotation->sales;
             if ($salesUser) {
@@ -4181,7 +4592,7 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $message  = "❌ *SURAT PENAWARAN HARGA DITOLAK (REJECTED)*\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Surat Penawaran Harga berikut ditandai sebagai *Ditolak (Rejected)*:\n\n";
                 $message .= "*Rincian Penawaran:*\n";
@@ -4234,9 +4645,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $quotation->load(['company', 'branch', 'customer', 'sales', 'creator.karyawan']);
-            $companyName = $quotation->company->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-
-            // Target: Sales PIC & Creator
+            $entity = self::resolveEntityDisplay($quotation, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];// Target: Sales PIC & Creator
             $recipients = [];
             $salesUser = $quotation->sales;
             if ($salesUser) {
@@ -4276,7 +4691,7 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $message  = "🚀 *PENAWARAN HARGA RESMI JADI SALES ORDER (SO)*\n";
-                $message .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
                 $message .= "Halo *" . $rec['name'] . "*,\n";
                 $message .= "Surat Penawaran Harga berhasil dikonversi menjadi *Sales Order (SO)*:\n\n";
                 $message .= "*Rincian Transaksi:*\n";
@@ -4331,8 +4746,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $payment->loadMissing(['supplier', 'currency', 'creator.karyawan', 'submitter.karyawan', 'company', 'branch', 'details.invoice']);
-            $companyName   = $payment->company?->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $asalPengajuan = $payment->branch ? 'Cabang ' . $payment->branch->nama_cabang : 'PT Pusat';
+            $entity = self::resolveEntityDisplay($payment, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];
 
             // Ambil seluruh approver yang memiliki izin 'approve-pembayaran-utang'
             $approvers = \App\Models\User::permission('approve-pembayaran-utang')
@@ -4383,7 +4803,7 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $msg  = "🔔 *PENGAJUAN PEMBAYARAN UTANG (MENUNGGU PERSETUJUAN)*\n";
-                $msg .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $msg .= "*" . $headerEntitas . "*\n\n";
                 $msg .= "Halo *{$ap->name}*,\n";
                 $msg .= "Terdapat dokumen pengajuan pembayaran utang baru yang membutuhkan persetujuan Anda.\n\n";
                 $msg .= "*Rincian Dokumen:*\n";
@@ -4431,8 +4851,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $payment->loadMissing(['supplier', 'currency', 'creator.karyawan', 'submitter.karyawan', 'company', 'branch']);
-            $companyName  = $payment->company?->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $nomorBayar   = $payment->nomor_pembayaran;
+            $entity = self::resolveEntityDisplay($payment, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$nomorBayar   = $payment->nomor_pembayaran;
             $supplierName = $payment->supplier?->nama_supplier ?? '-';
             $curCode      = $payment->currency?->kode_currency ?? 'IDR';
             $curSymbol    = $payment->currency?->simbol ?? ($curCode === 'IDR' ? 'Rp' : $curCode);
@@ -4462,7 +4887,7 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $msg  = "✅ *PEMBAYARAN UTANG DISETUJUI & DIPOSTING*\n";
-                $msg .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $msg .= "*" . $headerEntitas . "*\n\n";
                 $msg .= "Halo *{$user->name}*,\n";
                 $msg .= "Kabar baik! Pengajuan pembayaran utang Anda telah *disetujui* dan *berhasil diposting*.\n\n";
                 $msg .= "*Rincian Transaksi:*\n";
@@ -4504,8 +4929,13 @@ class WhatsAppGatewayController extends Controller
 
         try {
             $payment->loadMissing(['supplier', 'currency', 'creator.karyawan', 'submitter.karyawan', 'company', 'branch']);
-            $companyName  = $payment->company?->nama_perusahaan ?? \App\Models\Company::find($companyId)?->nama_perusahaan ?? 'Perusahaan';
-            $nomorBayar   = $payment->nomor_pembayaran;
+            $entity = self::resolveEntityDisplay($payment, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$nomorBayar   = $payment->nomor_pembayaran;
             $supplierName = $payment->supplier?->nama_supplier ?? '-';
             $curCode      = $payment->currency?->kode_currency ?? 'IDR';
             $curSymbol    = $payment->currency?->simbol ?? ($curCode === 'IDR' ? 'Rp' : $curCode);
@@ -4535,7 +4965,7 @@ class WhatsAppGatewayController extends Controller
                 if (empty($target)) continue;
 
                 $msg  = "❌ *PEMBERITAHUAN: PENGAJUAN PEMBAYARAN DITOLAK*\n";
-                $msg .= "*" . mb_strtoupper($companyName) . "*\n\n";
+                $msg .= "*" . $headerEntitas . "*\n\n";
                 $msg .= "Halo *{$user->name}*,\n";
                 $msg .= "Pengajuan pembayaran utang Anda telah *ditolak* oleh pihak manajemen/approver.\n\n";
                 $msg .= "*Rincian Dokumen:*\n";
@@ -4567,6 +4997,1812 @@ class WhatsAppGatewayController extends Controller
     }
 
     /**
+     * Send WhatsApp notification when Closing Pengeluaran Bahan SPK is submitted for review / approval.
+     */
+    public static function sendPengeluaranBahanClosingSubmissionNotification($spk, $requesterUser = null)
+    {
+        $companyId = $spk->company_id ?? session('active_company_id') ?: 1;
+        $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+        $approvalEnabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_approval')->value('value') === '1';
+        $apiToken = self::getDecryptedToken($companyId);
+
+        if (!$enabled || !$approvalEnabled || !$apiToken) {
+            return;
+        }
+
+        try {
+            if (is_numeric($spk)) {
+                $spk = \App\Models\SpkProduksi::find($spk);
+            }
+            if (!$spk) return;
+
+            $spk->load([
+                'company',
+                'branch',
+                'barangJadi.satuan',
+                'satuan',
+                'materials.barangMentah',
+                'pengeluaranBahans.details',
+                'materialClosingRequestedBy.karyawan',
+            ]);
+
+            $entity = self::resolveEntityDisplay($spk, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$isCabang      = !empty($spk->branch_id) && !empty($spk->branch);
+            $rawCabang     = trim($spk->branch?->nama_cabang ?? '');
+            $namaCabangDisplay = $isCabang ? (stripos($rawCabang, 'cabang') === 0 ? $rawCabang : ('Cabang ' . $rawCabang)) : null;
+            $headerEntitas = $isCabang ? mb_strtoupper($namaCabangDisplay) : mb_strtoupper($companyName);
+            $asalUnitText  = $isCabang ? $namaCabangDisplay : ($companyName . ' (Pusat)');
+
+            $requester     = $requesterUser ?: ($spk->materialClosingRequestedBy ?: auth()->user());
+            $requesterName = $requester?->nama_lengkap ?: ($requester?->name ?: 'Tim Produksi');
+            $nomorSpk      = $spk->nomor_spk;
+            $barangJadi    = $spk->barangJadi ? ('[' . $spk->barangJadi->kode_barang . '] ' . $spk->barangJadi->nama_barang) : '-';
+            $targetSatuan  = $spk->satuan ? $spk->satuan->nama_satuan : ($spk->barangJadi?->satuan?->nama_satuan ?? 'Pcs');
+            $targetQty     = number_format($spk->jumlah_rencana, 0, ',', '.') . ' ' . $targetSatuan;
+            $totalSesi     = $spk->pengeluaranBahans->count();
+            $catatan       = $spk->material_closing_note ?: 'Tidak ada catatan';
+            $tanggalJam    = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+
+            // Hitung total pemakaian & estimasi HPP
+            $totalNilai = 0;
+            $totalMat   = $spk->materials->count();
+            $completedMat = 0;
+            foreach ($spk->materials as $m) {
+                $issued = (float)$m->total_keluar_gudang;
+                $needed = (float)$m->total_kebutuhan;
+                if ($issued >= $needed && $needed > 0) $completedMat++;
+            }
+
+            $pengeluaranIds = $spk->pengeluaranBahans->pluck('id');
+            $kartuStoks = \App\Models\KartuStok::where('referensi_jenis', 'Pengeluaran Bahan SPK')
+                ->whereIn('referensi_id', $pengeluaranIds)
+                ->where('tipe', 'Keluar')
+                ->get();
+            $totalNilai = $kartuStoks->sum('nilai_total');
+            $totalNilaiFmt = number_format($totalNilai, 0, ',', '.');
+
+            // Cari user yang memiliki hak akses 'closing-pengeluaran-bahan' atau Super Admin / Owner
+            $approvers = \App\Models\User::with('karyawan')
+                ->whereIn('status', ['Aktif', 'Active'])
+                ->where(function($q) {
+                    $q->whereNotNull('no_hp')->where('no_hp', '!=', '')
+                      ->orWhereHas('karyawan', fn($k) => $k->whereNotNull('no_hp')->where('no_hp', '!=', ''));
+                })
+                ->where(function ($q) {
+                    $q->whereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']))
+                      ->orWhere(function ($sub) {
+                          $sub->permission(['closing-pengeluaran-bahan']);
+                      });
+                })
+                ->where(function ($query) use ($companyId, $spk) {
+                    $query->whereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']))
+                          ->orWhereHas('companies', fn($c) => $c->where('companies.id', $companyId))
+                          ->orWhereHas('branches', fn($b) => $b->where('branches.id', $spk->branch_id)
+                                                               ->orWhere('branches.company_id', $companyId));
+                })
+                ->get();
+
+            if ($approvers->isEmpty()) {
+                return;
+            }
+
+            $sentTargets = [];
+            foreach ($approvers as $approver) {
+                $phone = $approver->no_hp ?: ($approver->karyawan?->no_hp ?? null);
+                $target = self::formatPhoneNumber($phone);
+                if (empty($target) || in_array($target, $sentTargets)) continue;
+                $sentTargets[] = $target;
+
+                $approverName = $approver->nama_lengkap ?? ($approver->name ?? 'Tim Reviewer / Accounting');
+
+                $message = "📢 *PEMBERITAHUAN PENGAJUAN CLOSING PENGELUARAN BAHAN SPK* 🔒\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
+                $message .= "Halo *" . $approverName . "*,\n";
+                $message .= "Terdapat pengajuan penutupan (Closing) Pengeluaran Bahan Baku SPK dari *" . $asalUnitText . "* yang membutuhkan peninjauan, verifikasi, dan penerbitan jurnal akuntansi konsolidasi:\n\n";
+                $message .= "*Rincian Pengajuan Closing:*\n";
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Unit Kerja*: Kantor Pusat\n";
+                    if ($isCabang) {
+                        $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                    } else {
+                        $message .= "- *Perusahaan*: " . $companyName . "\n";
+                    }
+                }
+                $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
+                $message .= "- *Produk Jadi*: " . $barangJadi . "\n";
+                $message .= "- *Target Produksi*: *" . $targetQty . "*\n";
+                $message .= "- *Total Sesi Keluar*: " . $totalSesi . " Sesi\n";
+                $message .= "- *Status Bahan*: " . $completedMat . " dari " . $totalMat . " Item Lengkap\n";
+                $message .= "- *Estimasi Nilai HPP Bahan*: *Rp " . $totalNilaiFmt . "*\n";
+                $message .= "- *Diajukan Oleh*: *" . $requesterName . "*\n";
+                $message .= "- *Waktu Pengajuan*: " . $tanggalJam . "\n";
+                $message .= "- *Catatan*: _" . $catatan . "_\n\n";
+                $message .= "Silakan masuk ke sistem ERP (*Modul Produksi -> Pengeluaran Bahan Baku SPK*) untuk memeriksa rekapitulasi bahan dan memberikan persetujuan (Posting Jurnal) atau menolak pengajuan.\n\n";
+                $message .= "Terima kasih.";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                $status  = (isset($resBody['status']) && $resBody['status'] == true) ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id'   => $companyId,
+                    'phone_number' => $target,
+                    'recipient_name' => $approverName,
+                    'message'      => $message,
+                    'message_type' => 'Pengeluaran Bahan Closing Submission Alert',
+                    'action'       => 'Material Closing Submission Alert',
+                    'recipient'    => $target . ' (' . $approverName . ')',
+                    'status'       => $status,
+                    'response'     => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPengeluaranBahanClosingSubmissionNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send WhatsApp notification when Closing Pengeluaran Bahan SPK is approved and journal is created.
+     */
+    public static function sendPengeluaranBahanClosingApprovedNotification($spk, $approverUser = null)
+    {
+        $companyId = $spk->company_id ?? session('active_company_id') ?: 1;
+        $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+        $apiToken = self::getDecryptedToken($companyId);
+
+        if (!$enabled || !$apiToken) {
+            return;
+        }
+
+        try {
+            if (is_numeric($spk)) {
+                $spk = \App\Models\SpkProduksi::find($spk);
+            }
+            if (!$spk) return;
+
+            $spk->load([
+                'company',
+                'branch',
+                'barangJadi.satuan',
+                'materialClosingRequestedBy.karyawan',
+                'penanggungJawab',
+                'creator.karyawan',
+                'materialClosingJurnal',
+            ]);
+
+            $entity = self::resolveEntityDisplay($spk, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$isCabang      = !empty($spk->branch_id) && !empty($spk->branch);
+            $rawCabang     = trim($spk->branch?->nama_cabang ?? '');
+            $namaCabangDisplay = $isCabang ? (stripos($rawCabang, 'cabang') === 0 ? $rawCabang : ('Cabang ' . $rawCabang)) : null;
+            $headerEntitas = $isCabang ? mb_strtoupper($namaCabangDisplay) : mb_strtoupper($companyName);
+            $asalUnitText  = $isCabang ? $namaCabangDisplay : ($companyName . ' (Pusat)');
+
+            $approver      = $approverUser ?: auth()->user();
+            $approverName  = $approver?->nama_lengkap ?: ($approver?->name ?: 'Accounting / Otorisator');
+            $nomorSpk      = $spk->nomor_spk;
+            $barangJadi    = $spk->barangJadi ? ('[' . $spk->barangJadi->kode_barang . '] ' . $spk->barangJadi->nama_barang) : '-';
+            $nomorJurnal   = $spk->materialClosingJurnal?->nomor_jurnal ?? 'Jurnal Konsolidasi';
+            $tanggalJam    = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+
+            // Target recipients: Requester & Creator & Penanggung Jawab
+            $recipients = [];
+            if ($spk->materialClosingRequestedBy) {
+                $recipients[] = $spk->materialClosingRequestedBy;
+            }
+            if ($spk->creator && $spk->creator->id !== $spk->material_closing_requested_by) {
+                $recipients[] = $spk->creator;
+            }
+
+            $sentTargets = [];
+            foreach ($recipients as $recUser) {
+                $phone = $recUser->no_hp ?: ($recUser->karyawan?->no_hp ?? null);
+                $target = self::formatPhoneNumber($phone);
+                if (empty($target) || in_array($target, $sentTargets)) continue;
+                $sentTargets[] = $target;
+
+                $recipientName = $recUser->nama_lengkap ?: ($recUser->name ?: 'Rekan');
+
+                $message = "✅ *PEMBERITAHUAN CLOSING PENGELUARAN BAHAN SPK DISETUJUI* 🔒\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
+                $message .= "Halo *" . $recipientName . "*,\n";
+                $message .= "Pengajuan penutupan (Closing) Pengeluaran Bahan Baku untuk SPK pada *" . $asalUnitText . "* telah *DISETUJUI* dan 1 Jurnal Akuntansi Konsolidasi telah berhasil diterbitkan:\n\n";
+                $message .= "*Detail SPK:*\n";
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Unit Kerja*: Kantor Pusat\n";
+                    if ($isCabang) {
+                        $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                    } else {
+                        $message .= "- *Perusahaan*: " . $companyName . "\n";
+                    }
+                }
+                $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
+                $message .= "- *Produk Jadi*: " . $barangJadi . "\n";
+                $message .= "- *Status SPK*: *CLOSED (Terkunci)*\n";
+                $message .= "- *No. Jurnal Konsolidasi*: *" . $nomorJurnal . "*\n";
+                $message .= "- *Disetujui Oleh*: *" . $approverName . "*\n";
+                $message .= "- *Waktu Persetujuan*: " . $tanggalJam . "\n\n";
+                $message .= "Seluruh operasional pengeluaran bahan untuk SPK ini telah resmi ditutup dan dibukukan secara otomatis ke akuntansi.\n\n";
+                $message .= "Terima kasih.";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                $status  = (isset($resBody['status']) && $resBody['status'] == true) ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id'   => $companyId,
+                    'phone_number' => $target,
+                    'recipient_name' => $recipientName,
+                    'message'      => $message,
+                    'message_type' => 'Pengeluaran Bahan Closing Approved Alert',
+                    'action'       => 'Material Closing Approved Alert',
+                    'recipient'    => $target . ' (' . $recipientName . ')',
+                    'status'       => $status,
+                    'response'     => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPengeluaranBahanClosingApprovedNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send WhatsApp notification when Closing Pengeluaran Bahan SPK is rejected.
+     */
+    public static function sendPengeluaranBahanClosingRejectedNotification($spk, $rejecterUser = null, $reason = '')
+    {
+        $companyId = $spk->company_id ?? session('active_company_id') ?: 1;
+        $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+        $apiToken = self::getDecryptedToken($companyId);
+
+        if (!$enabled || !$apiToken) {
+            return;
+        }
+
+        try {
+            if (is_numeric($spk)) {
+                $spk = \App\Models\SpkProduksi::find($spk);
+            }
+            if (!$spk) return;
+
+            $spk->load([
+                'company',
+                'branch',
+                'barangJadi.satuan',
+                'materialClosingRequestedBy.karyawan',
+                'creator.karyawan',
+            ]);
+
+            $entity = self::resolveEntityDisplay($spk, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$isCabang      = !empty($spk->branch_id) && !empty($spk->branch);
+            $rawCabang     = trim($spk->branch?->nama_cabang ?? '');
+            $namaCabangDisplay = $isCabang ? (stripos($rawCabang, 'cabang') === 0 ? $rawCabang : ('Cabang ' . $rawCabang)) : null;
+            $headerEntitas = $isCabang ? mb_strtoupper($namaCabangDisplay) : mb_strtoupper($companyName);
+            $asalUnitText  = $isCabang ? $namaCabangDisplay : ($companyName . ' (Pusat)');
+
+            $rejecter      = $rejecterUser ?: auth()->user();
+            $rejecterName  = $rejecter?->nama_lengkap ?: ($rejecter?->name ?: 'Accounting / Reviewer');
+            $nomorSpk      = $spk->nomor_spk;
+            $barangJadi    = $spk->barangJadi ? ('[' . $spk->barangJadi->kode_barang . '] ' . $spk->barangJadi->nama_barang) : '-';
+            $alasan        = $reason ?: ($spk->material_closing_reject_reason ?: 'Tidak ada alasan khusus');
+            $tanggalJam    = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+
+            // Target recipients: Requester & Creator
+            $recipients = [];
+            if ($spk->materialClosingRequestedBy) {
+                $recipients[] = $spk->materialClosingRequestedBy;
+            }
+            if ($spk->creator && $spk->creator->id !== $spk->material_closing_requested_by) {
+                $recipients[] = $spk->creator;
+            }
+
+            $sentTargets = [];
+            foreach ($recipients as $recUser) {
+                $phone = $recUser->no_hp ?: ($recUser->karyawan?->no_hp ?? null);
+                $target = self::formatPhoneNumber($phone);
+                if (empty($target) || in_array($target, $sentTargets)) continue;
+                $sentTargets[] = $target;
+
+                $recipientName = $recUser->nama_lengkap ?: ($recUser->name ?: 'Rekan');
+
+                $message = "⚠️ *PEMBERITAHUAN PENGAJUAN CLOSING BAHAN SPK DITOLAK* ❌\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
+                $message .= "Halo *" . $recipientName . "*,\n";
+                $message .= "Pengajuan penutupan (Closing) Pengeluaran Bahan Baku untuk SPK pada *" . $asalUnitText . "* *DITOLAK* oleh pihak Accounting / Reviewer:\n\n";
+                $message .= "*Detail SPK:*\n";
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Unit Kerja*: Kantor Pusat\n";
+                    if ($isCabang) {
+                        $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                    } else {
+                        $message .= "- *Perusahaan*: " . $companyName . "\n";
+                    }
+                }
+                $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
+                $message .= "- *Produk Jadi*: " . $barangJadi . "\n";
+                $message .= "- *Status SPK*: *CLOSING DITOLAK (Dapat Disesuaikan Kembali)*\n";
+                $message .= "- *Ditolak Oleh*: *" . $rejecterName . "*\n";
+                $message .= "- *Waktu Penolakan*: " . $tanggalJam . "\n";
+                $message .= "- *Alasan Penolakan*: _" . $alasan . "_\n\n";
+                $message .= "Silakan periksa kembali dan lakukan penyesuaian/pengeluaran bahan tambahan pada SPK tersebut di sistem ERP sebelum mengajukan closing kembali.\n\n";
+                $message .= "Terima kasih.";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                $status  = (isset($resBody['status']) && $resBody['status'] == true) ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id'   => $companyId,
+                    'phone_number' => $target,
+                    'recipient_name' => $recipientName,
+                    'message'      => $message,
+                    'message_type' => 'Pengeluaran Bahan Closing Rejected Alert',
+                    'action'       => 'Material Closing Rejected Alert',
+                    'recipient'    => $target . ' (' . $recipientName . ')',
+                    'status'       => $status,
+                    'response'     => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPengeluaranBahanClosingRejectedNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send WhatsApp notification when Closing Penerimaan Barang Jadi SPK is submitted for accounting review.
+     */
+    public static function sendPenerimaanBarangJadiClosingSubmissionNotification($spk, $requesterUser = null, $catatanInput = null)
+    {
+        $companyId = $spk->company_id ?? session('active_company_id') ?: 1;
+        $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+        $apiToken = self::getDecryptedToken($companyId);
+
+        if (!$enabled || !$apiToken) {
+            return;
+        }
+
+        try {
+            if (is_numeric($spk)) {
+                $spk = \App\Models\SpkProduksi::find($spk);
+            }
+            if (!$spk) return;
+
+            $spk->load([
+                'company',
+                'branch',
+                'barangJadi.satuan',
+                'satuan',
+                'penerimaanBarangJadis',
+            ]);
+
+            $entity = self::resolveEntityDisplay($spk, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$isCabang      = !empty($spk->branch_id) && !empty($spk->branch);
+            $rawCabang     = trim($spk->branch?->nama_cabang ?? '');
+            $namaCabangDisplay = $isCabang ? (stripos($rawCabang, 'cabang') === 0 ? $rawCabang : ('Cabang ' . $rawCabang)) : null;
+            $headerEntitas = $isCabang ? mb_strtoupper($namaCabangDisplay) : mb_strtoupper($companyName);
+            $asalUnitText  = $isCabang ? $namaCabangDisplay : ($companyName . ' (Pusat)');
+
+            $requester     = $requesterUser ?: auth()->user();
+            $requesterName = $requester?->nama_lengkap ?: ($requester?->name ?: 'Tim Produksi / Gudang');
+            $nomorSpk      = $spk->nomor_spk;
+            $barangJadi    = $spk->barangJadi ? ('[' . $spk->barangJadi->kode_barang . '] ' . $spk->barangJadi->nama_barang) : '-';
+            $satuan        = $spk->satuan ? $spk->satuan->nama_satuan : ($spk->barangJadi && $spk->barangJadi->satuan ? $spk->barangJadi->satuan->nama_satuan : 'Pcs');
+            $targetQty     = number_format($spk->jumlah_rencana, 0, ',', '.') . ' ' . $satuan;
+            $totalSesi     = $spk->penerimaanBarangJadis->count();
+            $totalHasil    = number_format($spk->penerimaanBarangJadis->sum('jumlah_hasil_baik'), 0, ',', '.') . ' ' . $satuan;
+            $totalReject   = number_format($spk->penerimaanBarangJadis->sum('jumlah_reject'), 0, ',', '.') . ' ' . $satuan;
+            $catatan       = $catatanInput ?: ($spk->fg_closing_note ?: 'Tidak ada catatan');
+            $tanggalJam    = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+
+            // Cari user yang memiliki hak akses 'closing-penerimaan-barang-jadi' atau Super Admin / Owner
+            $approvers = \App\Models\User::with('karyawan')
+                ->whereIn('status', ['Aktif', 'Active'])
+                ->where(function($q) {
+                    $q->whereNotNull('no_hp')->where('no_hp', '!=', '')
+                      ->orWhereHas('karyawan', fn($k) => $k->whereNotNull('no_hp')->where('no_hp', '!=', ''));
+                })
+                ->where(function ($q) {
+                    $q->whereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']))
+                      ->orWhere(function ($sub) {
+                          $sub->permission(['closing-penerimaan-barang-jadi']);
+                      });
+                })
+                ->where(function ($query) use ($companyId, $spk) {
+                    $query->whereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']))
+                          ->orWhereHas('companies', fn($c) => $c->where('companies.id', $companyId))
+                          ->orWhereHas('branches', fn($b) => $b->where('branches.id', $spk->branch_id)
+                                                               ->orWhere('branches.company_id', $companyId));
+                })
+                ->get();
+
+            if ($approvers->isEmpty()) {
+                return;
+            }
+
+            $sentTargets = [];
+            foreach ($approvers as $approver) {
+                $phone = $approver->no_hp ?: ($approver->karyawan?->no_hp ?? null);
+                $target = self::formatPhoneNumber($phone);
+                if (empty($target) || in_array($target, $sentTargets)) continue;
+                $sentTargets[] = $target;
+
+                $approverName = $approver->nama_lengkap ?? ($approver->name ?? 'Tim Reviewer / Accounting');
+
+                $message = "📢 *PEMBERITAHUAN PENGAJUAN CLOSING HASIL PRODUKSI SPK* 📦\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
+                $message .= "Halo *" . $approverName . "*,\n";
+                $message .= "Terdapat pengajuan penutupan (Closing) Penerimaan Barang Jadi SPK dari *" . $asalUnitText . "* yang membutuhkan peninjauan, perhitungan HPP aktual, dan otorisasi penerbitan jurnal akuntansi:\n\n";
+                $message .= "*Rincian Pengajuan Closing:*\n";
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Unit Kerja*: Kantor Pusat\n";
+                    if ($isCabang) {
+                        $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                    } else {
+                        $message .= "- *Perusahaan*: " . $companyName . "\n";
+                    }
+                }
+                $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
+                $message .= "- *Produk Jadi*: " . $barangJadi . "\n";
+                $message .= "- *Target Produksi*: *" . $targetQty . "*\n";
+                $message .= "- *Hasil Diterima*: *" . $totalHasil . "* (" . $totalSesi . " Sesi)\n";
+                $message .= "- *Jumlah Reject*: " . $totalReject . "\n";
+                $message .= "- *Diajukan Oleh*: *" . $requesterName . "*\n";
+                $message .= "- *Waktu Pengajuan*: " . $tanggalJam . "\n";
+                $message .= "- *Catatan*: _" . $catatan . "_\n\n";
+                $message .= "Silakan masuk ke sistem ERP (*Modul Produksi -> Penerimaan Barang Jadi*) untuk me-review rincian penerimaan, menghitung HPP aktual, dan menyetujui (Posting Jurnal) atau menolak pengajuan.\n\n";
+                $message .= "Terima kasih.";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                $status  = (isset($resBody['status']) && $resBody['status'] == true) ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id'   => $companyId,
+                    'phone_number' => $target,
+                    'recipient_name' => $approverName,
+                    'message'      => $message,
+                    'message_type' => 'Penerimaan Barang Jadi Closing Submission Alert',
+                    'action'       => 'FG Closing Submission Alert',
+                    'recipient'    => $target . ' (' . $approverName . ')',
+                    'status'       => $status,
+                    'response'     => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPenerimaanBarangJadiClosingSubmissionNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send WhatsApp notification when Closing Penerimaan Barang Jadi SPK is approved and HPP is finalized.
+     */
+    public static function sendPenerimaanBarangJadiClosingApprovedNotification($spk, $approverUser = null)
+    {
+        $companyId = $spk->company_id ?? session('active_company_id') ?: 1;
+        $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+        $apiToken = self::getDecryptedToken($companyId);
+
+        if (!$enabled || !$apiToken) {
+            return;
+        }
+
+        try {
+            if (is_numeric($spk)) {
+                $spk = \App\Models\SpkProduksi::find($spk);
+            }
+            if (!$spk) return;
+
+            $spk->load([
+                'company',
+                'branch',
+                'barangJadi.satuan',
+                'satuan',
+                'fgClosingRequestedBy.karyawan',
+                'creator.karyawan',
+                'fgClosingJurnal',
+                'penerimaanBarangJadis',
+            ]);
+
+            $entity = self::resolveEntityDisplay($spk, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$isCabang      = !empty($spk->branch_id) && !empty($spk->branch);
+            $rawCabang     = trim($spk->branch?->nama_cabang ?? '');
+            $namaCabangDisplay = $isCabang ? (stripos($rawCabang, 'cabang') === 0 ? $rawCabang : ('Cabang ' . $rawCabang)) : null;
+            $headerEntitas = $isCabang ? mb_strtoupper($namaCabangDisplay) : mb_strtoupper($companyName);
+            $asalUnitText  = $isCabang ? $namaCabangDisplay : ($companyName . ' (Pusat)');
+
+            $approver      = $approverUser ?: auth()->user();
+            $approverName  = $approver?->nama_lengkap ?: ($approver?->name ?: 'Accounting / Otorisator');
+            $nomorSpk      = $spk->nomor_spk;
+            $barangJadi    = $spk->barangJadi ? ('[' . $spk->barangJadi->kode_barang . '] ' . $spk->barangJadi->nama_barang) : '-';
+            $satuan        = $spk->satuan ? $spk->satuan->nama_satuan : ($spk->barangJadi && $spk->barangJadi->satuan ? $spk->barangJadi->satuan->nama_satuan : 'Pcs');
+            $totalHasil    = number_format($spk->penerimaanBarangJadis->sum('jumlah_hasil_baik'), 0, ',', '.') . ' ' . $satuan;
+            $totalNilaiHpp = number_format($spk->estimasi_total_biaya, 0, ',', '.');
+            $nomorJurnal   = $spk->fgClosingJurnal?->nomor_jurnal ?? 'Jurnal Konsolidasi FG';
+            $tanggalJam    = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+
+            // Target recipients: Requester & Creator
+            $recipients = [];
+            if ($spk->fgClosingRequestedBy) {
+                $recipients[] = $spk->fgClosingRequestedBy;
+            }
+            if ($spk->creator && $spk->creator->id !== $spk->fg_closing_requested_by) {
+                $recipients[] = $spk->creator;
+            }
+
+            $sentTargets = [];
+            foreach ($recipients as $recUser) {
+                $phone = $recUser->no_hp ?: ($recUser->karyawan?->no_hp ?? null);
+                $target = self::formatPhoneNumber($phone);
+                if (empty($target) || in_array($target, $sentTargets)) continue;
+                $sentTargets[] = $target;
+
+                $recipientName = $recUser->nama_lengkap ?: ($recUser->name ?: 'Tim Produksi / Gudang');
+
+                $message = "✅ *PEMBERITAHUAN CLOSING HASIL PRODUKSI DISETUJUI* 🔒\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
+                $message .= "Halo *" . $recipientName . "*,\n";
+                $message .= "Pengajuan penutupan (Closing) Penerimaan Barang Jadi untuk SPK pada *" . $asalUnitText . "* telah *DISETUJUI* dan HPP Final telah dihitung oleh Accounting:\n\n";
+                $message .= "*Rincian Penutupan SPK:*\n";
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Unit Kerja*: Kantor Pusat\n";
+                    if ($isCabang) {
+                        $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                    } else {
+                        $message .= "- *Perusahaan*: " . $companyName . "\n";
+                    }
+                }
+                $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
+                $message .= "- *Produk Jadi*: " . $barangJadi . "\n";
+                $message .= "- *Total Hasil Diterima*: *" . $totalHasil . "*\n";
+                $message .= "- *Total Biaya HPP*: *Rp " . $totalNilaiHpp . "*\n";
+                $message .= "- *Disetujui Oleh*: *" . $approverName . "*\n";
+                $message .= "- *Waktu Persetujuan*: " . $tanggalJam . "\n";
+                $message .= "- *Status SPK*: *CLOSED (Selesai)*\n\n";
+                $message .= "Status SPK kini telah ditutup secara resmi dan jurnal akuntansi penerimaan barang jadi telah diterbitkan.\n\n";
+                $message .= "Terima kasih.";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                $status  = (isset($resBody['status']) && $resBody['status'] == true) ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id'   => $companyId,
+                    'phone_number' => $target,
+                    'recipient_name' => $recipientName,
+                    'message'      => $message,
+                    'message_type' => 'Penerimaan Barang Jadi Closing Approved Alert',
+                    'action'       => 'FG Closing Approved Alert',
+                    'recipient'    => $target . ' (' . $recipientName . ')',
+                    'status'       => $status,
+                    'response'     => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPenerimaanBarangJadiClosingApprovedNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send WhatsApp notification when Closing Penerimaan Barang Jadi SPK is rejected.
+     */
+    public static function sendPenerimaanBarangJadiClosingRejectedNotification($spk, $rejecterUser = null, $reason = '')
+    {
+        $companyId = $spk->company_id ?? session('active_company_id') ?: 1;
+        $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+        $apiToken = self::getDecryptedToken($companyId);
+
+        if (!$enabled || !$apiToken) {
+            return;
+        }
+
+        try {
+            if (is_numeric($spk)) {
+                $spk = \App\Models\SpkProduksi::find($spk);
+            }
+            if (!$spk) return;
+
+            $spk->load([
+                'company',
+                'branch',
+                'barangJadi.satuan',
+                'fgClosingRequestedBy.karyawan',
+                'creator.karyawan',
+            ]);
+
+            $entity = self::resolveEntityDisplay($spk, $companyId);
+            $companyName = $entity['companyName'];
+            $isCabang = $entity['isCabang'];
+            $namaCabangDisplay = $entity['namaCabangDisplay'];
+            $headerEntitas = $entity['headerEntitas'];
+            $asalUnitText = $entity['asalUnitText'];
+            $asalPengajuan = $entity['asalUnitText'];$isCabang      = !empty($spk->branch_id) && !empty($spk->branch);
+            $rawCabang     = trim($spk->branch?->nama_cabang ?? '');
+            $namaCabangDisplay = $isCabang ? (stripos($rawCabang, 'cabang') === 0 ? $rawCabang : ('Cabang ' . $rawCabang)) : null;
+            $headerEntitas = $isCabang ? mb_strtoupper($namaCabangDisplay) : mb_strtoupper($companyName);
+            $asalUnitText  = $isCabang ? $namaCabangDisplay : ($companyName . ' (Pusat)');
+
+            $rejecter      = $rejecterUser ?: auth()->user();
+            $rejecterName  = $rejecter?->nama_lengkap ?: ($rejecter?->name ?: 'Accounting / Reviewer');
+            $nomorSpk      = $spk->nomor_spk;
+            $barangJadi    = $spk->barangJadi ? ('[' . $spk->barangJadi->kode_barang . '] ' . $spk->barangJadi->nama_barang) : '-';
+            $alasan        = $reason ?: ($spk->fg_closing_reject_reason ?: 'Tidak ada alasan khusus');
+            $tanggalJam    = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+
+            // Target recipients: Requester & Creator
+            $recipients = [];
+            if ($spk->fgClosingRequestedBy) {
+                $recipients[] = $spk->fgClosingRequestedBy;
+            }
+            if ($spk->creator && $spk->creator->id !== $spk->fg_closing_requested_by) {
+                $recipients[] = $spk->creator;
+            }
+
+            $sentTargets = [];
+            foreach ($recipients as $recUser) {
+                $phone = $recUser->no_hp ?: ($recUser->karyawan?->no_hp ?? null);
+                $target = self::formatPhoneNumber($phone);
+                if (empty($target) || in_array($target, $sentTargets)) continue;
+                $sentTargets[] = $target;
+
+                $recipientName = $recUser->nama_lengkap ?: ($recUser->name ?: 'Rekan');
+
+                $message = "⚠️ *PEMBERITAHUAN PENGAJUAN CLOSING HASIL PRODUKSI DITOLAK* ❌\n";
+                $message .= "*" . $headerEntitas . "*\n\n";
+                $message .= "Halo *" . $recipientName . "*,\n";
+                $message .= "Pengajuan penutupan (Closing) Penerimaan Barang Jadi untuk SPK pada *" . $asalUnitText . "* *DITOLAK* oleh pihak Accounting / Reviewer:\n\n";
+                $message .= "*Detail SPK:*\n";
+                if ($isCabang) {
+                    $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                } else {
+                    $message .= "- *Unit Kerja*: Kantor Pusat\n";
+                    if ($isCabang) {
+                        $message .= "- *Cabang*: " . $namaCabangDisplay . "\n";
+                    } else {
+                        $message .= "- *Perusahaan*: " . $companyName . "\n";
+                    }
+                }
+                $message .= "- *No. SPK*: *" . $nomorSpk . "*\n";
+                $message .= "- *Produk Jadi*: " . $barangJadi . "\n";
+                $message .= "- *Ditolak Oleh*: *" . $rejecterName . "*\n";
+                $message .= "- *Waktu Penolakan*: " . $tanggalJam . "\n";
+                $message .= "- *Alasan Penolakan*: *" . $alasan . "*\n\n";
+                $message .= "Silakan periksa kembali data penerimaan barang jadi dan lakukan penyesuaian yang diperlukan di sistem ERP.\n\n";
+                $message .= "Terima kasih.";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                $status  = (isset($resBody['status']) && $resBody['status'] == true) ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id'   => $companyId,
+                    'phone_number' => $target,
+                    'recipient_name' => $recipientName,
+                    'message'      => $message,
+                    'message_type' => 'Penerimaan Barang Jadi Closing Rejected Alert',
+                    'action'       => 'FG Closing Rejected Alert',
+                    'recipient'    => $target . ' (' . $recipientName . ')',
+                    'status'       => $status,
+                    'response'     => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPenerimaanBarangJadiClosingRejectedNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send WhatsApp notification when Delivery Order is submitted for approval.
+     */
+    public static function sendDeliveryOrderSubmissionNotification($deliveryOrder)
+    {
+        self::runAsync(function() use ($deliveryOrder) {
+            try {
+                if (is_numeric($deliveryOrder)) {
+                    $deliveryOrder = \App\Models\DeliveryOrder::find($deliveryOrder);
+                }
+                if (!$deliveryOrder) return;
+
+                $companyId = $deliveryOrder->company_id ?: ($deliveryOrder->branch?->company_id ?? session('active_company_id') ?: 1);
+                $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+                if (!$enabled) return;
+
+                $apiToken = self::getDecryptedToken($companyId);
+                if (!$apiToken) return;
+
+                $cacheKey = 'wa_token_invalid_' . md5((string)$apiToken);
+                if (Cache::has($cacheKey)) return;
+
+                $deliveryOrder->load([
+                    'company', 'branch', 'customer', 'salesOrder', 'creator.karyawan', 'details.barang.satuan'
+                ]);
+
+                $entity = self::resolveEntityDisplay($deliveryOrder, $companyId);
+                $headerEntitas = $entity['headerEntitas'];
+                $isCabang = $entity['isCabang'];
+                $namaCabangDisplay = $entity['namaCabangDisplay'];
+
+                $nomorDo = $deliveryOrder->nomor_do;
+                $nomorSo = $deliveryOrder->salesOrder?->nomor_so ?: '-';
+                $customerName = $deliveryOrder->customer?->nama_perusahaan ?: ($deliveryOrder->customer?->nama_customer ?: ($deliveryOrder->nama_penerima ?: 'Pelanggan'));
+                $alamatTujuan = $deliveryOrder->alamat_tujuan ?: '-';
+                $tglKirim = $deliveryOrder->tanggal_kirim ? $deliveryOrder->tanggal_kirim->format('d/m/Y') : '-';
+                $metode = $deliveryOrder->metode_pengiriman ?: 'Internal';
+                $creatorName = $deliveryOrder->creator?->nama_lengkap ?: ($deliveryOrder->creator?->karyawan?->nama_lengkap ?: 'Staff Marketing');
+
+                $itemsText = "";
+                $count = 0;
+                foreach ($deliveryOrder->details as $idx => $d) {
+                    if ($count >= 5) {
+                        $remaining = count($deliveryOrder->details) - 5;
+                        $itemsText .= "   _... dan {$remaining} item lainnya_\n";
+                        break;
+                    }
+                    $bName = $d->nama_barang_custom ?: ($d->barang?->nama_barang ?: 'Item');
+                    $qty = number_format($d->qty_kirim, 0, ',', '.');
+                    $sat = $d->nama_satuan ?: ($d->barang?->satuan?->nama_satuan ?: 'pcs');
+                    $itemsText .= "   " . ($idx + 1) . ". {$bName} ({$qty} {$sat})\n";
+                    $count++;
+                }
+
+                // Cari Approver (Super Admin, Owner, Director, Supervisor Warehouse, Kepala Gudang, atau yang punya permission approve-delivery-order)
+                $approvers = \App\Models\User::where(function($q) use ($companyId, $deliveryOrder) {
+                    $q->whereHas('permissions', fn($p) => $p->where('name', 'approve-delivery-order'))
+                      ->orWhereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner', 'Director', 'Supervisor Warehouse', 'Kepala Gudang']));
+                })
+                ->where(function ($q) use ($companyId, $deliveryOrder) {
+                    $q->whereHas('roles', fn($r) => $r->where('name', 'Super Admin'))
+                      ->orWhereHas('companies', fn($c) => $c->where('companies.id', $companyId))
+                      ->orWhereHas('branches', fn($b) => $b->where('branches.id', $deliveryOrder->branch_id)
+                                                           ->orWhere('branches.company_id', $companyId));
+                })
+                ->with('karyawan')
+                ->get();
+
+                $sentPhones = [];
+                $approversList = [];
+                foreach ($approvers as $approver) {
+                    $phone = $approver->no_hp ?: ($approver->karyawan?->no_hp);
+                    $target = self::formatPhoneNumber($phone);
+                    if (!$target || in_array($target, $sentPhones)) continue;
+                    $sentPhones[] = $target;
+                    $approversList[] = [
+                        'phone' => $target,
+                        'name'  => $approver->nama_lengkap ?: ($approver->karyawan?->nama_lengkap ?: 'Atasan'),
+                    ];
+                }
+
+                if (empty($sentPhones)) return;
+
+                $message = "🔔 *PEMBERITAHUAN PENGAJUAN PENGIRIMAN (DO)*\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *Bapak/Ibu Pimpinan / Approver* 👋\n"
+                    . "Terdapat pengajuan Surat Jalan Pengiriman baru yang membutuhkan persetujuan (ACC) Anda:\n\n"
+                    . "📋 *No. Surat Jalan:* {$nomorDo}\n"
+                    . "📄 *Ref. Sales Order:* {$nomorSo}\n"
+                    . "🏢 *Customer/Tujuan:* {$customerName}\n"
+                    . "📍 *Alamat:* {$alamatTujuan}\n"
+                    . "📅 *Tgl Kirim:* {$tglKirim}\n"
+                    . "🚚 *Metode:* {$metode}\n"
+                    . "👤 *Diajukan Oleh:* {$creatorName}\n\n"
+                    . "📦 *Daftar Barang:*\n{$itemsText}\n"
+                    . "Silakan masuk ke sistem ERP modul Pengiriman untuk memeriksa & menyetujui (ACC) pengiriman ini.\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                // Kirim sekaligus (Batch) ke seluruh approver via multi-target Fonnte API
+                $batchTargets = implode(',', $sentPhones);
+                $resBody = self::dispatchFonnteMessage($apiToken, $batchTargets, $message);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                foreach ($approversList as $appr) {
+                    WhatsAppLog::create([
+                        'company_id'     => $companyId,
+                        'phone_number'   => $appr['phone'],
+                        'recipient_name' => $appr['name'],
+                        'message'        => $message,
+                        'message_type'   => 'Delivery Order Submission Alert',
+                        'action'         => 'DO Submission Alert',
+                        'recipient'      => $appr['phone'] . ' (' . $appr['name'] . ')',
+                        'status'         => $status,
+                        'response'       => json_encode($resBody),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('WA sendDeliveryOrderSubmissionNotification error: ' . $e->getMessage());
+            }
+        });
+    }
+
+    /**
+     * Send WhatsApp notification to creator when Delivery Order is approved by atasan.
+     */
+    public static function sendDeliveryOrderApprovedNotification($deliveryOrder, $approverUser = null)
+    {
+        self::runAsync(function() use ($deliveryOrder, $approverUser) {
+            try {
+                if (is_numeric($deliveryOrder)) {
+                    $deliveryOrder = \App\Models\DeliveryOrder::find($deliveryOrder);
+                }
+                if (!$deliveryOrder) return;
+
+                $deliveryOrder->load([
+                    'company', 'branch', 'customer', 'salesOrder', 'creator.karyawan', 'approver.karyawan'
+                ]);
+
+                $companyId = $deliveryOrder->company_id ?: ($deliveryOrder->branch?->company_id ?? session('active_company_id') ?: 1);
+                $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+                $apiToken = self::getDecryptedToken($companyId);
+
+                if (!$enabled || !$apiToken) return;
+
+                $entity = self::resolveEntityDisplay($deliveryOrder, $companyId);
+                $headerEntitas = $entity['headerEntitas'];
+
+                $nomorDo = $deliveryOrder->nomor_do;
+                $nomorSo = $deliveryOrder->salesOrder?->nomor_so ?: '-';
+                $customerName = $deliveryOrder->customer?->nama_perusahaan ?: ($deliveryOrder->customer?->nama_customer ?: ($deliveryOrder->nama_penerima ?: 'Pelanggan'));
+                $tglKirim = $deliveryOrder->tanggal_kirim ? $deliveryOrder->tanggal_kirim->format('d/m/Y') : '-';
+
+                $approver = $approverUser ?: $deliveryOrder->approver;
+                $approverName = $approver?->nama_lengkap ?: ($approver?->karyawan?->nama_lengkap ?: 'Atasan');
+
+                // Kirim notifikasi ke pembuat/creator penginput
+                $creator = $deliveryOrder->creator;
+                if (!$creator) return;
+
+                $phone = $creator->no_hp ?: ($creator->karyawan?->no_hp);
+                $target = self::formatPhoneNumber($phone);
+                if (!$target) return;
+
+                $creatorName = $creator->nama_lengkap ?: ($creator->karyawan?->nama_lengkap ?: 'Penginput');
+                $waktuAcc = now()->timezone('Asia/Jakarta')->format('d/m/Y H:i') . ' WIB';
+
+                $message = "✅ *PENGIRIMAN DISETUJUI (DI-ACC)*\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$creatorName}* 👋\n"
+                    . "Pengajuan Surat Jalan Pengiriman Anda telah *DISETUJUI / DI-ACC* oleh atasan:\n\n"
+                    . "📋 *No. Surat Jalan:* {$nomorDo}\n"
+                    . "📄 *Ref. Sales Order:* {$nomorSo}\n"
+                    . "🏢 *Customer/Tujuan:* {$customerName}\n"
+                    . "📅 *Tgl Rencana Kirim:* {$tglKirim}\n"
+                    . "👨‍💼 *Disetujui Oleh:* {$approverName}\n"
+                    . "⏰ *Waktu ACC:* {$waktuAcc}\n\n"
+                    . "Surat Jalan kini siap diproses pengiriman dan dicetak untuk keberangkatan barang.\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id'     => $companyId,
+                    'phone_number'   => $target,
+                    'recipient_name' => $creatorName,
+                    'message'        => $message,
+                    'message_type'   => 'Delivery Order Approved Alert',
+                    'action'         => 'DO Approved Alert',
+                    'recipient'      => $target . ' (' . $creatorName . ')',
+                    'status'         => $status,
+                    'response'       => json_encode($resBody),
+                ]);
+            } catch (\Exception $e) {
+                Log::error('WA sendDeliveryOrderApprovedNotification error: ' . $e->getMessage());
+            }
+        });
+    }
+
+    /**
+     * Send WhatsApp notification when goods arrive at destination (completed/terkirim).
+     * Dispatched to both Creator and Approver.
+     */
+    public static function sendDeliveryOrderCompletedNotification($deliveryOrder, $confirmerUser = null)
+    {
+        self::runAsync(function() use ($deliveryOrder, $confirmerUser) {
+            try {
+                if (is_numeric($deliveryOrder)) {
+                    $deliveryOrder = \App\Models\DeliveryOrder::find($deliveryOrder);
+                }
+                if (!$deliveryOrder) return;
+
+                $deliveryOrder->load([
+                    'company', 'branch', 'customer', 'salesOrder', 'creator.karyawan', 'approver.karyawan', 'receiver.karyawan'
+                ]);
+
+                $companyId = $deliveryOrder->company_id ?: ($deliveryOrder->branch?->company_id ?? session('active_company_id') ?: 1);
+                $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+                $apiToken = self::getDecryptedToken($companyId);
+
+                if (!$enabled || !$apiToken) return;
+
+                $entity = self::resolveEntityDisplay($deliveryOrder, $companyId);
+                $headerEntitas = $entity['headerEntitas'];
+
+                $nomorDo = $deliveryOrder->nomor_do;
+                $nomorSo = $deliveryOrder->salesOrder?->nomor_so ?: '-';
+                $customerName = $deliveryOrder->customer?->nama_perusahaan ?: ($deliveryOrder->customer?->nama_customer ?: ($deliveryOrder->nama_penerima ?: 'Pelanggan'));
+                $alamatTujuan = $deliveryOrder->alamat_tujuan ?: '-';
+                $catatan = $deliveryOrder->catatan_penerimaan ?: 'Barang diterima lengkap dan dalam kondisi baik.';
+                
+                $confirmer = $confirmerUser ?: $deliveryOrder->receiver;
+                $confirmerName = $confirmer?->nama_lengkap ?: ($confirmer?->karyawan?->nama_lengkap ?: 'Petugas Pengiriman');
+                $waktuSampai = now()->timezone('Asia/Jakarta')->format('d/m/Y H:i') . ' WIB';
+
+                // Target penerima notif: Pembuat (Creator) dan Atasan (Approver)
+                $targets = [];
+                if ($deliveryOrder->creator) {
+                    $cPhone = $deliveryOrder->creator->no_hp ?: ($deliveryOrder->creator->karyawan?->no_hp);
+                    if ($cPhone) {
+                        $targets[] = [
+                            'phone' => $cPhone,
+                            'name'  => $deliveryOrder->creator->nama_lengkap ?: ($deliveryOrder->creator->karyawan?->nama_lengkap ?: 'Penginput'),
+                            'role'  => 'Penginput',
+                        ];
+                    }
+                }
+                if ($deliveryOrder->approver) {
+                    $aPhone = $deliveryOrder->approver->no_hp ?: ($deliveryOrder->approver->karyawan?->no_hp);
+                    if ($aPhone) {
+                        $targets[] = [
+                            'phone' => $aPhone,
+                            'name'  => $deliveryOrder->approver->nama_lengkap ?: ($deliveryOrder->approver->karyawan?->nama_lengkap ?: 'Atasan Approver'),
+                            'role'  => 'Approver',
+                        ];
+                    }
+                }
+
+                $uniqueTargets = collect($targets)->unique('phone')->values()->all();
+
+                foreach ($uniqueTargets as $t) {
+                    $formattedPhone = self::formatPhoneNumber($t['phone']);
+                    if (!$formattedPhone) continue;
+
+                    $message = "🎉 *PENGIRIMAN SELESAI - BARANG TELAH SAMPAI*\n"
+                        . "*{$headerEntitas}*\n\n"
+                        . "Halo, *{$t['name']}* 👋\n"
+                        . "Pengiriman Surat Jalan berikut telah dikonfirmasi *TELAH SAMPAI DI TUJUAN (SELESAI)*:\n\n"
+                        . "📋 *No. Surat Jalan:* {$nomorDo}\n"
+                        . "📄 *Ref. Sales Order:* {$nomorSo}\n"
+                        . "🏢 *Customer/Tujuan:* {$customerName}\n"
+                        . "📍 *Alamat:* {$alamatTujuan}\n"
+                        . "👤 *Dikonfirmasi Oleh:* {$confirmerName}\n"
+                        . "⏰ *Waktu Tiba:* {$waktuSampai}\n"
+                        . "📝 *Catatan/Bukti:* {$catatan}\n\n"
+                        . "Status pengiriman kini resmi *Terkirim* dan stok persediaan serta pesanan penjualan telah diperbarui otomatis.\n\n"
+                        . "Terima kasih atas kerja samanya,\n"
+                        . "🤖 *{$headerEntitas} - ERP System*";
+
+                    $resBody = self::dispatchFonnteMessage($apiToken, $formattedPhone, $message);
+                    $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                    WhatsAppLog::create([
+                        'company_id'     => $companyId,
+                        'phone_number'   => $formattedPhone,
+                        'recipient_name' => $t['name'],
+                        'message'        => $message,
+                        'message_type'   => 'Delivery Order Completed Alert',
+                        'action'         => 'DO Completed Alert',
+                        'recipient'      => $formattedPhone . ' (' . $t['name'] . ')',
+                        'status'         => $status,
+                        'response'       => json_encode($resBody),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('WA sendDeliveryOrderCompletedNotification error: ' . $e->getMessage());
+            }
+        });
+    }
+
+    /**
+     * 1. Send WhatsApp notification to Approvers when a Sales Invoice is submitted for approval.
+     */
+    public static function sendSalesInvoiceSubmissionNotification($salesInvoice)
+    {
+        self::runAsync(function() use ($salesInvoice) {
+            try {
+                if (is_numeric($salesInvoice)) {
+                    $salesInvoice = \App\Models\SalesInvoice::find($salesInvoice);
+                }
+                if (!$salesInvoice) return;
+
+                $salesInvoice->load([
+                    'company', 'branch', 'customer', 'salesOrder', 'deliveryOrder', 'tender', 'creator.karyawan', 'details.barang'
+                ]);
+
+                $companyId = $salesInvoice->company_id ?: ($salesInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
+                $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+                $apiToken = self::getDecryptedToken($companyId);
+
+                if (!$enabled || !$apiToken) return;
+
+                $entity = self::resolveEntityDisplay($salesInvoice, $companyId);
+                $headerEntitas = $entity['headerEntitas'];
+
+                $nomorFaktur = $salesInvoice->nomor_faktur;
+                $customerName = $salesInvoice->customer?->nama_perusahaan ?: ($salesInvoice->customer?->nama_customer ?: 'Pelanggan');
+                $nomorSo = $salesInvoice->salesOrder?->nomor_so ?: '-';
+                $nomorDo = $salesInvoice->deliveryOrder?->nomor_do ?: '-';
+                $namaTender = $salesInvoice->tender?->nama_tender ?: '-';
+                $tglFaktur = $salesInvoice->tanggal_faktur ? $salesInvoice->tanggal_faktur->format('d/m/Y') : '-';
+                $tglTempo = $salesInvoice->tanggal_jatuh_tempo ? $salesInvoice->tanggal_jatuh_tempo->format('d/m/Y') : '-';
+                $grandTotalStr = 'Rp ' . number_format($salesInvoice->grand_total, 0, ',', '.');
+                $creatorName = $salesInvoice->creator?->nama_lengkap ?: ($salesInvoice->creator?->karyawan?->nama_lengkap ?: 'Staff Marketing/Finance');
+
+                // Ringkasan item
+                $itemsText = "";
+                $count = 0;
+                foreach ($salesInvoice->details as $idx => $d) {
+                    if ($count >= 5) {
+                        $remaining = count($salesInvoice->details) - 5;
+                        $itemsText .= "   _... dan {$remaining} item lainnya_\n";
+                        break;
+                    }
+                    $bName = $d->nama_barang;
+                    $qty = number_format($d->qty, 0, ',', '.');
+                    $sub = 'Rp ' . number_format($d->total_harga, 0, ',', '.');
+                    $itemsText .= "   " . ($idx + 1) . ". {$bName} ({$qty}x) = {$sub}\n";
+                    $count++;
+                }
+
+                // Cari Approver
+                $approvers = \App\Models\User::where(function($q) {
+                    $q->whereHas('permissions', fn($p) => $p->where('name', 'approve-sales-invoice'))
+                      ->orWhereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner', 'Director', 'Finance Manager', 'Manager Finance', 'Manager Akuntansi']));
+                })
+                ->where(function ($q) use ($companyId, $salesInvoice) {
+                    $q->whereHas('roles', fn($r) => $r->where('name', 'Super Admin'))
+                      ->orWhereHas('companies', fn($c) => $c->where('companies.id', $companyId))
+                      ->orWhereHas('branches', fn($b) => $b->where('branches.id', $salesInvoice->branch_id)
+                                                           ->orWhere('branches.company_id', $companyId));
+                })
+                ->with('karyawan')
+                ->get();
+
+                $sentPhones = [];
+                foreach ($approvers as $appr) {
+                    $phone = $appr->no_hp ?: ($appr->karyawan?->no_hp);
+                    $target = self::formatPhoneNumber($phone);
+                    if (!$target || in_array($target, $sentPhones)) continue;
+                    $sentPhones[] = $target;
+
+                    $apprName = $appr->nama_lengkap ?: ($appr->karyawan?->nama_lengkap ?: 'Atasan Approver');
+
+                    $message = "🔔 *PENGAJUAN FAKTUR PENJUALAN BARU (BUTUH APPROVAL)*\n"
+                        . "*{$headerEntitas}*\n\n"
+                        . "Halo, *{$apprName}* 👋\n"
+                        . "Terdapat Faktur Penjualan baru yang telah diajukan dan *membutuhkan persetujuan (approval)* Anda:\n\n"
+                        . "📋 *No. Faktur:* *{$nomorFaktur}*\n"
+                        . "🏢 *Customer:* {$customerName}\n";
+                    
+                    if ($nomorDo !== '-') $message .= "🚚 *Ref. Surat Jalan:* {$nomorDo}\n";
+                    if ($nomorSo !== '-') $message .= "📄 *Ref. Sales Order:* {$nomorSo}\n";
+                    if ($namaTender !== '-') $message .= "🎯 *Proyek/Tender:* {$namaTender}\n";
+
+                    $message .= "📅 *Tgl Faktur:* {$tglFaktur}\n"
+                        . "⏰ *Jatuh Tempo:* {$tglTempo}\n"
+                        . "💰 *Total Tagihan:* *{$grandTotalStr}*\n"
+                        . "👤 *Diajukan Oleh:* {$creatorName}\n\n";
+
+                    if (!empty($itemsText)) {
+                        $message .= "📦 *Rincian Item:*\n{$itemsText}\n";
+                    }
+
+                    $message .= "Silakan masuk ke sistem ERP modul Faktur Penjualan untuk memeriksa rincian tagihan dan memberikan persetujuan (Setujui / Tolak).\n\n"
+                        . "Terima kasih,\n"
+                        . "🤖 *{$headerEntitas} - ERP System*";
+
+                    $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                    $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                    WhatsAppLog::create([
+                        'company_id'     => $companyId,
+                        'phone_number'   => $target,
+                        'recipient_name' => $apprName,
+                        'message'        => $message,
+                        'message_type'   => 'Sales Invoice Submission Alert',
+                        'action'         => 'Sales Invoice Approval Request',
+                        'recipient'      => $target . ' (' . $apprName . ')',
+                        'status'         => $status,
+                        'response'       => json_encode($resBody),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('WA sendSalesInvoiceSubmissionNotification error: ' . $e->getMessage());
+            }
+        });
+    }
+
+    /**
+     * 2. Send WhatsApp notification to Creator when a Sales Invoice is approved.
+     */
+    public static function sendSalesInvoiceApprovedNotification($salesInvoice, $approverUser = null)
+    {
+        self::runAsync(function() use ($salesInvoice, $approverUser) {
+            try {
+                if (is_numeric($salesInvoice)) {
+                    $salesInvoice = \App\Models\SalesInvoice::find($salesInvoice);
+                }
+                if (!$salesInvoice) return;
+
+                $salesInvoice->load([
+                    'company', 'branch', 'customer', 'creator.karyawan'
+                ]);
+
+                $companyId = $salesInvoice->company_id ?: ($salesInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
+                $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+                $apiToken = self::getDecryptedToken($companyId);
+
+                if (!$enabled || !$apiToken) return;
+
+                $entity = self::resolveEntityDisplay($salesInvoice, $companyId);
+                $headerEntitas = $entity['headerEntitas'];
+
+                $nomorFaktur = $salesInvoice->nomor_faktur;
+                $customerName = $salesInvoice->customer?->nama_perusahaan ?: ($salesInvoice->customer?->nama_customer ?: 'Pelanggan');
+                $grandTotalStr = 'Rp ' . number_format($salesInvoice->grand_total, 0, ',', '.');
+                $approverName = $approverUser?->nama_lengkap ?: ($approverUser?->karyawan?->nama_lengkap ?: (auth()->user()?->nama_lengkap ?: 'Manajemen'));
+                $waktu = now()->timezone('Asia/Jakarta')->format('d/m/Y H:i') . ' WIB';
+
+                // Target: Creator
+                if (!$salesInvoice->creator) return;
+                $phone = $salesInvoice->creator->no_hp ?: ($salesInvoice->creator->karyawan?->no_hp);
+                $target = self::formatPhoneNumber($phone);
+                if (!$target) return;
+
+                $creatorName = $salesInvoice->creator->nama_lengkap ?: ($salesInvoice->creator->karyawan?->nama_lengkap ?: 'Penginput');
+
+                $message = "✅ *FAKTUR PENJUALAN TELAH DISETUJUI (APPROVED)*\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$creatorName}* 👋\n"
+                    . "Faktur Penjualan yang Anda ajukan telah resmi *DISETUJUI (APPROVED)*:\n\n"
+                    . "📋 *No. Faktur:* *{$nomorFaktur}*\n"
+                    . "🏢 *Customer:* {$customerName}\n"
+                    . "💰 *Total Tagihan:* *{$grandTotalStr}*\n"
+                    . "👤 *Disetujui Oleh:* *{$approverName}*\n"
+                    . "⏰ *Waktu Disetujui:* {$waktu}\n\n"
+                    . "Faktur resmi diterbitkan dengan status *Belum Lunas (Unpaid)* dan jurnal piutang telah dibukukan otomatis ke sistem akuntansi. Dokumen invoice siap dicetak dan ditagihkan ke pelanggan.\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id'     => $companyId,
+                    'phone_number'   => $target,
+                    'recipient_name' => $creatorName,
+                    'message'        => $message,
+                    'message_type'   => 'Sales Invoice Approved Alert',
+                    'action'         => 'Sales Invoice Approved',
+                    'recipient'      => $target . ' (' . $creatorName . ')',
+                    'status'         => $status,
+                    'response'       => json_encode($resBody),
+                ]);
+            } catch (\Exception $e) {
+                Log::error('WA sendSalesInvoiceApprovedNotification error: ' . $e->getMessage());
+            }
+        });
+    }
+
+    /**
+     * 3. Send WhatsApp notification to Creator when a Sales Invoice is rejected.
+     */
+    public static function sendSalesInvoiceRejectedNotification($salesInvoice, $rejectorUser = null, $alasan = null)
+    {
+        self::runAsync(function() use ($salesInvoice, $rejectorUser, $alasan) {
+            try {
+                if (is_numeric($salesInvoice)) {
+                    $salesInvoice = \App\Models\SalesInvoice::find($salesInvoice);
+                }
+                if (!$salesInvoice) return;
+
+                $salesInvoice->load([
+                    'company', 'branch', 'customer', 'creator.karyawan'
+                ]);
+
+                $companyId = $salesInvoice->company_id ?: ($salesInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
+                $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+                $apiToken = self::getDecryptedToken($companyId);
+
+                if (!$enabled || !$apiToken) return;
+
+                $entity = self::resolveEntityDisplay($salesInvoice, $companyId);
+                $headerEntitas = $entity['headerEntitas'];
+
+                $nomorFaktur = $salesInvoice->nomor_faktur;
+                $customerName = $salesInvoice->customer?->nama_perusahaan ?: ($salesInvoice->customer?->nama_customer ?: 'Pelanggan');
+                $grandTotalStr = 'Rp ' . number_format($salesInvoice->grand_total, 0, ',', '.');
+                $rejectorName = $rejectorUser?->nama_lengkap ?: ($rejectorUser?->karyawan?->nama_lengkap ?: (auth()->user()?->nama_lengkap ?: 'Manajemen'));
+                $alasanStr = $alasan ?: ($salesInvoice->alasan_penolakan ?: 'Data tagihan perlu diperiksa kembali');
+                $waktu = now()->timezone('Asia/Jakarta')->format('d/m/Y H:i') . ' WIB';
+
+                // Target: Creator
+                if (!$salesInvoice->creator) return;
+                $phone = $salesInvoice->creator->no_hp ?: ($salesInvoice->creator->karyawan?->no_hp);
+                $target = self::formatPhoneNumber($phone);
+                if (!$target) return;
+
+                $creatorName = $salesInvoice->creator->nama_lengkap ?: ($salesInvoice->creator->karyawan?->nama_lengkap ?: 'Penginput');
+
+                $message = "❌ *PEMBERITAHUAN: FAKTUR PENJUALAN DITOLAK*\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$creatorName}* 👋\n"
+                    . "Pengajuan Faktur Penjualan berikut *DITOLAK* oleh Atasan:\n\n"
+                    . "📋 *No. Faktur:* *{$nomorFaktur}*\n"
+                    . "🏢 *Customer:* {$customerName}\n"
+                    . "💰 *Total Nilai:* {$grandTotalStr}\n"
+                    . "👤 *Ditolak Oleh:* *{$rejectorName}*\n"
+                    . "⚠️ *Alasan Penolakan:* *{$alasanStr}*\n"
+                    . "⏰ *Waktu:* {$waktu}\n\n"
+                    . "Silakan login ke sistem ERP untuk memeriksa catatan penolakan dan melakukan revisi/perbaikan pada draf faktur tersebut.\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id'     => $companyId,
+                    'phone_number'   => $target,
+                    'recipient_name' => $creatorName,
+                    'message'        => $message,
+                    'message_type'   => 'Sales Invoice Rejected Alert',
+                    'action'         => 'Sales Invoice Rejected',
+                    'recipient'      => $target . ' (' . $creatorName . ')',
+                    'status'         => $status,
+                    'response'       => json_encode($resBody),
+                ]);
+            } catch (\Exception $e) {
+                Log::error('WA sendSalesInvoiceRejectedNotification error: ' . $e->getMessage());
+            }
+        });
+    }
+
+    /**
+     * Kirim notifikasi WhatsApp saat Penerimaan Pembayaran Penjualan dibuat / diajukan (Draft).
+     */
+    public static function sendSalesPaymentSubmissionNotification($salesPayment)
+    {
+        self::runAsync(function() use ($salesPayment) {
+            try {
+                if (is_numeric($salesPayment)) {
+                    $salesPayment = \App\Models\SalesPayment::find($salesPayment);
+                }
+                if (!$salesPayment) return;
+
+                $salesPayment->loadMissing([
+                    'company', 'branch', 'customer', 'kasBank', 'paymentMethod',
+                    'creator.karyawan', 'details.invoice'
+                ]);
+
+                $companyId = $salesPayment->company_id ?: ($salesPayment->branch?->company_id ?? session('active_company_id') ?: 1);
+                $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+                $apiToken = self::getDecryptedToken($companyId);
+
+                if (!$enabled || !$apiToken) return;
+
+                $entity = self::resolveEntityDisplay($salesPayment, $companyId);
+                $headerEntitas = $entity['headerEntitas'];
+
+                $nomorPembayaran = $salesPayment->nomor_pembayaran;
+                $customerName    = $salesPayment->customer?->nama_perusahaan ?: ($salesPayment->customer?->nama_customer ?: 'Pelanggan');
+                $tglBayar        = $salesPayment->tanggal_bayar ? \Carbon\Carbon::parse($salesPayment->tanggal_bayar)->format('d/m/Y') : '-';
+                $kasBankName     = $salesPayment->kasBank?->nama_akun ?: 'Kas/Bank';
+                $metodeBayar     = $salesPayment->paymentMethod?->nama_metode ?: 'Transfer Bank';
+                $totalBayarStr   = 'Rp ' . number_format((float)$salesPayment->total_bayar, 0, ',', '.');
+                $creatorName     = $salesPayment->creator?->nama_lengkap ?: ($salesPayment->creator?->karyawan?->nama_lengkap ?: 'Kasir / Staff Finance');
+
+                $lebihBayar = (float)($salesPayment->lebih_bayar ?? 0);
+                $potongan   = (float)($salesPayment->total_potongan ?? 0);
+
+                // Ringkasan faktur yang dibayar
+                $fakturText = "";
+                if ($salesPayment->details && $salesPayment->details->isNotEmpty()) {
+                    foreach ($salesPayment->details->take(5) as $idx => $d) {
+                        $noFak = $d->invoice?->nomor_faktur ?: ('Faktur #' . $d->sales_invoice_id);
+                        $bayarFmt = 'Rp ' . number_format((float)$d->jumlah_bayar, 0, ',', '.');
+                        $fakturText .= "   " . ($idx + 1) . ". {$noFak} (Bayar: {$bayarFmt})\n";
+                    }
+                    if ($salesPayment->details->count() > 5) {
+                        $remaining = $salesPayment->details->count() - 5;
+                        $fakturText .= "   _... dan {$remaining} faktur lainnya_\n";
+                    }
+                }
+
+                // Cari Approver / Finance Manager / Supervisor
+                $approvers = \App\Models\User::where(function($q) {
+                    $q->whereHas('permissions', fn($p) => $p->whereIn('name', ['lihat-sales-payment', 'tambah-sales-payment']))
+                      ->orWhereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner', 'Director', 'Finance Manager', 'Manager Finance', 'Manager Akuntansi', 'Accounting']));
+                })
+                ->where(function ($q) use ($companyId, $salesPayment) {
+                    $q->whereHas('roles', fn($r) => $r->where('name', 'Super Admin'))
+                      ->orWhereHas('companies', fn($c) => $c->where('companies.id', $companyId))
+                      ->orWhereHas('branches', fn($b) => $b->where('branches.id', $salesPayment->branch_id)
+                                                           ->orWhere('branches.company_id', $companyId));
+                })
+                ->with('karyawan')
+                ->get();
+
+                $sentPhones = [];
+                foreach ($approvers as $appr) {
+                    $phone = $appr->no_hp ?: ($appr->karyawan?->no_hp);
+                    $target = self::formatPhoneNumber($phone);
+                    if (!$target || in_array($target, $sentPhones)) continue;
+                    $sentPhones[] = $target;
+
+                    $apprName = $appr->nama_lengkap ?: ($appr->karyawan?->nama_lengkap ?: 'Atasan / Pimpinan');
+
+                    $message = "🔔 *PERMOHONAN PERSETUJUAN PEMBAYARAN PENJUALAN (BUTUH ACC)*\n"
+                        . "*{$headerEntitas}*\n\n"
+                        . "Halo, *{$apprName}* 👋\n"
+                        . "Terdapat pengajuan pembayaran piutang penjualan baru yang *membutuhkan persetujuan (ACC / Posting)* dari Anda:\n\n"
+                        . "📋 *No. Pembayaran:* *{$nomorPembayaran}*\n"
+                        . "🏢 *Customer:* {$customerName}\n"
+                        . "📅 *Tgl Bayar:* {$tglBayar}\n"
+                        . "🏦 *Kas / Bank:* {$kasBankName}\n"
+                        . "💳 *Metode:* {$metodeBayar}" . ($salesPayment->nomor_referensi ? " (Ref: {$salesPayment->nomor_referensi})" : "") . "\n"
+                        . "💰 *Total Nominal:* *{$totalBayarStr}*\n";
+
+                    if ($lebihBayar > 0) {
+                        $message .= "↗ *Lebih Transfer:* Rp " . number_format($lebihBayar, 0, ',', '.') . "\n";
+                    }
+                    if ($potongan > 0) {
+                        $message .= "✂ *Potongan/Diskon:* Rp " . number_format($potongan, 0, ',', '.') . "\n";
+                    }
+
+                    $message .= "👤 *Diajukan Oleh:* {$creatorName}\n\n";
+
+                    if (!empty($fakturText)) {
+                        $message .= "📄 *Faktur yang Dilunasi:*\n{$fakturText}\n";
+                    }
+
+                    if (!empty($salesPayment->keterangan)) {
+                        $message .= "📝 *Catatan:* {$salesPayment->keterangan}\n\n";
+                    }
+
+                    $message .= "Silakan masuk ke sistem ERP modul Penerimaan Pembayaran untuk memeriksa rincian dan melakukan persetujuan (ACC / Posting).\n\n"
+                        . "Terima kasih,\n"
+                        . "🤖 *{$headerEntitas} - ERP System*";
+
+                    $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                    $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                    WhatsAppLog::create([
+                        'company_id'     => $companyId,
+                        'phone_number'   => $target,
+                        'recipient_name' => $apprName,
+                        'message'        => $message,
+                        'message_type'   => 'Sales Payment Submission Alert',
+                        'action'         => 'Sales Payment Submission',
+                        'recipient'      => $target . ' (' . $apprName . ')',
+                        'status'         => $status,
+                        'response'       => json_encode($resBody),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('WA sendSalesPaymentSubmissionNotification error: ' . $e->getMessage());
+            }
+        });
+    }
+
+    /**
+     * Kirim notifikasi WhatsApp saat Pembayaran Penjualan di-ACC / disetujui / diposting oleh Atasan.
+     * Dikirim balik ke User yang menginput (Creator) bahwasanya pengajuan pembayarannya telah disetujui.
+     */
+    public static function sendSalesPaymentPostedNotification($salesPayment, $postedByUser = null)
+    {
+        self::runAsync(function() use ($salesPayment, $postedByUser) {
+            try {
+                if (is_numeric($salesPayment)) {
+                    $salesPayment = \App\Models\SalesPayment::find($salesPayment);
+                }
+                if (!$salesPayment) return;
+
+                $salesPayment->loadMissing([
+                    'company', 'branch', 'customer', 'kasBank', 'paymentMethod',
+                    'creator.karyawan', 'details.invoice'
+                ]);
+
+                $companyId = $salesPayment->company_id ?: ($salesPayment->branch?->company_id ?? session('active_company_id') ?: 1);
+                $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+                $apiToken = self::getDecryptedToken($companyId);
+
+                if (!$enabled || !$apiToken) return;
+
+                $entity = self::resolveEntityDisplay($salesPayment, $companyId);
+                $headerEntitas = $entity['headerEntitas'];
+
+                $nomorPembayaran = $salesPayment->nomor_pembayaran;
+                $customerName    = $salesPayment->customer?->nama_perusahaan ?: ($salesPayment->customer?->nama_customer ?: 'Pelanggan');
+                $tglBayar        = $salesPayment->tanggal_bayar ? \Carbon\Carbon::parse($salesPayment->tanggal_bayar)->format('d/m/Y') : '-';
+                $kasBankName     = $salesPayment->kasBank?->nama_akun ?: 'Kas/Bank';
+                $totalBayarStr   = 'Rp ' . number_format((float)$salesPayment->total_bayar, 0, ',', '.');
+                $posterName      = $postedByUser?->nama_lengkap ?: ($postedByUser?->karyawan?->nama_lengkap ?: (auth()->user()?->nama_lengkap ?: 'Atasan / Pimpinan'));
+
+                $lebihBayar = (float)($salesPayment->lebih_bayar ?? 0);
+
+                // Ringkasan faktur yang dibayar
+                $fakturText = "";
+                if ($salesPayment->details && $salesPayment->details->isNotEmpty()) {
+                    foreach ($salesPayment->details->take(5) as $idx => $d) {
+                        $noFak = $d->invoice?->nomor_faktur ?: ('Faktur #' . $d->sales_invoice_id);
+                        $bayarFmt = 'Rp ' . number_format((float)$d->jumlah_bayar, 0, ',', '.');
+                        $fakturText .= "   " . ($idx + 1) . ". {$noFak} (Bayar: {$bayarFmt})\n";
+                    }
+                    if ($salesPayment->details->count() > 5) {
+                        $remaining = $salesPayment->details->count() - 5;
+                        $fakturText .= "   _... dan {$remaining} faktur lainnya_\n";
+                    }
+                }
+
+                // Kirim notifikasi konfirmasi HANYA ke Petugas / User yang menginput (Creator)
+                $creator = $salesPayment->creator;
+                if ($creator) {
+                    $creatorPhone = $creator->no_hp ?: ($creator->karyawan?->no_hp);
+                    $targetCreator = self::formatPhoneNumber($creatorPhone);
+                    if ($targetCreator) {
+                        $cName = $creator->nama_lengkap ?: ($creator->karyawan?->nama_lengkap ?: 'Staff');
+
+                        $msgCreator = "✅ *PENGAJUAN PEMBAYARAN TELAH DISETUJUI (DI-ACC)*\n"
+                            . "*{$headerEntitas}*\n\n"
+                            . "Halo, *{$cName}* 👋\n"
+                            . "Kabar baik! Pengajuan pembayaran penjualan yang Anda catat telah *disetujui (di-ACC) & diposting* oleh Atasan:\n\n"
+                            . "📋 *No. Pembayaran:* *{$nomorPembayaran}*\n"
+                            . "🏢 *Customer:* {$customerName}\n"
+                            . "📅 *Tgl Bayar:* {$tglBayar}\n"
+                            . "🏦 *Kas / Bank:* {$kasBankName}\n"
+                            . "💰 *Total Diterima:* *{$totalBayarStr}*\n";
+
+                        if ($lebihBayar > 0) {
+                            $msgCreator .= "↗ *Lebih Transfer:* Rp " . number_format($lebihBayar, 0, ',', '.') . "\n";
+                        }
+
+                        $msgCreator .= "👤 *Disetujui / Di-ACC Oleh:* {$posterName}\n\n"
+                            . "📄 *Faktur Terkait:*\n{$fakturText}\n"
+                            . "Status pembayaran kini telah *Posted* dan Jurnal Otomatis Akuntansi telah berhasil diterbitkan.\n\n"
+                            . "Terima kasih atas kerja samanya,\n"
+                            . "🤖 *{$headerEntitas} - ERP System*";
+
+                        $resBody = self::dispatchFonnteMessage($apiToken, $targetCreator, $msgCreator);
+                        $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                        WhatsAppLog::create([
+                            'company_id'     => $companyId,
+                            'phone_number'   => $targetCreator,
+                            'recipient_name' => $cName,
+                            'message'        => $msgCreator,
+                            'message_type'   => 'Sales Payment Approved Alert',
+                            'action'         => 'Sales Payment Approved (ACC)',
+                            'recipient'      => $targetCreator . ' (' . $cName . ')',
+                            'status'         => $status,
+                            'response'       => json_encode($resBody),
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('WA sendSalesPaymentPostedNotification error: ' . $e->getMessage());
+            }
+        });
+    }
+
+    /**
+     * Kirim notifikasi pengajuan Faktur Pembelian (Purchase Invoice) ke Atasan / Approver via WA.
+     */
+    public static function sendPurchaseInvoiceSubmissionNotification($purchaseInvoice)
+    {
+        try {
+            if (!$purchaseInvoice) return;
+            $purchaseInvoice->loadMissing(['supplier', 'creator.karyawan', 'details.barang', 'branch', 'currency']);
+
+            $companyId = $purchaseInvoice->company_id ?: ($purchaseInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
+            $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+            $apiToken = self::getDecryptedToken($companyId);
+
+            if (!$enabled || !$apiToken) return;
+
+            $entity = self::resolveEntityDisplay($purchaseInvoice, $companyId);
+            $headerEntitas = $entity['headerEntitas'];
+
+            $noFaktur       = $purchaseInvoice->nomor_faktur;
+            $noFakSupplier  = $purchaseInvoice->nomor_faktur_supplier ?: '-';
+            $supplierName   = $purchaseInvoice->supplier?->nama_perusahaan ?: ($purchaseInvoice->supplier?->nama_supplier ?: 'Supplier');
+            $tglFaktur      = $purchaseInvoice->tanggal_faktur ? \Carbon\Carbon::parse($purchaseInvoice->tanggal_faktur)->format('d/m/Y') : '-';
+            $tglJatuhTempo  = $purchaseInvoice->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($purchaseInvoice->tanggal_jatuh_tempo)->format('d/m/Y') : '-';
+            $mataUang       = $purchaseInvoice->currency?->kode_mata_uang ?: ($purchaseInvoice->mata_uang ?: 'IDR');
+            $kurs           = (float)($purchaseInvoice->kurs ?: 1);
+
+            $totalNominalVal = (float)($purchaseInvoice->grand_total ?: ($purchaseInvoice->total_tagihan ?: ($purchaseInvoice->total ?: 0)));
+            $totalStr = $mataUang . ' ' . number_format($totalNominalVal, 2, ',', '.');
+            if ($mataUang !== 'IDR' && $kurs > 1) {
+                $totalStr .= ' (Rp ' . number_format($totalNominalVal * $kurs, 0, ',', '.') . ')';
+            }
+
+            $creatorName = $purchaseInvoice->creator?->nama_lengkap ?: ($purchaseInvoice->creator?->karyawan?->nama_lengkap ?: 'Staff Purchasing');
+
+            // Ringkasan item (maksimal 5 item)
+            $itemText = "";
+            if ($purchaseInvoice->details && $purchaseInvoice->details->isNotEmpty()) {
+                $itemRows = $purchaseInvoice->details->where('jenis', '!=', 'PPN');
+                foreach ($itemRows->take(5) as $idx => $d) {
+                    $itemName = $d->barang?->nama_barang ?: ($d->keterangan ?: 'Item');
+                    $qtyVal   = (float)($d->jumlah ?: ($d->qty ?: 0));
+                    $satuan   = $d->barang?->satuanBesar?->nama_satuan ?: ($d->barang?->satuan?->nama_satuan ?: ($d->satuan ?: 'unit'));
+                    $qtyFmt   = number_format($qtyVal, 0, ',', '.') . ' ' . $satuan;
+                    $itemText .= "   " . ($idx + 1) . ". {$itemName} ({$qtyFmt})\n";
+                }
+                if ($itemRows->count() > 5) {
+                    $remaining = $itemRows->count() - 5;
+                    $itemText .= "   _... dan {$remaining} barang lainnya_\n";
+                }
+            }
+
+            // Cari Approver yang memiliki izin 'approve-purchase-invoice' (langsung atau via Role) atau Super Admin / Owner
+            $approvers = \App\Models\User::where(function($q) {
+                $q->permission('approve-purchase-invoice')
+                  ->orWhereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']));
+            })
+            ->where(function ($q) use ($companyId, $purchaseInvoice) {
+                $q->whereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']))
+                  ->orWhereHas('companies', fn($c) => $c->where('companies.id', $companyId))
+                  ->orWhereHas('branches', fn($b) => $b->where('branches.id', $purchaseInvoice->branch_id)
+                                                       ->orWhere('branches.company_id', $companyId));
+            })
+            ->with('karyawan')
+            ->get();
+
+            if ($approvers->isEmpty()) {
+                $approvers = \App\Models\User::where(function($q) {
+                    $q->permission('approve-purchase-invoice')
+                      ->orWhereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']));
+                })
+                ->with('karyawan')
+                ->get();
+            }
+
+            $sentPhones = [];
+            foreach ($approvers as $appr) {
+                $phone = $appr->no_hp ?: ($appr->karyawan?->no_hp);
+                $target = self::formatPhoneNumber($phone);
+                if (!$target || in_array($target, $sentPhones)) continue;
+                $sentPhones[] = $target;
+
+                $apprName = $appr->nama_lengkap ?: ($appr->karyawan?->nama_lengkap ?: 'Bapak/Ibu Pimpinan');
+
+                $message = "🔔 *PERMOHONAN PERSETUJUAN FAKTUR PEMBELIAN (BUTUH ACC)*\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$apprName}* 👋\n"
+                    . "Terdapat pengajuan Faktur Pembelian (Purchase Invoice) baru yang *membutuhkan persetujuan (ACC / Posting)* Anda:\n\n"
+                    . "📋 *No. Faktur:* *{$noFaktur}*\n"
+                    . "🏷 *No. Faktur Supplier:* {$noFakSupplier}\n"
+                    . "🏢 *Supplier:* {$supplierName}\n"
+                    . "📅 *Tgl Faktur:* {$tglFaktur}\n"
+                    . "⏳ *Jatuh Tempo:* {$tglJatuhTempo}\n"
+                    . "💰 *Total Tagihan:* *{$totalStr}*\n"
+                    . "👤 *Diajukan Oleh:* {$creatorName}\n\n";
+
+                if (!empty($itemText)) {
+                    $message .= "📦 *Daftar Barang:*\n{$itemText}\n";
+                }
+
+                $catatanText = $purchaseInvoice->keterangan ?: ($purchaseInvoice->catatan ?: '');
+                if (!empty($catatanText)) {
+                    $message .= "📝 *Catatan:* {$catatanText}\n\n";
+                }
+
+                $message .= "Silakan masuk ke sistem ERP modul Faktur Pembelian untuk memeriksa rincian dan melakukan Persetujuan (Approve / Posting Jurnal).\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id'     => $companyId,
+                    'phone_number'   => $target,
+                    'recipient_name' => $apprName,
+                    'message'        => $message,
+                    'message_type'   => 'Purchase Invoice Submission Alert',
+                    'action'         => 'Purchase Invoice Submission',
+                    'recipient'      => $target . ' (' . $apprName . ')',
+                    'status'         => $status,
+                    'response'       => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPurchaseInvoiceSubmissionNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Kirim notifikasi faktur pembelian disetujui (Approved / Posted) ke User pembuat faktur.
+     */
+    public static function sendPurchaseInvoiceApprovedNotification($purchaseInvoice, $approverUser = null)
+    {
+        try {
+            if (!$purchaseInvoice) return;
+            $purchaseInvoice->loadMissing(['supplier', 'creator.karyawan', 'branch', 'currency']);
+
+            $companyId = $purchaseInvoice->company_id ?: ($purchaseInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
+            $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+            $apiToken = self::getDecryptedToken($companyId);
+
+            if (!$enabled || !$apiToken) {
+                if ($companyId != 1) {
+                    $enabled = AppSetting::where('company_id', 1)->where('key', 'wa_enable_notification')->value('value') === '1';
+                    $apiToken = self::getDecryptedToken(1);
+                }
+            }
+
+            if (!$enabled || !$apiToken) return;
+
+            $entity = self::resolveEntityDisplay($purchaseInvoice, $companyId);
+            $headerEntitas = $entity['headerEntitas'];
+
+            $noFaktur       = $purchaseInvoice->nomor_faktur;
+            $supplierName   = $purchaseInvoice->supplier?->nama_perusahaan ?: ($purchaseInvoice->supplier?->nama_supplier ?: 'Supplier');
+            $mataUang       = $purchaseInvoice->currency?->kode_mata_uang ?: ($purchaseInvoice->mata_uang ?: 'IDR');
+            $totalNominalVal = (float)($purchaseInvoice->grand_total ?: ($purchaseInvoice->total_tagihan ?: ($purchaseInvoice->total ?: 0)));
+            $totalStr       = $mataUang . ' ' . number_format($totalNominalVal, 2, ',', '.');
+
+            $approverName   = $approverUser?->nama_lengkap ?: ($approverUser?->karyawan?->nama_lengkap ?: 'Atasan / Pimpinan');
+
+            // Penerima feedback adalah user yang MEMBUAT faktur
+            $creator = $purchaseInvoice->creator;
+            if (!$creator && !empty($purchaseInvoice->created_by)) {
+                $creator = \App\Models\User::with('karyawan')->find($purchaseInvoice->created_by);
+            }
+
+            if ($creator) {
+                $creatorPhone = $creator->no_hp ?: ($creator->karyawan?->no_hp);
+                $targetCreator = self::formatPhoneNumber($creatorPhone);
+                if ($targetCreator) {
+                    $cName = $creator->nama_lengkap ?: ($creator->karyawan?->nama_lengkap ?: 'Staff Purchasing');
+
+                    $msgCreator = "✅ *FAKTUR PEMBELIAN TELAH DISETUJUI & DIPOSTING (DI-ACC)*\n"
+                        . "*{$headerEntitas}*\n\n"
+                        . "Halo, *{$cName}* 👋\n"
+                        . "Kabar baik! Faktur Pembelian yang Anda buat/ajukan telah *disetujui (di-ACC)* dan otomatis *diposting ke Jurnal Akuntansi* oleh Atasan:\n\n"
+                        . "📋 *No. Faktur:* *{$noFaktur}*\n"
+                        . "🏢 *Supplier:* {$supplierName}\n"
+                        . "💰 *Total Tagihan:* *{$totalStr}*\n"
+                        . "👤 *Disetujui Oleh:* {$approverName}\n"
+                        . "🕒 *Waktu Disetujui:* " . now()->format('d/m/Y H:i') . " WIB\n\n"
+                        . "Status faktur kini telah *Posted* dan Jurnal Otomatis Akuntansi telah berhasil diterbitkan.\n\n"
+                        . "Terima kasih atas kerja samanya,\n"
+                        . "🤖 *{$headerEntitas} - ERP System*";
+
+                    $resBody = self::dispatchFonnteMessage($apiToken, $targetCreator, $msgCreator);
+                    $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                    WhatsAppLog::create([
+                        'company_id'     => $companyId,
+                        'phone_number'   => $targetCreator,
+                        'recipient_name' => $cName,
+                        'message'        => $msgCreator,
+                        'message_type'   => 'Purchase Invoice Approved Alert',
+                        'action'         => 'Purchase Invoice Approved',
+                        'recipient'      => $targetCreator . ' (' . $cName . ')',
+                        'status'         => $status,
+                        'response'       => json_encode($resBody),
+                    ]);
+                } else {
+                    Log::warning("WA sendPurchaseInvoiceApprovedNotification: User pembuat Faktur {$noFaktur} ({$creator->nama_lengkap}) tidak memiliki nomor HP.");
+                }
+            } else {
+                Log::warning("WA sendPurchaseInvoiceApprovedNotification: User pembuat Faktur {$noFaktur} tidak ditemukan.");
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPurchaseInvoiceApprovedNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Kirim notifikasi faktur pembelian ditolak (Rejected) ke User pembuat faktur.
+     */
+    public static function sendPurchaseInvoiceRejectedNotification($purchaseInvoice, $alasan = null, $rejectorUser = null)
+    {
+        try {
+            if (!$purchaseInvoice) return;
+            $purchaseInvoice->loadMissing(['supplier', 'creator.karyawan', 'branch', 'currency']);
+
+            $companyId = $purchaseInvoice->company_id ?: ($purchaseInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
+            $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+            $apiToken = self::getDecryptedToken($companyId);
+
+            if (!$enabled || !$apiToken) {
+                if ($companyId != 1) {
+                    $enabled = AppSetting::where('company_id', 1)->where('key', 'wa_enable_notification')->value('value') === '1';
+                    $apiToken = self::getDecryptedToken(1);
+                }
+            }
+
+            if (!$enabled || !$apiToken) return;
+
+            $entity = self::resolveEntityDisplay($purchaseInvoice, $companyId);
+            $headerEntitas = $entity['headerEntitas'];
+
+            $noFaktur     = $purchaseInvoice->nomor_faktur;
+            $supplierName = $purchaseInvoice->supplier?->nama_perusahaan ?: ($purchaseInvoice->supplier?->nama_supplier ?: 'Supplier');
+            $rejectorName = $rejectorUser?->nama_lengkap ?: ($rejectorUser?->karyawan?->nama_lengkap ?: 'Atasan / Pimpinan');
+            $alasanTeks   = $alasan ?: 'Perlu peninjauan ulang / perbaikan data.';
+
+            // Penerima feedback adalah user yang MEMBUAT faktur
+            $creator = $purchaseInvoice->creator;
+            if (!$creator && !empty($purchaseInvoice->created_by)) {
+                $creator = \App\Models\User::with('karyawan')->find($purchaseInvoice->created_by);
+            }
+
+            if ($creator) {
+                $creatorPhone = $creator->no_hp ?: ($creator->karyawan?->no_hp);
+                $targetCreator = self::formatPhoneNumber($creatorPhone);
+                if ($targetCreator) {
+                    $cName = $creator->nama_lengkap ?: ($creator->karyawan?->nama_lengkap ?: 'Staff Purchasing');
+
+                    $msgCreator = "❌ *PENGAJUAN FAKTUR PEMBELIAN DITOLAK*\n"
+                        . "*{$headerEntitas}*\n\n"
+                        . "Halo, *{$cName}* 👋\n"
+                        . "Pemberitahuan: Pengajuan Faktur Pembelian yang Anda buat berikut *DITOLAK* oleh Atasan:\n\n"
+                        . "📋 *No. Faktur:* *{$noFaktur}*\n"
+                        . "🏢 *Supplier:* {$supplierName}\n"
+                        . "👤 *Ditolak Oleh:* {$rejectorName}\n"
+                        . "⚠️ *Alasan Penolakan:* {$alasanTeks}\n\n"
+                        . "Silakan periksa kembali data faktur tersebut pada sistem ERP dan lakukan perbaikan yang diperlukan.\n\n"
+                        . "Terima kasih,\n"
+                        . "🤖 *{$headerEntitas} - ERP System*";
+
+                    $resBody = self::dispatchFonnteMessage($apiToken, $targetCreator, $msgCreator);
+                    $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                    WhatsAppLog::create([
+                        'company_id'     => $companyId,
+                        'phone_number'   => $targetCreator,
+                        'recipient_name' => $cName,
+                        'message'        => $msgCreator,
+                        'message_type'   => 'Purchase Invoice Rejected Alert',
+                        'action'         => 'Purchase Invoice Rejected',
+                        'recipient'      => $targetCreator . ' (' . $cName . ')',
+                        'status'         => $status,
+                        'response'       => json_encode($resBody),
+                    ]);
+                } else {
+                    Log::warning("WA sendPurchaseInvoiceRejectedNotification: User pembuat Faktur {$noFaktur} ({$creator->nama_lengkap}) tidak memiliki nomor HP.");
+                }
+            } else {
+                Log::warning("WA sendPurchaseInvoiceRejectedNotification: User pembuat Faktur {$noFaktur} tidak ditemukan.");
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPurchaseInvoiceRejectedNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Format phone number to international Indonesian format (628xxx).
      */
     public static function formatPhoneNumber($phone)
@@ -4587,14 +6823,25 @@ class WhatsAppGatewayController extends Controller
      */
     public static function dispatchFonnteMessage($apiToken, $targetPhone, $message)
     {
+        $cacheKey = 'wa_token_invalid_' . md5((string)$apiToken);
+        if (Cache::has($cacheKey)) {
+            return ['status' => false, 'reason' => 'invalid token (cached)'];
+        }
+
         try {
-            $response = Http::timeout(5)->connectTimeout(3)->withHeaders([
+            $response = Http::timeout(10)->connectTimeout(5)->withHeaders([
                 'Authorization' => $apiToken,
             ])->asForm()->post('https://api.fonnte.com/send', [
                 'target'  => $targetPhone,
                 'message' => $message,
             ]);
-            return $response->json() ?: ['status' => false];
+
+            $json = $response->json();
+            if (isset($json['reason']) && stripos($json['reason'], 'invalid token') !== false) {
+                Cache::put($cacheKey, true, now()->addMinutes(10));
+            }
+
+            return $json ?: ['status' => false];
         } catch (\Exception $e) {
             Log::error('WA dispatchFonnteMessage error: ' . $e->getMessage());
             return ['status' => false, 'error' => $e->getMessage()];

@@ -47,12 +47,15 @@ class PengeluaranBahanController extends Controller
                       });
                 })
                 ->with([
-                    'barangJadi.satuan',
-                    'satuan',
-                    'materials.barangMentah.satuan',
-                    'materials.satuan',
+                    'barangJadi:id,kode_barang,nama_barang,satuan_id',
+                    'barangJadi.satuan:id,nama_satuan',
+                    'satuan:id,nama_satuan',
+                    'materials:id,spk_id,barang_mentah_id,total_kebutuhan,total_keluar_gudang,satuan_id',
+                    'materialClosedBy:id,nama_lengkap,username',
+                    'materialClosingRequestedBy:id,nama_lengkap,username',
+                    'materialClosingRejectedBy:id,nama_lengkap,username',
                     'pengeluaranBahans' => function ($q) {
-                        $q->latest('id')->with(['gudang', 'penyerah', 'penerima', 'details']);
+                        $q->forActiveCompany()->select('id', 'spk_id', 'nomor_pengeluaran', 'tanggal_pengeluaran')->latest('id');
                     }
                 ])
                 ->latest('id');
@@ -71,19 +74,22 @@ class PengeluaranBahanController extends Controller
                     $kode = $spk->barangJadi ? e($spk->barangJadi->kode_barang) : '-';
                     $nama = $spk->barangJadi ? e($spk->barangJadi->nama_barang) : '-';
                     $satuan = $spk->satuan ? $spk->satuan->nama_satuan : ($spk->barangJadi && $spk->barangJadi->satuan ? $spk->barangJadi->satuan->nama_satuan : 'Pcs');
-                    $qty = number_format($spk->jumlah_rencana, 0, ',', '.');
-                    return '<div>
-                        <div class="fw-bold text-primary font-monospace fs-6 mb-1 d-flex align-items-center gap-1.5">
-                            <i class="bi bi-file-earmark-ruled"></i>
-                            <span>' . e($spk->nomor_spk) . '</span>
+                    $rawRencana = (float) $spk->jumlah_rencana;
+                    $qty = ($rawRencana == (int)$rawRencana) ? number_format($rawRencana, 0, ',', '.') : rtrim(rtrim(number_format($rawRencana, 4, ',', '.'), '0'), ',');
+                    return '<div class="d-flex flex-column gap-1">
+                        <div class="d-flex align-items-center gap-1.5">
+                            <a href="javascript:void(0)" onclick="showSpkHistoryModal(' . $spk->id . ')" class="fw-bold text-primary text-decoration-none font-monospace d-inline-flex align-items-center gap-1" style="font-size: 13px;" title="Lihat Riwayat SPK">
+                                <i class="bi bi-file-earmark-ruled"></i>
+                                <span>' . e($spk->nomor_spk) . '</span>
+                            </a>
                         </div>
-                        <div class="fw-bold spk-text-main mb-1" style="font-size: 0.92rem;">
-                            <span class="badge spk-badge-cyan rounded-2 px-2 py-0.5 font-monospace me-1" style="font-size: 11px;">' . $kode . '</span>
-                            <span class="spk-text-main">' . $nama . '</span>
+                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                            <span class="badge spk-badge-cyan rounded-1 px-1.5 py-0.5 font-monospace" style="font-size: 10.5px;">' . $kode . '</span>
+                            <span class="fw-bold spk-text-main" style="font-size: 12.5px;">' . $nama . '</span>
                         </div>
                         <div>
-                            <span class="badge spk-badge-muted rounded-pill px-2.5 py-0.5 font-monospace" style="font-size: 11px;">
-                                Target: <b>' . $qty . '</b> ' . $satuan . '
+                            <span class="badge rounded-pill px-2.5 py-0.5 font-monospace fw-semibold" style="background: rgba(37, 99, 235, 0.08); color: #1d4ed8; border: 1px solid rgba(37, 99, 235, 0.22); font-size: 10.5px;">
+                                <i class="bi bi-bullseye me-1 text-primary"></i>Target: <b>' . $qty . '</b> ' . e($satuan) . '
                             </span>
                         </div>
                     </div>';
@@ -92,45 +98,48 @@ class PengeluaranBahanController extends Controller
                     $materials = $spk->materials;
                     $totalBahan = $materials->count();
                     if ($totalBahan === 0) {
-                        return '<span class="badge spk-badge-muted rounded-pill px-2.5 py-1">Tidak ada bahan</span>';
+                        return '<span class="badge rounded-pill px-2.5 py-1 text-secondary border border-secondary border-opacity-25" style="background: rgba(100,116,139,0.08); font-size: 11px;">Tidak ada bahan</span>';
                     }
 
-                    $totalKebutuhan = (float) $materials->sum('total_kebutuhan');
-                    
-                    // Sum already taken from spk_produksi_materials AND flatMap details
-                    $totalDiambilFromMaterials = (float) $materials->sum('total_keluar_gudang');
-                    $totalDiambilFromDetails   = (float) $spk->pengeluaranBahans->flatMap(function ($p) {
-                        return $p->details;
-                    })->sum('qty_diambil_sekarang');
+                    $sumPercent = 0;
+                    $itemsCompleted = 0;
+                    $totalDikeluarkan = 0;
+                    foreach ($materials as $m) {
+                        $needed = (float) $m->total_kebutuhan;
+                        $issued = (float) $m->total_keluar_gudang;
+                        $totalDikeluarkan += $issued;
+                        $itemPct = $needed > 0 ? min(100, ($issued / $needed) * 100) : 100;
+                        $sumPercent += $itemPct;
+                        if ($issued >= $needed && $needed > 0) {
+                            $itemsCompleted++;
+                        }
+                    }
 
-                    $totalDiambil = max($totalDiambilFromMaterials, $totalDiambilFromDetails);
+                    $percent = $totalBahan > 0 ? round($sumPercent / $totalBahan, 1) : 0;
 
-                    $rawPercent = $totalKebutuhan > 0 ? ($totalDiambil / $totalKebutuhan) * 100 : 0;
-
-                    if ($totalDiambil >= $totalKebutuhan && $totalKebutuhan > 0) {
-                        $badgeClass  = 'spk-badge-green';
-                        $statusText  = 'Lengkap (100%)';
-                        $barWidth    = 100;
-                        $barGradient = 'background: linear-gradient(90deg, #10b981, #059669);';
-                    } elseif ($totalDiambil > 0) {
-                        $badgeClass  = 'spk-badge-cyan';
-                        $percentDisplay = $rawPercent < 1 ? number_format($rawPercent, 2) : number_format($rawPercent, 1);
-                        $statusText  = 'Sebagian (' . $percentDisplay . '%)';
-                        $barWidth    = max(4, min(99, round($rawPercent, 1)));
-                        $barGradient = 'background: linear-gradient(90deg, #3b82f6, #06b6d4);';
+                    if ($percent >= 100 || $itemsCompleted === $totalBahan) {
+                        $badgeClass = 'spk-badge-green';
+                        $barGradient = 'background: linear-gradient(90deg, #10b981, #34d399);';
+                        $statusText = 'Lengkap (100%)';
+                        $barWidth = 100;
+                    } elseif ($percent > 0 || $totalDikeluarkan > 0) {
+                        $badgeClass = 'spk-badge-cyan';
+                        $barGradient = 'background: linear-gradient(90deg, #0284c7, #38bdf8);';
+                        $statusText = $percent . '% Terpenuhi';
+                        $barWidth = max(4, min(100, $percent));
                     } else {
-                        $badgeClass  = 'spk-badge-amber';
-                        $statusText  = 'Belum Diambil (0%)';
-                        $barWidth    = 0;
-                        $barGradient = 'background: linear-gradient(90deg, #f59e0b, #d97706);';
+                        $badgeClass = 'spk-badge-red';
+                        $barGradient = 'background: linear-gradient(90deg, #ef4444, #f87171);';
+                        $statusText = 'Belum Keluar';
+                        $barWidth = 0;
                     }
 
-                    return '<div style="min-width: 175px;">
-                        <div class="d-flex justify-content-between align-items-center mb-1.5" style="font-size: 11px;">
-                            <span class="badge rounded-pill px-2.5 py-0.5 ' . $badgeClass . ' font-monospace fw-bold">' . $statusText . '</span>
-                            <span class="spk-text-muted font-monospace fw-semibold">' . $totalBahan . ' Item</span>
+                    return '<div style="min-width: 190px; max-width: 250px;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge rounded-pill px-2.5 py-0.5 ' . $badgeClass . ' font-monospace fw-bold" style="font-size: 10.5px;">' . $statusText . '</span>
+                            <span class="badge bg-light text-secondary border rounded-pill px-2 py-0.5 font-monospace fw-semibold" style="font-size: 10.5px;">' . $itemsCompleted . '/' . $totalBahan . ' Item Selesai</span>
                         </div>
-                        <div class="progress shadow-inner" style="height: 7px; border-radius: 99px; background-color: rgba(128,128,128,0.2); box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);">
+                        <div class="progress" style="height: 6px; border-radius: 99px; background-color: rgba(128,128,128,0.18);">
                             <div class="progress-bar rounded-pill" role="progressbar" style="width: ' . $barWidth . '%; ' . $barGradient . '" aria-valuenow="' . $barWidth . '" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                     </div>';
@@ -141,36 +150,66 @@ class PengeluaranBahanController extends Controller
                     $lastDate = $last && $last->tanggal_pengeluaran ? $last->tanggal_pengeluaran->format('d/m/Y') : '-';
 
                     if ($count === 0) {
-                        return '<span class="badge spk-badge-muted rounded-pill px-2.5 py-1 small"><i>Belum ada sesi</i></span>';
+                        return '<span class="badge rounded-pill px-2.5 py-1 small fw-semibold text-secondary bg-light border border-secondary border-opacity-25" style="font-size: 10.5px;">
+                            <i class="bi bi-dash-circle me-1"></i>Belum ada sesi
+                        </span>';
                     }
 
-                    return '<div>
-                        <span class="badge spk-badge-blue rounded-pill px-3 py-1 font-monospace fw-bold" style="font-size: 11.5px;">
-                            <i class="bi bi-file-earmark-text me-1"></i>' . $count . ' Sesi Penyerahan
-                        </span>
-                        <div class="small spk-text-muted mt-1 font-monospace" style="font-size: 11px;">
-                            <i class="bi bi-clock me-1 text-primary"></i>Terakhir: ' . $lastDate . '
+                    return '<div class="d-flex flex-column gap-1">
+                        <div>
+                            <span class="badge spk-badge-blue rounded-pill px-2.5 py-0.5 font-monospace fw-bold" style="font-size: 11px;">
+                                <i class="bi bi-file-earmark-text me-1"></i>' . $count . ' Sesi Penyerahan
+                            </span>
+                        </div>
+                        <div class="small spk-text-muted font-monospace" style="font-size: 10.5px;">
+                            <i class="bi bi-clock me-1 text-primary"></i>Terakhir: <span class="text-dark fw-semibold">' . $lastDate . '</span>
                         </div>
                     </div>';
                 })
                 ->addColumn('status_spk', function ($spk) {
+                    $statusHtml = '<div class="d-flex flex-column align-items-center justify-content-center gap-1 text-nowrap">';
                     if ($spk->status === 'In Progress') {
-                        return '<span class="badge spk-badge-cyan rounded-pill px-3 py-1 fw-bold spk-badge-pulse" style="font-size: 11.5px;"><i class="bi bi-play-circle-fill me-1"></i>In Progress</span>';
+                        $statusHtml .= '<span class="badge spk-badge-cyan rounded-pill px-2.5 py-0.5 fw-bold spk-badge-pulse" style="font-size: 10.5px;"><i class="bi bi-play-circle-fill me-1"></i>In Progress</span>';
                     } elseif ($spk->status === 'Completed') {
-                        return '<span class="badge spk-badge-green rounded-pill px-3 py-1 fw-bold" style="font-size: 11.5px;"><i class="bi bi-check-circle-fill me-1"></i>Completed</span>';
+                        $statusHtml .= '<span class="badge spk-badge-green rounded-pill px-2.5 py-0.5 fw-bold" style="font-size: 10.5px;"><i class="bi bi-check-circle-fill me-1"></i>Completed</span>';
+                    } else {
+                        $statusHtml .= '<span class="badge spk-badge-muted rounded-pill px-2.5 py-0.5" style="font-size: 10.5px;">' . e($spk->status) . '</span>';
                     }
-                    return '<span class="badge spk-badge-muted rounded-pill px-3 py-1" style="font-size: 11.5px;">' . e($spk->status) . '</span>';
+
+                    $statusClosing = $spk->material_closing_status ?: ($spk->is_material_closed ? 'Closed' : 'Open');
+
+                    if ($statusClosing === 'Closed' || $spk->is_material_closed) {
+                        $closedAt = $spk->material_closed_at ? $spk->material_closed_at->format('d/m/Y') : '';
+                        $byName = $spk->materialClosedBy?->nama_lengkap ?: ($spk->materialClosedBy?->name ?? 'User');
+                        $statusHtml .= '<span class="badge rounded-pill px-2.5 py-0.5 font-monospace fw-bold text-white shadow-2xs" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); font-size: 10px;" title="Closed oleh ' . e($byName) . ' (' . $closedAt . ')"><i class="bi bi-lock-fill me-1"></i>Closed</span>';
+                    } elseif ($statusClosing === 'Menunggu Closing') {
+                        $reqAt = $spk->material_closing_requested_at ? $spk->material_closing_requested_at->format('d/m/Y H:i') : '';
+                        $reqBy = $spk->materialClosingRequestedBy?->nama_lengkap ?: ($spk->materialClosingRequestedBy?->name ?? 'Tim Produksi');
+                        $statusHtml .= '<span class="badge rounded-pill px-2.5 py-0.5 font-monospace fw-bold text-dark shadow-2xs spk-badge-pulse" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); font-size: 10px; border: 1px solid #d97706;" title="Diajukan oleh: ' . e($reqBy) . ' (' . $reqAt . ')"><i class="bi bi-hourglass-split me-1"></i>Menunggu Closing</span>';
+                    } elseif ($statusClosing === 'Ditolak') {
+                        $rejBy = $spk->materialClosingRejectedBy?->nama_lengkap ?: ($spk->materialClosingRejectedBy?->name ?? 'Accounting');
+                        $statusHtml .= '<span class="badge rounded-pill px-2.5 py-0.5 font-monospace fw-bold text-white shadow-2xs" style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); font-size: 10px;" title="Ditolak oleh ' . e($rejBy) . ': ' . e($spk->material_closing_reject_reason) . '"><i class="bi bi-x-circle-fill me-1"></i>Closing Ditolak</span>';
+                    } else {
+                        $statusHtml .= '<span class="badge rounded-pill px-2.5 py-0.5 font-monospace fw-semibold" style="background: rgba(6, 182, 212, 0.12); color: #0284c7; border: 1px solid rgba(6, 182, 212, 0.3); font-size: 10px;" title="Open (Pengeluaran Bahan Terbuka)"><i class="bi bi-unlock-fill me-1"></i>Open</span>';
+                    }
+                    $statusHtml .= '</div>';
+                    return $statusHtml;
                 })
                 ->addColumn('action', function ($spk) use ($user) {
-                    $canTambah = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('tambah-pengeluaran-bahan');
-                    $canDetail = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('detail-pengeluaran-bahan');
-                    $canJurnalFull = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-jurnal-full-pengeluaran-bahan') || $user->can('lihat-jurnal-pengeluaran-bahan');
+                    $canTambah      = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('tambah-pengeluaran-bahan');
+                    $canDetail      = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('detail-pengeluaran-bahan') || $user->can('lihat-pengeluaran-bahan');
+                    $canAjukan      = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('ajukan-closing-pengeluaran-bahan');
+                    $canBatalAjukan = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('batal-ajukan-closing-pengeluaran-bahan');
+                    $canClosing     = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('closing-pengeluaran-bahan');
+                    $canReopen      = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('buka-closing-pengeluaran-bahan');
+                    $canJurnal      = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-jurnal-pengeluaran-bahan') || $user->can('lihat-jurnal-full-pengeluaran-bahan') || $user->can('lihat-jurnal');
 
                     $bName = $spk->barangJadi ? addslashes($spk->barangJadi->nama_barang) : '';
                     $bKode = $spk->barangJadi ? addslashes($spk->barangJadi->kode_barang) : '';
                     $spkNomor = addslashes($spk->nomor_spk);
+                    $statusClosing = $spk->material_closing_status ?: ($spk->is_material_closed ? 'Closed' : 'Open');
 
-                    $btn = '<div class="d-flex align-items-center justify-content-center gap-2">';
+                    $btn = '<div class="d-inline-flex align-items-center justify-content-center gap-1.5 text-nowrap">';
                     
                     $hasUnfinishedMaterials = false;
                     foreach ($spk->materials as $m) {
@@ -180,30 +219,76 @@ class PengeluaranBahanController extends Controller
                         }
                     }
 
-                    if ($canTambah && ($spk->status === 'In Progress' || ($spk->status === 'Completed' && $hasUnfinishedMaterials))) {
-                        $btn .= '<button type="button" class="btn btn-sm btn-primary rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-flex align-items-center gap-1.5"
+                    // 1. Tombol Keluarkan Bahan (Hanya jika SPK In Progress/Completed, belum Closed, & status closing bukan Closed/Menunggu)
+                    if (in_array($spk->status, ['In Progress', 'Completed']) && $statusClosing !== 'Closed' && $statusClosing !== 'Menunggu Closing' && !$spk->is_material_closed && $canTambah) {
+                        $btn .= '<button type="button" class="btn btn-sm btn-primary rounded-pill px-2.5 py-1 fw-bold shadow-2xs d-inline-flex align-items-center gap-1"
                                     onclick="keluarkanBahanSpk(' . $spk->id . ', \'' . $spkNomor . '\', \'[' . $bKode . '] ' . $bName . '\', \'' . $spk->status . '\')"
-                                    title="Keluarkan Bahan untuk SPK ini">
+                                    title="Keluarkan Bahan Baku untuk SPK ini">
                                     <i class="bi bi-plus-lg"></i>
                                     <span>Keluarkan</span>
                                  </button>';
                     }
 
+                    // 2. Tombol Riwayat Sesi (Selalu ada)
                     if ($canDetail) {
-                        $btn .= '<button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-1.5 fw-semibold shadow-xs d-flex align-items-center gap-1.5"
+                        $btn .= '<button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 fw-semibold shadow-2xs d-inline-flex align-items-center gap-1"
                                     onclick="showSpkHistoryModal(' . $spk->id . ')"
-                                    title="Lihat Detail & Riwayat Pengeluaran">
+                                    title="Lihat Detail & Riwayat Sesi Pengeluaran">
                                     <i class="bi bi-clock-history text-info"></i>
                                     <span>Riwayat</span>
                                  </button>';
                     }
 
-                    if ($canJurnalFull && $spk->pengeluaranBahans->count() > 0) {
-                        $btn .= '<button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold shadow-xs d-inline-flex align-items-center gap-1.5"
-                                    onclick="showSpkJurnalFullPbModal(' . $spk->id . ', \'' . e($spk->nomor_spk) . '\')"
-                                    title="Lihat Jurnal Full Akuntansi Pengeluaran Bahan Baku">
-                                    <i class="bi bi-journal-bookmark-fill" style="color:#0284c7;"></i>
-                                    <span>Jurnal Full</span>
+                    // 3. Tombol Ajukan Closing (Jika status Open / Ditolak & minimal ada 1 sesi penyerahan)
+                    if (($statusClosing === 'Open' || $statusClosing === 'Ditolak') && !$spk->is_material_closed && $canAjukan && $spk->pengeluaranBahans->count() > 0) {
+                        $btn .= '<button type="button" class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-1 fw-bold shadow-2xs d-inline-flex align-items-center gap-1"
+                                    onclick="bukaModalAjukanClosing(' . $spk->id . ', \'' . $spkNomor . '\')"
+                                    title="Ajukan Penutupan Pengeluaran Bahan ke Bagian Accounting">
+                                    <i class="bi bi-send-check"></i>
+                                    <span>Ajukan Closing</span>
+                                 </button>';
+                    }
+
+                    // 4. Jika Status Menunggu Closing:
+                    if ($statusClosing === 'Menunggu Closing' && !$spk->is_material_closed) {
+                        // A. Tombol Review & Setujui (Jika user memiliki hak otorisasi closing)
+                        if ($canClosing) {
+                            $btn .= '<button type="button" class="btn btn-sm btn-warning rounded-pill px-2.5 py-1 fw-bold shadow-2xs d-inline-flex align-items-center gap-1 text-dark"
+                                        onclick="bukaModalReviewClosing(' . $spk->id . ', \'' . $spkNomor . '\')"
+                                        title="Review & Otorisasi Closing Pengeluaran Bahan">
+                                        <i class="bi bi-shield-check"></i>
+                                        <span>Review & Setujui</span>
+                                     </button>';
+                        }
+
+                        // B. Tombol Batal Ajukan (Hanya jika role memiliki izin batal-ajukan-closing-pengeluaran-bahan atau Super Admin / Owner)
+                        if ($canBatalAjukan) {
+                            $btn .= '<button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1 fw-semibold shadow-2xs d-inline-flex align-items-center gap-1"
+                                        onclick="batalAjukanClosing(' . $spk->id . ', \'' . $spkNomor . '\')"
+                                        title="Batalkan Pengajuan Closing">
+                                        <i class="bi bi-x-circle"></i>
+                                        <span>Batal Ajukan</span>
+                                     </button>';
+                        }
+                    }
+
+                    // 5. Jika Sudah Closed: Tombol Lihat Jurnal Konsolidasi Closing
+                    if (($statusClosing === 'Closed' || $spk->is_material_closed) && $canJurnal) {
+                        $btn .= '<button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-1 fw-semibold shadow-2xs d-inline-flex align-items-center gap-1"
+                                    onclick="showSpkJurnalClosingModal(' . $spk->id . ', \'' . $spkNomor . '\')"
+                                    title="Lihat Jurnal Akuntansi Konsolidasi Pengeluaran Bahan">
+                                    <i class="bi bi-journal-check text-primary"></i>
+                                    <span>Jurnal</span>
+                                 </button>';
+                    }
+
+                    // 6. Jika Sudah Closed: Tombol Buka Kembali Closing (Reopen)
+                    if (($statusClosing === 'Closed' || $spk->is_material_closed) && $canReopen) {
+                        $btn .= '<button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-1 fw-semibold shadow-2xs d-inline-flex align-items-center gap-1"
+                                    onclick="konfirmasiReopenBahan(' . $spk->id . ', \'' . $spkNomor . '\')"
+                                    title="Buka Kembali Closing Bahan (Reopen)">
+                                    <i class="bi bi-unlock-fill"></i>
+                                    <span>Reopen</span>
                                  </button>';
                     }
 
@@ -211,31 +296,46 @@ class PengeluaranBahanController extends Controller
                     return $btn;
                 })
                 ->rawColumns(['spk_info', 'progress_pengeluaran', 'frekuensi_sesi', 'status_spk', 'action'])
+                ->with([
+                    'totalPengeluaran'   => SpkPengeluaranBahan::forActiveCompany()->count(),
+                    'spkInProgress'      => SpkProduksi::forActiveCompany()->where('status', 'In Progress')->count(),
+                    'pengeluaranHariIni' => SpkPengeluaranBahan::forActiveCompany()->where(function ($q) {
+                        $today = date('Y-m-d');
+                        $q->whereDate('tanggal_pengeluaran', $today)
+                          ->orWhereDate('created_at', $today);
+                    })->count(),
+                ])
                 ->make(true);
         }
 
         $activeCompanyId = session('active_company_id');
 
-        // SPK yang sedang berjalan (In Progress) atau Completed dengan bahan belum selesai dikeluarkan
+        // SPK yang sudah berjalan (In Progress) dan belum di-closing
         $spkList = SpkProduksi::forActiveCompany()
+            ->whereIn('status', ['In Progress', 'Completed'])
             ->where(function ($query) {
-                $query->where('status', 'In Progress')
-                      ->orWhere(function ($q) {
-                          $q->where('status', 'Completed')
-                            ->whereHas('materials', function ($qm) {
-                                $qm->whereColumn('total_keluar_gudang', '<', 'total_kebutuhan');
-                            });
-                      });
+                $query->where('is_material_closed', false)
+                      ->orWhereNull('is_material_closed');
+            })
+            ->where(function ($query) {
+                $query->whereNull('material_closing_status')
+                      ->orWhere('material_closing_status', '!=', 'Closed');
             })
             ->with(['barangJadi', 'satuan', 'materials'])
             ->orderBy('id', 'desc')
             ->get();
 
-        // Master Gudang list (Bahan Baku / Umum)
-        $gudangList = MasterGudang::forActiveCompany()
-            ->active()
-            ->orderBy('nama_gudang', 'asc')
-            ->get();
+        $activeCompanyId = session('active_company_id');
+        $activeBranchId  = session('active_branch_id');
+
+        // Master Gudang list (Bahan Baku / Umum) - DISARING KETAT SESUAI CABANG VS PT PUSAT
+        $gudangQuery = MasterGudang::forActiveCompany()->active();
+        if (!empty($activeBranchId)) {
+            $gudangQuery->where('cabang_id', $activeBranchId);
+        } else {
+            $gudangQuery->whereNull('cabang_id');
+        }
+        $gudangList = $gudangQuery->orderBy('nama_gudang', 'asc')->get();
 
         // Master Karyawan for Penyerah & Penerima
         $karyawanList = Karyawan::forActiveCompany()
@@ -355,50 +455,6 @@ class PengeluaranBahanController extends Controller
                 ->latest('id')
                 ->paginate($perPage);
 
-            // Auto-generate jurnal jika ada yang belum punya jurnal (hanya pada halaman ini)
-            $needsReload = false;
-            foreach ($sessions->items() as $pb) {
-                if (!$pb->jurnal) {
-                    $itemsJurnal = [];
-                    foreach ($pb->details as $d) {
-                        $bm = $d->barangMentah ?: MasterBarang::find($d->barang_mentah_id);
-                        $qty = (float)$d->qty_diambil_sekarang;
-                        $stokGudang = StokGudang::where('barang_id', $d->barang_mentah_id)
-                            ->where('gudang_id', $pb->gudang_id)->first();
-                        $hpp = $stokGudang ? (float)$stokGudang->harga_pokok_rata_rata : ($bm ? (float)$bm->harga_pokok : 0);
-                        if ($hpp <= 0 && $bm && (float)$bm->harga_beli > 0) {
-                            $hpp = (float)$bm->harga_beli;
-                        }
-                        if ($hpp <= 0) { $hpp = 1000; }
-                        $nilai = round($qty * $hpp, 4);
-                        if ($bm && $nilai > 0) {
-                            $itemsJurnal[] = ['barang' => $bm, 'nilai' => $nilai];
-                        }
-                    }
-                    if (!empty($itemsJurnal)) {
-                        $this->createJurnalPengeluaran($pb, $itemsJurnal);
-                        $needsReload = true;
-                    }
-                }
-            }
-
-            // Reload relasi jurnal jika ada yang baru di-generate
-            if ($needsReload) {
-                $sessions = SpkPengeluaranBahan::where('spk_id', $spkId)
-                    ->with([
-                        'gudang:id,kode_gudang,nama_gudang',
-                        'penyerah:id,nama_lengkap',
-                        'penerima:id,nama_lengkap',
-                        'creator:id,nama_lengkap',
-                        'details.barangMentah:id,kode_barang,nama_barang,satuan_id',
-                        'details.barangMentah.satuan:id,nama_satuan',
-                        'details.satuan:id,nama_satuan',
-                        'jurnal.details.account:id,code,name',
-                    ])
-                    ->latest('id')
-                    ->paginate($perPage, ['*'], 'page', $request->get('page', 1));
-            }
-
             return response()->json([
                 'success'      => true,
                 'data'         => $sessions->items(),
@@ -431,6 +487,27 @@ class PengeluaranBahanController extends Controller
             $spk = SpkProduksi::forActiveCompany()
                 ->with(['materials.barangMentah.satuan', 'materials.satuan', 'barangJadi.satuan'])
                 ->findOrFail($spkId);
+
+            if (!in_array($spk->status, ['In Progress', 'Completed'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Pengeluaran bahan baku ditolak! SPK {$spk->nomor_spk} belum dimulai (Status saat ini: {$spk->status}). Harap tekan tombol 'Mulai' / 'Mulai Produksi' pada Modul SPK terlebih dahulu!"
+                ], 422);
+            }
+
+            if ($spk->is_material_closed || $spk->material_closing_status === 'Closed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pengeluaran bahan untuk SPK ini sudah di-Closing. Operasional pengeluaran bahan terkunci!'
+                ], 422);
+            }
+
+            if ($spk->material_closing_status === 'Menunggu Closing') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'SPK ini sedang dalam status Menunggu Closing. Batalkan pengajuan closing terlebih dahulu jika ingin mengeluarkan bahan!'
+                ], 422);
+            }
 
             $gudangId = request('gudang_id');
 
@@ -523,12 +600,61 @@ class PengeluaranBahanController extends Controller
         }
 
         $spk = SpkProduksi::forActiveCompany()->findOrFail($request->spk_id);
-        $companyId = $spk->company_id ?? session('active_company_id') ?: 1;
 
-        // Auto generate document number: MAT/YYYY/MM/XXXXX
+        if (!in_array($spk->status, ['In Progress', 'Completed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => "Pengeluaran bahan baku ditolak! SPK {$spk->nomor_spk} belum dimulai (Status saat ini: {$spk->status}). Harap tekan tombol 'Mulai' / 'Mulai Produksi' pada Modul SPK terlebih dahulu!"
+            ], 422);
+        }
+
+        if ($spk->is_material_closed || $spk->material_closing_status === 'Closed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengeluaran bahan untuk SPK ini sudah di-Closing. Operasional pengeluaran bahan terkunci!'
+            ], 422);
+        }
+
+        if ($spk->material_closing_status === 'Menunggu Closing') {
+            return response()->json([
+                'success' => false,
+                'message' => 'SPK ini sedang dalam status Menunggu Closing. Batalkan pengajuan closing terlebih dahulu jika ingin menambah pengeluaran bahan!'
+            ], 422);
+        }
+
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id') ?: ($user->company_id ?? 1);
+
+        // Pastikan entitas transaksi mengikuti pemilik SPK / sesi aktif
+        $isBranch = !empty($spk->branch_id) || !empty($activeBranchId);
+        $finalBranchId  = $isBranch ? ($spk->branch_id ?: $activeBranchId) : null;
+        $finalCompanyId = $isBranch ? null : ($spk->company_id ?: $activeCompanyId);
+
+        // Security check: Pastikan gudang yang dipilih sesuai dengan entitas (Cabang vs PT)
+        $selectedGudang = MasterGudang::findOrFail($request->gudang_id);
+        if ($isBranch) {
+            if ($selectedGudang->cabang_id != $finalBranchId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gudang yang dipilih tidak sesuai dengan Cabang aktif!'
+                ], 422);
+            }
+        } else {
+            if (!empty($selectedGudang->cabang_id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gudang yang dipilih adalah milik Cabang, bukan PT Pusat!'
+                ], 422);
+            }
+        }
+
+        // Auto generate document number: MAT-PT/YYYY/MM/XXXXX atau MAT-CBG/YYYY/MM/XXXXX
         $yearMonth = date('Y/m', strtotime($request->tanggal_pengeluaran));
-        $prefix = "MAT/{$yearMonth}/";
-        $lastNo = SpkPengeluaranBahan::where('nomor_pengeluaran', 'like', "{$prefix}%")
+        $prefix = $isBranch ? "MAT-CBG/{$yearMonth}/" : "MAT-PT/{$yearMonth}/";
+
+        $lastNo = SpkPengeluaranBahan::withTrashed()
+            ->where('nomor_pengeluaran', 'like', "{$prefix}%")
+            ->orderBy('nomor_pengeluaran', 'desc')
             ->orderBy('id', 'desc')
             ->value('nomor_pengeluaran');
 
@@ -536,13 +662,23 @@ class PengeluaranBahanController extends Controller
         if ($lastNo && preg_match('/\/(\d+)$/', $lastNo, $m)) {
             $nextSeq = (int)$m[1] + 1;
         }
-        $nomorPengeluaran = $prefix . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
+
+        // Loop safety agar nomor pengeluaran selalu unik dan tidak terjadi tabrakan
+        do {
+            $nomorPengeluaran = $prefix . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
+            $exists = SpkPengeluaranBahan::withTrashed()
+                ->where('nomor_pengeluaran', $nomorPengeluaran)
+                ->exists();
+            if ($exists) {
+                $nextSeq++;
+            }
+        } while ($exists);
 
         DB::beginTransaction();
         try {
             $pengeluaran = SpkPengeluaranBahan::create([
-                'company_id'           => $companyId,
-                'branch_id'            => $spk->branch_id,
+                'company_id'           => $finalCompanyId,
+                'branch_id'            => $finalBranchId,
                 'nomor_pengeluaran'    => $nomorPengeluaran,
                 'tanggal_pengeluaran'  => $request->tanggal_pengeluaran,
                 'spk_id'               => $spk->id,
@@ -618,9 +754,22 @@ class PengeluaranBahanController extends Controller
                 // Deduct Inventory Stock in StokGudang
                 $stokAkhir = $stokAwal - $qtyTaken;
                 $barangMentah = MasterBarang::find($item['barang_mentah_id']);
-                $hpp = (float)$stokGudang->harga_pokok_rata_rata;
+                $hpp = (float)($stokGudang->harga_pokok_rata_rata ?? 0);
+                if ($hpp <= 0 && (float)($stokGudang->harga_beli_terakhir ?? 0) > 0) {
+                    $hpp = (float)$stokGudang->harga_beli_terakhir;
+                }
                 if ($hpp <= 0 && $barangMentah) {
                     $hpp = (float)($barangMentah->harga_pokok_rata_rata ?: ($barangMentah->harga_pokok ?: ($barangMentah->harga_beli ?: 0)));
+                }
+                if ($hpp <= 0) {
+                    $validSg = StokGudang::where('barang_id', $item['barang_mentah_id'])
+                        ->where(function($q) {
+                            $q->where('harga_pokok_rata_rata', '>', 0)
+                              ->orWhere('harga_beli_terakhir', '>', 0);
+                        })->first();
+                    if ($validSg) {
+                        $hpp = (float)($validSg->harga_pokok_rata_rata > 0 ? $validSg->harga_pokok_rata_rata : $validSg->harga_beli_terakhir);
+                    }
                 }
                 if ($hpp <= 0) {
                     $hpp = 1000; // default nominal jika belum ada histori harga
@@ -659,14 +808,13 @@ class PengeluaranBahanController extends Controller
                 }
             }
 
-            // Create Automatic Accounting Journal (Debit: WIP, Credit: Persediaan Bahan Baku)
-            $this->createJurnalPengeluaran($pengeluaran, $itemsJurnal);
+            // Catatan: Jurnal Akuntansi tidak dibuat per sesi pengeluaran, melainkan 1 jurnal konsolidasi saat Closing Pengeluaran Bahan SPK.
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => "Pengeluaran bahan baku {$nomorPengeluaran} berhasil dicatat, stok gudang terpotong, & jurnal akuntansi diterbitkan!",
+                'message' => "Pengeluaran bahan baku {$nomorPengeluaran} berhasil dicatat & stok gudang telah terpotong!",
                 'id'      => $pengeluaran->id
             ], 200);
 
@@ -723,6 +871,20 @@ class PengeluaranBahanController extends Controller
             return response()->json(['success' => false, 'message' => 'Data SPK terkait tidak ditemukan.'], 404);
         }
 
+        if ($spk->is_material_closed || $spk->material_closing_status === 'Closed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengeluaran bahan untuk SPK ini sudah di-Closing. Anda tidak dapat mengubah data pengeluaran!'
+            ], 422);
+        }
+
+        if ($spk->material_closing_status === 'Menunggu Closing') {
+            return response()->json([
+                'success' => false,
+                'message' => 'SPK ini sedang dalam status Menunggu Closing. Batalkan pengajuan closing terlebih dahulu jika ingin mengubah data pengeluaran bahan!'
+            ], 422);
+        }
+
         $request->validate([
             'gudang_id'            => 'required|exists:master_gudang,id',
             'tanggal_pengeluaran'  => 'required|date',
@@ -749,6 +911,25 @@ class PengeluaranBahanController extends Controller
             ], 422);
         }
 
+        // Security check: Pastikan gudang yang dipilih sesuai dengan entitas (Cabang vs PT)
+        $isBranch = !empty($pengeluaran->branch_id);
+        $selectedGudang = MasterGudang::findOrFail($request->gudang_id);
+        if ($isBranch) {
+            if ($selectedGudang->cabang_id != $pengeluaran->branch_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gudang yang dipilih tidak sesuai dengan Cabang pemilik dokumen!'
+                ], 422);
+            }
+        } else {
+            if (!empty($selectedGudang->cabang_id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gudang yang dipilih adalah milik Cabang, bukan PT Pusat!'
+                ], 422);
+            }
+        }
+
         DB::beginTransaction();
         try {
             // STEP 1: Revert old stock & SPK material counts
@@ -764,10 +945,16 @@ class PengeluaranBahanController extends Controller
                     ['stok_aktual' => 0.00, 'nilai_persediaan' => 0.0000, 'harga_pokok_rata_rata' => 0.000000]
                 );
 
+                $ksOrig = KartuStok::where('referensi_jenis', 'Pengeluaran Bahan SPK')
+                    ->where('referensi_id', $pengeluaran->id)
+                    ->where('barang_id', $d->barang_mentah_id)
+                    ->where('tipe', 'Keluar')
+                    ->first();
+
                 $stokAwal = (float)$stokGudang->stok_aktual;
                 $stokAkhir = $stokAwal + $qtyOld;
-                $hpp = (float)$stokGudang->harga_pokok_rata_rata;
-                $nilaiRevert = round($qtyOld * $hpp, 4);
+                $hpp = (float)($stokGudang->harga_pokok_rata_rata ?? 0);
+                $nilaiRevert = $ksOrig ? (float)$ksOrig->nilai_total : round($qtyOld * ($hpp > 0 ? $hpp : (float)($stokGudang->harga_beli_terakhir ?? 0)), 4);
 
                 $stokGudang->update([
                     'stok_aktual'      => $stokAkhir,
@@ -854,9 +1041,22 @@ class PengeluaranBahanController extends Controller
                 // Deduct stock in StokGudang
                 $stokAkhir = $stokAwal - $qtyTaken;
                 $barangMentah = MasterBarang::find($item['barang_mentah_id']);
-                $hpp = (float)$stokGudang->harga_pokok_rata_rata;
+                $hpp = (float)($stokGudang->harga_pokok_rata_rata ?? 0);
+                if ($hpp <= 0 && (float)($stokGudang->harga_beli_terakhir ?? 0) > 0) {
+                    $hpp = (float)$stokGudang->harga_beli_terakhir;
+                }
                 if ($hpp <= 0 && $barangMentah) {
                     $hpp = (float)($barangMentah->harga_pokok_rata_rata ?: ($barangMentah->harga_pokok ?: ($barangMentah->harga_beli ?: 0)));
+                }
+                if ($hpp <= 0) {
+                    $validSg = StokGudang::where('barang_id', $item['barang_mentah_id'])
+                        ->where(function($q) {
+                            $q->where('harga_pokok_rata_rata', '>', 0)
+                              ->orWhere('harga_beli_terakhir', '>', 0);
+                        })->first();
+                    if ($validSg) {
+                        $hpp = (float)($validSg->harga_pokok_rata_rata > 0 ? $validSg->harga_pokok_rata_rata : $validSg->harga_beli_terakhir);
+                    }
                 }
                 if ($hpp <= 0) {
                     $hpp = 1000; // default nominal jika belum ada histori harga
@@ -905,14 +1105,13 @@ class PengeluaranBahanController extends Controller
                 'updated_by'           => $user->id,
             ]);
 
-            // STEP 4: Regenerate Automatic Accounting Journal
-            $this->createJurnalPengeluaran($pengeluaran, $itemsJurnal);
+            // Catatan: Jurnal Akuntansi diterbitkan saat Closing Pengeluaran Bahan SPK.
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => "Sesi pengeluaran {$pengeluaran->nomor_pengeluaran} berhasil diperbarui, mutasi stok disesuaikan & jurnal akuntansi diregenerasi!",
+                'message' => "Sesi pengeluaran {$pengeluaran->nomor_pengeluaran} berhasil diperbarui & mutasi stok gudang disesuaikan!",
                 'id'      => $pengeluaran->id
             ], 200);
 
@@ -933,7 +1132,21 @@ class PengeluaranBahanController extends Controller
             return response()->json(['message' => 'Anda tidak memiliki hak akses untuk membatalkan pengeluaran bahan.'], 403);
         }
 
-        $pengeluaran = SpkPengeluaranBahan::forActiveCompany()->with('details')->findOrFail($id);
+        $pengeluaran = SpkPengeluaranBahan::forActiveCompany()->with(['details', 'spk'])->findOrFail($id);
+
+        if ($pengeluaran->spk && ($pengeluaran->spk->is_material_closed || $pengeluaran->spk->material_closing_status === 'Closed')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengeluaran bahan untuk SPK ini sudah di-Closing. Anda tidak dapat membatalkan / menghapus sesi pengeluaran ini!'
+            ], 422);
+        }
+
+        if ($pengeluaran->spk && $pengeluaran->spk->material_closing_status === 'Menunggu Closing') {
+            return response()->json([
+                'success' => false,
+                'message' => 'SPK ini sedang dalam status Menunggu Closing. Batalkan pengajuan closing terlebih dahulu jika ingin membatalkan / menghapus sesi pengeluaran ini!'
+            ], 422);
+        }
 
         DB::beginTransaction();
         try {
@@ -951,10 +1164,16 @@ class PengeluaranBahanController extends Controller
                     ['stok_aktual' => 0.00, 'nilai_persediaan' => 0.0000, 'harga_pokok_rata_rata' => 0.000000]
                 );
 
+                $ksOrig = KartuStok::where('referensi_jenis', 'Pengeluaran Bahan SPK')
+                    ->where('referensi_id', $pengeluaran->id)
+                    ->where('barang_id', $d->barang_mentah_id)
+                    ->where('tipe', 'Keluar')
+                    ->first();
+
                 $stokAwal = (float)$stokGudang->stok_aktual;
                 $stokAkhir = $stokAwal + $qtyRevert;
-                $hpp = (float)$stokGudang->harga_pokok_rata_rata;
-                $nilaiRevert = round($qtyRevert * $hpp, 4);
+                $hpp = (float)($stokGudang->harga_pokok_rata_rata ?? 0);
+                $nilaiRevert = $ksOrig ? (float)$ksOrig->nilai_total : round($qtyRevert * ($hpp > 0 ? $hpp : (float)($stokGudang->harga_beli_terakhir ?? 0)), 4);
 
                 $stokGudang->update([
                     'stok_aktual'      => $stokAkhir,
@@ -1006,148 +1225,804 @@ class PengeluaranBahanController extends Controller
     }
 
     /**
-     * Create automatic accounting journal for raw material issuance to production (WIP).
+     * Get preview data for Closing Pengeluaran Bahan SPK.
      */
-    private function createJurnalPengeluaran(SpkPengeluaranBahan $pengeluaran, array $itemsJurnal): void
+    public function getClosingPreview($spkId)
     {
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('closing-pengeluaran-bahan') && !$user->can('ajukan-closing-pengeluaran-bahan') && !$user->can('lihat-pengeluaran-bahan')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses untuk melihat pratinjau closing pengeluaran bahan.'
+            ], 403);
+        }
+
+        $spk = SpkProduksi::forActiveCompany()
+            ->with([
+                'barangJadi.satuan',
+                'satuan',
+                'branch',
+                'company',
+                'materialClosedBy',
+                'materialClosingRequestedBy',
+                'materialClosingRejectedBy',
+                'materials.barangMentah.satuan',
+                'materials.satuan',
+                'pengeluaranBahans.details.barangMentah.satuan',
+                'pengeluaranBahans.gudang'
+            ])
+            ->findOrFail($spkId);
+
+        $pengeluaranList = $spk->pengeluaranBahans;
+        if ($pengeluaranList->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Belum ada sesi penyerahan bahan baku untuk SPK ini. Tidak dapat memproses closing.'
+            ], 422);
+        }
+
+        $pengeluaranIds = $pengeluaranList->pluck('id');
+        $kartuStoks = KartuStok::where('referensi_jenis', 'Pengeluaran Bahan SPK')
+            ->whereIn('referensi_id', $pengeluaranIds)
+            ->where('tipe', 'Keluar')
+            ->get();
+
+        $materials = $spk->materials;
+        $totalMaterials = $materials->count();
+        $completedCount = 0;
+        $incompleteList = [];
+        $totalPercentSum = 0;
+        $grandTargetQty = 0;
+
+        $itemSummary = [];
+
+        // 1. Initialise all required materials from SPK
+        foreach ($materials as $m) {
+            $bm = $m->barangMentah;
+            $bId = $m->barang_mentah_id;
+            $kebutuhan = (float) $m->total_kebutuhan;
+            $keluar = (float) $m->total_keluar_gudang;
+            $satName = $m->satuan ? $m->satuan->nama_satuan : ($bm && $bm->satuan ? $bm->satuan->nama_satuan : 'Pcs');
+
+            $grandTargetQty += $kebutuhan;
+            $pct = $kebutuhan > 0 ? min(100, round(($keluar / $kebutuhan) * 100, 1)) : 100;
+            $totalPercentSum += $pct;
+
+            if ($keluar >= $kebutuhan) {
+                $completedCount++;
+            } else {
+                $incompleteList[] = [
+                    'barang_id'   => $bId,
+                    'kode_barang' => $bm ? $bm->kode_barang : '-',
+                    'nama_barang' => $bm ? $bm->nama_barang : '-',
+                    'satuan'      => $satName,
+                    'kebutuhan'   => $kebutuhan,
+                    'keluar'      => $keluar,
+                    'sisa'        => max(0, round($kebutuhan - $keluar, 4)),
+                    'percent'     => $pct,
+                ];
+            }
+
+            $itemSummary[$bId] = [
+                'barang_id'        => $bId,
+                'kode_barang'      => $bm ? $bm->kode_barang : '-',
+                'nama_barang'      => $bm ? $bm->nama_barang : '-',
+                'satuan'           => $satName,
+                'target_kebutuhan' => $kebutuhan,
+                'total_qty'        => 0,
+                'total_nilai'      => 0,
+                'barang'           => $bm,
+            ];
+        }
+
+        // 2. Accumulate actual issued quantities from recorded sessions
+        foreach ($pengeluaranList as $p) {
+            foreach ($p->details as $d) {
+                $bId = $d->barang_mentah_id;
+                if (!isset($itemSummary[$bId])) {
+                    $itemSummary[$bId] = [
+                        'barang_id'        => $bId,
+                        'kode_barang'      => $d->barangMentah?->kode_barang ?? '-',
+                        'nama_barang'      => $d->barangMentah?->nama_barang ?? '-',
+                        'satuan'           => $d->satuan?->nama_satuan ?? ($d->barangMentah?->satuan?->nama_satuan ?? 'Pcs'),
+                        'target_kebutuhan' => (float)$d->qty_total_spk,
+                        'total_qty'        => 0,
+                        'total_nilai'      => 0,
+                        'barang'           => $d->barangMentah,
+                    ];
+                }
+                $itemSummary[$bId]['total_qty'] += (float)$d->qty_diambil_sekarang;
+            }
+        }
+
+        // 3. Accumulate total values from KartuStok
+        foreach ($kartuStoks as $ks) {
+            $bId = $ks->barang_id;
+            if (isset($itemSummary[$bId])) {
+                $itemSummary[$bId]['total_nilai'] += (float)$ks->nilai_total;
+            }
+        }
+
+        $grandTotalNilai = 0;
+        $grandTotalQty   = 0;
+
+        foreach ($itemSummary as $bId => &$info) {
+            $sisaTarget = max(0, round($info['target_kebutuhan'] - $info['total_qty'], 4));
+            $info['sisa_target'] = $sisaTarget;
+            $info['is_lengkap']  = ($sisaTarget <= 0);
+
+            if ($info['total_nilai'] <= 0 && $info['total_qty'] > 0) {
+                $hpp = (float)($info['barang']?->harga_pokok_rata_rata ?: ($info['barang']?->harga_pokok ?: ($info['barang']?->harga_beli ?: 0)));
+                if ($hpp <= 0) {
+                    $validSg = StokGudang::where('barang_id', $bId)
+                        ->where(function($q) {
+                            $q->where('harga_pokok_rata_rata', '>', 0)
+                              ->orWhere('harga_beli_terakhir', '>', 0);
+                        })->first();
+                    if ($validSg) {
+                        $hpp = (float)($validSg->harga_pokok_rata_rata > 0 ? $validSg->harga_pokok_rata_rata : $validSg->harga_beli_terakhir);
+                    }
+                }
+                if ($hpp <= 0) {
+                    $hpp = 1000;
+                }
+                $info['total_nilai'] = round($info['total_qty'] * $hpp, 4);
+            }
+            $grandTotalNilai += $info['total_nilai'];
+            $grandTotalQty   += $info['total_qty'];
+        }
+        unset($info);
+
+        $avgProgress = $totalMaterials > 0 ? round($totalPercentSum / $totalMaterials, 1) : 100;
+        $isComplete  = ($totalMaterials > 0 && $completedCount === $totalMaterials);
+
+        $statusClosing = $spk->material_closing_status ?: ($spk->is_material_closed ? 'Closed' : 'Open');
+        $canApprove    = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('closing-pengeluaran-bahan');
+        $canReject     = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('tolak-closing-pengeluaran-bahan') || $user->can('closing-pengeluaran-bahan');
+        $canAjukan     = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('ajukan-closing-pengeluaran-bahan') || $user->can('tambah-pengeluaran-bahan') || $user->can('closing-pengeluaran-bahan');
+        $canLihatHpp   = $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-pengeluaran-bahan') || $user->can('closing-pengeluaran-bahan');
+
+        $itemsResponse = array_values($itemSummary);
+        if (!$canLihatHpp) {
+            foreach ($itemsResponse as &$it) {
+                $it['total_nilai'] = null;
+            }
+            unset($it);
+            $grandTotalNilai = null;
+        }
+
+        return response()->json([
+            'success' => true,
+            'spk'     => [
+                'id'                      => $spk->id,
+                'nomor_spk'               => $spk->nomor_spk,
+                'barang_jadi'             => $spk->barangJadi?->nama_barang ?? '-',
+                'qty_spk'                 => (float)$spk->jumlah_rencana,
+                'satuan'                  => $spk->satuan?->nama_satuan ?? ($spk->barangJadi?->satuan?->nama_satuan ?? 'Pcs'),
+                'total_sesi'              => $pengeluaranList->count(),
+                'material_closing_status' => $statusClosing,
+                'is_material_closed'      => (bool)$spk->is_material_closed,
+                'requested_by_name'       => $spk->materialClosingRequestedBy?->nama_lengkap ?: ($spk->materialClosingRequestedBy?->name ?? '-'),
+                'requested_at'            => $spk->material_closing_requested_at ? $spk->material_closing_requested_at->format('d/m/Y H:i') : null,
+                'requested_note'          => $spk->material_closing_note,
+                'rejected_by_name'        => $spk->materialClosingRejectedBy?->nama_lengkap ?: ($spk->materialClosingRejectedBy?->name ?? '-'),
+                'rejected_at'             => $spk->material_closing_rejected_at ? $spk->material_closing_rejected_at->format('d/m/Y H:i') : null,
+                'reject_reason'           => $spk->material_closing_reject_reason,
+                'closed_by_name'          => $spk->materialClosedBy?->nama_lengkap ?: ($spk->materialClosedBy?->name ?? '-'),
+                'closed_at'               => $spk->material_closed_at ? $spk->material_closed_at->format('d/m/Y H:i') : null,
+            ],
+            'user_permissions' => [
+                'can_approve'   => $canApprove,
+                'can_reject'    => $canReject,
+                'can_ajukan'    => $canAjukan,
+                'can_lihat_hpp' => $canLihatHpp,
+            ],
+            'completion_status' => [
+                'is_complete'      => $isComplete,
+                'total_materials'  => $totalMaterials,
+                'completed_count'  => $completedCount,
+                'incomplete_count' => count($incompleteList),
+                'avg_progress'     => $avgProgress,
+                'incomplete_list'  => $incompleteList,
+            ],
+            'items'             => $itemsResponse,
+            'grand_target_qty'  => $grandTargetQty,
+            'grand_total_qty'   => $grandTotalQty,
+            'grand_total_nilai' => $grandTotalNilai,
+            'sesi_list'         => $pengeluaranList->map(function ($p) {
+                return [
+                    'id'                => $p->id,
+                    'nomor_pengeluaran' => $p->nomor_pengeluaran,
+                    'tanggal'           => $p->tanggal_pengeluaran ? date('d/m/Y', strtotime($p->tanggal_pengeluaran)) : '-',
+                    'gudang'            => $p->gudang?->nama_gudang ?? '-',
+                    'penerima'          => $p->penerima_nama ?: ($p->penerima?->nama_lengkap ?? '-'),
+                ];
+            }),
+        ]);
+    }
+
+    /**
+     * Submit Closing Request (Ajukan Closing) by Production/Warehouse staff.
+     */
+    public function requestClosingMaterial(Request $request, $spkId)
+    {
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('ajukan-closing-pengeluaran-bahan') && !$user->can('tambah-pengeluaran-bahan') && !$user->can('closing-pengeluaran-bahan')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses untuk mengajukan closing pengeluaran bahan.'
+            ], 403);
+        }
+
+        $request->validate([
+            'catatan' => 'nullable|string|max:255',
+        ]);
+
+        $spk = SpkProduksi::forActiveCompany()->findOrFail($spkId);
+
+        if ($spk->is_material_closed || $spk->material_closing_status === 'Closed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengeluaran bahan untuk SPK ini sudah ditutup (Closed)!'
+            ], 422);
+        }
+
+        if ($spk->material_closing_status === 'Menunggu Closing') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Closing pengeluaran bahan untuk SPK ini sudah dalam antrean pengajuan (Menunggu Closing).'
+            ], 422);
+        }
+
+        if ($spk->pengeluaranBahans()->count() === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Belum ada sesi penyerahan bahan baku untuk SPK ini. Pengajuan closing tidak dapat dilakukan.'
+            ], 422);
+        }
+
+        DB::beginTransaction();
         try {
-            $companyId = $pengeluaran->company_id ?: (session('active_company_id') ?: 1);
-            $totalNilai = 0;
-            $debitGroup = [];
-            $kreditGroup = [];
+            $spk->update([
+                'material_closing_status'       => 'Menunggu Closing',
+                'material_closing_requested_at' => now(),
+                'material_closing_requested_by' => $user->id,
+                'material_closing_note'          => $request->catatan,
+                'material_closing_reject_reason' => null,
+            ]);
 
-            // Debit Account: WIP (Persediaan Barang Dalam Proses)
-            // Hierarki Prioritas:
-            // 1. Mapping Kategori Produk Jadi SPK (inventory_category -> cat_{bjCatId}_wip)
-            // 2. Mapping Modul Produksi WIP (production -> wip_inventory)
-            // 3. Mapping Default WIP (default -> default_wip)
-            // 4. Fallback Otomatis COA Akun WIP (1108% / WIP / Dalam Proses)
-            $spkObj = $pengeluaran->spk ?: SpkProduksi::with('barangJadi')->find($pengeluaran->spk_id);
-            $bjCatId = $spkObj && $spkObj->barangJadi ? ($spkObj->barangJadi->kategori_barang_id ?? $spkObj->barangJadi->kategori_id) : null;
+            DB::commit();
 
-            $wipCoaId = ($bjCatId ? AccountMappingHelper::getCoaId('inventory_category', "cat_{$bjCatId}_wip") : null)
-                     ?? AccountMappingHelper::getCoaId('production', 'wip_inventory')
-                     ?? AccountMappingHelper::getCoaId('default', 'default_wip');
-
-            if (!$wipCoaId) {
-                $wipCoa = ChartOfAccount::forActiveCompany()
-                    ->where(function ($q) {
-                        $q->where('code', 'like', '1108%')
-                          ->orWhere('name', 'like', '%WIP%')
-                          ->orWhere('name', 'like', '%Dalam Proses%')
-                          ->orWhere('name', 'like', '%Setengah Jadi%');
-                    })
-                    ->where('is_header', false)
-                    ->first();
-                $wipCoaId = $wipCoa ? $wipCoa->id : null;
+            // Trigger WhatsApp notification to Accounting / Approvers
+            try {
+                WhatsAppGatewayController::sendPengeluaranBahanClosingSubmissionNotification($spk, $user);
+            } catch (\Throwable $we) {
+                Log::warning('WhatsApp notification on material closing submission error: ' . $we->getMessage());
             }
 
-            // Fallback generic inventory if WIP account not found
-            if (!$wipCoaId) {
-                $wipCoaId = AccountMappingHelper::getCoaId('default', 'default_inventory')
-                         ?? ChartOfAccount::forActiveCompany()->where('code', 'like', '11%')->where('is_header', false)->value('id');
+            return response()->json([
+                'success' => true,
+                'message' => "Pengajuan closing pengeluaran bahan untuk SPK {$spk->nomor_spk} berhasil diajukan! Notifikasi telah dikirimkan ke bagian Accounting.",
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('requestClosingMaterial error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengajukan closing pengeluaran bahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel Closing Request by Requester or Admin.
+     */
+    public function cancelClosingRequest(Request $request, $spkId)
+    {
+        $user = auth()->user();
+        $spk = SpkProduksi::forActiveCompany()->findOrFail($spkId);
+
+        $canCancel = $user->hasAnyRole(['Super Admin', 'Owner']) 
+            || $user->can('batal-ajukan-closing-pengeluaran-bahan');
+
+        if (!$canCancel) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses untuk membatalkan pengajuan closing ini.'
+            ], 403);
+        }
+
+        if ($spk->material_closing_status !== 'Menunggu Closing') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Status pengajuan bukan Menunggu Closing.'
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $spk->update([
+                'material_closing_status'       => 'Open',
+                'material_closing_requested_at' => null,
+                'material_closing_requested_by' => null,
+                'material_closing_note'          => null,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Pengajuan closing untuk SPK {$spk->nomor_spk} berhasil dibatalkan. Operasional pengeluaran bahan kembali terbuka.",
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('cancelClosingRequest error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membatalkan pengajuan closing: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Process Closing Approval of raw material issuances for SPK and issue 1 consolidated accounting journal.
+     */
+    public function closeMaterial(Request $request, $spkId)
+    {
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('closing-pengeluaran-bahan')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses untuk melakukan otorisasi closing pengeluaran bahan.'
+            ], 403);
+        }
+
+        $request->validate([
+            'tanggal_closing' => 'required|date',
+            'catatan'         => 'nullable|string|max:255',
+        ]);
+
+        $spk = SpkProduksi::forActiveCompany()->findOrFail($spkId);
+
+        if ($spk->is_material_closed || $spk->material_closing_status === 'Closed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengeluaran bahan untuk SPK ini sudah di-Closing!'
+            ], 422);
+        }
+
+        if ($spk->pengeluaranBahans()->count() === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Belum ada sesi penyerahan bahan baku untuk SPK ini. Closing tidak dapat diproses.'
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $spk->update([
+                'is_material_closed'      => true,
+                'material_closing_status' => 'Closed',
+                'material_closed_at'      => now(),
+                'material_closed_by'      => $user->id,
+            ]);
+
+            $this->createConsolidatedJurnalClosing($spk, $request->tanggal_closing, $request->catatan);
+
+            DB::commit();
+
+            // Trigger WhatsApp notification for requester
+            try {
+                WhatsAppGatewayController::sendPengeluaranBahanClosingApprovedNotification($spk, $user);
+            } catch (\Throwable $we) {
+                Log::warning('WhatsApp notification on material closing approval error: ' . $we->getMessage());
             }
 
-            foreach ($itemsJurnal as $item) {
-                $barang = $item['barang'];
-                $nilai = (float)$item['nilai'];
-                if ($nilai <= 0) continue;
+            return response()->json([
+                'success' => true,
+                'message' => "Closing pengeluaran bahan untuk SPK {$spk->nomor_spk} berhasil disetujui & 1 jurnal akuntansi konsolidasi telah diterbitkan!",
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('closeMaterial error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memproses closing pengeluaran bahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
-                $totalNilai += $nilai;
+    /**
+     * Reject Closing Request by Accounting / Approver.
+     */
+    public function rejectClosingMaterial(Request $request, $spkId)
+    {
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('tolak-closing-pengeluaran-bahan') && !$user->can('closing-pengeluaran-bahan')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses untuk menolak pengajuan closing pengeluaran bahan.'
+            ], 403);
+        }
 
-                // Credit Account: Persediaan Bahan Baku
-                // Hierarki Prioritas:
-                // 1. Mapping Spesifik per Item Barang (inventory_item -> item_{barangId}_inventory)
-                // 2. Mapping Kategori Barang (inventory_category -> cat_{catId}_inventory) [DIUTAMAKAN]
-                // 3. Mapping Default Persediaan Perusahaan (default -> default_inventory)
-                // 4. Fallback Pencarian COA Akun Persediaan Bahan Baku (1106% / Bahan Baku)
-                $catId = $barang->kategori_barang_id ?? $barang->kategori_id ?? null;
-                $barangId = $barang->id ?? null;
+        $request->validate([
+            'alasan_reject' => 'required|string|max:500',
+        ], [
+            'alasan_reject.required' => 'Alasan penolakan closing wajib diisi!'
+        ]);
 
-                $creditCoaId = ($barangId ? AccountMappingHelper::getCoaId('inventory_item', "item_{$barangId}_inventory") : null)
-                            ?? ($catId ? AccountMappingHelper::getCoaId('inventory_category', "cat_{$catId}_inventory") : null)
-                            ?? AccountMappingHelper::getCoaId('default', 'default_inventory');
+        $spk = SpkProduksi::forActiveCompany()->findOrFail($spkId);
 
-                if (!$creditCoaId) {
-                    $creditCoa = ChartOfAccount::forActiveCompany()
-                        ->where(function ($q) {
-                            $q->where('code', 'like', '1106%')
-                              ->orWhere('name', 'like', '%Bahan Baku%')
-                              ->orWhere('name', 'like', '%Bahan Mentah%')
-                              ->orWhere('name', 'like', '%Persediaan%');
-                        })
-                        ->where('is_header', false)
-                        ->first();
-                    $creditCoaId = $creditCoa ? $creditCoa->id : null;
-                }
+        if ($spk->material_closing_status !== 'Menunggu Closing') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Status SPK bukan Menunggu Closing!'
+            ], 422);
+        }
 
-                if ($wipCoaId && $creditCoaId) {
-                    $debitGroup[$wipCoaId] = ($debitGroup[$wipCoaId] ?? 0) + $nilai;
-                    $kreditGroup[$creditCoaId] = ($kreditGroup[$creditCoaId] ?? 0) + $nilai;
-                }
+        DB::beginTransaction();
+        try {
+            $spk->update([
+                'material_closing_status'        => 'Ditolak',
+                'material_closing_reject_reason' => trim($request->alasan_reject),
+                'material_closing_rejected_at'   => now(),
+                'material_closing_rejected_by'   => $user->id,
+            ]);
+
+            DB::commit();
+
+            // Trigger WhatsApp notification for requester
+            try {
+                WhatsAppGatewayController::sendPengeluaranBahanClosingRejectedNotification($spk, $user, $request->alasan_reject);
+            } catch (\Throwable $we) {
+                Log::warning('WhatsApp notification on material closing rejection error: ' . $we->getMessage());
             }
 
-            if ($totalNilai <= 0 || empty($debitGroup) || empty($kreditGroup)) {
-                return;
-            }
+            return response()->json([
+                'success' => true,
+                'message' => "Pengajuan closing untuk SPK {$spk->nomor_spk} ditolak. Notifikasi telah dikirimkan ke pihak pengaju.",
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('rejectClosingMaterial error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menolak pengajuan closing: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
-            $nomorJurnal = 'JRN/MAT/' . date('Y/m/') . str_pad($pengeluaran->id, 5, '0', STR_PAD_LEFT);
-            $spk = $pengeluaran->spk ?: SpkProduksi::find($pengeluaran->spk_id);
-            $spkNomor = $spk ? $spk->nomor_spk : '-';
+    /**
+     * Reopen material closing for adjustments.
+     */
+    public function reopenMaterial(Request $request, $spkId)
+    {
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('buka-closing-pengeluaran-bahan')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses untuk membuka kembali closing pengeluaran bahan.'
+            ], 403);
+        }
 
-            // Find existing journal (including soft-deleted) or create new
-            $jurnal = Jurnal::withTrashed()
-                ->where('referensi_tipe', 'Pengeluaran Bahan SPK')
-                ->where('referensi_id', $pengeluaran->id)
+        $spk = SpkProduksi::forActiveCompany()->findOrFail($spkId);
+
+        if (!$spk->is_material_closed && $spk->material_closing_status !== 'Closed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'SPK ini belum di-closing atau status pengeluaran bahan masih terbuka.'
+            ], 422);
+        }
+
+        if ($spk->is_hpp_closed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat membuka closing bahan karena perhitungan HPP SPK sudah di-closing!'
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $spk->update([
+                'is_material_closed'             => false,
+                'material_closing_status'        => 'Open',
+                'material_closed_at'             => null,
+                'material_closed_by'             => null,
+                'material_closing_requested_at'  => null,
+                'material_closing_requested_by'  => null,
+                'material_closing_note'           => null,
+                'material_closing_reject_reason'  => null,
+                'material_closing_rejected_at'    => null,
+                'material_closing_rejected_by'    => null,
+            ]);
+
+            // Soft-delete or delete consolidated journal
+            $jurnal = Jurnal::where('referensi_tipe', 'Pengeluaran Bahan SPK')
+                ->where('referensi_id', $spk->id)
                 ->first();
 
             if ($jurnal) {
-                $jurnal->restore();
-                $jurnal->update([
-                    'tanggal_jurnal'  => $pengeluaran->tanggal_pengeluaran,
-                    'branch_id'       => $pengeluaran->branch_id,
-                    'total_debit'     => $totalNilai,
-                    'total_kredit'    => $totalNilai,
-                    'keterangan'      => "Pengeluaran Bahan Baku SPK #{$spkNomor} ({$pengeluaran->nomor_pengeluaran})",
-                    'updated_by'      => auth()->id(),
-                ]);
-                // Wipe old details and insert fresh ones
-                $jurnal->details()->delete();
-            } else {
-                $jurnal = Jurnal::create([
-                    'nomor_jurnal'    => $nomorJurnal,
-                    'tanggal_jurnal'  => $pengeluaran->tanggal_pengeluaran,
-                    'referensi_tipe'  => 'Pengeluaran Bahan SPK',
-                    'referensi_id'    => $pengeluaran->id,
-                    'branch_id'       => $pengeluaran->branch_id,
-                    'total_debit'     => $totalNilai,
-                    'total_kredit'    => $totalNilai,
-                    'keterangan'      => "Pengeluaran Bahan Baku SPK #{$spkNomor} ({$pengeluaran->nomor_pengeluaran})",
-                    'created_by'      => auth()->id(),
-                ]);
+                $jurnal->delete();
             }
 
-            foreach ($debitGroup as $coaId => $amount) {
-                JurnalDetail::create([
-                    'jurnal_id'  => $jurnal->id,
-                    'account_id' => $coaId,
-                    'debit'      => $amount,
-                    'kredit'     => 0,
-                    'keterangan' => "Barang Dalam Proses (WIP) SPK #{$spkNomor}",
-                ]);
-            }
+            DB::commit();
 
-            foreach ($kreditGroup as $coaId => $amount) {
-                JurnalDetail::create([
-                    'jurnal_id'  => $jurnal->id,
-                    'account_id' => $coaId,
-                    'debit'      => 0,
-                    'kredit'     => $amount,
-                    'keterangan' => "Pengurangan Persediaan Bahan Baku SPK #{$spkNomor}",
-                ]);
-            }
+            return response()->json([
+                'success' => true,
+                'message' => "Closing pengeluaran bahan untuk SPK {$spk->nomor_spk} berhasil dibuka kembali. Jurnal akuntansi ditarik dari Jurnal Umum & operasional pengeluaran bahan dapat dilanjutkan."
+            ]);
         } catch (\Throwable $e) {
-            Log::error('createJurnalPengeluaran error: ' . $e->getMessage());
+            DB::rollBack();
+            Log::error('reopenMaterial error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membuka closing pengeluaran bahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Display consolidated closing journal details for SPK.
+     */
+    public function showSpkJurnalClosing($spkId)
+    {
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('lihat-jurnal-pengeluaran-bahan') && !$user->can('lihat-jurnal-full-pengeluaran-bahan') && !$user->can('lihat-jurnal')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses untuk melihat jurnal pengeluaran bahan.'
+            ], 403);
+        }
+
+        $spk = SpkProduksi::forActiveCompany()
+            ->with(['barangJadi', 'materialClosedBy', 'materialClosingJurnal.details.account'])
+            ->findOrFail($spkId);
+
+        $jurnal = $spk->materialClosingJurnal;
+        if (!$jurnal) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jurnal konsolidasi closing belum ditemukan untuk SPK ini.'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'spk' => [
+                'id'          => $spk->id,
+                'nomor_spk'   => $spk->nomor_spk,
+                'barang_jadi' => $spk->barangJadi?->nama_barang ?? '-',
+                'closed_by'   => $spk->materialClosedBy?->name ?? 'User',
+                'closed_at'   => $spk->material_closed_at ? $spk->material_closed_at->format('d/m/Y H:i') : '-',
+            ],
+            'jurnal' => [
+                'id'             => $jurnal->id,
+                'nomor_jurnal'   => $jurnal->nomor_jurnal,
+                'tanggal_jurnal' => $jurnal->tanggal_jurnal ? date('d/m/Y', strtotime($jurnal->tanggal_jurnal)) : '-',
+                'keterangan'     => $jurnal->keterangan,
+                'total_debit'    => (float)$jurnal->total_debit,
+                'total_kredit'   => (float)$jurnal->total_kredit,
+                'details'        => $jurnal->details->map(function ($d) {
+                    return [
+                        'kode_akun'  => $d->account?->code ?? '-',
+                        'nama_akun'  => $d->account?->name ?? '-',
+                        'debit'      => (float)$d->debit,
+                        'kredit'     => (float)$d->kredit,
+                        'keterangan' => $d->keterangan,
+                    ];
+                }),
+            ]
+        ]);
+    }
+
+    /**
+     * Create 1 consolidated accounting journal for SPK material closing.
+     */
+    private function createConsolidatedJurnalClosing(SpkProduksi $spk, $tanggalClosing = null, $catatan = null): void
+    {
+        $pengeluaranList = $spk->pengeluaranBahans()->with(['details.barangMentah.satuan'])->get();
+        if ($pengeluaranList->isEmpty()) {
+            return;
+        }
+
+        $pengeluaranIds = $pengeluaranList->pluck('id');
+        $kartuStoks = KartuStok::where('referensi_jenis', 'Pengeluaran Bahan SPK')
+            ->whereIn('referensi_id', $pengeluaranIds)
+            ->where('tipe', 'Keluar')
+            ->get();
+
+        $itemSummary = [];
+        $totalNilai = 0;
+        $debitGroup = [];
+        $kreditGroup = [];
+
+        // Aggregate materials
+        foreach ($pengeluaranList as $p) {
+            foreach ($p->details as $d) {
+                $bId = $d->barang_mentah_id;
+                if (!isset($itemSummary[$bId])) {
+                    $itemSummary[$bId] = [
+                        'barang'      => $d->barangMentah,
+                        'total_qty'   => 0,
+                        'total_nilai' => 0,
+                    ];
+                }
+                $itemSummary[$bId]['total_qty'] += (float)$d->qty_diambil_sekarang;
+            }
+        }
+
+        foreach ($kartuStoks as $ks) {
+            $bId = $ks->barang_id;
+            if (isset($itemSummary[$bId])) {
+                $itemSummary[$bId]['total_nilai'] += (float)$ks->nilai_total;
+            }
+        }
+
+        foreach ($itemSummary as $bId => &$info) {
+            if ($info['total_nilai'] <= 0 && $info['total_qty'] > 0) {
+                $hpp = (float)($info['barang']?->harga_pokok_rata_rata ?: ($info['barang']?->harga_pokok ?: ($info['barang']?->harga_beli ?: 0)));
+                if ($hpp <= 0) {
+                    $validSg = StokGudang::where('barang_id', $bId)
+                        ->where(function($q) {
+                            $q->where('harga_pokok_rata_rata', '>', 0)
+                              ->orWhere('harga_beli_terakhir', '>', 0);
+                        })->first();
+                    if ($validSg) {
+                        $hpp = (float)($validSg->harga_pokok_rata_rata > 0 ? $validSg->harga_pokok_rata_rata : $validSg->harga_beli_terakhir);
+                    }
+                }
+                if ($hpp <= 0) {
+                    $hpp = 1000;
+                }
+                $info['total_nilai'] = round($info['total_qty'] * $hpp, 4);
+            }
+        }
+        unset($info);
+
+        // Debit Account: WIP (Persediaan Barang Dalam Proses)
+        $bjCatId = $spk->barangJadi ? ($spk->barangJadi->kategori_barang_id ?? $spk->barangJadi->kategori_id) : null;
+        $wipCoaId = ($bjCatId ? AccountMappingHelper::getCoaId('inventory_category', "cat_{$bjCatId}_wip") : null)
+                 ?? AccountMappingHelper::getCoaId('production', 'wip_inventory')
+                 ?? AccountMappingHelper::getCoaId('default', 'default_wip');
+
+        if (!$wipCoaId) {
+            $wipCoa = ChartOfAccount::forActiveCompany()
+                ->where(function ($q) {
+                    $q->where('code', 'like', '1108%')
+                      ->orWhere('name', 'like', '%WIP%')
+                      ->orWhere('name', 'like', '%Dalam Proses%')
+                      ->orWhere('name', 'like', '%Setengah Jadi%');
+                })
+                ->where('is_header', false)
+                ->first();
+            $wipCoaId = $wipCoa ? $wipCoa->id : null;
+        }
+
+        if (!$wipCoaId) {
+            $wipCoaId = AccountMappingHelper::getCoaId('default', 'default_inventory')
+                     ?? ChartOfAccount::forActiveCompany()->where('code', 'like', '11%')->where('is_header', false)->value('id');
+        }
+
+        foreach ($itemSummary as $bId => $item) {
+            $barang = $item['barang'];
+            $nilai  = (float)$item['total_nilai'];
+            if ($nilai <= 0) continue;
+
+            $totalNilai += $nilai;
+
+            $catId = $barang ? ($barang->kategori_barang_id ?? $barang->kategori_id ?? null) : null;
+            $creditCoaId = ($bId ? AccountMappingHelper::getCoaId('inventory_item', "item_{$bId}_inventory") : null)
+                        ?? ($catId ? AccountMappingHelper::getCoaId('inventory_category', "cat_{$catId}_inventory") : null)
+                        ?? AccountMappingHelper::getCoaId('default', 'default_inventory');
+
+            if (!$creditCoaId) {
+                $creditCoa = ChartOfAccount::forActiveCompany()
+                    ->where(function ($q) {
+                        $q->where('code', 'like', '1106%')
+                          ->orWhere('name', 'like', '%Bahan Baku%')
+                          ->orWhere('name', 'like', '%Bahan Mentah%')
+                          ->orWhere('name', 'like', '%Persediaan%');
+                    })
+                    ->where('is_header', false)
+                    ->first();
+                $creditCoaId = $creditCoa ? $creditCoa->id : null;
+            }
+
+            if ($wipCoaId && $creditCoaId) {
+                $debitGroup[$wipCoaId] = ($debitGroup[$wipCoaId] ?? 0) + $nilai;
+                $kreditGroup[$creditCoaId] = ($kreditGroup[$creditCoaId] ?? 0) + $nilai;
+            }
+        }
+
+        if ($totalNilai <= 0 || empty($debitGroup) || empty($kreditGroup)) {
+            return;
+        }
+
+        $dateToUse = $tanggalClosing ?: now()->toDateString();
+        $yearMonth = date('Y/m', strtotime($dateToUse));
+        $isBranch  = !empty($spk->branch_id);
+        $prefix    = $isBranch ? "JRN/MAT-CBG/{$yearMonth}/" : "JRN/MAT-PT/{$yearMonth}/";
+
+        $lastNo = Jurnal::withTrashed()
+            ->where('nomor_jurnal', 'like', "{$prefix}%")
+            ->orderBy('nomor_jurnal', 'desc')
+            ->orderBy('id', 'desc')
+            ->value('nomor_jurnal');
+
+        $nextSeq = 1;
+        if ($lastNo && preg_match('/\/(\d+)$/', $lastNo, $m)) {
+            $nextSeq = (int)$m[1] + 1;
+        }
+
+        do {
+            $nomorJurnal = $prefix . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
+            $exists = Jurnal::withTrashed()->where('nomor_jurnal', $nomorJurnal)->exists();
+            if ($exists) {
+                $nextSeq++;
+            }
+        } while ($exists);
+
+        $jurnalBranchId  = $isBranch ? $spk->branch_id : null;
+        $jurnalCompanyId = $isBranch ? null : ($spk->company_id ?: (session('active_company_id') ?: 1));
+
+        $spk->loadMissing('tender');
+        $nomorTender = $spk->tender ? ($spk->tender->nomor_kontrak ?: $spk->tender->nama_tender) : null;
+
+        $jurnal = Jurnal::withTrashed()
+            ->where('referensi_tipe', 'Pengeluaran Bahan SPK')
+            ->where('referensi_id', $spk->id)
+            ->first();
+
+        $ket = "Konsolidasi Pengeluaran Bahan SPK #{$spk->nomor_spk}" . ($catatan ? " - {$catatan}" : "");
+
+        if ($jurnal) {
+            $jurnal->restore();
+            $jurnal->update([
+                'nomor_jurnal'    => $jurnal->nomor_jurnal ?: $nomorJurnal,
+                'tanggal_jurnal'  => $dateToUse,
+                'branch_id'       => $jurnalBranchId,
+                'company_id'      => $jurnalCompanyId,
+                'total_debit'     => $totalNilai,
+                'total_kredit'    => $totalNilai,
+                'keterangan'      => $ket,
+                'no_tender'       => $nomorTender,
+                'updated_by'      => auth()->id(),
+            ]);
+            $jurnal->details()->delete();
+        } else {
+            $jurnal = Jurnal::create([
+                'nomor_jurnal'    => $nomorJurnal,
+                'tanggal_jurnal'  => $dateToUse,
+                'referensi_tipe'  => 'Pengeluaran Bahan SPK',
+                'referensi_id'    => $spk->id,
+                'branch_id'       => $jurnalBranchId,
+                'company_id'      => $jurnalCompanyId,
+                'total_debit'     => $totalNilai,
+                'total_kredit'    => $totalNilai,
+                'keterangan'      => $ket,
+                'no_tender'       => $nomorTender,
+                'created_by'      => auth()->id(),
+            ]);
+        }
+
+        foreach ($debitGroup as $coaId => $amount) {
+            JurnalDetail::create([
+                'jurnal_id'  => $jurnal->id,
+                'account_id' => $coaId,
+                'debit'      => $amount,
+                'kredit'     => 0,
+                'keterangan' => "Barang Dalam Proses (WIP) SPK #{$spk->nomor_spk}",
+            ]);
+        }
+
+        foreach ($kreditGroup as $coaId => $amount) {
+            JurnalDetail::create([
+                'jurnal_id'  => $jurnal->id,
+                'account_id' => $coaId,
+                'debit'      => 0,
+                'kredit'     => $amount,
+                'keterangan' => "Pengurangan Persediaan Bahan Baku SPK #{$spk->nomor_spk}",
+            ]);
         }
     }
 
@@ -1164,9 +2039,11 @@ class PengeluaranBahanController extends Controller
         $pengeluaran = SpkPengeluaranBahan::forActiveCompany()
             ->with([
                 'company',
-                'branch',
+                'branch.company',
                 'spk.barangJadi.satuan',
                 'spk.satuan',
+                'spk.branch.company',
+                'spk.company',
                 'gudang',
                 'penyerah',
                 'penerima',
@@ -1176,8 +2053,30 @@ class PengeluaranBahanController extends Controller
             ])
             ->findOrFail($id);
 
-        $company = $pengeluaran->company ?? Company::find(session('active_company_id')) ?? Company::first();
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
 
-        return view('modul_produksi.pengeluaran_bahan.print_pdf', compact('pengeluaran', 'company'));
+        // Deteksi entitas: Jika sesi aktif Cabang atau dokumen SPK / Pengeluaran diterbitkan oleh Cabang
+        $isBranch = !empty($activeBranchId) || !empty($pengeluaran->branch_id) || !empty($pengeluaran->spk?->branch_id);
+
+        $branch = ($activeBranchId ? \App\Models\Branch::find($activeBranchId) : null)
+               ?? $pengeluaran->branch
+               ?? $pengeluaran->spk?->branch;
+
+        $company = ($activeCompanyId ? Company::find($activeCompanyId) : null)
+                ?? $pengeluaran->company
+                ?? $pengeluaran->spk?->company
+                ?? ($branch ? $branch->company : null)
+                ?? Company::first();
+
+        if ($isBranch && $branch) {
+            $entityName = $branch->nama_cabang;
+            $entityType = 'Cabang';
+        } else {
+            $entityName = $company->nama_perusahaan ?? 'PT PERSADA AMAN SENTOSA';
+            $entityType = 'PT';
+        }
+
+        return view('modul_produksi.pengeluaran_bahan.print_pdf', compact('pengeluaran', 'company', 'branch', 'entityName', 'entityType'));
     }
 }

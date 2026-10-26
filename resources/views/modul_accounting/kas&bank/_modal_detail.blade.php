@@ -42,7 +42,7 @@
                 <!-- Nominal Card Highlight (Glowing Box) -->
                 <div class="p-3.5 rounded-4 border mb-3 text-center shadow-sm position-relative overflow-hidden" id="detail_nominal_container" style="background: linear-gradient(135deg, rgba(22, 163, 74, 0.08) 0%, rgba(22, 163, 74, 0.02) 100%); border-color: rgba(22, 163, 74, 0.25) !important;">
                     <div class="text-muted small text-uppercase fw-bold font-monospace mb-1" style="letter-spacing: 0.8px;">Nominal Jumlah Transaksi</div>
-                    <h2 class="fw-bold font-monospace mb-0" id="detail_jumlah_display" style="color: #16a34a; font-size: 2rem;">Rp 0</h2>
+                    <h2 class="fw-bold font-monospace mb-0" id="detail_jumlah_display" style="color: #16a34a; font-size: 2rem;">Rp 0,00</h2>
                 </div>
 
                 <!-- Grid Data Detail Transaksi -->
@@ -77,6 +77,20 @@
                             <div class="text-body fst-italic" id="detail_keterangan">-</div>
                         </div>
                     </div>
+
+                    <!-- Info Tender / Proyek (Jika Terhubung) -->
+                    <div class="col-12" id="detail_tender_container" style="display: none;">
+                        <div class="p-3 rounded-4 border bg-body-tertiary shadow-sm">
+                            <div class="small text-muted mb-1 font-monospace" style="font-size: 0.72rem;">TERHUBUNG KE TENDER / PROYEK</div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace px-2.5 py-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-briefcase-fill me-1"></i> <span id="detail_tender_kontrak">-</span>
+                                </span>
+                                <span class="fw-semibold text-body-emphasis" id="detail_tender_nama">-</span>
+                                <span class="badge bg-secondary-subtle text-secondary rounded-pill font-monospace" id="detail_tender_entitas" style="font-size: 0.7rem;">-</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Saldo Audit Trail (Sebelum vs Sesudah) -->
@@ -84,11 +98,37 @@
                     <div class="row text-center g-2 small">
                         <div class="col-6 border-end">
                             <div class="text-muted font-monospace mb-0.5" style="font-size: 0.72rem;">SALDO SEBELUM MUTASI</div>
-                            <div class="fw-bold font-monospace text-body fs-6" id="detail_saldo_sebelum">Rp 0</div>
+                            <div class="fw-bold font-monospace text-body fs-6" id="detail_saldo_sebelum">Rp 0,00</div>
                         </div>
                         <div class="col-6">
                             <div class="text-muted font-monospace mb-0.5" style="font-size: 0.72rem;">SALDO SESUDAH MUTASI</div>
-                            <div class="fw-bold font-monospace text-success fs-6" id="detail_saldo_sesudah">Rp 0</div>
+                            <div class="fw-bold font-monospace text-success fs-6" id="detail_saldo_sesudah">Rp 0,00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 📸 BUKTI TRANSAKSI / NOTA / KUITANSI (ANTI-MANIPULASI) -->
+                <div class="p-3.5 rounded-4 border bg-body-tertiary mb-3 shadow-sm d-none" id="detail_lampiran_container">
+                    <div class="d-flex justify-content-between align-items-center mb-2.5">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-camera-fill text-success fs-5"></i>
+                            <span class="fw-bold text-body-emphasis small font-monospace text-uppercase" style="letter-spacing: 0.5px;">Foto Bukti / Kuitansi / Slip</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1.5">
+                            <button type="button" id="detail_lampiran_preview_btn" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 font-monospace" style="font-size: 0.72rem;">
+                                <i class="bi bi-arrows-fullscreen me-1"></i> Perbesar Bukti
+                            </button>
+                            <a href="#" id="detail_lampiran_download_btn" download class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 font-monospace" style="font-size: 0.72rem;" title="Unduh Berkas">
+                                <i class="bi bi-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-2 rounded-3 border bg-body text-center position-relative overflow-hidden" style="max-height: 280px;">
+                        <img id="detail_lampiran_preview_img" src="#" alt="Bukti Transaksi" class="img-fluid rounded-2 shadow-sm" style="max-height: 260px; object-fit: contain; cursor: pointer;" title="Klik untuk memperbesar bukti">
+                        <div id="detail_lampiran_preview_pdf" class="p-4 d-none" style="cursor: pointer;">
+                            <i class="bi bi-file-earmark-pdf text-danger" style="font-size: 3rem;"></i>
+                            <div class="fw-bold text-body mt-2">Dokumen Bukti Berformat PDF</div>
+                            <div class="text-muted small">Klik tombol 'Perbesar Bukti' untuk membaca dokumen di modal.</div>
                         </div>
                     </div>
                 </div>
@@ -154,7 +194,12 @@
                 <span class="text-muted small font-monospace" style="font-size: 0.74rem;">
                     <i class="bi bi-lock me-1"></i> Data diverifikasi otomatis oleh modul akuntansi.
                 </span>
-                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4 py-1.5 fw-semibold" data-bs-dismiss="modal">Tutup</button>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-semibold d-none" id="btn_detail_cancel_mutasi" data-id="" data-nomor="" title="Batalkan transaksi kas ini">
+                        <i class="bi bi-x-circle me-1"></i> Batalkan Transaksi
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4 py-1.5 fw-semibold" data-bs-dismiss="modal">Tutup</button>
+                </div>
             </div>
 
         </div>

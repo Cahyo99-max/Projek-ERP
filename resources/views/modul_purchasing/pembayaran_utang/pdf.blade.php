@@ -158,32 +158,7 @@
         }
 
         .company-profile {
-            display: flex;
-            gap: 14px;
-            align-items: flex-start;
-        }
-
-        .company-logo {
-            width: 54px;
-            height: 54px;
-            object-fit: contain;
-            border-radius: 8px;
-            padding: 4px;
-            border: 1px solid #bfdbfe;
-            background: #ffffff;
-        }
-
-        .company-logo-placeholder {
-            width: 54px;
-            height: 54px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #1e40af, #1d4ed8);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            font-weight: 800;
+            max-width: 62%;
         }
 
         .company-name {
@@ -392,61 +367,15 @@
             align-items: start;
         }
 
-        .terbilang-card {
-            background: #f0f7ff;
-            border: 1px solid #bae6fd;
-            border-radius: 8px;
-            padding: 12px 14px;
-        }
-
-        .terbilang-badge {
-            font-size: 9px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #0369a1;
-            margin-bottom: 4px;
-        }
-
-        .terbilang-phrase {
-            font-size: 11px;
-            font-style: italic;
-            font-weight: 600;
-            color: #1e3a8a;
-            line-height: 1.45;
-            padding: 6px 10px;
-            background: #ffffff;
-            border: 1px dashed #7dd3fc;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-
         .catatan-box {
             font-size: 10px;
             color: #0c4a6e;
-            background: #e0f2fe;
-            border-left: 3px solid #0284c7;
-            padding: 6px 10px;
-            border-radius: 0 6px 6px 0;
-        }
-
-        .lampiran-thumb-box {
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 10px;
-            background: #ffffff;
-            border: 1px solid #bfdbfe;
+            background: #f0f7ff;
+            border: 1px solid #bae6fd;
+            border-left: 3.5px solid #0284c7;
+            padding: 8px 12px;
             border-radius: 6px;
-        }
-
-        .lampiran-thumb {
-            width: 45px;
-            height: 45px;
-            object-fit: cover;
-            border-radius: 4px;
-            border: 1px solid #93c5fd;
+            line-height: 1.5;
         }
 
         .totals-card {
@@ -523,14 +452,25 @@
                 display: none !important;
             }
 
+            .sheet-viewport-wrapper {
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                display: block !important;
+                min-height: auto !important;
+            }
+
             .sheet-container {
                 width: 100% !important;
+                min-width: 100% !important;
                 min-height: auto !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 box-shadow: none !important;
                 border-radius: 0 !important;
                 border-top: none !important;
+                transform: none !important;
+                -webkit-transform: none !important;
             }
         }
     </style>
@@ -538,53 +478,60 @@
 <body>
 
     @php
-        function terbilangAngka($angka) {
-            $angka = abs((float)$angka);
-            $baca = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
-            $terbilang = "";
+        if (!function_exists('terbilangAngka')) {
+            function terbilangAngka($angka) {
+                $angka = abs((float)$angka);
+                $baca = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+                $terbilang = "";
 
-            if ($angka < 12) {
-                $terbilang = " " . $baca[(int)$angka];
-            } elseif ($angka < 20) {
-                $terbilang = terbilangAngka($angka - 10) . " Belas";
-            } elseif ($angka < 100) {
-                $terbilang = terbilangAngka($angka / 10) . " Puluh" . terbilangAngka($angka % 10);
-            } elseif ($angka < 200) {
-                $terbilang = " Seratus" . terbilangAngka($angka - 100);
-            } elseif ($angka < 1000) {
-                $terbilang = terbilangAngka($angka / 100) . " Ratus" . terbilangAngka($angka % 100);
-            } elseif ($angka < 2000) {
-                $terbilang = " Seribu" . terbilangAngka($angka - 1000);
-            } elseif ($angka < 1000000) {
-                $terbilang = terbilangAngka($angka / 1000) . " Ribu" . terbilangAngka($angka % 1000);
-            } elseif ($angka < 1000000000) {
-                $terbilang = terbilangAngka($angka / 1000000) . " Juta" . terbilangAngka($angka % 1000000);
-            } elseif ($angka < 1000000000000) {
-                $terbilang = terbilangAngka($angka / 1000000000) . " Milyar" . terbilangAngka(fmod($angka, 1000000000));
-            } elseif ($angka < 1000000000000000) {
-                $terbilang = terbilangAngka($angka / 1000000000000) . " Triliun" . terbilangAngka(fmod($angka, 1000000000000));
-            } elseif ($angka < 1000000000000000000) {
-                $terbilang = terbilangAngka($angka / 1000000000000000) . " Kuadriliun" . terbilangAngka(fmod($angka, 1000000000000000));
+                if ($angka < 12) {
+                    $terbilang = " " . $baca[(int)$angka];
+                } elseif ($angka < 20) {
+                    $terbilang = terbilangAngka($angka - 10) . " Belas";
+                } elseif ($angka < 100) {
+                    $terbilang = terbilangAngka($angka / 10) . " Puluh" . terbilangAngka($angka % 10);
+                } elseif ($angka < 200) {
+                    $terbilang = " Seratus" . terbilangAngka($angka - 100);
+                } elseif ($angka < 1000) {
+                    $terbilang = terbilangAngka($angka / 100) . " Ratus" . terbilangAngka($angka % 100);
+                } elseif ($angka < 2000) {
+                    $terbilang = " Seribu" . terbilangAngka($angka - 1000);
+                } elseif ($angka < 1000000) {
+                    $terbilang = terbilangAngka($angka / 1000) . " Ribu" . terbilangAngka($angka % 1000);
+                } elseif ($angka < 1000000000) {
+                    $terbilang = terbilangAngka($angka / 1000000) . " Juta" . terbilangAngka($angka % 1000000);
+                } elseif ($angka < 1000000000000) {
+                    $terbilang = terbilangAngka($angka / 1000000000) . " Milyar" . terbilangAngka(fmod($angka, 1000000000));
+                } elseif ($angka < 1000000000000000) {
+                    $terbilang = terbilangAngka($angka / 1000000000000) . " Triliun" . terbilangAngka(fmod($angka, 1000000000000));
+                } elseif ($angka < 1000000000000000000) {
+                    $terbilang = terbilangAngka($angka / 1000000000000000) . " Kuadriliun" . terbilangAngka(fmod($angka, 1000000000000000));
+                }
+                return trim($terbilang);
             }
-            return trim($terbilang);
         }
 
-        function terbilangLengkap($nominal) {
-            $nominal = (float)$nominal;
-            $bulat = floor($nominal);
-            $sen = round(($nominal - $bulat) * 100);
+        if (!function_exists('terbilangLengkap')) {
+            function terbilangLengkap($nominal) {
+                $nominal = (float)$nominal;
+                $bulat = floor($nominal);
+                $sen = round(($nominal - $bulat) * 100);
 
-            $hasil = terbilangAngka($bulat);
-            if ($sen > 0) {
-                $hasil .= " Koma " . terbilangAngka($sen) . " Sen";
+                $hasil = terbilangAngka($bulat);
+                if ($sen > 0) {
+                    $hasil .= " Koma " . terbilangAngka($sen) . " Sen";
+                }
+                return $hasil;
             }
-            return $hasil;
         }
 
-        $curCode   = $purchasePayment->currency?->kode_currency ?? 'IDR';
+        $curCode   = strtoupper($purchasePayment->currency?->kode_currency ?? 'IDR');
         $curSymbol = $purchasePayment->currency?->simbol ?? ($curCode === 'IDR' ? 'Rp' : $curCode);
         $kurs      = (float) ($purchasePayment->kurs ?? 1);
-        $isForeign = ($curCode !== 'IDR' && $kurs > 1);
+        if ($kurs <= 0) {
+            $kurs = 1;
+        }
+        $isForeign = ($curCode !== 'IDR');
 
         $statusClass = match(strtolower($purchasePayment->status)) {
             'posted'    => 'status-posted',
@@ -606,42 +553,51 @@
         $displayCompany = $activeCompany ?? ($purchasePayment->company ?? (auth()->user()?->companies()->first() ?? \App\Models\Company::first()));
         $displayBranch  = $activeBranch ?? $purchasePayment->branch;
 
-        $compName = $displayCompany?->nama_perusahaan ?? 'PT PERSADA AMAN SENTOSA';
+        $isBranch = !empty($displayBranch);
 
-        $companyLogo = null;
-        if ($displayCompany && !empty($displayCompany->logo) && file_exists(public_path('storage/' . $displayCompany->logo))) {
-            $companyLogo = asset('storage/' . $displayCompany->logo);
-        } elseif (!empty($displayBranch?->company?->logo) && file_exists(public_path('storage/' . $displayBranch->company->logo))) {
-            $companyLogo = asset('storage/' . $displayBranch->company->logo);
+        if ($isBranch) {
+            $rawBranch = trim($displayBranch->nama_cabang ?? session('active_branch_name', ''));
+            if (empty($rawBranch)) {
+                $rawBranch = 'Cabang Operasional';
+            }
+            $entityTitle    = stripos($rawBranch, 'cabang') === 0 
+                ? mb_strtoupper($rawBranch) 
+                : 'CABANG ' . mb_strtoupper($rawBranch);
+            $entitySubtitle = 'Kantor Cabang';
+
+            // Alamat Cabang dengan fallback PT jika data cabang kosong
+            $addrList = array_filter([
+                $displayBranch->address,
+                $displayBranch->city,
+                $displayBranch->province,
+                $displayBranch->postal_code,
+            ]);
+            if (empty($addrList) && !empty($displayCompany)) {
+                $addrList = array_filter([
+                    $displayCompany->address,
+                    $displayCompany->city,
+                    $displayCompany->province,
+                    $displayCompany->postal_code,
+                ]);
+            }
+            $entityAddress = !empty($addrList) ? implode(', ', $addrList) : 'Jl Cinere Raya No 40-41, Depok, Jawa Barat';
+            $entityPhone   = $displayBranch->phone ?: ($displayCompany?->phone ?: '-');
+            $entityEmail   = $displayBranch->email ?: ($displayCompany?->email ?: null);
+        } else {
+            $rawCompany     = trim($displayCompany?->nama_perusahaan ?? session('active_company_name', 'PT PERSADA AMAN SENTOSA'));
+            $entityTitle    = mb_strtoupper($rawCompany ?: 'PT PERSADA AMAN SENTOSA');
+            $entitySubtitle = 'Kantor Pusat';
+
+            $addrList = array_filter([
+                $displayCompany?->address,
+                $displayCompany?->city,
+                $displayCompany?->province,
+                $displayCompany?->postal_code,
+            ]);
+            $entityAddress = !empty($addrList) ? implode(', ', $addrList) : 'Jl Cinere Raya No 40-41, Depok, Jawa Barat';
+            $entityPhone   = $displayCompany?->phone ?? '-';
+            $entityEmail   = $displayCompany?->email ?? null;
         }
-
-        // Format Alamat Lengkap
-        $addrList = [];
-        if (!empty($displayCompany?->address)) {
-            $addrList[] = $displayCompany->address;
-        } elseif (!empty($displayBranch?->address)) {
-            $addrList[] = $displayBranch->address;
-        }
-
-        if (!empty($displayCompany?->city)) {
-            $addrList[] = $displayCompany->city;
-        } elseif (!empty($displayBranch?->city)) {
-            $addrList[] = $displayBranch->city;
-        }
-
-        if (!empty($displayCompany?->province)) {
-            $addrList[] = $displayCompany->province;
-        } elseif (!empty($displayBranch?->province)) {
-            $addrList[] = $displayBranch->province;
-        }
-
-        if (!empty($displayCompany?->postal_code)) {
-            $addrList[] = $displayCompany->postal_code;
-        }
-
-        $compAddress = !empty($addrList) ? implode(', ', $addrList) : 'Jl Cinere Raya No 40-41, Depok, Jawa Barat';
-        $compPhone   = $displayCompany?->phone ?? ($displayBranch?->phone ?? '-');
-        $compEmail   = $displayCompany?->email ?? ($displayBranch?->email ?? null);
     @endphp
 
     <!-- FLOATING TOOLBAR -->
@@ -665,20 +621,8 @@
             <!-- HEADER -->
             <div class="header-wrap">
                 <div class="company-profile">
-                    @if($companyLogo)
-                        <img src="{{ $companyLogo }}" alt="Logo" class="company-logo">
-                    @else
-                        <div class="company-logo-placeholder">
-                            <i class="bi bi-building"></i>
-                        </div>
-                    @endif
                     <div>
-                        <div class="company-name">{{ $compName }}</div>
-                        <div class="company-meta">
-                            <strong>{{ $displayBranch ? 'Cabang ' . $displayBranch->nama_cabang : 'Kantor Pusat' }}</strong><br>
-                            {{ $compAddress }}<br>
-                            Telp: {{ $compPhone }} @if($compEmail) • Email: {{ $compEmail }} @endif
-                        </div>
+                        <div class="company-name">{{ $entityTitle }}</div>
                     </div>
                 </div>
 
@@ -746,15 +690,15 @@
                 <table class="items-table">
                     <thead>
                         <tr>
-                            <th class="text-center" style="width: 24px;">#</th>
+                            <th class="text-center" style="width: 28px;">#</th>
                             <th style="width: 17%;">No. Faktur Pembelian</th>
-                            <th style="width: 12%;">No. Faktur Supp</th>
+                            <th style="width: 13%;">No. Faktur Supp</th>
                             <th class="text-center" style="width: 9%;">Tgl Faktur</th>
-                            <th class="text-end" style="width: 13%;">Total Faktur</th>
-                            <th class="text-end" style="width: 13%;">Sisa Sblm Bayar</th>
-                            <th class="text-end" style="width: 8%;">Potongan</th>
-                            <th class="text-end" style="width: 14%;">Jumlah Bayar</th>
-                            <th class="text-end" style="width: 14%;">Sisa Akhir</th>
+                            <th class="text-end" style="width: 12%;">Total Faktur</th>
+                            <th class="text-end" style="width: 12%;">Sisa Sblm Bayar</th>
+                            <th class="text-end" style="width: 10%;">Potongan</th>
+                            <th class="text-end" style="width: 13%;">Jumlah Bayar</th>
+                            <th class="text-end" style="width: 11%;">Sisa Akhir</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -762,12 +706,21 @@
                             @php
                                 $bayarDet = (float) $det->jumlah_bayar;
                                 $potongDet = (float) $det->potongan;
-                                $sisaAkhirDet = (float) $det->sisa_akhir;
+                                $sisaAkhirDet = (float) ($det->sisa_akhir ?? max(0, (float)$det->sisa_utang - (float)$det->potongan - (float)$det->jumlah_bayar));
                             @endphp
                             <tr>
                                 <td class="text-center fw-semibold text-muted">{{ $idx + 1 }}</td>
                                 <td>
                                     <span class="fw-bold font-mono text-primary">{{ $det->invoice?->nomor_faktur ?? ('Faktur #' . $det->purchase_invoice_id) }}</span>
+                                    @php
+                                        $tenderObj = $det->invoice?->tender ?? $det->invoice?->goodsReceipt?->tender ?? $det->invoice?->po?->tender;
+                                        $nomorTender = $tenderObj ? (!empty($tenderObj->nomor_kontrak) && $tenderObj->nomor_kontrak !== '-' ? ($tenderObj->nomor_kontrak . (!empty($tenderObj->nama_tender) ? ' - ' . $tenderObj->nama_tender : '')) : ($tenderObj->nomor_kontrak ?: ($tenderObj->nama_tender ?: ('Tender #' . $tenderObj->id)))) : null;
+                                    @endphp
+                                    @if($nomorTender)
+                                        <div style="font-size: 8px; color: #b45309; margin-top: 2px; font-weight: 600;">
+                                            <i class="bi bi-briefcase"></i> Proyek: {{ $nomorTender }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>
                                     <span class="text-muted font-mono">{{ $det->invoice?->nomor_faktur_supplier ?? '-' }}</span>
@@ -775,16 +728,14 @@
                                 <td class="text-center">{{ $det->invoice?->tanggal_faktur ? $det->invoice->tanggal_faktur->format('d/m/Y') : '-' }}</td>
                                 <td class="text-end font-mono">
                                     @if($isForeign)
-                                        <div class="fw-semibold">{{ $curSymbol }} {{ number_format($det->total_faktur, 2, ',', '.') }}</div>
-                                        <small class="text-muted d-block" style="font-size: 8px;">≈ Rp {{ number_format($det->total_faktur * $kurs, 2, ',', '.') }}</small>
+                                        <span class="fw-semibold">{{ $curSymbol }} {{ number_format($det->total_faktur, 2, ',', '.') }}</span>
                                     @else
                                         Rp {{ number_format($det->total_faktur, 2, ',', '.') }}
                                     @endif
                                 </td>
                                 <td class="text-end font-mono text-muted">
                                     @if($isForeign)
-                                        <div>{{ $curSymbol }} {{ number_format($det->sisa_utang, 2, ',', '.') }}</div>
-                                        <small class="text-muted d-block" style="font-size: 8px;">≈ Rp {{ number_format($det->sisa_utang * $kurs, 2, ',', '.') }}</small>
+                                        <span>{{ $curSymbol }} {{ number_format($det->sisa_utang, 2, ',', '.') }}</span>
                                     @else
                                         Rp {{ number_format($det->sisa_utang, 2, ',', '.') }}
                                     @endif
@@ -792,8 +743,7 @@
                                 <td class="text-end font-mono {{ $potongDet > 0 ? 'text-danger fw-semibold' : 'text-muted' }}">
                                     @if($potongDet > 0)
                                         @if($isForeign)
-                                            <div>- {{ $curSymbol }} {{ number_format($potongDet, 2, ',', '.') }}</div>
-                                            <small class="text-muted d-block" style="font-size: 8px;">≈ Rp {{ number_format($potongDet * $kurs, 2, ',', '.') }}</small>
+                                            <span>- {{ $curSymbol }} {{ number_format($potongDet, 2, ',', '.') }}</span>
                                         @else
                                             - Rp {{ number_format($potongDet, 2, ',', '.') }}
                                         @endif
@@ -803,8 +753,7 @@
                                 </td>
                                 <td class="text-end font-mono fw-bold text-primary">
                                     @if($isForeign)
-                                        <div>{{ $curSymbol }} {{ number_format($bayarDet, 2, ',', '.') }}</div>
-                                        <small class="text-muted d-block" style="font-size: 8px;">≈ Rp {{ number_format($bayarDet * $kurs, 2, ',', '.') }}</small>
+                                        <span>{{ $curSymbol }} {{ number_format($bayarDet, 2, ',', '.') }}</span>
                                     @else
                                         Rp {{ number_format($bayarDet, 2, ',', '.') }}
                                     @endif
@@ -814,8 +763,7 @@
                                         <span style="color: #1d4ed8; font-weight: 700;">Lunas (0)</span>
                                     @else
                                         @if($isForeign)
-                                            <div class="fw-semibold text-warning" style="color: #d97706;">{{ $curSymbol }} {{ number_format($sisaAkhirDet, 2, ',', '.') }}</div>
-                                            <small class="text-muted d-block" style="font-size: 8px;">≈ Rp {{ number_format($sisaAkhirDet * $kurs, 2, ',', '.') }}</small>
+                                            <span class="fw-semibold text-warning" style="color: #d97706;">{{ $curSymbol }} {{ number_format($sisaAkhirDet, 2, ',', '.') }}</span>
                                         @else
                                             <span style="color: #d97706; font-weight: 600;">Rp {{ number_format($sisaAkhirDet, 2, ',', '.') }}</span>
                                         @endif
@@ -831,31 +779,12 @@
                 </table>
             </div>
 
-            <!-- SUMMARY & TERBILANG -->
+            <!-- SUMMARY & CATATAN -->
             <div class="summary-grid">
-                <div class="terbilang-card">
-                    <div class="terbilang-badge"><i class="bi bi-translate me-1"></i> Terbilang:</div>
-                    <div class="terbilang-phrase">
-                        @if($isForeign)
-                            # {{ ucwords(terbilangLengkap($purchasePayment->total_bayar)) }} {{ $purchasePayment->currency?->nama_currency ?? 'Dollar' }} (Ekuivalen: {{ ucwords(terbilangLengkap($purchasePayment->total_bayar * $kurs)) }} Rupiah) #
-                        @else
-                            # {{ ucwords(terbilangLengkap($purchasePayment->total_bayar)) }} Rupiah #
-                        @endif
-                    </div>
-
+                <div>
                     @if($purchasePayment->keterangan)
                     <div class="catatan-box">
                         <strong>Catatan:</strong> {{ $purchasePayment->keterangan }}
-                    </div>
-                    @endif
-
-                    @if($purchasePayment->lampiran)
-                    <div class="lampiran-thumb-box">
-                        <img src="{{ asset('storage/' . $purchasePayment->lampiran) }}" alt="Bukti Transfer" class="lampiran-thumb">
-                        <div>
-                            <div class="fw-bold" style="font-size: 9.5px; color: #1e3a8a;"><i class="bi bi-paperclip me-1"></i>Bukti Transfer Terlampir</div>
-                            <small class="text-muted" style="font-size: 8.5px;">Dokumen fisik telah terverifikasi secara digital</small>
-                        </div>
                     </div>
                     @endif
                 </div>
@@ -880,7 +809,12 @@
 
                     @if((float)$purchasePayment->total_potongan > 0)
                     <div class="totals-row">
-                        <span class="text-danger fw-semibold">Total Potongan / Diskon:</span>
+                        <span class="text-danger fw-semibold">
+                            Total Potongan / Diskon:
+                            @if($purchasePayment->potonganCoa)
+                                <small style="display:block; font-size: 7.5pt; color: #64748b; font-weight: normal;">({{ $purchasePayment->potonganCoa->code }} - {{ $purchasePayment->potonganCoa->name }})</small>
+                            @endif
+                        </span>
                         <span class="font-mono fw-bold text-danger">
                             @if($isForeign)
                                 - {{ $curSymbol }} {{ number_format($purchasePayment->total_potongan, 2, ',', '.') }}
@@ -923,6 +857,16 @@
                         </span>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- DOCUMENT FOOTER INFO -->
+        <div class="doc-footer">
+            <div>
+                Dokumen resmi sistem ERP {{ $entityTitle }} • Dicetak: {{ now()->translatedFormat('d F Y H:i') }} WIB
+            </div>
+            <div>
+                Ref: {{ $purchasePayment->nomor_pembayaran }} • Status: {{ strtoupper($purchasePayment->status) }}
             </div>
         </div>
 

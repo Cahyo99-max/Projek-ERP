@@ -17,6 +17,7 @@ use App\Models\JurnalDetail;
 use App\Models\ChartOfAccount;
 use App\Helpers\AccountMappingHelper;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -28,34 +29,260 @@ class PurchasePaymentController extends Controller
      * Endpoint super cepat (sub-millisecond) untuk real-time status & fingerprint sync.
      * Menggunakan index database tanpa rendering HTML sehingga server tetap ringan bahkan pada jutaan data.
      */
+    /**
+     * Endpoint super cepat (sub-millisecond) untuk real-time status & fingerprint sync.
+     * Menggunakan index database tanpa rendering HTML sehingga server tetap ringan bahkan pada jutaan data.
+     */
     public function checkSync(Request $request)
     {
         $activeBranchId  = session('active_branch_id');
-        $activeCompanyId = session('active_company_id');
+        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
         $userId          = auth()->id();
 
-        $query = PurchasePayment::query();
-        if ($activeBranchId) {
-            $query->where('branch_id', $activeBranchId);
-        } elseif ($activeCompanyId) {
-            $query->where('company_id', $activeCompanyId);
+        // 1. Cek versi pembayaran utang (PurchasePayment)
+        $paymentQuery = PurchasePayment::query();
+        if (!empty($activeBranchId)) {
+            $paymentQuery->where('branch_id', $activeBranchId)->whereNull('company_id');
+        } else {
+            $paymentQuery->whereNull('branch_id');
+            if ($activeCompanyId) {
+                $paymentQuery->where('company_id', $activeCompanyId);
+            }
         }
-
-        // Strict Draft Isolation: Status Draft HANYA bisa dilihat oleh user pembuatnya (tanpa kecuali)
         if ($userId) {
-            $query->where(function ($q) use ($userId) {
+            $paymentQuery->where(function ($q) use ($userId) {
                 $q->where('status', '!=', 'Draft')
                   ->orWhere('created_by', $userId);
             });
         }
+        $paymentMeta = $paymentQuery->selectRaw('MAX(updated_at) as last_updated, MAX(id) as max_id, COUNT(id) as total_rows')->first();
 
-        $meta = $query->selectRaw('MAX(updated_at) as last_updated, MAX(id) as max_id, COUNT(id) as total_rows')->first();
-        $fingerprint = md5(($meta->last_updated ?? '0') . '_' . ($meta->max_id ?? '0') . '_' . ($meta->total_rows ?? '0'));
+        // 2. Cek versi faktur pembelian (PurchaseInvoice) agar perubahan utang/overdue terdeteksi instan
+        $invoiceQuery = PurchaseInvoice::query();
+        if (!empty($activeBranchId)) {
+            $invoiceQuery->where('branch_id', $activeBranchId)->whereNull('company_id');
+        } else {
+            $invoiceQuery->whereNull('branch_id');
+            if ($activeCompanyId) {
+                $invoiceQuery->where('company_id', $activeCompanyId);
+            }
+        }
+        $invoiceMeta = $invoiceQuery->selectRaw('MAX(updated_at) as last_updated, MAX(id) as max_id, COUNT(id) as total_rows')->first();
+
+        $fingerprint = md5(
+            ($paymentMeta->last_updated ?? '0') . '_' . ($paymentMeta->max_id ?? '0') . '_' . ($paymentMeta->total_rows ?? '0') . '|' .
+            ($invoiceMeta->last_updated ?? '0') . '_' . ($invoiceMeta->max_id ?? '0') . '_' . ($invoiceMeta->total_rows ?? '0')
+        );
+
+        $clientFingerprint = $request->input('fingerprint');
+
+        // Jika fingerprint sama dengan client, response ultra-cepat (sub-millisecond)
+        if ($clientFingerprint && $clientFingerprint === $fingerprint) {
+            return response()->json([
+                'changed'      => false,
+                'fingerprint'  => $fingerprint,
+                'last_updated' => $paymentMeta->last_updated,
+            ]);
+        }
+
+        // Jika fingerprint berbeda atau polling awal, berikan KPI summary terkini
+        $kpi = $this->getKpiSummaryData($activeBranchId, $activeCompanyId, $userId);
 
         return response()->json([
-            'fingerprint' => $fingerprint,
-            'last_updated' => $meta->last_updated,
+            'changed'      => true,
+            'fingerprint'  => $fingerprint,
+            'last_updated' => $paymentMeta->last_updated,
+            'kpi'          => $kpi,
         ]);
+    }
+
+    /**
+     * Hitung ringkasan data KPI Bento Cards secara cepat dan aman (Direct SQL Aggregation)
+     */
+    public function getKpiSummaryData($activeBranchId, $activeCompanyId, $userId)
+    {
+        // ── 1. KPI Monthly Payments Aggregation ──
+        $startOfMonth = now()->startOfMonth()->toDateString();
+        $endOfMonth   = now()->endOfMonth()->toDateString();
+
+        $monthlyKpi = DB::table('purchase_payments as pp')
+            ->leftJoin('master_currencies as mc', 'mc.id', '=', 'pp.currency_id')
+            ->where('pp.status', 'Posted')
+            ->whereNull('pp.deleted_at')
+            ->where(function ($q) use ($activeBranchId, $activeCompanyId) {
+                if (!empty($activeBranchId)) {
+                    $q->where('pp.branch_id', $activeBranchId)->whereNull('pp.company_id');
+                } else {
+                    $q->whereNull('pp.branch_id');
+                    if (!empty($activeCompanyId)) {
+                        $q->where('pp.company_id', $activeCompanyId);
+                    }
+                }
+            })
+            ->whereBetween('pp.tanggal_bayar', [$startOfMonth, $endOfMonth])
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN UPPER(COALESCE(mc.kode_currency, 'IDR')) IN ('USD', 'DOLAR') THEN pp.total_bayar ELSE 0 END), 0) as total_usd,
+                COALESCE(SUM(CASE WHEN UPPER(COALESCE(mc.kode_currency, 'IDR')) NOT IN ('USD', 'DOLAR') THEN pp.total_bayar ELSE 0 END), 0) as total_idr,
+                COALESCE(SUM(
+                    CASE 
+                        WHEN UPPER(COALESCE(mc.kode_currency, 'IDR')) IN ('USD', 'DOLAR') THEN pp.total_bayar * CASE WHEN pp.kurs > 0 THEN pp.kurs ELSE 1 END
+                        ELSE pp.total_bayar 
+                    END
+                ), 0) as total_equivalent_idr
+            ")
+            ->first();
+
+        $totalPaymentIdrThisMonth           = (float) ($monthlyKpi->total_idr ?? 0);
+        $totalPaymentUsdThisMonth           = (float) ($monthlyKpi->total_usd ?? 0);
+        $totalPaymentEquivalentIdrThisMonth = (float) ($monthlyKpi->total_equivalent_idr ?? 0);
+
+        // ── 2. KPI Status Counts ──
+        $statusCountsQuery = DB::table('purchase_payments as pp')
+            ->whereNull('pp.deleted_at')
+            ->where(function ($q) use ($activeBranchId, $activeCompanyId) {
+                if (!empty($activeBranchId)) {
+                    $q->where('pp.branch_id', $activeBranchId)->whereNull('pp.company_id');
+                } else {
+                    $q->whereNull('pp.branch_id');
+                    if (!empty($activeCompanyId)) {
+                        $q->where('pp.company_id', $activeCompanyId);
+                    }
+                }
+            });
+
+        if ($userId) {
+            $statusCountsQuery->where(function ($q) use ($userId) {
+                $q->where('pp.status', '!=', 'Draft')
+                  ->orWhere('pp.created_by', $userId);
+            });
+        }
+
+        $statusCounts = $statusCountsQuery->selectRaw("
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'Draft' THEN 1 END) as draft,
+            COUNT(CASE WHEN status = 'Diajukan' THEN 1 END) as pending,
+            COUNT(CASE WHEN status = 'Ditolak' THEN 1 END) as rejected,
+            COUNT(CASE WHEN status = 'Posted' THEN 1 END) as posted,
+            COUNT(CASE WHEN status = 'Cancelled' THEN 1 END) as cancelled
+        ")->first();
+
+        $totalPaymentCount   = (int) ($statusCounts->total ?? 0);
+        $totalDraftCount     = (int) ($statusCounts->draft ?? 0);
+        $totalPendingCount   = (int) ($statusCounts->pending ?? 0);
+        $totalRejectedCount  = (int) ($statusCounts->rejected ?? 0);
+        $totalPostedCount    = (int) ($statusCounts->posted ?? 0);
+        $totalCancelledCount = (int) ($statusCounts->cancelled ?? 0);
+
+        // ── 3. Outstanding AP & Overdue ──
+        $today = now()->toDateString();
+
+        $paidSub = DB::table('purchase_payment_details as ppd')
+            ->join('purchase_payments as pp', function($j) {
+                $j->on('pp.id', '=', 'ppd.purchase_payment_id')
+                  ->where('pp.status', '=', 'Posted')
+                  ->whereNull('pp.deleted_at');
+            })
+            ->select('ppd.purchase_invoice_id', DB::raw('SUM(ppd.jumlah_bayar + ppd.potongan) as total_paid'))
+            ->groupBy('ppd.purchase_invoice_id');
+
+        $apKpiQuery = DB::table('purchase_invoices as pi')
+            ->leftJoin('master_currencies as mc', 'mc.id', '=', 'pi.currency_id')
+            ->leftJoinSub($paidSub, 'paid_sub', function($j) {
+                $j->on('paid_sub.purchase_invoice_id', '=', 'pi.id');
+            })
+            ->where('pi.status', 'Posted')
+            ->whereNull('pi.deleted_at')
+            ->where(function ($q) use ($activeBranchId, $activeCompanyId) {
+                if (!empty($activeBranchId)) {
+                    $q->where('pi.branch_id', $activeBranchId)->whereNull('pi.company_id');
+                } else {
+                    $q->whereNull('pi.branch_id');
+                    if (!empty($activeCompanyId)) {
+                        $q->where('pi.company_id', $activeCompanyId);
+                    }
+                }
+            })
+            ->selectRaw("
+                pi.id,
+                UPPER(COALESCE(mc.kode_currency, 'IDR')) as cur_code,
+                CASE WHEN pi.kurs > 0 THEN pi.kurs ELSE 1 END as kurs_val,
+                pi.tanggal_jatuh_tempo,
+                GREATEST(0, (pi.grand_total - COALESCE(pi.uang_muka, 0) - COALESCE(paid_sub.total_paid, 0))) as sisa_utang
+            ")
+            ->havingRaw("sisa_utang > 0.01")
+            ->get();
+
+        $totalOutstandingApIdr           = 0;
+        $totalOutstandingApUsd           = 0;
+        $totalOutstandingApEquivalentIdr = 0;
+        $totalOverdueCount               = 0;
+        $overdueIdrAmount                = 0;
+        $overdueUsdAmount                = 0;
+
+        foreach ($apKpiQuery as $inv) {
+            $rem       = (float) $inv->sisa_utang;
+            $kurs      = (float) $inv->kurs_val;
+            $isOverdue = ($inv->tanggal_jatuh_tempo && $inv->tanggal_jatuh_tempo < $today);
+
+            if ($isOverdue) {
+                $totalOverdueCount++;
+            }
+
+            if (in_array($inv->cur_code, ['USD', 'DOLAR'])) {
+                $totalOutstandingApUsd           += $rem;
+                $totalOutstandingApEquivalentIdr += ($rem * $kurs);
+                if ($isOverdue) {
+                    $overdueUsdAmount += $rem;
+                }
+            } else {
+                $totalOutstandingApIdr           += $rem;
+                $totalOutstandingApEquivalentIdr += $rem;
+                if ($isOverdue) {
+                    $overdueIdrAmount += $rem;
+                }
+            }
+        }
+
+        $overdueSub = 'Semua jatuh tempo aman';
+        if ($totalOverdueCount > 0) {
+            if ($overdueIdrAmount > 0 && $overdueUsdAmount > 0) {
+                $overdueSub = 'Rp ' . number_format($overdueIdrAmount, 2, ',', '.') . ' + $' . number_format($overdueUsdAmount, 2, ',', '.');
+            } elseif ($overdueIdrAmount > 0) {
+                $overdueSub = 'Rp ' . number_format($overdueIdrAmount, 2, ',', '.') . ' (IDR)';
+            } elseif ($overdueUsdAmount > 0) {
+                $overdueSub = '$ ' . number_format($overdueUsdAmount, 2, ',', '.') . ' (USD)';
+            }
+        }
+
+        return [
+            'totalPaymentIdrThisMonth'           => $totalPaymentIdrThisMonth,
+            'totalPaymentUsdThisMonth'           => $totalPaymentUsdThisMonth,
+            'totalPaymentEquivalentIdrThisMonth' => $totalPaymentEquivalentIdrThisMonth,
+            'totalOutstandingApIdr'              => $totalOutstandingApIdr,
+            'totalOutstandingApUsd'              => $totalOutstandingApUsd,
+            'totalOutstandingApEquivalentIdr'    => $totalOutstandingApEquivalentIdr,
+            'totalOverdueCount'                  => $totalOverdueCount,
+            'overdueIdrAmount'                   => $overdueIdrAmount,
+            'overdueUsdAmount'                   => $overdueUsdAmount,
+            'totalPaymentCount'                  => $totalPaymentCount,
+            'totalDraftCount'                    => $totalDraftCount,
+            'totalPendingCount'                  => $totalPendingCount,
+            'totalRejectedCount'                 => $totalRejectedCount,
+            'totalPostedCount'                   => $totalPostedCount,
+            'totalCancelledCount'                => $totalCancelledCount,
+
+            // Pre-formatted string untuk update DOM instan & seamless
+            'fmt_monthly_idr'        => 'Rp ' . number_format($totalPaymentIdrThisMonth, 2, ',', '.'),
+            'fmt_monthly_usd'        => '$ ' . number_format($totalPaymentUsdThisMonth, 2, ',', '.'),
+            'fmt_monthly_equiv'      => '≈ Rp ' . number_format($totalPaymentEquivalentIdrThisMonth, 2, ',', '.'),
+            'fmt_outstanding_idr'    => 'Rp ' . number_format($totalOutstandingApIdr, 2, ',', '.'),
+            'fmt_outstanding_usd'    => '$ ' . number_format($totalOutstandingApUsd, 2, ',', '.'),
+            'fmt_outstanding_equiv'  => '≈ Rp ' . number_format($totalOutstandingApEquivalentIdr, 2, ',', '.'),
+            'fmt_overdue_count'      => $totalOverdueCount,
+            'fmt_overdue_sub'        => $overdueSub,
+            'fmt_total_count'        => $totalPaymentCount,
+            'fmt_total_sub'          => "{$totalPostedCount} Diposting • {$totalPendingCount} Diajukan • {$totalDraftCount} Draft",
+        ];
     }
 
     /**
@@ -76,37 +303,64 @@ class PurchasePaymentController extends Controller
         if ($request->ajax()) {
             $query = PurchasePayment::query()
                 ->select([
-                    'id', 'nomor_pembayaran', 'tanggal_bayar', 'supplier_id',
-                    'kas_bank_id', 'payment_method_id', 'nomor_referensi',
-                    'branch_id', 'company_id', 'currency_id', 'kurs',
-                    'total_faktur', 'total_potongan', 'total_bayar',
-                    'status', 'keterangan', 'lampiran', 'created_by', 'posted_by',
-                    'submitted_by', 'approved_by', 'created_at', 'updated_at'
+                    'purchase_payments.id',
+                    'purchase_payments.nomor_pembayaran',
+                    'purchase_payments.tanggal_bayar',
+                    'purchase_payments.supplier_id',
+                    'purchase_payments.kas_bank_id',
+                    'purchase_payments.payment_method_id',
+                    'purchase_payments.nomor_referensi',
+                    'purchase_payments.branch_id',
+                    'purchase_payments.company_id',
+                    'purchase_payments.currency_id',
+                    'purchase_payments.kurs',
+                    'purchase_payments.total_faktur',
+                    'purchase_payments.total_potongan',
+                    'purchase_payments.potongan_coa_id',
+                    'purchase_payments.total_bayar',
+                    'purchase_payments.status',
+                    'purchase_payments.keterangan',
+                    'purchase_payments.lampiran',
+                    'purchase_payments.created_by',
+                    'purchase_payments.posted_by',
+                    'purchase_payments.submitted_by',
+                    'purchase_payments.approved_by',
+                    'purchase_payments.created_at',
+                    'purchase_payments.updated_at'
                 ])
                 ->with([
                     'supplier:id,nama_supplier,kode_supplier',
                     'kasBank:id,nama_akun,nomor_rekening,tipe',
                     'paymentMethod:id,nama_metode',
+                    'potonganCoa:id,code,name',
                     'branch:id,nama_cabang',
                     'currency:id,kode_currency,simbol',
                     'creator:id,nama_lengkap,username',
                     'poster:id,nama_lengkap,username',
                     'submitter:id,nama_lengkap,username',
-                    'approver:id,nama_lengkap,username'
+                    'approver:id,nama_lengkap,username',
+                    'details.invoice:id,nomor_faktur,tender_id,po_id,gr_id',
+                    'details.invoice.tender:id,nomor_kontrak,nama_tender',
+                    'details.invoice.po.tender:id,nomor_kontrak,nama_tender',
+                    'details.invoice.goodsReceipt.tender:id,nomor_kontrak,nama_tender',
                 ])
                 ->where(function ($q) use ($activeBranchId, $activeCompanyId) {
-                    if ($activeBranchId) {
-                        $q->where('branch_id', $activeBranchId);
-                    } elseif ($activeCompanyId) {
-                        $q->where('company_id', $activeCompanyId);
+                    if (!empty($activeBranchId)) {
+                        $q->where('purchase_payments.branch_id', $activeBranchId)
+                          ->whereNull('purchase_payments.company_id');
+                    } else {
+                        $q->whereNull('purchase_payments.branch_id');
+                        if (!empty($activeCompanyId)) {
+                            $q->where('purchase_payments.company_id', $activeCompanyId);
+                        }
                     }
                 });
 
             // Strict Draft Isolation: Status Draft HANYA bisa dilihat oleh user pembuatnya (tanpa kecuali)
             if ($userId) {
                 $query->where(function ($q) use ($userId) {
-                    $q->where('status', '!=', 'Draft')
-                      ->orWhere('created_by', $userId);
+                    $q->where('purchase_payments.status', '!=', 'Draft')
+                      ->orWhere('purchase_payments.created_by', $userId);
                 });
             }
 
@@ -114,38 +368,54 @@ class PurchasePaymentController extends Controller
             if ($request->filled('search_custom')) {
                 $term = $request->search_custom;
                 $query->where(function ($q) use ($term) {
-                    $q->where('nomor_pembayaran', 'like', "%{$term}%")
-                      ->orWhere('nomor_referensi', 'like', "%{$term}%")
-                      ->orWhere('keterangan', 'like', "%{$term}%")
+                    $q->where('purchase_payments.nomor_pembayaran', 'like', "%{$term}%")
+                      ->orWhere('purchase_payments.nomor_referensi', 'like', "%{$term}%")
+                      ->orWhere('purchase_payments.keterangan', 'like', "%{$term}%")
                       ->orWhereHas('supplier', function ($sq) use ($term) {
                           $sq->where('nama_supplier', 'like', "%{$term}%")
                              ->orWhere('kode_supplier', 'like', "%{$term}%");
+                      })
+                      ->orWhereHas('details.invoice', function ($invQ) use ($term) {
+                          $invQ->where('nomor_faktur', 'like', "%{$term}%")
+                               ->orWhere('nomor_faktur_supplier', 'like', "%{$term}%")
+                               ->orWhereHas('tender', function ($tQ) use ($term) {
+                                   $tQ->where('nomor_kontrak', 'like', "%{$term}%")
+                                      ->orWhere('nama_tender', 'like', "%{$term}%");
+                               })
+                               ->orWhereHas('po.tender', function ($tQ) use ($term) {
+                                   $tQ->where('nomor_kontrak', 'like', "%{$term}%")
+                                      ->orWhere('nama_tender', 'like', "%{$term}%");
+                               })
+                               ->orWhereHas('goodsReceipt.tender', function ($tQ) use ($term) {
+                                   $tQ->where('nomor_kontrak', 'like', "%{$term}%")
+                                      ->orWhere('nama_tender', 'like', "%{$term}%");
+                               });
                       });
                 });
             }
 
             // Filter status
             if ($request->filled('status') && $request->status !== 'all') {
-                $query->where('status', $request->status);
+                $query->where('purchase_payments.status', $request->status);
             }
 
             // Filter supplier
             if ($request->filled('supplier_id') && $request->supplier_id !== 'all') {
-                $query->where('supplier_id', $request->supplier_id);
+                $query->where('purchase_payments.supplier_id', $request->supplier_id);
             }
 
             // Filter kas/bank
             if ($request->filled('kas_bank_id') && $request->kas_bank_id !== 'all') {
-                $query->where('kas_bank_id', $request->kas_bank_id);
+                $query->where('purchase_payments.kas_bank_id', $request->kas_bank_id);
             }
 
             // Filter tanggal
             if ($request->filled('start_date') && $request->filled('end_date')) {
-                $query->whereBetween('tanggal_bayar', [$request->start_date, $request->end_date]);
+                $query->whereBetween('purchase_payments.tanggal_bayar', [$request->start_date, $request->end_date]);
             }
 
             // Urutkan berdasarkan data yang paling terakhir di-input
-            $query->orderBy('id', 'desc');
+            $query->orderBy('purchase_payments.id', 'desc');
 
             return DataTables::eloquent($query)
                 ->addIndexColumn()
@@ -160,6 +430,32 @@ class PurchasePaymentController extends Controller
                         $imgUrl = asset('storage/' . $p->lampiran);
                         $html .= ' <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5 ms-1 btn-preview-image align-middle shadow-xs" data-url="' . $imgUrl . '" data-title="Bukti Pembayaran ' . e($p->nomor_pembayaran) . '" data-subtitle="' . e(basename($p->lampiran)) . '" style="font-size:0.68rem; font-weight:600;" title="Klik untuk Lihat Foto Bukti Pembayaran"><i class="bi bi-image me-0.5"></i> Foto</button>';
                     }
+
+                    // Cantumkan badge tender jika ada faktur terkait tender
+                    $tenders = collect();
+                    if ($p->relationLoaded('details') || $p->details) {
+                        foreach ($p->details as $det) {
+                            $inv = $det->invoice;
+                            if ($inv) {
+                                $tObj = $inv->tender ?? $inv->goodsReceipt?->tender ?? $inv->po?->tender;
+                                if ($tObj) {
+                                    $tNomor = !empty($tObj->nomor_kontrak) && $tObj->nomor_kontrak !== '-' 
+                                        ? ($tObj->nomor_kontrak . (!empty($tObj->nama_tender) ? ' - ' . $tObj->nama_tender : '')) 
+                                        : ($tObj->nomor_kontrak ?: ($tObj->nama_tender ?: ('Tender #' . $tObj->id)));
+                                    if (!empty($tNomor)) {
+                                        $tenders->push($tNomor);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    $uniqueTenders = $tenders->unique();
+                    if ($uniqueTenders->isNotEmpty()) {
+                        foreach ($uniqueTenders as $tLabel) {
+                            $html .= '<div class="mt-1"><span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning-subtle font-monospace px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;" title="Terkait Proyek Tender"><i class="bi bi-briefcase me-1"></i>' . e($tLabel) . '</span></div>';
+                        }
+                    }
+
                     return $html;
                 })
                 ->addColumn('tanggal_bayar_fmt', fn($p) => $p->tanggal_bayar ? $p->tanggal_bayar->format('d/m/Y') : '-')
@@ -191,13 +487,15 @@ class PurchasePaymentController extends Controller
                     $curCode = $p->currency?->kode_currency ?? 'IDR';
                     $curSymbol = $p->currency?->simbol ?? ($curCode === 'IDR' ? 'Rp' : $curCode);
                     $kurs = (float) ($p->kurs ?? 1);
+                    $coaSub = $p->potonganCoa ? '<small class="text-muted d-block text-truncate" style="font-size: 0.7rem; max-width: 140px;" title="' . e($p->potonganCoa->code . ' - ' . $p->potonganCoa->name) . '"><i class="bi bi-tag me-0.5"></i>' . e($p->potonganCoa->code) . '</small>' : '';
 
                     if ($curCode !== 'IDR' && $kurs > 1) {
                         $idrEquivalent = $totPot * $kurs;
                         return '<div class="text-danger fw-semibold">' . e($curSymbol) . ' ' . number_format($totPot, 2, ',', '.') . '</div>'
-                            . '<small class="text-muted" style="font-size: 0.72rem;">≈ Rp ' . number_format($idrEquivalent, 2, ',', '.') . '</small>';
+                            . '<small class="text-muted" style="font-size: 0.72rem;">≈ Rp ' . number_format($idrEquivalent, 2, ',', '.') . '</small>'
+                            . $coaSub;
                     }
-                    return '<span class="text-danger fw-semibold">Rp ' . number_format($totPot, 2, ',', '.') . '</span>';
+                    return '<span class="text-danger fw-semibold">Rp ' . number_format($totPot, 2, ',', '.') . '</span>' . $coaSub;
                 })
                 ->addColumn('status_badge', function ($p) {
                     if ($p->status === 'Draft') {
@@ -215,15 +513,16 @@ class PurchasePaymentController extends Controller
                 })
                 ->addColumn('action', function ($p) {
                     $user = auth()->user();
-                    $canDetail  = $user->can('detail-pembayaran-utang');
-                    $canCreate  = $user->can('tambah-pembayaran-utang');
-                    $canEdit    = $user->can('edit-pembayaran-utang');
+                    $isSuper = $user->hasAnyRole(['Super Admin', 'Owner']);
+                    $canDetail  = $isSuper || $user->can('detail-pembayaran-utang');
+                    $canCreate  = $isSuper || $user->can('tambah-pembayaran-utang');
+                    $canEdit    = $isSuper || $user->can('edit-pembayaran-utang');
                     $canSubmit  = $canCreate || $canEdit;
-                    $canApprove = $user->can('approve-pembayaran-utang');
+                    $canApprove = $isSuper || $user->can('approve-pembayaran-utang');
                     $canReject  = $canApprove;
-                    $canDelete  = $user->can('batalkan-pembayaran-utang');
-                    $canCancel  = $user->can('batalkan-pembayaran-utang');
-                    $canCetak   = $user->can('cetak-pembayaran-utang');
+                    $canDelete  = $isSuper || $user->can('hapus-pembayaran-utang');
+                    $canCancel  = $isSuper || $user->can('batalkan-pembayaran-utang');
+                    $canCetak   = $isSuper || $user->can('cetak-pembayaran-utang');
 
                     $btn = '<div class="d-flex align-items-center justify-content-center gap-1">';
 
@@ -266,9 +565,7 @@ class PurchasePaymentController extends Controller
                             $btn .= '<button type="button" class="btn btn-sm btn-icon btn-outline-danger rounded-circle btn-delete-payment" data-id="' . $p->id . '" data-nomor="' . e($p->nomor_pembayaran) . '" title="Hapus"><i class="bi bi-trash"></i></button>';
                         }
                     } elseif ($p->status === 'Posted') {
-                        if ($canCancel) {
-                            $btn .= '<button type="button" class="btn btn-sm btn-icon btn-outline-danger rounded-circle btn-cancel-payment" data-id="' . $p->id . '" data-nomor="' . e($p->nomor_pembayaran) . '" title="Batalkan / Void Pembayaran"><i class="bi bi-x-octagon"></i></button>';
-                        }
+                        // Tombol batalkan transaksi (void) dipindahkan ke dalam Modal Detail agar lebih tersembunyi & aman
                     }
 
                     $btn .= '</div>';
@@ -278,144 +575,69 @@ class PurchasePaymentController extends Controller
                 ->make(true);
         }
 
-        // Dropdown Data
-        $suppliers = MasterSupplier::with(['primaryBank', 'banks'])->orderBy('nama_supplier')->get();
-        $kasBankQuery = KasBank::with('coa')
+        // Dropdown Data (Strict Multi-Tenant Scoped)
+        $suppliers = MasterSupplier::forActiveCompany()
+            ->active()
+            ->with(['primaryBank', 'banks'])
+            ->orderBy('nama_supplier')
+            ->get();
+        $kasBanks = KasBank::with('coa')
             ->forActiveCompany()
-            ->where('is_active', true);
-
-        if ($activeBranchId) {
-            $kasBankQuery->where(function ($q) use ($activeBranchId) {
-                $q->where('branch_id', $activeBranchId)->orWhereNull('branch_id');
-            });
-        }
-
-        $kasBanks = $kasBankQuery->orderBy('tipe')->orderBy('nama_akun')->get();
-
-        if ($kasBanks->isEmpty()) {
-            $kasBanks = KasBank::with('coa')
-                ->where('is_active', true)
-                ->orderBy('tipe')
-                ->orderBy('nama_akun')
-                ->get();
-        }
-        $paymentMethods = PaymentMethod::where('status', 'Active')->orderBy('nama_metode')->get();
-        $currencies = MasterCurrency::where('status', 'Active')->orderBy('kode_currency')->get();
-
-        // KPI Summary Multi-Currency Calculations
-        $startOfMonth = now()->startOfMonth()->toDateString();
-        $endOfMonth   = now()->endOfMonth()->toDateString();
-
-        $kpiBaseQuery = PurchasePayment::query()
-            ->with('currency')
-            ->where(function ($q) use ($activeBranchId, $activeCompanyId) {
-                if ($activeBranchId) {
-                    $q->where('branch_id', $activeBranchId);
-                } elseif ($activeCompanyId) {
-                    $q->where('company_id', $activeCompanyId);
-                }
-            });
-
-        $postedPaymentsThisMonth = (clone $kpiBaseQuery)
-            ->where('status', 'Posted')
-            ->whereBetween('tanggal_bayar', [$startOfMonth, $endOfMonth])
+            ->where('is_active', true)
+            ->orderBy('tipe')
+            ->orderBy('nama_akun')
             ->get();
 
-        $totalPaymentIdrThisMonth = 0;
-        $totalPaymentUsdThisMonth = 0;
-        $totalPaymentEquivalentIdrThisMonth = 0;
+        $paymentMethods = PaymentMethod::forActiveCompany()->where('status', 'Active')->orderBy('nama_metode')->get();
+        $currencies = MasterCurrency::where('status', 'Active')->orderBy('kode_currency')->get();
 
-        foreach ($postedPaymentsThisMonth as $pay) {
-            $curCode = strtoupper($pay->currency?->kode_currency ?? 'IDR');
-            $totVal  = (float) $pay->total_bayar;
-            $kurs    = (float) ($pay->kurs ?? 1);
-            if ($kurs <= 0) $kurs = 1;
-
-            if ($curCode === 'USD' || $curCode === 'DOLAR' || str_contains($curCode, 'USD') || str_contains($curCode, 'DOLAR')) {
-                $totalPaymentUsdThisMonth += $totVal;
-                $totalPaymentEquivalentIdrThisMonth += ($totVal * $kurs);
-            } else {
-                $totalPaymentIdrThisMonth += $totVal;
-                $totalPaymentEquivalentIdrThisMonth += $totVal;
-            }
-        }
-
-        $allPayments = (clone $kpiBaseQuery)->get(['id', 'status']);
-        $totalPaymentCount   = $allPayments->count();
-        $totalDraftCount     = $allPayments->where('status', 'Draft')->count();
-        $totalPendingCount   = $allPayments->where('status', 'Diajukan')->count();
-        $totalRejectedCount  = $allPayments->where('status', 'Ditolak')->count();
-        $totalPostedCount    = $allPayments->where('status', 'Posted')->count();
-        $totalCancelledCount = $allPayments->where('status', 'Cancelled')->count();
-
-        // Calculate Outstanding AP from Posted Purchase Invoices separated by Currency
-        $invoiceBaseQuery = PurchaseInvoice::query()
-            ->with(['currency', 'po.currency'])
-            ->where('status', 'Posted')
-            ->where(function ($q) use ($activeBranchId, $activeCompanyId) {
-                if ($activeBranchId) {
-                    $q->where('branch_id', $activeBranchId);
-                }
-            });
-
-        $postedInvoices = (clone $invoiceBaseQuery)->get();
-        $totalOutstandingApIdr = 0;
-        $totalOutstandingApUsd = 0;
-        $totalOutstandingApEquivalentIdr = 0;
-
-        $totalOverdueCount = 0;
-        $overdueIdrAmount  = 0;
-        $overdueUsdAmount  = 0;
-        $today = now()->toDateString();
-
-        foreach ($postedInvoices as $inv) {
-            $rem = (float) $inv->remaining_balance;
-            if ($rem > 0.01) {
-                $curCode = strtoupper($inv->currency?->kode_currency ?? $inv->po?->currency?->kode_currency ?? 'IDR');
-                $kurs    = (float) ($inv->kurs ?? $inv->po?->kurs ?? 1);
-                if ($kurs <= 0) $kurs = 1;
-
-                $isOverdue = ($inv->tanggal_jatuh_tempo && $inv->tanggal_jatuh_tempo->toDateString() < $today);
-                if ($isOverdue) {
-                    $totalOverdueCount++;
-                }
-
-                if ($curCode === 'USD' || $curCode === 'DOLAR' || str_contains($curCode, 'USD') || str_contains($curCode, 'DOLAR')) {
-                    $totalOutstandingApUsd += $rem;
-                    $totalOutstandingApEquivalentIdr += ($rem * $kurs);
-                    if ($isOverdue) {
-                        $overdueUsdAmount += $rem;
-                    }
-                } else {
-                    $totalOutstandingApIdr += $rem;
-                    $totalOutstandingApEquivalentIdr += $rem;
-                    if ($isOverdue) {
-                        $overdueIdrAmount += $rem;
-                    }
-                }
-            }
-        }
+        // ── KPI Summary Bento Cards (Menggunakan shared helper untuk konsistensi & performa tinggi) ──
+        $kpiData = $this->getKpiSummaryData($activeBranchId, $activeCompanyId, $userId);
+        extract($kpiData);
 
         // Pass permission flags to the view for conditional UI rendering
         $authUser = auth()->user();
+        $isSuper  = $authUser->hasAnyRole(['Super Admin', 'Owner']);
         $permissions = [
-            'canView'    => $authUser->can('lihat-pembayaran-utang'),
-            'canCreate'  => $authUser->can('tambah-pembayaran-utang'),
-            'canDetail'  => $authUser->can('detail-pembayaran-utang'),
-            'canEdit'    => $authUser->can('edit-pembayaran-utang'),
-            'canSubmit'  => $authUser->can('tambah-pembayaran-utang') || $authUser->can('edit-pembayaran-utang'),
-            'canApprove' => $authUser->can('approve-pembayaran-utang'),
-            'canReject'  => $authUser->can('approve-pembayaran-utang'),
-            'canPost'    => $authUser->can('approve-pembayaran-utang'),
-            'canCancel'  => $authUser->can('batalkan-pembayaran-utang'),
-            'canCetak'   => $authUser->can('cetak-pembayaran-utang'),
+            'canView'       => $isSuper || $authUser->can('lihat-pembayaran-utang'),
+            'canCreate'     => $isSuper || $authUser->can('tambah-pembayaran-utang'),
+            'canDetail'     => $isSuper || $authUser->can('detail-pembayaran-utang'),
+            'canEdit'       => $isSuper || $authUser->can('edit-pembayaran-utang'),
+            'canSubmit'     => $isSuper || $authUser->can('tambah-pembayaran-utang') || $authUser->can('edit-pembayaran-utang'),
+            'canApprove'    => $isSuper || $authUser->can('approve-pembayaran-utang'),
+            'canReject'     => $isSuper || $authUser->can('approve-pembayaran-utang'),
+            'canPost'       => $isSuper || $authUser->can('approve-pembayaran-utang'),
+            'canDelete'     => $isSuper || $authUser->can('hapus-pembayaran-utang'),
+            'canCancel'     => $isSuper || $authUser->can('batalkan-pembayaran-utang'),
+            'canViewJurnal' => $isSuper || $authUser->can('lihat-jurnal-pembayaran-utang'),
+            'canCetak'      => $isSuper || $authUser->can('cetak-pembayaran-utang'),
         ];
+
+        // Akun COA Potongan Pembelian
+        $potonganCoas = ChartOfAccount::forActiveCompany()
+            ->detailOnly()
+            ->active()
+            ->orderBy('code')
+            ->get();
+
+        $defaultPotonganCoaId = AccountMappingHelper::getCoaId('purchases', 'purchase_discount', 'default_purchase_discount', $activeCompanyId)
+            ?? AccountMappingHelper::getCoaId('default', 'purchase_discount')
+            ?? AccountMappingHelper::getCoaId('default', 'potongan_pembelian');
+        if (!$defaultPotonganCoaId) {
+            $defaultPotonganCoa = $potonganCoas->first(function($c) {
+                return str_contains(strtolower($c->name), 'potongan pembelian') 
+                    || str_contains(strtolower($c->name), 'diskon pembelian');
+            });
+            $defaultPotonganCoaId = $defaultPotonganCoa?->id;
+        }
 
         return view('modul_purchasing.pembayaran_utang.index', compact(
             'suppliers',
             'kasBanks',
             'paymentMethods',
             'currencies',
+            'potonganCoas',
+            'defaultPotonganCoaId',
             'totalPaymentIdrThisMonth',
             'totalPaymentUsdThisMonth',
             'totalPaymentEquivalentIdrThisMonth',
@@ -436,20 +658,72 @@ class PurchasePaymentController extends Controller
     }
 
     /**
+     * Ambil daftar ID Faktur Pembelian yang sedang aktif diinput pada dokumen Pembayaran Utang
+     * yang masih berjalan (Status Draft, Diajukan, Disetujui, Ditolak).
+     *
+     * Hal ini mencegah duplikasi input faktur yang sama di beberapa dokumen draft/pengajuan.
+     * Untuk faktur yang sudah diposting (Posted) namun BELUM LUNAS (pembayaran parsial/cicilan),
+     * faktur TETAP TAMPIL dengan sisa utang terkini, selama tidak sedang tersangkut di draft lain.
+     *
+     * @param int|null $excludePaymentId ID pembayaran yang diabaikan (misal saat edit pembayaran itu sendiri)
+     * @return array
+     */
+    protected function getOccupiedInvoiceIds(?int $excludePaymentId = null): array
+    {
+        return PurchasePaymentDetail::whereHas('payment', function ($q) use ($excludePaymentId) {
+            $q->whereNull('purchase_payments.deleted_at')
+              ->whereIn('purchase_payments.status', ['Draft', 'Diajukan', 'Disetujui', 'Ditolak']);
+            if (!empty($excludePaymentId)) {
+                $q->where('purchase_payments.id', '!=', $excludePaymentId);
+            }
+        })
+        ->where(function ($d) {
+            $d->where('jumlah_bayar', '>', 0)
+              ->orWhere('potongan', '>', 0);
+        })
+        ->pluck('purchase_invoice_id')
+        ->filter()
+        ->unique()
+        ->values()
+        ->toArray();
+    }
+
+    /**
      * AJAX Endpoint: Pencarian faktur pembelian belum lunas (Search & Lookup)
      */
     public function lookupInvoices(Request $request)
     {
+        abort_unless(
+            auth()->user()->can('lihat-pembayaran-utang') || 
+            auth()->user()->can('tambah-pembayaran-utang') || 
+            auth()->user()->can('edit-pembayaran-utang') ||
+            auth()->user()->hasAnyRole(['Super Admin', 'Owner']),
+            403,
+            'Anda tidak memiliki izin untuk melihat daftar faktur pembayaran utang.'
+        );
+
         $activeBranchId  = session('active_branch_id');
 
         $query = PurchaseInvoice::query()
-            ->with(['supplier', 'po.paymentMethod', 'paymentTerm', 'currency'])
-            ->where('status', 'Posted');
+            ->with([
+                'supplier',
+                'po.paymentMethod',
+                'paymentTerm',
+                'currency',
+                'tender',
+                'po.tender',
+                'goodsReceipt.tender'
+            ])
+            ->where('status', 'Posted')
+            ->forActiveBranch()
+            ->forActiveCompany();
 
-        if ($activeBranchId) {
-            $query->where(function ($q) use ($activeBranchId) {
-                $q->where('branch_id', $activeBranchId)->orWhereNull('branch_id');
-            });
+        // Eksklusi faktur yang sudah diinput ke pembayaran aktif (Draft, Diajukan, Posted, dll.)
+        // Faktur hanya muncul kembali jika status pembayaran dibatalkan (Cancelled) atau dihapus
+        $excludePaymentId = $request->input('exclude_payment_id');
+        $occupiedInvoiceIds = $this->getOccupiedInvoiceIds($excludePaymentId);
+        if (!empty($occupiedInvoiceIds)) {
+            $query->whereNotIn('purchase_invoices.id', $occupiedInvoiceIds);
         }
 
         if ($request->filled('supplier_id') && $request->supplier_id !== 'all') {
@@ -465,12 +739,39 @@ class PurchasePaymentController extends Controller
                    ->orWhereHas('supplier', function ($supQuery) use ($term) {
                        $supQuery->where('nama_supplier', 'like', "%{$term}%")
                                 ->orWhere('kode_supplier', 'like', "%{$term}%");
+                   })
+                   ->orWhereHas('tender', function ($tQ) use ($term) {
+                       $tQ->where('nomor_kontrak', 'like', "%{$term}%")
+                          ->orWhere('nama_tender', 'like', "%{$term}%");
+                   })
+                   ->orWhereHas('po.tender', function ($tQ) use ($term) {
+                       $tQ->where('nomor_kontrak', 'like', "%{$term}%")
+                          ->orWhere('nama_tender', 'like', "%{$term}%");
+                   })
+                   ->orWhereHas('goodsReceipt.tender', function ($tQ) use ($term) {
+                       $tQ->where('nomor_kontrak', 'like', "%{$term}%")
+                          ->orWhere('nama_tender', 'like', "%{$term}%");
                    });
             });
         }
 
-        $invoices = $query->orderBy('tanggal_jatuh_tempo', 'asc')
-            ->orderBy('tanggal_faktur', 'asc')
+        $paidSub = DB::table('purchase_payment_details as ppd')
+            ->join('purchase_payments as pp', function($j) {
+                $j->on('pp.id', '=', 'ppd.purchase_payment_id')
+                  ->where('pp.status', '=', 'Posted')
+                  ->whereNull('pp.deleted_at');
+            })
+            ->select('ppd.purchase_invoice_id', DB::raw('SUM(ppd.jumlah_bayar + ppd.potongan) as total_paid'))
+            ->groupBy('ppd.purchase_invoice_id');
+
+        $query->leftJoinSub($paidSub, 'paid_sub', function($j) {
+            $j->on('paid_sub.purchase_invoice_id', '=', 'purchase_invoices.id');
+        })
+        ->select('purchase_invoices.*', DB::raw('COALESCE(paid_sub.total_paid, 0) as total_pelunasan'))
+        ->whereRaw('(purchase_invoices.grand_total - COALESCE(purchase_invoices.uang_muka, 0) - COALESCE(paid_sub.total_paid, 0)) > 0.01');
+
+        $invoices = $query->orderBy('purchase_invoices.tanggal_jatuh_tempo', 'asc')
+            ->orderBy('purchase_invoices.tanggal_faktur', 'asc')
             ->limit(100)
             ->get();
 
@@ -478,7 +779,9 @@ class PurchasePaymentController extends Controller
         $result = [];
 
         foreach ($invoices as $inv) {
-            $paid = $inv->paid_amount;
+            $dp = (float) ($inv->uang_muka ?? 0);
+            $pelunasan = (float) ($inv->total_pelunasan ?? 0);
+            $paid = $dp + $pelunasan;
             $grandTotal = (float) $inv->grand_total;
             $remaining = max(0, $grandTotal - $paid);
 
@@ -486,6 +789,19 @@ class PurchasePaymentController extends Controller
                 $dueDate = $inv->tanggal_jatuh_tempo;
                 $isOverdue = $dueDate && $dueDate->lt($today);
                 $daysOverdue = $isOverdue ? $today->diffInDays($dueDate) : 0;
+                $curSym = $inv->currency?->simbol ?? ($inv->currency?->kode_currency === 'IDR' ? 'Rp' : '$');
+                $curCode = $inv->currency?->kode_currency ?? 'IDR';
+
+                $tenderObj = $inv->tender ?? $inv->goodsReceipt?->tender ?? $inv->po?->tender;
+                $nomorTender = null;
+                if ($tenderObj) {
+                    $nomorTender = !empty($tenderObj->nomor_kontrak) && $tenderObj->nomor_kontrak !== '-'
+                        ? ($tenderObj->nomor_kontrak . (!empty($tenderObj->nama_tender) ? ' - ' . $tenderObj->nama_tender : ''))
+                        : ($tenderObj->nomor_kontrak ?: ($tenderObj->nama_tender ?: ('Tender #' . $tenderObj->id)));
+                }
+
+                $dp = (float) ($inv->uang_muka ?? 0);
+                $pelunasan = max(0, $paid - $dp);
 
                 $result[] = [
                     'id'                     => $inv->id,
@@ -494,17 +810,26 @@ class PurchasePaymentController extends Controller
                     'supplier_code'          => $inv->supplier?->kode_supplier ?? '-',
                     'nomor_faktur'           => $inv->nomor_faktur,
                     'nomor_faktur_supplier'  => $inv->nomor_faktur_supplier ?? '-',
+                    'tender_id'              => $tenderObj?->id,
+                    'nomor_tender'           => $nomorTender,
+                    'nama_tender'            => $tenderObj?->nama_tender,
                     'tanggal_faktur'         => $inv->tanggal_faktur ? $inv->tanggal_faktur->format('d/m/Y') : '-',
                     'tanggal_jatuh_tempo'    => $dueDate ? $dueDate->format('d/m/Y') : '-',
                     'is_overdue'             => $isOverdue,
                     'days_overdue'           => $daysOverdue,
                     'grand_total'            => $grandTotal,
-                    'grand_total_fmt'        => 'Rp ' . number_format($grandTotal, 2, ',', '.'),
+                    'grand_total_fmt'        => $curSym . ' ' . number_format($grandTotal, 2, ',', '.'),
+                    'uang_muka'              => $dp,
+                    'uang_muka_fmt'          => $curSym . ' ' . number_format($dp, 2, ',', '.'),
+                    'pelunasan_terbayar'     => $pelunasan,
+                    'pelunasan_terbayar_fmt' => $curSym . ' ' . number_format($pelunasan, 2, ',', '.'),
                     'paid_amount'            => $paid,
-                    'paid_amount_fmt'        => 'Rp ' . number_format($paid, 2, ',', '.'),
+                    'paid_amount_fmt'        => $curSym . ' ' . number_format($paid, 2, ',', '.'),
                     'remaining_balance'      => $remaining,
-                    'remaining_balance_fmt'  => 'Rp ' . number_format($remaining, 2, ',', '.'),
+                    'remaining_balance_fmt'  => $curSym . ' ' . number_format($remaining, 2, ',', '.'),
                     'currency_id'            => $inv->currency_id,
+                    'currency_code'          => $curCode,
+                    'currency_symbol'        => $curSym,
                     'kurs'                   => (float) ($inv->kurs ?? 1),
                     'payment_method_id'      => $inv->po?->payment_method_id,
                     'payment_method_name'    => $inv->po?->paymentMethod?->nama_metode,
@@ -524,28 +849,66 @@ class PurchasePaymentController extends Controller
      */
     public function getUnpaidInvoices($supplierId)
     {
+        abort_unless(
+            auth()->user()->can('lihat-pembayaran-utang') || 
+            auth()->user()->can('tambah-pembayaran-utang') || 
+            auth()->user()->can('edit-pembayaran-utang') ||
+            auth()->user()->hasAnyRole(['Super Admin', 'Owner']),
+            403,
+            'Anda tidak memiliki izin untuk melihat daftar faktur pembayaran utang.'
+        );
+
         $activeBranchId = session('active_branch_id');
 
         $query = PurchaseInvoice::query()
-            ->with(['supplier', 'po.paymentMethod', 'paymentTerm', 'currency'])
+            ->with([
+                'supplier',
+                'po.paymentMethod',
+                'paymentTerm',
+                'currency',
+                'tender',
+                'po.tender',
+                'goodsReceipt.tender'
+            ])
             ->where('supplier_id', $supplierId)
-            ->where('status', 'Posted');
+            ->where('status', 'Posted')
+            ->forActiveBranch()
+            ->forActiveCompany();
 
-        if ($activeBranchId) {
-            $query->where(function ($q) use ($activeBranchId) {
-                $q->where('branch_id', $activeBranchId)->orWhereNull('branch_id');
-            });
+        // Eksklusi faktur yang sudah diinput ke pembayaran aktif (Draft, Diajukan, Posted, dll.)
+        // Faktur hanya muncul kembali jika status pembayaran dibatalkan (Cancelled) atau dihapus
+        $excludePaymentId = request('exclude_payment_id');
+        $occupiedInvoiceIds = $this->getOccupiedInvoiceIds($excludePaymentId);
+        if (!empty($occupiedInvoiceIds)) {
+            $query->whereNotIn('purchase_invoices.id', $occupiedInvoiceIds);
         }
 
-        $invoices = $query->orderBy('tanggal_jatuh_tempo', 'asc')
-            ->orderBy('tanggal_faktur', 'asc')
+        $paidSub = DB::table('purchase_payment_details as ppd')
+            ->join('purchase_payments as pp', function($j) {
+                $j->on('pp.id', '=', 'ppd.purchase_payment_id')
+                  ->where('pp.status', '=', 'Posted')
+                  ->whereNull('pp.deleted_at');
+            })
+            ->select('ppd.purchase_invoice_id', DB::raw('SUM(ppd.jumlah_bayar + ppd.potongan) as total_paid'))
+            ->groupBy('ppd.purchase_invoice_id');
+
+        $query->leftJoinSub($paidSub, 'paid_sub', function($j) {
+            $j->on('paid_sub.purchase_invoice_id', '=', 'purchase_invoices.id');
+        })
+        ->select('purchase_invoices.*', DB::raw('COALESCE(paid_sub.total_paid, 0) as total_pelunasan'))
+        ->whereRaw('(purchase_invoices.grand_total - COALESCE(purchase_invoices.uang_muka, 0) - COALESCE(paid_sub.total_paid, 0)) > 0.01');
+
+        $invoices = $query->orderBy('purchase_invoices.tanggal_jatuh_tempo', 'asc')
+            ->orderBy('purchase_invoices.tanggal_faktur', 'asc')
             ->get();
 
         $today = now()->startOfDay();
         $result = [];
 
         foreach ($invoices as $inv) {
-            $paid = $inv->paid_amount;
+            $dp = (float) ($inv->uang_muka ?? 0);
+            $pelunasan = (float) ($inv->total_pelunasan ?? 0);
+            $paid = $dp + $pelunasan;
             $grandTotal = (float) $inv->grand_total;
             $remaining = max(0, $grandTotal - $paid);
 
@@ -553,22 +916,44 @@ class PurchasePaymentController extends Controller
                 $dueDate = $inv->tanggal_jatuh_tempo;
                 $isOverdue = $dueDate && $dueDate->lt($today);
                 $daysOverdue = $isOverdue ? $today->diffInDays($dueDate) : 0;
+                $curSym = $inv->currency?->simbol ?? ($inv->currency?->kode_currency === 'IDR' ? 'Rp' : '$');
+                $curCode = $inv->currency?->kode_currency ?? 'IDR';
+
+                $tenderObj = $inv->tender ?? $inv->goodsReceipt?->tender ?? $inv->po?->tender;
+                $nomorTender = null;
+                if ($tenderObj) {
+                    $nomorTender = !empty($tenderObj->nomor_kontrak) && $tenderObj->nomor_kontrak !== '-'
+                        ? ($tenderObj->nomor_kontrak . (!empty($tenderObj->nama_tender) ? ' - ' . $tenderObj->nama_tender : ''))
+                        : ($tenderObj->nomor_kontrak ?: ($tenderObj->nama_tender ?: ('Tender #' . $tenderObj->id)));
+                }
+
+                $dp = (float) ($inv->uang_muka ?? 0);
+                $pelunasan = max(0, $paid - $dp);
 
                 $result[] = [
                     'id'                     => $inv->id,
                     'nomor_faktur'           => $inv->nomor_faktur,
                     'nomor_faktur_supplier'  => $inv->nomor_faktur_supplier ?? '-',
+                    'tender_id'              => $tenderObj?->id,
+                    'nomor_tender'           => $nomorTender,
+                    'nama_tender'            => $tenderObj?->nama_tender,
                     'tanggal_faktur'         => $inv->tanggal_faktur ? $inv->tanggal_faktur->format('d/m/Y') : '-',
                     'tanggal_jatuh_tempo'    => $dueDate ? $dueDate->format('d/m/Y') : '-',
                     'is_overdue'             => $isOverdue,
                     'days_overdue'           => $daysOverdue,
                     'grand_total'            => $grandTotal,
-                    'grand_total_fmt'        => 'Rp ' . number_format($grandTotal, 2, ',', '.'),
+                    'grand_total_fmt'        => $curSym . ' ' . number_format($grandTotal, 2, ',', '.'),
+                    'uang_muka'              => $dp,
+                    'uang_muka_fmt'          => $curSym . ' ' . number_format($dp, 2, ',', '.'),
+                    'pelunasan_terbayar'     => $pelunasan,
+                    'pelunasan_terbayar_fmt' => $curSym . ' ' . number_format($pelunasan, 2, ',', '.'),
                     'paid_amount'            => $paid,
-                    'paid_amount_fmt'        => 'Rp ' . number_format($paid, 2, ',', '.'),
+                    'paid_amount_fmt'        => $curSym . ' ' . number_format($paid, 2, ',', '.'),
                     'remaining_balance'      => $remaining,
-                    'remaining_balance_fmt'  => 'Rp ' . number_format($remaining, 2, ',', '.'),
+                    'remaining_balance_fmt'  => $curSym . ' ' . number_format($remaining, 2, ',', '.'),
                     'currency_id'            => $inv->currency_id,
+                    'currency_code'          => $curCode,
+                    'currency_symbol'        => $curSym,
                     'kurs'                   => (float) ($inv->kurs ?? 1),
                     'payment_method_id'      => $inv->po?->payment_method_id,
                     'payment_method_name'    => $inv->po?->paymentMethod?->nama_metode,
@@ -624,25 +1009,34 @@ class PurchasePaymentController extends Controller
         );
 
         $request->validate([
-            'supplier_id'     => 'required|exists:master_suppliers,id',
-            'kas_bank_id'     => 'required|exists:kas_banks,id',
-            'tanggal_bayar'   => 'required|date',
-            'nomor_referensi' => 'nullable|string|max:100',
-            'keterangan'      => 'nullable|string|max:1000',
-            'lampiran'        => 'nullable|file|mimes:jpeg,jpg,png,webp,pdf|max:10240',
-            'invoices'        => 'required|array|min:1',
+            'supplier_id'       => 'required|exists:master_suppliers,id',
+            'kas_bank_id'       => 'required|exists:kas_banks,id',
+            'payment_method_id' => 'nullable|exists:payment_methods,id',
+            'currency_id'       => 'nullable|exists:master_currencies,id',
+            'kurs'              => 'nullable|numeric|gt:0',
+            'tanggal_bayar'     => 'required|date',
+            'nomor_referensi'   => 'nullable|string|max:30',
+            'keterangan'        => 'nullable|string|max:40',
+            'lampiran'          => 'required|file|mimes:jpeg,jpg,png,webp,pdf|max:10240',
+            'invoices'          => 'required|array|min:1',
             'invoices.*.purchase_invoice_id' => 'required|exists:purchase_invoices,id',
             'invoices.*.jumlah_bayar'        => 'required|numeric|min:0',
             'invoices.*.potongan'            => 'nullable|numeric|min:0',
-            'invoices.*.catatan'             => 'nullable|string|max:255',
+            'invoices.*.catatan'             => 'nullable|string|max:40',
+            'potongan_coa_id'                => 'nullable|exists:chart_of_accounts,id',
         ], [
             'supplier_id.required'   => 'Pilih Supplier yang akan dibayar!',
             'kas_bank_id.required'   => 'Pilih Akun Kas / Bank sumber dana pembayaran!',
             'tanggal_bayar.required' => 'Tanggal pembayaran wajib diisi!',
+            'nomor_referensi.max'    => 'Nomor referensi / giro maksimal 30 karakter!',
+            'keterangan.max'         => 'Keterangan / catatan pembayaran maksimal 40 karakter!',
+            'invoices.*.catatan.max' => 'Catatan per faktur maksimal 40 karakter!',
             'invoices.required'      => 'Pilih minimal satu faktur yang akan dibayar!',
             'invoices.min'           => 'Pilih minimal satu faktur yang akan dibayar!',
+            'lampiran.required'      => 'Dokumen bukti pembayaran wajib diisi / diunggah!',
             'lampiran.mimes'         => 'Format file lampiran harus JPG, PNG, WEBP, atau PDF!',
             'lampiran.max'           => 'Ukuran file lampiran maksimal 10MB!',
+            'kurs.gt'                => 'Nilai kurs harus lebih besar dari 0!',
         ]);
 
         try {
@@ -680,6 +1074,26 @@ class PurchasePaymentController extends Controller
                 }
             }
 
+            // Validasi Anti-Duplikasi Faktur:
+            // Pastikan faktur belum diinput ke pembayaran lain yang aktif (Draft/Diajukan/Posted)
+            $selectedInvoiceIds = collect($request->invoices)
+                ->filter(fn($row) => (floatval($row['jumlah_bayar'] ?? 0) + floatval($row['potongan'] ?? 0)) > 0)
+                ->pluck('purchase_invoice_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+
+            $occupiedIds = $this->getOccupiedInvoiceIds();
+            $duplicateIds = array_intersect($selectedInvoiceIds, $occupiedIds);
+            if (!empty($duplicateIds)) {
+                $duplicateInvoices = PurchaseInvoice::whereIn('id', $duplicateIds)->pluck('nomor_faktur')->implode(', ');
+                DB::rollBack();
+                return response()->json([
+                    'message' => "Faktur [{$duplicateInvoices}] sedang dalam proses pembayaran lain (berstatus Draft/Diajukan). Faktur tidak dapat diduplikasi kecuali draf sebelumnya dibatalkan atau dihapus."
+                ], 422);
+            }
+
             // Calculate totals & prepare details
             $totalFaktur   = 0;
             $totalPotongan = 0;
@@ -698,7 +1112,41 @@ class PurchasePaymentController extends Controller
                 $invoice = PurchaseInvoice::lockForUpdate()->find($invId);
                 if (!$invoice) continue;
 
-                $curRemaining = $invoice->remaining_balance;
+                // 1. Validasi Kepemilikan Supplier: Mencegah manipulasi ID faktur milik vendor lain
+                if ((int)$invoice->supplier_id !== (int)$request->supplier_id) {
+                    DB::rollBack();
+                    return response()->json(['message' => "Faktur '{$invoice->nomor_faktur}' bukan milik supplier yang dipilih!"], 422);
+                }
+
+                // 2. Strict Tenancy Isolation: Memastikan faktur milik Cabang / PT yang aktif
+                if (!empty($activeBranchId)) {
+                    if ((int)$invoice->branch_id !== (int)$activeBranchId) {
+                        DB::rollBack();
+                        return response()->json(['message' => "Faktur '{$invoice->nomor_faktur}' tidak berasal dari cabang yang aktif!"], 403);
+                    }
+                } else {
+                    if (!empty($invoice->branch_id) || ($activeCompanyId && $invoice->company_id && (int)$invoice->company_id !== (int)$activeCompanyId)) {
+                        DB::rollBack();
+                        return response()->json(['message' => "Faktur '{$invoice->nomor_faktur}' tidak berasal dari entitas perusahaan yang aktif!"], 403);
+                    }
+                }
+
+                // 3. Validasi Status Faktur
+                if ($invoice->status !== 'Posted') {
+                    DB::rollBack();
+                    return response()->json(['message' => "Faktur '{$invoice->nomor_faktur}' belum diposting atau sudah tidak aktif!"], 422);
+                }
+
+                $curRemaining = (float) $invoice->remaining_balance;
+
+                // 4. Anti-Overpayment Guard (Maksimal Keamanan Akuntansi)
+                if (($bayar + $potong) > ($curRemaining + 0.05)) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => "Nominal alokasi bayar & potongan untuk faktur '{$invoice->nomor_faktur}' melebihi sisa utang yang belum dibayar!"
+                    ], 422);
+                }
+
                 $totFaktur    = floatval($invoice->grand_total);
                 $sisaAkhir    = max(0, $curRemaining - ($bayar + $potong));
 
@@ -720,6 +1168,53 @@ class PurchasePaymentController extends Controller
             if (empty($detailsPayload) || $totalBayar <= 0) {
                 DB::rollBack();
                 return response()->json(['message' => 'Total pembayaran harus lebih besar dari 0!'], 422);
+            }
+
+            // Validasi Akun COA Potongan Pembelian jika terdapat potongan
+            if ($totalPotongan > 0 && empty($request->potongan_coa_id)) {
+                $fallbackCoa = AccountMappingHelper::getCoaId('purchases', 'purchase_discount', 'default_purchase_discount', $activeCompanyId)
+                    ?? AccountMappingHelper::getCoaId('default', 'purchase_discount', null, $activeCompanyId)
+                    ?? AccountMappingHelper::getCoaId('default', 'potongan_pembelian', null, $activeCompanyId)
+                    ?? ChartOfAccount::forActiveCompany()->detailOnly()->where(function ($q) {
+                        $q->where('name', 'like', '%Potongan Pembelian%')->orWhere('name', 'like', '%Diskon Pembelian%');
+                    })->value('id');
+
+                if (!$fallbackCoa) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Akun COA Potongan Pembelian wajib dipilih jika terdapat potongan atau diskon!'], 422);
+                }
+            }
+
+            // Saldo Kas/Bank Security Check (Anti-Minus Validation & Tenancy Verification):
+            // Transaksi TIDAK BISA disimpan baik sebagai draf maupun diajukan jika saldo kas/bank tidak mencukupi
+            $kasBank = KasBank::lockForUpdate()->find($request->kas_bank_id);
+            if (!$kasBank) {
+                DB::rollBack();
+                return response()->json(['message' => 'Akun Kas / Bank sumber dana tidak ditemukan!'], 422);
+            }
+
+            // Verifikasi Tenancy Akun Kas/Bank
+            if (!empty($activeBranchId)) {
+                if ((int)$kasBank->branch_id !== (int)$activeBranchId) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Akun Kas / Bank tidak sesuai dengan cabang yang sedang aktif.'], 403);
+                }
+            } else {
+                if (!empty($kasBank->branch_id) || ($activeCompanyId && $kasBank->company_id && (int)$kasBank->company_id !== (int)$activeCompanyId)) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Akun Kas / Bank tidak sesuai dengan entitas perusahaan yang aktif.'], 403);
+                }
+            }
+
+            $kurs = (float) ($request->kurs ?? 1);
+            $totalBayarIdr = $totalBayar * ($kurs > 0 ? $kurs : 1);
+            $currentSaldo  = (float) $kasBank->saldo_berjalan;
+            if ($currentSaldo < $totalBayarIdr) {
+                $kekurangan = $totalBayarIdr - $currentSaldo;
+                DB::rollBack();
+                return response()->json([
+                    'message' => "Saldo Akun Kas/Bank '{$kasBank->nama_akun}' tidak mencukupi! Saldo tersedia: Rp " . number_format($currentSaldo, 2, ',', '.') . ", Nominal pembayaran: Rp " . number_format($totalBayarIdr, 2, ',', '.') . " (Kurang: Rp " . number_format($kekurangan, 2, ',', '.') . "). Transaksi tidak dapat disimpan baik sebagai draf maupun diajukan demi keamanan saldo."
+                ], 422);
             }
 
             $status = 'Draft';
@@ -757,12 +1252,13 @@ class PurchasePaymentController extends Controller
                 'kas_bank_id'       => $request->kas_bank_id,
                 'payment_method_id' => $request->payment_method_id,
                 'nomor_referensi'   => $request->nomor_referensi,
-                'branch_id'         => $activeBranchId,
-                'company_id'        => $activeCompanyId,
+                'branch_id'         => !empty($activeBranchId) ? $activeBranchId : null,
+                'company_id'        => !empty($activeBranchId) ? null : ($activeCompanyId ?: 1),
                 'currency_id'       => $request->currency_id,
                 'kurs'              => $request->kurs ?? 1,
                 'total_faktur'      => $totalFaktur,
                 'total_potongan'    => $totalPotongan,
+                'potongan_coa_id'   => $totalPotongan > 0 ? $request->potongan_coa_id : null,
                 'total_bayar'       => $totalBayar,
                 'status'            => $status,
                 'keterangan'        => $request->keterangan,
@@ -816,23 +1312,30 @@ class PurchasePaymentController extends Controller
      */
     public function show(PurchasePayment $purchasePayment)
     {
+        $user    = auth()->user();
+        $isSuper = $user->hasAnyRole(['Super Admin', 'Owner']);
+
         abort_unless(
-            auth()->user()->can('detail-pembayaran-utang'),
+            $isSuper || $user->can('detail-pembayaran-utang'),
             403,
             'Anda tidak memiliki hak akses untuk melihat rincian pembayaran utang.'
         );
+        $this->authorizeTenantAccess($purchasePayment);
 
-        // Strict Draft Isolation: Status Draft HANYA bisa dilihat oleh user pembuat dokumennya
-        if ($purchasePayment->status === 'Draft' && (int)$purchasePayment->created_by !== (int)auth()->id()) {
+        // Strict Draft Isolation: Status Draft HANYA bisa dilihat oleh user pembuat dokumennya (kecuali Super Admin / Owner)
+        if ($purchasePayment->status === 'Draft' && !$isSuper && (int)$purchasePayment->created_by !== (int)$user->id) {
             return response()->json([
                 'message' => 'Dokumen pembayaran utang berstatus Draft hanya dapat dilihat oleh pembuat dokumen ini.'
             ], 403);
         }
 
-        $purchasePayment->load([
+        $canSeeJurnal = $isSuper || $user->can('lihat-jurnal-pembayaran-utang');
+
+        $relations = [
             'supplier',
             'kasBank.coa',
             'paymentMethod',
+            'potonganCoa',
             'branch',
             'company',
             'currency',
@@ -844,14 +1347,32 @@ class PurchasePaymentController extends Controller
             'approver',
             'rejecter',
             'details.invoice.po.currency',
-            'jurnal.details.account',
-            'reversalJurnal.details.account',
+            'details.invoice.tender',
+            'details.invoice.po.tender',
+            'details.invoice.goodsReceipt.tender',
             'kasMutasi',
-        ]);
+        ];
+
+        if ($canSeeJurnal) {
+            $relations[] = 'jurnal.details.account';
+            $relations[] = 'reversalJurnal.details.account';
+        }
+
+        $purchasePayment->load($relations);
+
+        if (!$canSeeJurnal) {
+            $purchasePayment->unsetRelation('jurnal');
+            $purchasePayment->unsetRelation('reversalJurnal');
+            $purchasePayment->setRelation('jurnal', null);
+            $purchasePayment->setRelation('reversalJurnal', null);
+        }
 
         return response()->json([
-            'status'  => 'success',
-            'payment' => $purchasePayment,
+            'status'         => 'success',
+            'payment'        => $purchasePayment,
+            'can_see_jurnal' => $canSeeJurnal,
+            'can_cancel'     => $isSuper || $user->can('batalkan-pembayaran-utang'),
+            'can_delete'     => $isSuper || $user->can('hapus-pembayaran-utang'),
         ]);
     }
 
@@ -865,6 +1386,7 @@ class PurchasePaymentController extends Controller
             403,
             'Anda tidak memiliki hak akses untuk mengubah pembayaran utang.'
         );
+        $this->authorizeTenantAccess($purchasePayment);
 
         // Strict Draft Isolation: Status Draft HANYA bisa diedit oleh user pembuat dokumennya
         if ($purchasePayment->status === 'Draft' && (int)$purchasePayment->created_by !== (int)auth()->id()) {
@@ -877,20 +1399,51 @@ class PurchasePaymentController extends Controller
             return response()->json(['message' => 'Hanya pembayaran berstatus Draft, Diajukan, atau Ditolak yang dapat diedit!'], 400);
         }
 
-        $purchasePayment->load(['details.invoice', 'supplier', 'kasBank', 'paymentMethod']);
+        $purchasePayment->load([
+            'details.invoice.tender',
+            'details.invoice.po.tender',
+            'details.invoice.goodsReceipt.tender',
+            'supplier',
+            'kasBank',
+            'potonganCoa',
+            'paymentMethod'
+        ]);
 
-        // Also fetch all available unpaid invoices of this supplier
+        // Also fetch all available unpaid invoices of this supplier (excluding invoices in other active payments)
         $activeBranchId = session('active_branch_id');
-        $allInvoicesQuery = PurchaseInvoice::query()
-            ->with(['po.paymentMethod', 'currency'])
-            ->where('supplier_id', $purchasePayment->supplier_id)
-            ->where('status', 'Posted');
+        $occupiedByOthers = $this->getOccupiedInvoiceIds($purchasePayment->id);
 
-        if ($activeBranchId) {
-            $allInvoicesQuery->where(function ($q) use ($activeBranchId) {
-                $q->where('branch_id', $activeBranchId)->orWhereNull('branch_id');
-            });
+        $allInvoicesQuery = PurchaseInvoice::query()
+            ->with([
+                'po.paymentMethod',
+                'currency',
+                'tender',
+                'po.tender',
+                'goodsReceipt.tender'
+            ])
+            ->where('supplier_id', $purchasePayment->supplier_id)
+            ->where('status', 'Posted')
+            ->forActiveBranch()
+            ->forActiveCompany();
+
+        if (!empty($occupiedByOthers)) {
+            $allInvoicesQuery->whereNotIn('purchase_invoices.id', $occupiedByOthers);
         }
+
+        $paidSub = DB::table('purchase_payment_details as ppd')
+            ->join('purchase_payments as pp', function($j) use ($purchasePayment) {
+                $j->on('pp.id', '=', 'ppd.purchase_payment_id')
+                  ->where('pp.status', '=', 'Posted')
+                  ->where('pp.id', '!=', $purchasePayment->id)
+                  ->whereNull('pp.deleted_at');
+            })
+            ->select('ppd.purchase_invoice_id', DB::raw('SUM(ppd.jumlah_bayar + ppd.potongan) as total_paid'))
+            ->groupBy('ppd.purchase_invoice_id');
+
+        $allInvoicesQuery->leftJoinSub($paidSub, 'paid_sub', function($j) {
+            $j->on('paid_sub.purchase_invoice_id', '=', 'purchase_invoices.id');
+        })
+        ->select('purchase_invoices.*', DB::raw('COALESCE(paid_sub.total_paid, 0) as total_pelunasan_other'));
 
         $allInvoices = $allInvoicesQuery->get();
 
@@ -898,26 +1451,41 @@ class PurchasePaymentController extends Controller
         $invoiceList = [];
 
         foreach ($allInvoices as $inv) {
-            $paidWithoutThis = (float) $inv->paymentDetails()
-                ->where('purchase_payment_id', '!=', $purchasePayment->id)
-                ->whereHas('payment', function ($q) {
-                    $q->where('status', 'Posted');
-                })
-                ->sum(DB::raw('jumlah_bayar + potongan'));
+            $dp = (float) ($inv->uang_muka ?? 0);
+            $paidWithoutThis = (float) ($inv->total_pelunasan_other ?? 0);
 
-            $remWithoutThis = max(0, (float) $inv->grand_total - $paidWithoutThis);
+            $remWithoutThis = max(0, (float) $inv->grand_total - $dp - $paidWithoutThis);
             $alloc = $existingAllocations->get($inv->id);
+
+            $tenderObj = $inv->tender ?? $inv->goodsReceipt?->tender ?? $inv->po?->tender;
+            $nomorTender = null;
+            if ($tenderObj) {
+                $nomorTender = !empty($tenderObj->nomor_kontrak) && $tenderObj->nomor_kontrak !== '-'
+                    ? ($tenderObj->nomor_kontrak . (!empty($tenderObj->nama_tender) ? ' - ' . $tenderObj->nama_tender : ''))
+                    : ($tenderObj->nomor_kontrak ?: ($tenderObj->nama_tender ?: ('Tender #' . $tenderObj->id)));
+            }
+
+            $curSym = $inv->currency?->simbol ?? ($inv->currency?->kode_currency === 'IDR' ? 'Rp' : '$');
 
             $invoiceList[] = [
                 'id'                    => $inv->id,
                 'nomor_faktur'          => $inv->nomor_faktur,
                 'nomor_faktur_supplier' => $inv->nomor_faktur_supplier ?? '-',
+                'tender_id'             => $tenderObj?->id,
+                'nomor_tender'          => $nomorTender,
+                'nama_tender'           => $tenderObj?->nama_tender,
                 'tanggal_faktur'        => $inv->tanggal_faktur ? $inv->tanggal_faktur->format('d/m/Y') : '-',
                 'tanggal_jatuh_tempo'   => $inv->tanggal_jatuh_tempo ? $inv->tanggal_jatuh_tempo->format('d/m/Y') : '-',
                 'grand_total'           => (float) $inv->grand_total,
-                'grand_total_fmt'       => 'Rp ' . number_format($inv->grand_total, 2, ',', '.'),
+                'grand_total_fmt'       => $curSym . ' ' . number_format($inv->grand_total, 2, ',', '.'),
+                'uang_muka'             => $dp,
+                'uang_muka_fmt'         => $curSym . ' ' . number_format($dp, 2, ',', '.'),
+                'pelunasan_terbayar'    => $paidWithoutThis,
+                'pelunasan_terbayar_fmt'=> $curSym . ' ' . number_format($paidWithoutThis, 2, ',', '.'),
+                'paid_amount'           => $dp + $paidWithoutThis,
+                'paid_amount_fmt'       => $curSym . ' ' . number_format($dp + $paidWithoutThis, 2, ',', '.'),
                 'remaining_balance'     => $remWithoutThis,
-                'remaining_balance_fmt' => 'Rp ' . number_format($remWithoutThis, 2, ',', '.'),
+                'remaining_balance_fmt' => $curSym . ' ' . number_format($remWithoutThis, 2, ',', '.'),
                 'is_allocated'          => $alloc !== null,
                 'allocated_bayar'       => $alloc ? (float) $alloc->jumlah_bayar : 0,
                 'allocated_potongan'    => $alloc ? (float) $alloc->potongan : 0,
@@ -946,6 +1514,7 @@ class PurchasePaymentController extends Controller
             403,
             'Anda tidak memiliki hak akses untuk mengubah pembayaran utang.'
         );
+        $this->authorizeTenantAccess($purchasePayment);
 
         // Strict Draft Isolation: Status Draft HANYA bisa diubah oleh user pembuat dokumennya
         if ($purchasePayment->status === 'Draft' && (int)$purchasePayment->created_by !== (int)auth()->id()) {
@@ -959,34 +1528,74 @@ class PurchasePaymentController extends Controller
         }
 
         $request->validate([
-            'supplier_id'     => 'required|exists:master_suppliers,id',
-            'kas_bank_id'     => 'required|exists:kas_banks,id',
-            'tanggal_bayar'   => 'required|date',
-            'nomor_referensi' => 'nullable|string|max:100',
-            'keterangan'      => 'nullable|string|max:1000',
-            'lampiran'        => 'nullable|file|mimes:jpeg,jpg,png,webp,pdf|max:10240',
-            'invoices'        => 'required|array|min:1',
+            'supplier_id'       => 'required|exists:master_suppliers,id',
+            'kas_bank_id'       => 'required|exists:kas_banks,id',
+            'payment_method_id' => 'nullable|exists:payment_methods,id',
+            'currency_id'       => 'nullable|exists:master_currencies,id',
+            'kurs'              => 'nullable|numeric|gt:0',
+            'tanggal_bayar'     => 'required|date',
+            'nomor_referensi'   => 'nullable|string|max:30',
+            'keterangan'        => 'nullable|string|max:40',
+            'lampiran'          => [
+                Rule::requiredIf(function () use ($purchasePayment, $request) {
+                    return empty($purchasePayment->lampiran) || $request->boolean('remove_lampiran');
+                }),
+                'nullable',
+                'file',
+                'mimes:jpeg,jpg,png,webp,pdf',
+                'max:10240'
+            ],
+            'invoices'          => 'required|array|min:1',
             'invoices.*.purchase_invoice_id' => 'required|exists:purchase_invoices,id',
             'invoices.*.jumlah_bayar'        => 'required|numeric|min:0',
             'invoices.*.potongan'            => 'nullable|numeric|min:0',
-            'invoices.*.catatan'             => 'nullable|string|max:255',
+            'invoices.*.catatan'             => 'nullable|string|max:40',
+            'potongan_coa_id'                => 'nullable|exists:chart_of_accounts,id',
         ], [
             'supplier_id.required'   => 'Pilih Supplier yang akan dibayar!',
             'kas_bank_id.required'   => 'Pilih Akun Kas / Bank sumber dana pembayaran!',
             'tanggal_bayar.required' => 'Tanggal pembayaran wajib diisi!',
+            'nomor_referensi.max'    => 'Nomor referensi / giro maksimal 30 karakter!',
+            'keterangan.max'         => 'Keterangan / catatan pembayaran maksimal 40 karakter!',
+            'invoices.*.catatan.max' => 'Catatan per faktur maksimal 40 karakter!',
             'invoices.required'      => 'Pilih minimal satu faktur yang akan dibayar!',
             'invoices.min'           => 'Pilih minimal satu faktur yang akan dibayar!',
+            'lampiran.required'      => 'Dokumen bukti pembayaran wajib diisi / diunggah!',
             'lampiran.mimes'         => 'Format file lampiran harus JPG, PNG, WEBP, atau PDF!',
             'lampiran.max'           => 'Ukuran file lampiran maksimal 10MB!',
+            'kurs.gt'                => 'Nilai kurs harus lebih besar dari 0!',
         ]);
 
         try {
             DB::beginTransaction();
 
+            // Validasi Anti-Duplikasi Faktur:
+            // Pastikan faktur yang dipilih belum diinput ke pembayaran lain yang aktif (Draft/Diajukan/Posted)
+            $selectedInvoiceIds = collect($request->invoices)
+                ->filter(fn($row) => (floatval($row['jumlah_bayar'] ?? 0) + floatval($row['potongan'] ?? 0)) > 0)
+                ->pluck('purchase_invoice_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+
+            $occupiedIds = $this->getOccupiedInvoiceIds($purchasePayment->id);
+            $duplicateIds = array_intersect($selectedInvoiceIds, $occupiedIds);
+            if (!empty($duplicateIds)) {
+                $duplicateInvoices = PurchaseInvoice::whereIn('id', $duplicateIds)->pluck('nomor_faktur')->implode(', ');
+                DB::rollBack();
+                return response()->json([
+                    'message' => "Faktur [{$duplicateInvoices}] sedang dalam proses pembayaran lain (berstatus Draft/Diajukan). Faktur tidak dapat diduplikasi kecuali draf sebelumnya dibatalkan atau dihapus."
+                ], 422);
+            }
+
             $totalFaktur   = 0;
             $totalPotongan = 0;
             $totalBayar    = 0;
             $detailsPayload = [];
+
+            $activeBranchId  = session('active_branch_id');
+            $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
 
             foreach ($request->invoices as $row) {
                 $invId  = $row['purchase_invoice_id'];
@@ -998,7 +1607,41 @@ class PurchasePaymentController extends Controller
                 $invoice = PurchaseInvoice::lockForUpdate()->find($invId);
                 if (!$invoice) continue;
 
-                $curRemaining = $invoice->remaining_balance;
+                // 1. Validasi Kepemilikan Supplier: Mencegah manipulasi ID faktur milik vendor lain
+                if ((int)$invoice->supplier_id !== (int)$request->supplier_id) {
+                    DB::rollBack();
+                    return response()->json(['message' => "Faktur '{$invoice->nomor_faktur}' bukan milik supplier yang dipilih!"], 422);
+                }
+
+                // 2. Strict Tenancy Isolation: Memastikan faktur milik Cabang / PT yang aktif
+                if (!empty($activeBranchId)) {
+                    if ((int)$invoice->branch_id !== (int)$activeBranchId) {
+                        DB::rollBack();
+                        return response()->json(['message' => "Faktur '{$invoice->nomor_faktur}' tidak berasal dari cabang yang aktif!"], 403);
+                    }
+                } else {
+                    if (!empty($invoice->branch_id) || ($activeCompanyId && $invoice->company_id && (int)$invoice->company_id !== (int)$activeCompanyId)) {
+                        DB::rollBack();
+                        return response()->json(['message' => "Faktur '{$invoice->nomor_faktur}' tidak berasal dari entitas perusahaan yang aktif!"], 403);
+                    }
+                }
+
+                // 3. Validasi Status Faktur
+                if ($invoice->status !== 'Posted') {
+                    DB::rollBack();
+                    return response()->json(['message' => "Faktur '{$invoice->nomor_faktur}' belum diposting atau sudah tidak aktif!"], 422);
+                }
+
+                $curRemaining = (float) $invoice->remaining_balance;
+
+                // 4. Anti-Overpayment Guard (Maksimal Keamanan Akuntansi)
+                if (($bayar + $potong) > ($curRemaining + 0.05)) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => "Nominal alokasi bayar & potongan untuk faktur '{$invoice->nomor_faktur}' melebihi sisa utang yang belum dibayar!"
+                    ], 422);
+                }
+
                 $totFaktur    = floatval($invoice->grand_total);
                 $sisaAkhir    = max(0, $curRemaining - ($bayar + $potong));
 
@@ -1021,6 +1664,53 @@ class PurchasePaymentController extends Controller
             if (empty($detailsPayload) || $totalBayar <= 0) {
                 DB::rollBack();
                 return response()->json(['message' => 'Total pembayaran harus lebih besar dari 0!'], 422);
+            }
+
+            // Validasi Akun COA Potongan Pembelian jika terdapat potongan
+            if ($totalPotongan > 0 && empty($request->potongan_coa_id)) {
+                $fallbackCoa = AccountMappingHelper::getCoaId('purchases', 'purchase_discount', 'default_purchase_discount', $activeCompanyId)
+                    ?? AccountMappingHelper::getCoaId('default', 'purchase_discount', null, $activeCompanyId)
+                    ?? AccountMappingHelper::getCoaId('default', 'potongan_pembelian', null, $activeCompanyId)
+                    ?? ChartOfAccount::forActiveCompany()->detailOnly()->where(function ($q) {
+                        $q->where('name', 'like', '%Potongan Pembelian%')->orWhere('name', 'like', '%Diskon Pembelian%');
+                    })->value('id');
+
+                if (!$fallbackCoa) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Akun COA Potongan Pembelian wajib dipilih jika terdapat potongan atau diskon!'], 422);
+                }
+            }
+
+            // Saldo Kas/Bank Security Check (Anti-Minus Validation & Tenancy Verification):
+            // Transaksi TIDAK BISA disimpan baik sebagai draf maupun diajukan jika saldo kas/bank tidak mencukupi
+            $kasBank = KasBank::lockForUpdate()->find($request->kas_bank_id);
+            if (!$kasBank) {
+                DB::rollBack();
+                return response()->json(['message' => 'Akun Kas / Bank sumber dana tidak ditemukan!'], 422);
+            }
+
+            // Verifikasi Tenancy Akun Kas/Bank
+            if (!empty($activeBranchId)) {
+                if ((int)$kasBank->branch_id !== (int)$activeBranchId) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Akun Kas / Bank tidak sesuai dengan cabang yang sedang aktif.'], 403);
+                }
+            } else {
+                if (!empty($kasBank->branch_id) || ($activeCompanyId && $kasBank->company_id && (int)$kasBank->company_id !== (int)$activeCompanyId)) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Akun Kas / Bank tidak sesuai dengan entitas perusahaan yang aktif.'], 403);
+                }
+            }
+
+            $kurs = (float) ($request->kurs ?? 1);
+            $totalBayarIdr = $totalBayar * ($kurs > 0 ? $kurs : 1);
+            $currentSaldo  = (float) $kasBank->saldo_berjalan;
+            if ($currentSaldo < $totalBayarIdr) {
+                $kekurangan = $totalBayarIdr - $currentSaldo;
+                DB::rollBack();
+                return response()->json([
+                    'message' => "Saldo Akun Kas/Bank '{$kasBank->nama_akun}' tidak mencukupi! Saldo tersedia: Rp " . number_format($currentSaldo, 2, ',', '.') . ", Nominal pembayaran: Rp " . number_format($totalBayarIdr, 2, ',', '.') . " (Kurang: Rp " . number_format($kekurangan, 2, ',', '.') . "). Transaksi tidak dapat disimpan baik sebagai draf maupun diajukan demi keamanan saldo."
+                ], 422);
             }
 
             $nomorPembayaran = $purchasePayment->nomor_pembayaran;
@@ -1093,6 +1783,7 @@ class PurchasePaymentController extends Controller
                 'kurs'              => $request->kurs ?? 1,
                 'total_faktur'      => $totalFaktur,
                 'total_potongan'    => $totalPotongan,
+                'potongan_coa_id'   => $totalPotongan > 0 ? $request->potongan_coa_id : null,
                 'total_bayar'       => $totalBayar,
                 'status'            => $status,
                 'keterangan'        => $request->keterangan,
@@ -1152,6 +1843,7 @@ class PurchasePaymentController extends Controller
             403,
             'Anda tidak memiliki hak akses untuk mengajukan pembayaran utang.'
         );
+        $this->authorizeTenantAccess($purchasePayment);
 
         // Strict Draft Isolation: Status Draft HANYA bisa diajukan oleh user pembuat dokumennya
         if ($purchasePayment->status === 'Draft' && (int)$purchasePayment->created_by !== (int)auth()->id()) {
@@ -1162,6 +1854,20 @@ class PurchasePaymentController extends Controller
 
         if (!in_array($purchasePayment->status, ['Draft', 'Ditolak'])) {
             return response()->json(['message' => 'Hanya pembayaran berstatus Draft atau Ditolak yang dapat diajukan!'], 400);
+        }
+
+        // Saldo Kas/Bank Security Check (Anti-Minus Validation):
+        $kasBank = KasBank::find($purchasePayment->kas_bank_id);
+        if ($kasBank) {
+            $kurs = (float) ($purchasePayment->kurs ?? 1);
+            $totalBayarIdr = (float) $purchasePayment->total_bayar * ($kurs > 0 ? $kurs : 1);
+            $currentSaldo  = (float) $kasBank->saldo_berjalan;
+            if ($currentSaldo < $totalBayarIdr) {
+                $kekurangan = $totalBayarIdr - $currentSaldo;
+                return response()->json([
+                    'message' => "Saldo Akun Kas/Bank '{$kasBank->nama_akun}' tidak mencukupi! Saldo tersedia: Rp " . number_format($currentSaldo, 2, ',', '.') . ", Nominal pembayaran: Rp " . number_format($totalBayarIdr, 2, ',', '.') . " (Kurang: Rp " . number_format($kekurangan, 2, ',', '.') . "). Pembayaran utang tidak dapat diajukan."
+                ], 422);
+            }
         }
 
         $purchasePayment->update([
@@ -1196,35 +1902,54 @@ class PurchasePaymentController extends Controller
             403,
             'Anda tidak memiliki hak akses untuk menyetujui pembayaran utang.'
         );
-
-        if ($purchasePayment->status !== 'Diajukan') {
-            return response()->json(['message' => 'Hanya pembayaran berstatus Diajukan yang dapat disetujui!'], 400);
-        }
+        $this->authorizeTenantAccess($purchasePayment);
 
         try {
             DB::beginTransaction();
 
+            $payment = PurchasePayment::lockForUpdate()->find($purchasePayment->id);
+            if (!$payment || $payment->status !== 'Diajukan') {
+                DB::rollBack();
+                return response()->json(['message' => 'Hanya pembayaran berstatus Diajukan yang dapat disetujui (atau status telah berubah)!'], 400);
+            }
+
+            // Anti-Overpayment Guard: Pastikan tidak ada faktur yang sudah dibayar oleh transaksi lain
+            $payment->load('details');
+            foreach ($payment->details as $det) {
+                $inv = PurchaseInvoice::lockForUpdate()->find($det->purchase_invoice_id);
+                if ($inv) {
+                    $curRemaining = (float) $inv->remaining_balance;
+                    $allocated = (float) $det->jumlah_bayar + (float) $det->potongan;
+                    if ($allocated > ($curRemaining + 0.05)) {
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => "Faktur '{$inv->nomor_faktur}' telah dibayar oleh transaksi lain atau sisa utang saat ini tidak mencukupi untuk disetujui!"
+                        ], 422);
+                    }
+                }
+            }
+
             $approverUser = auth()->user();
 
-            $purchasePayment->status      = 'Posted';
-            $purchasePayment->approved_by = auth()->id();
-            $purchasePayment->approved_at = now();
-            $purchasePayment->posted_by   = auth()->id();
-            $purchasePayment->posted_at   = now();
-            $purchasePayment->save();
+            $payment->status      = 'Posted';
+            $payment->approved_by = auth()->id();
+            $payment->approved_at = now();
+            $payment->posted_by   = auth()->id();
+            $payment->posted_at   = now();
+            $payment->save();
 
-            $this->executePostingEffects($purchasePayment);
+            $this->executePostingEffects($payment);
 
             DB::commit();
 
             // Kirim notifikasi WA ke creator/submitter (async)
             WhatsAppGatewayController::runAsync(fn() =>
-                WhatsAppGatewayController::sendPaymentApprovedNotification($purchasePayment, $approverUser)
+                WhatsAppGatewayController::sendPaymentApprovedNotification($payment, $approverUser)
             );
 
             return response()->json([
                 'status'  => 'success',
-                'message' => "Pembayaran Utang {$purchasePayment->nomor_pembayaran} telah disetujui dan diposting! Jurnal Akuntansi diterbitkan.",
+                'message' => "Pembayaran Utang {$payment->nomor_pembayaran} telah disetujui dan diposting! Jurnal Akuntansi diterbitkan.",
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1244,10 +1969,7 @@ class PurchasePaymentController extends Controller
             403,
             'Anda tidak memiliki hak akses untuk menolak pembayaran utang.'
         );
-
-        if ($purchasePayment->status !== 'Diajukan') {
-            return response()->json(['message' => 'Hanya pembayaran berstatus Diajukan yang dapat ditolak!'], 400);
-        }
+        $this->authorizeTenantAccess($purchasePayment);
 
         $request->validate([
             'rejection_reason' => 'required|string|max:500',
@@ -1258,10 +1980,16 @@ class PurchasePaymentController extends Controller
         try {
             DB::beginTransaction();
 
+            $payment = PurchasePayment::lockForUpdate()->find($purchasePayment->id);
+            if (!$payment || $payment->status !== 'Diajukan') {
+                DB::rollBack();
+                return response()->json(['message' => 'Hanya pembayaran berstatus Diajukan yang dapat ditolak (atau status telah berubah)!'], 400);
+            }
+
             $rejecterUser = auth()->user();
             $reason = trim($request->rejection_reason);
 
-            $purchasePayment->update([
+            $payment->update([
                 'status'           => 'Ditolak',
                 'rejected_by'      => auth()->id(),
                 'rejected_at'      => now(),
@@ -1272,12 +2000,12 @@ class PurchasePaymentController extends Controller
 
             // Kirim notifikasi WA ke creator/submitter (async)
             WhatsAppGatewayController::runAsync(fn() =>
-                WhatsAppGatewayController::sendPaymentRejectedNotification($purchasePayment, $rejecterUser, $reason)
+                WhatsAppGatewayController::sendPaymentRejectedNotification($payment, $rejecterUser, $reason)
             );
 
             return response()->json([
                 'status'  => 'success',
-                'message' => "Pengajuan Pembayaran Utang {$purchasePayment->nomor_pembayaran} telah ditolak. Pembuat dapat mengedit dan mengajukan kembali.",
+                'message' => "Pengajuan Pembayaran Utang {$payment->nomor_pembayaran} telah ditolak. Pembuat dapat mengedit dan mengajukan kembali.",
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1296,26 +2024,45 @@ class PurchasePaymentController extends Controller
             403,
             'Anda tidak memiliki hak akses untuk memposting pembayaran utang.'
         );
-
-        if (!in_array($purchasePayment->status, ['Draft', 'Diajukan'])) {
-            return response()->json(['message' => 'Hanya pembayaran berstatus Draft atau Diajukan yang dapat diposting!'], 400);
-        }
+        $this->authorizeTenantAccess($purchasePayment);
 
         try {
             DB::beginTransaction();
 
-            $purchasePayment->status    = 'Posted';
-            $purchasePayment->posted_by = auth()->id();
-            $purchasePayment->posted_at = now();
-            $purchasePayment->save();
+            $payment = PurchasePayment::lockForUpdate()->find($purchasePayment->id);
+            if (!$payment || !in_array($payment->status, ['Draft', 'Diajukan'])) {
+                DB::rollBack();
+                return response()->json(['message' => 'Hanya pembayaran berstatus Draft atau Diajukan yang dapat diposting!'], 400);
+            }
 
-            $this->executePostingEffects($purchasePayment);
+            // Anti-Overpayment Guard: Pastikan tidak ada faktur yang sudah dibayar oleh transaksi lain
+            $payment->load('details');
+            foreach ($payment->details as $det) {
+                $inv = PurchaseInvoice::lockForUpdate()->find($det->purchase_invoice_id);
+                if ($inv) {
+                    $curRemaining = (float) $inv->remaining_balance;
+                    $allocated = (float) $det->jumlah_bayar + (float) $det->potongan;
+                    if ($allocated > ($curRemaining + 0.05)) {
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => "Faktur '{$inv->nomor_faktur}' telah dibayar oleh transaksi lain atau sisa utang saat ini tidak mencukupi untuk diposting!"
+                        ], 422);
+                    }
+                }
+            }
+
+            $payment->status    = 'Posted';
+            $payment->posted_by = auth()->id();
+            $payment->posted_at = now();
+            $payment->save();
+
+            $this->executePostingEffects($payment);
 
             DB::commit();
 
             return response()->json([
                 'status'  => 'success',
-                'message' => "Pembayaran Utang {$purchasePayment->nomor_pembayaran} berhasil diposting! Jurnal Akuntansi & Mutasi Kas diterbitkan.",
+                'message' => "Pembayaran Utang {$payment->nomor_pembayaran} berhasil diposting! Jurnal Akuntansi & Mutasi Kas diterbitkan.",
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1324,38 +2071,40 @@ class PurchasePaymentController extends Controller
         }
     }
 
-    /**
-     * Batalkan / Void Pembayaran Utang (Posted -> Cancelled)
-     */
     public function cancel(Request $request, PurchasePayment $purchasePayment)
     {
+        $user = auth()->user();
         abort_unless(
-            auth()->user()->can('batalkan-pembayaran-utang'),
+            $user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('batalkan-pembayaran-utang'),
             403,
             'Anda tidak memiliki hak akses untuk membatalkan pembayaran utang.'
         );
-
-        if ($purchasePayment->status !== 'Posted') {
-            return response()->json(['message' => 'Hanya pembayaran yang sudah diposting yang dapat dibatalkan!'], 400);
-        }
+        $this->authorizeTenantAccess($purchasePayment);
 
         $request->validate([
-            'alasan_pembatalan' => 'required|string|max:500',
+            'alasan_pembatalan' => 'required|string|max:30',
         ], [
             'alasan_pembatalan.required' => 'Alasan pembatalan wajib diisi!',
+            'alasan_pembatalan.max'      => 'Alasan pembatalan maksimal 30 karakter!',
         ]);
 
         try {
             DB::beginTransaction();
 
-            $purchasePayment->status            = 'Cancelled';
-            $purchasePayment->cancelled_by     = auth()->id();
-            $purchasePayment->cancelled_at     = now();
-            $purchasePayment->alasan_pembatalan = $request->alasan_pembatalan;
-            $purchasePayment->save();
+            $payment = PurchasePayment::lockForUpdate()->find($purchasePayment->id);
+            if (!$payment || $payment->status !== 'Posted') {
+                DB::rollBack();
+                return response()->json(['message' => 'Hanya pembayaran yang sudah diposting yang dapat dibatalkan (atau pembayaran sudah dibatalkan)!'], 400);
+            }
+
+            $payment->status            = 'Cancelled';
+            $payment->cancelled_by     = auth()->id();
+            $payment->cancelled_at     = now();
+            $payment->alasan_pembatalan = $request->alasan_pembatalan;
+            $payment->save();
 
             // 1. Rollback KasMutasi & Restore KasBank Balance
-            $mutasi = KasMutasi::where('nomor_referensi', $purchasePayment->nomor_pembayaran)->first();
+            $mutasi = KasMutasi::where('nomor_referensi', $payment->nomor_pembayaran)->first();
 
             if ($mutasi) {
                 $kasBank = KasBank::find($mutasi->kas_bank_id);
@@ -1370,14 +2119,11 @@ class PurchasePaymentController extends Controller
                 $mutasi->save();
             }
 
-            // 2. Buat Jurnal Pembalik (Reversal Journal Entry) - Simpan Jurnal Asli & Tambahkan Jurnal Pembalik
-            $purchasePayment->loadMissing(['supplier', 'kasBank', 'details.invoice']);
-            $totalBayar      = (float) $purchasePayment->total_bayar;
-            $totalPotongan   = (float) $purchasePayment->total_potongan;
-            $totalDebitAp    = $totalBayar + $totalPotongan;
-            $supplierName    = $purchasePayment->supplier?->nama_supplier ?? 'Supplier';
-            $activeCompanyId = session('active_company_id') ?? $purchasePayment->company_id ?? auth()->user()?->company_id;
-            $activeBranchId  = session('active_branch_id') ?? $purchasePayment->branch_id;
+            // 2. Buat Jurnal Pembalik (Reversal Journal Entry) - Inversi Akurat dari Jurnal Asli
+            $payment->loadMissing(['supplier', 'kasBank', 'details.invoice']);
+            $supplierName    = $payment->supplier?->nama_supplier ?? 'Supplier';
+            $targetBranchId  = !empty($payment->branch_id) ? $payment->branch_id : null;
+            $targetCompanyId = !empty($payment->branch_id) ? null : ($payment->company_id ?: (session('active_company_id') ?? auth()->user()?->company_id ?? 1));
 
             // Generate Journal Number for Reversal
             $year   = date('Y');
@@ -1400,68 +2146,124 @@ class PurchasePaymentController extends Controller
                 $nomorJurnalReversal = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
             }
 
-            // Temukan Akun Hutang Usaha (Trade Accounts Payable)
-            $apCoa = ChartOfAccount::where('kode_akun', 'like', '2-11%')
-                ->orWhere('nama_akun', 'like', '%Hutang Usaha%')
-                ->orWhere('nama_akun', 'like', '%Utang Usaha%')
-                ->orWhere('tipe_akun', 'Hutang Lancar')
-                ->orderBy('kode_akun')
+            // Ambil Jurnal Posting Asli untuk dibalik secara eksak (Presisi Akuntansi Tertinggi)
+            $origJurnal = Jurnal::with('details')
+                ->where('referensi_tipe', 'Purchase Payment')
+                ->where('referensi_id', $purchasePayment->id)
                 ->first();
 
-            $apCoaId = $apCoa ? $apCoa->id : 1;
-            $kasBankCoaId = $purchasePayment->kasBank?->coa_id ?? 1;
+            // Resolve label tender terkait untuk no_tender jurnal pembalik
+            $tenders = collect();
+            if ($purchasePayment->relationLoaded('details') || $purchasePayment->details) {
+                foreach ($purchasePayment->details as $det) {
+                    $inv = $det->invoice;
+                    if ($inv) {
+                        $tObj = $inv->tender ?? $inv->goodsReceipt?->tender ?? $inv->po?->tender;
+                        if ($tObj) {
+                            $lbl = !empty($tObj->nomor_kontrak) && $tObj->nomor_kontrak !== '-'
+                                ? ($tObj->nomor_kontrak . (!empty($tObj->nama_tender) ? ' - ' . $tObj->nama_tender : ''))
+                                : ($tObj->nomor_kontrak ?: ($tObj->nama_tender ?: ('Tender #' . $tObj->id)));
+                            if (!empty($lbl)) {
+                                $tenders->push($lbl);
+                            }
+                        }
+                    }
+                }
+            }
+            $reversalNoTender = $origJurnal?->no_tender ?: ($tenders->unique()->implode(', ') ?: null);
 
-            // Cari COA Potongan Pembelian
-            $discountCoa = ChartOfAccount::where('kode_akun', 'like', '5-%')
-                ->where(function($q) {
-                    $q->where('nama_akun', 'like', '%Potongan Pembelian%')
-                      ->orWhere('nama_akun', 'like', '%Diskon Pembelian%');
-                })
-                ->first();
-            $discountCoaId = $discountCoa?->id;
+            if ($origJurnal && $origJurnal->details->count() > 0) {
+                $reversalJurnal = Jurnal::create([
+                    'nomor_jurnal'    => $nomorJurnalReversal,
+                    'tanggal_jurnal'  => now()->toDateString(),
+                    'referensi_tipe'  => 'Purchase Payment Reversal',
+                    'referensi_id'    => $purchasePayment->id,
+                    'no_tender'       => $reversalNoTender,
+                    'keterangan'      => "PEMBALIKAN PEMBAYARAN UTANG ({$purchasePayment->nomor_pembayaran}) ke {$supplierName}. Alasan: {$request->alasan_pembatalan}" . ($reversalNoTender ? " [Tender: {$reversalNoTender}]" : ""),
+                    'total_debit'     => $origJurnal->total_kredit,
+                    'total_kredit'    => $origJurnal->total_debit,
+                    'status'          => 'Posted',
+                    'company_id'      => $origJurnal->company_id,
+                    'branch_id'       => $origJurnal->branch_id,
+                    'created_by'      => auth()->id(),
+                ]);
 
-            $reversalJurnal = Jurnal::create([
-                'nomor_jurnal'    => $nomorJurnalReversal,
-                'tanggal_jurnal'  => now()->toDateString(),
-                'referensi_tipe'  => 'PurchasePaymentReversal',
-                'referensi_id'    => $purchasePayment->id,
-                'keterangan'      => "PEMBALIKAN PEMBAYARAN UTANG ({$purchasePayment->nomor_pembayaran}) ke {$supplierName}. Alasan: {$request->alasan_pembatalan}",
-                'total_debit'     => $totalDebitAp,
-                'total_kredit'    => $totalDebitAp,
-                'status'          => 'Posted',
-                'company_id'      => $activeCompanyId,
-                'branch_id'       => $activeBranchId,
-                'created_by'      => auth()->id(),
-            ]);
+                foreach ($origJurnal->details as $origDet) {
+                    JurnalDetail::create([
+                        'jurnal_id'  => $reversalJurnal->id,
+                        'account_id' => $origDet->account_id,
+                        'debit'      => $origDet->kredit, // Posisi dibalik: kredit menjadi debit
+                        'kredit'     => $origDet->debit,  // Posisi dibalik: debit menjadi kredit
+                        'keterangan' => "Pembalikan: " . $origDet->keterangan,
+                    ]);
+                }
+            } else {
+                // Fallback jika jurnal asli tidak tercatat
+                $totalBayar      = (float) $purchasePayment->total_bayar;
+                $totalPotongan   = (float) $purchasePayment->total_potongan;
+                $totalDebitAp    = $totalBayar + $totalPotongan;
 
-            // DEBIT: Kas/Bank (Uang masuk/kembali ke rekening kas/bank)
-            JurnalDetail::create([
-                'jurnal_id'  => $reversalJurnal->id,
-                'account_id' => $kasBankCoaId,
-                'debit'      => $totalBayar,
-                'kredit'     => 0,
-                'keterangan' => "Pembalikan Pengeluaran Kas/Bank (Ref: {$purchasePayment->nomor_pembayaran})",
-            ]);
+                $apCoa = ChartOfAccount::forActiveCompany()->detailOnly()->where(function ($q) {
+                    $q->where('code', 'like', '2101%')
+                      ->orWhere('code', 'like', '211%')
+                      ->orWhere('name', 'like', '%Hutang Usaha%')
+                      ->orWhere('name', 'like', '%Utang Usaha%');
+                })->first();
 
-            // DEBIT: Potongan Pembelian (jika ada diskon sebelumnya)
-            if ($totalPotongan > 0 && $discountCoaId) {
+                $apCoaId      = $apCoa ? $apCoa->id : 1;
+                $kasBankCoaId = $purchasePayment->kasBank?->coa_id ?? 1;
+
+                $discountCoa = ChartOfAccount::forActiveCompany()->detailOnly()->where(function ($q) {
+                    $q->where('code', 'like', '5102%')
+                      ->orWhere('name', 'like', '%Potongan Pembelian%')
+                      ->orWhere('name', 'like', '%Diskon Pembelian%');
+                })->first();
+                $discountCoaId = $discountCoa?->id;
+
+                $reversalJurnal = Jurnal::create([
+                    'nomor_jurnal'    => $nomorJurnalReversal,
+                    'tanggal_jurnal'  => now()->toDateString(),
+                    'referensi_tipe'  => 'Purchase Payment Reversal',
+                    'referensi_id'    => $purchasePayment->id,
+                    'no_tender'       => $reversalNoTender,
+                    'keterangan'      => "PEMBALIKAN PEMBAYARAN UTANG ({$purchasePayment->nomor_pembayaran}) ke {$supplierName}. Alasan: {$request->alasan_pembatalan}" . ($reversalNoTender ? " [Tender: {$reversalNoTender}]" : ""),
+                    'total_debit'     => $totalDebitAp,
+                    'total_kredit'    => $totalDebitAp,
+                    'status'          => 'Posted',
+                    'company_id'      => $targetCompanyId,
+                    'branch_id'       => $targetBranchId,
+                    'created_by'      => auth()->id(),
+                ]);
+
+                // DEBIT: Kas/Bank (Uang masuk/kembali ke kas/bank)
                 JurnalDetail::create([
                     'jurnal_id'  => $reversalJurnal->id,
-                    'account_id' => $discountCoaId,
-                    'debit'      => $totalPotongan,
+                    'account_id' => $kasBankCoaId,
+                    'debit'      => $totalBayar,
                     'kredit'     => 0,
-                    'keterangan' => "Pembalikan Diskon/Potongan Utang (Ref: {$purchasePayment->nomor_pembayaran})",
+                    'keterangan' => "Pembalikan Pengeluaran Kas/Bank (Ref: {$purchasePayment->nomor_pembayaran})",
+                ]);
+
+                // DEBIT: Potongan Pembelian
+                if ($totalPotongan > 0 && $discountCoaId) {
+                    JurnalDetail::create([
+                        'jurnal_id'  => $reversalJurnal->id,
+                        'account_id' => $discountCoaId,
+                        'debit'      => $totalPotongan,
+                        'kredit'     => 0,
+                        'keterangan' => "Pembalikan Diskon/Potongan Utang (Ref: {$purchasePayment->nomor_pembayaran})",
+                    ]);
+                }
+
+                // KREDIT: Utang Usaha
+                JurnalDetail::create([
+                    'jurnal_id'  => $reversalJurnal->id,
+                    'account_id' => $apCoaId,
+                    'debit'      => 0,
+                    'kredit'     => $totalDebitAp,
+                    'keterangan' => "Pembalikan Pelunasan Utang Usaha {$supplierName} (Ref: {$purchasePayment->nomor_pembayaran})",
                 ]);
             }
-
-            // KREDIT: Utang Usaha (AP) (Utang timbul/terbuka kembali)
-            JurnalDetail::create([
-                'jurnal_id'  => $reversalJurnal->id,
-                'account_id' => $apCoaId,
-                'debit'      => 0,
-                'kredit'     => $totalDebitAp,
-                'keterangan' => "Pembalikan Pelunasan Utang Usaha {$supplierName} (Ref: {$purchasePayment->nomor_pembayaran})",
-            ]);
 
             // 3. Rollback Purchase Invoice Status if they were marked Paid
             $purchasePayment->load('details.invoice');
@@ -1469,8 +2271,10 @@ class PurchasePaymentController extends Controller
                 $inv = $det->invoice;
                 if ($inv && $inv->status === 'Paid') {
                     // Re-evaluate remaining balance after this payment cancelled
-                    $inv->status = 'Posted';
-                    $inv->save();
+                    if ($inv->remaining_balance > 0.01) {
+                        $inv->status = 'Posted';
+                        $inv->save();
+                    }
                 }
             }
 
@@ -1492,38 +2296,51 @@ class PurchasePaymentController extends Controller
      */
     public function destroy(PurchasePayment $purchasePayment)
     {
+        $user    = auth()->user();
+        $isSuper = $user->hasAnyRole(['Super Admin', 'Owner']);
+
         abort_unless(
-            auth()->user()->can('batalkan-pembayaran-utang') || auth()->user()->can('edit-pembayaran-utang'),
+            $isSuper || $user->can('hapus-pembayaran-utang'),
             403,
             'Anda tidak memiliki hak akses untuk menghapus draf pembayaran utang.'
         );
+        $this->authorizeTenantAccess($purchasePayment);
 
-        // Strict Draft Isolation: Status Draft HANYA bisa dihapus oleh user pembuat dokumennya
-        if ($purchasePayment->status === 'Draft' && (int)$purchasePayment->created_by !== (int)auth()->id()) {
+        // Strict Draft Isolation: Status Draft HANYA bisa dihapus oleh user pembuat dokumennya (kecuali Super Admin / Owner)
+        if ($purchasePayment->status === 'Draft' && !$isSuper && (int)$purchasePayment->created_by !== (int)$user->id) {
             return response()->json([
                 'message' => 'Dokumen pembayaran utang berstatus Draft hanya dapat dihapus oleh pembuat dokumen ini.'
             ], 403);
         }
 
-        if ($purchasePayment->status === 'Diajukan') {
-            return response()->json(['message' => 'Pembayaran sedang diajukan untuk persetujuan (approval) dan tidak dapat dihapus!'], 400);
-        }
-
-        if (!in_array($purchasePayment->status, ['Draft', 'Ditolak'])) {
-            return response()->json(['message' => 'Pembayaran yang sudah diposting tidak dapat dihapus!'], 400);
-        }
-
         try {
             DB::beginTransaction();
 
-            $purchasePayment->details()->delete();
-            $purchasePayment->delete();
+            $payment = PurchasePayment::lockForUpdate()->find($purchasePayment->id);
+            if (!$payment) {
+                DB::rollBack();
+                return response()->json(['message' => 'Data pembayaran tidak ditemukan!'], 404);
+            }
+
+            if ($payment->status === 'Diajukan') {
+                DB::rollBack();
+                return response()->json(['message' => 'Pembayaran sedang diajukan untuk persetujuan (approval) dan tidak dapat dihapus!'], 400);
+            }
+
+            if (!in_array($payment->status, ['Draft', 'Ditolak'])) {
+                DB::rollBack();
+                return response()->json(['message' => 'Pembayaran yang sudah diposting tidak dapat dihapus!'], 400);
+            }
+
+            $nomorPembayaran = $payment->nomor_pembayaran;
+            $payment->details()->delete();
+            $payment->delete();
 
             DB::commit();
 
             return response()->json([
                 'status'  => 'success',
-                'message' => "Draft Pembayaran Utang {$purchasePayment->nomor_pembayaran} berhasil dihapus!",
+                'message' => "Draft Pembayaran Utang {$nomorPembayaran} berhasil dihapus!",
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1542,20 +2359,7 @@ class PurchasePaymentController extends Controller
             403,
             'Anda tidak memiliki hak akses untuk mencetak bukti pembayaran.'
         );
-
-        $activeCompanyId = session('active_company_id');
-        $activeBranchId  = session('active_branch_id');
-        $isPrivileged    = $user->hasRole('Super Admin') || $user->hasRole('Owner');
-
-        // Multi-company isolation check
-        if ($activeCompanyId && $purchasePayment->company_id && strval($activeCompanyId) !== strval($purchasePayment->company_id) && !$isPrivileged) {
-            abort(403, 'Anda tidak memiliki akses ke dokumen pembayaran utang perusahaan lain.');
-        }
-
-        // Multi-branch isolation check
-        if ($activeBranchId && $purchasePayment->branch_id && strval($activeBranchId) !== strval($purchasePayment->branch_id) && !$isPrivileged) {
-            abort(403, 'Anda tidak memiliki akses ke dokumen pembayaran utang cabang lain.');
-        }
+        $this->authorizeTenantAccess($purchasePayment);
 
         // Strict Draft Isolation: Status Draft HANYA bisa dicetak oleh user pembuat dokumennya
         if ($purchasePayment->status === 'Draft' && (int)$purchasePayment->created_by !== (int)$user->id) {
@@ -1566,6 +2370,7 @@ class PurchasePaymentController extends Controller
             'supplier',
             'kasBank.coa',
             'paymentMethod',
+            'potonganCoa',
             'currency',
             'branch',
             'company',
@@ -1574,15 +2379,42 @@ class PurchasePaymentController extends Controller
             'submitter',
             'approver',
             'details.invoice.po.currency',
+            'details.invoice.tender',
+            'details.invoice.po.tender',
+            'details.invoice.goodsReceipt.tender',
         ]);
 
-        $activeCompany = $activeCompanyId 
-            ? \App\Models\Company::find($activeCompanyId) 
-            : ($purchasePayment->company ?? $user->companies()->first());
+        $sessionBranchId  = session('active_branch_id');
+        $sessionCompanyId = session('active_company_id');
 
-        $activeBranch = $activeBranchId 
-            ? \App\Models\Branch::find($activeBranchId) 
-            : ($purchasePayment->branch ?? null);
+        if (!empty($sessionBranchId)) {
+            // Scope Login Cabang: tampilkan identitas Cabang
+            $activeBranch  = \App\Models\Branch::find($sessionBranchId);
+            $activeCompany = $activeBranch?->company ?? ($sessionCompanyId ? \App\Models\Company::find($sessionCompanyId) : null);
+        } elseif (!empty($sessionCompanyId)) {
+            // Scope Login PT (Kantor Pusat): isolasi ketat tanpa cabang
+            $activeBranch  = null;
+            $activeCompany = \App\Models\Company::find($sessionCompanyId);
+        } else {
+            // Fallback sesuai kepemilikan dokumen jika session kosong
+            $activeBranch  = $purchasePayment->branch;
+            $activeCompany = $purchasePayment->company ?? $user->companies()->first();
+        }
+
+        // Cegah kebocoran/mismatch identitas kop antar-cabang:
+        // Jika dokumen milik Cabang tertentu dan admin membuka dokumen ini,
+        // pastikan identitas kop surat terkunci ke pemilik sah dokumen.
+        if (!empty($purchasePayment->branch_id)) {
+            if (!$activeBranch || (int)$activeBranch->id !== (int)$purchasePayment->branch_id) {
+                $activeBranch  = $purchasePayment->branch;
+                $activeCompany = $activeBranch?->company ?? $purchasePayment->company;
+            }
+        } elseif (!empty($purchasePayment->company_id)) {
+            $activeBranch = null;
+            if (!$activeCompany || (int)$activeCompany->id !== (int)$purchasePayment->company_id) {
+                $activeCompany = $purchasePayment->company;
+            }
+        }
 
         return view('modul_purchasing.pembayaran_utang.pdf', compact('purchasePayment', 'activeCompany', 'activeBranch'));
     }
@@ -1597,26 +2429,61 @@ class PurchasePaymentController extends Controller
     {
         $payment->loadMissing(['supplier', 'kasBank', 'details.invoice']);
 
-        $activeBranchId  = session('active_branch_id') ?? $payment->branch_id;
-        $activeCompanyId = session('active_company_id') ?? $payment->company_id ?? auth()->user()?->company_id;
+        $targetBranchId  = !empty($payment->branch_id) ? $payment->branch_id : null;
+        $targetCompanyId = !empty($payment->branch_id) ? null : ($payment->company_id ?: (session('active_company_id') ?? auth()->user()?->company_id ?? 1));
 
         $totalBayar    = (float) $payment->total_bayar;
         $totalPotongan = (float) $payment->total_potongan;
         $totalDebitAp  = $totalBayar + $totalPotongan;
 
+        $kursBayar = (float) ($payment->kurs ?? 1);
+        if ($kursBayar <= 0) $kursBayar = 1;
+
+        $totalKasKreditIdr      = round($totalBayar * $kursBayar, 2);
+        $totalPotonganKreditIdr = round($totalPotongan * $kursBayar, 2);
+
         // ── 0. Security Balance Validation (Anti-Minus Check) ───────────────
         if ($payment->kasBank) {
             $currentSaldo = (float) $payment->kasBank->saldo_berjalan;
-            if ($currentSaldo < $totalBayar) {
-                $kekurangan = $totalBayar - $currentSaldo;
-                throw new \Exception("Saldo Kas/Bank '{$payment->kasBank->nama_akun}' tidak mencukupi! Saldo tersedia: Rp " . number_format($currentSaldo, 2, ',', '.') . ", Total pembayaran: Rp " . number_format($totalBayar, 2, ',', '.') . " (Kurang Rp " . number_format($kekurangan, 2, ',', '.') . "). Transaksi ditolak demi keamanan.");
+            if ($currentSaldo < $totalKasKreditIdr) {
+                $kekurangan = $totalKasKreditIdr - $currentSaldo;
+                throw new \Exception("Saldo Kas/Bank '{$payment->kasBank->nama_akun}' tidak mencukupi! Saldo tersedia: Rp " . number_format($currentSaldo, 2, ',', '.') . ", Total pembayaran: Rp " . number_format($totalKasKreditIdr, 2, ',', '.') . " (Kurang Rp " . number_format($kekurangan, 2, ',', '.') . "). Transaksi ditolak demi keamanan.");
             }
+        }
+
+        // ── Hitung Utang Usaha (AP) Berdasarkan Kurs Faktur Masing-Masing ──
+        $totalApDebitIdr = 0;
+        foreach ($payment->details as $det) {
+            $inv = $det->invoice;
+            $kursFaktur = (float) ($inv?->kurs ?? $kursBayar);
+            if ($kursFaktur <= 0) $kursFaktur = $kursBayar;
+
+            $alokasiValas = (float) $det->jumlah_bayar + (float) $det->potongan;
+            $apFakturIdr = round($alokasiValas * $kursFaktur, 2);
+            $totalApDebitIdr += $apFakturIdr;
+        }
+
+        if ($totalApDebitIdr <= 0) {
+            $totalApDebitIdr = $totalKasKreditIdr + $totalPotonganKreditIdr;
+        }
+
+        // Selisih Kurs: Utang Berkurang (IDR) - (Kas Keluar IDR + Potongan IDR)
+        // < 0: Kas keluar lebih banyak -> Rugi Selisih Kurs (DEBIT)
+        // > 0: Kas keluar lebih sedikit -> Untung Selisih Kurs (KREDIT)
+        $forexDiff = round($totalApDebitIdr - ($totalKasKreditIdr + $totalPotonganKreditIdr), 2);
+        $forexLossIdr = 0;
+        $forexGainIdr = 0;
+
+        if ($forexDiff < -0.01) {
+            $forexLossIdr = abs($forexDiff);
+        } elseif ($forexDiff > 0.01) {
+            $forexGainIdr = $forexDiff;
         }
 
         // ── 1. COA Resolution ──────────────────────────────────────────────
         // AP / Utang Usaha COA (DEBIT)
-        $apCoaId = AccountMappingHelper::getCoaId('default', 'default_ap')
-            ?? AccountMappingHelper::getCoaId('default', 'accounts_payable', 'ap')
+        $apCoaId = AccountMappingHelper::getCoaId('default', 'default_ap', null, $targetCompanyId)
+            ?? AccountMappingHelper::getCoaId('default', 'accounts_payable', 'ap', $targetCompanyId)
             ?? ChartOfAccount::forActiveCompany()->detailOnly()->where(function ($q) {
                 $q->where('code', 'like', '2101%')->orWhere('code', 'like', '211%')->orWhere('name', 'like', '%Hutang Usaha%')->orWhere('name', 'like', '%Utang Usaha%');
             })->value('id');
@@ -1631,11 +2498,44 @@ class PurchasePaymentController extends Controller
 
         // Potongan Pembelian COA (KREDIT if discount > 0)
         $discountCoaId = null;
-        if ($totalPotongan > 0) {
-            $discountCoaId = AccountMappingHelper::getCoaId('default', 'purchase_discount')
-                ?? AccountMappingHelper::getCoaId('default', 'potongan_pembelian')
+        if ($totalPotonganKreditIdr > 0) {
+            if (!empty($payment->potongan_coa_id)) {
+                $discountCoaId = $payment->potongan_coa_id;
+            } else {
+                $discountCoaId = AccountMappingHelper::getCoaId('purchases', 'purchase_discount', 'default_purchase_discount', $targetCompanyId)
+                    ?? AccountMappingHelper::getCoaId('default', 'purchase_discount', null, $targetCompanyId)
+                    ?? AccountMappingHelper::getCoaId('default', 'potongan_pembelian', null, $targetCompanyId)
+                    ?? ChartOfAccount::forActiveCompany()->detailOnly()->where(function ($q) {
+                        $q->where('name', 'like', '%Potongan Pembelian%')->orWhere('name', 'like', '%Diskon Pembelian%');
+                    })->value('id');
+            }
+
+            if (!$discountCoaId) {
+                throw new \Exception("Akun COA Potongan Pembelian tidak ditemukan atau belum dipilih. Silakan pilih Akun Potongan Pembelian.");
+            }
+        }
+
+        // Forex Gain COA (KREDIT if forex gain > 0)
+        $forexGainCoaId = null;
+        if ($forexGainIdr > 0) {
+            $forexGainCoaId = AccountMappingHelper::getCoaId('default', 'realized_forex_gain', 'default_forex_gain', $targetCompanyId)
+                ?? AccountMappingHelper::getCoaId('default', 'forex_gain', null, $targetCompanyId)
                 ?? ChartOfAccount::forActiveCompany()->detailOnly()->where(function ($q) {
-                    $q->where('code', 'like', '5102%')->orWhere('code', 'like', '420%')->orWhere('name', 'like', '%Potongan Pembelian%')->orWhere('name', 'like', '%Diskon Pembelian%');
+                    $q->where('code', '7102')
+                      ->orWhere('name', 'like', '%Keuntungan Selisih Kurs%')
+                      ->orWhere('name', 'like', '%Laba Selisih Kurs%');
+                })->value('id');
+        }
+
+        // Forex Loss COA (DEBIT if forex loss > 0)
+        $forexLossCoaId = null;
+        if ($forexLossIdr > 0) {
+            $forexLossCoaId = AccountMappingHelper::getCoaId('default', 'realized_forex_loss', 'default_forex_loss', $targetCompanyId)
+                ?? AccountMappingHelper::getCoaId('default', 'forex_loss', null, $targetCompanyId)
+                ?? ChartOfAccount::forActiveCompany()->detailOnly()->where(function ($q) {
+                    $q->where('code', '8102')
+                      ->orWhere('name', 'like', '%Kerugian Selisih Kurs%')
+                      ->orWhere('name', 'like', '%Rugi Selisih Kurs%');
                 })->value('id');
         }
 
@@ -1643,7 +2543,8 @@ class PurchasePaymentController extends Controller
         $firstCoa = ChartOfAccount::forActiveCompany()->detailOnly()->first();
         if (!$apCoaId) $apCoaId = $firstCoa?->id;
         if (!$kasBankCoaId) $kasBankCoaId = $firstCoa?->id;
-        if ($totalPotongan > 0 && !$discountCoaId) $discountCoaId = $firstCoa?->id;
+        if ($forexGainIdr > 0 && !$forexGainCoaId) $forexGainCoaId = $firstCoa?->id;
+        if ($forexLossIdr > 0 && !$forexLossCoaId) $forexLossCoaId = $firstCoa?->id;
 
         // ── 2. Create Journal Entry ─────────────────────────────────────────
         // Clean existing journals for this payment (idempotent)
@@ -1678,16 +2579,40 @@ class PurchasePaymentController extends Controller
 
         $supplierName = $payment->supplier?->nama_supplier ?? 'Supplier';
 
+        // Resolve label tender terkait untuk no_tender jurnal
+        $tenders = collect();
+        if ($payment->relationLoaded('details') || $payment->details) {
+            foreach ($payment->details as $det) {
+                $inv = $det->invoice;
+                if ($inv) {
+                    $tObj = $inv->tender ?? $inv->goodsReceipt?->tender ?? $inv->po?->tender;
+                    if ($tObj) {
+                        $lbl = !empty($tObj->nomor_kontrak) && $tObj->nomor_kontrak !== '-'
+                            ? ($tObj->nomor_kontrak . (!empty($tObj->nama_tender) ? ' - ' . $tObj->nama_tender : ''))
+                            : ($tObj->nomor_kontrak ?: ($tObj->nama_tender ?: ('Tender #' . $tObj->id)));
+                        if (!empty($lbl)) {
+                            $tenders->push($lbl);
+                        }
+                    }
+                }
+            }
+        }
+        $tenderLabel = $tenders->unique()->implode(', ') ?: null;
+
+        $totalJurnalDebit  = round($totalApDebitIdr + $forexLossIdr, 2);
+        $totalJurnalKredit = round($totalKasKreditIdr + $totalPotonganKreditIdr + $forexGainIdr, 2);
+
         $jurnal = Jurnal::create([
             'nomor_jurnal'   => $nomorJurnal,
             'tanggal_jurnal' => $payment->tanggal_bayar,
             'referensi_tipe' => 'Purchase Payment',
             'referensi_id'   => $payment->id,
-            'company_id'     => $activeCompanyId,
-            'branch_id'      => $activeBranchId,
-            'total_debit'    => $totalDebitAp,
-            'total_kredit'   => $totalDebitAp,
-            'keterangan'     => "Pembayaran Utang ke {$supplierName} ({$payment->nomor_pembayaran})",
+            'no_tender'      => $tenderLabel,
+            'company_id'     => $targetCompanyId,
+            'branch_id'      => $targetBranchId,
+            'total_debit'    => $totalJurnalDebit,
+            'total_kredit'   => $totalJurnalKredit,
+            'keterangan'     => "Pembayaran Utang ke {$supplierName} ({$payment->nomor_pembayaran})" . ($tenderLabel ? " [Tender: {$tenderLabel}]" : ""),
             'created_by'     => auth()->id(),
         ]);
 
@@ -1695,28 +2620,50 @@ class PurchasePaymentController extends Controller
         JurnalDetail::create([
             'jurnal_id'  => $jurnal->id,
             'account_id' => $apCoaId,
-            'debit'      => $totalDebitAp,
+            'debit'      => $totalApDebitIdr,
             'kredit'     => 0,
-            'keterangan' => "Pelunasan Utang Usaha {$supplierName} ({$payment->nomor_pembayaran})",
+            'keterangan' => "Pelunasan Utang Usaha {$supplierName} ({$payment->nomor_pembayaran})" . ($tenderLabel ? " - Proyek: {$tenderLabel}" : ""),
         ]);
+
+        // DEBIT: Kerugian Selisih Kurs (jika ada rugi kurs)
+        if ($forexLossIdr > 0 && $forexLossCoaId) {
+            JurnalDetail::create([
+                'jurnal_id'  => $jurnal->id,
+                'account_id' => $forexLossCoaId,
+                'debit'      => $forexLossIdr,
+                'kredit'     => 0,
+                'keterangan' => "Kerugian Selisih Kurs Pembayaran Utang ({$payment->nomor_pembayaran})",
+            ]);
+        }
 
         // KREDIT: Kas / Bank
         JurnalDetail::create([
             'jurnal_id'  => $jurnal->id,
             'account_id' => $kasBankCoaId,
             'debit'      => 0,
-            'kredit'     => $totalBayar,
+            'kredit'     => $totalKasKreditIdr,
             'keterangan' => "Pengeluaran Kas/Bank ({$payment->nomor_pembayaran})",
         ]);
 
         // KREDIT: Potongan Pembelian (jika ada)
-        if ($totalPotongan > 0 && $discountCoaId) {
+        if ($totalPotonganKreditIdr > 0 && $discountCoaId) {
             JurnalDetail::create([
                 'jurnal_id'  => $jurnal->id,
                 'account_id' => $discountCoaId,
                 'debit'      => 0,
-                'kredit'     => $totalPotongan,
+                'kredit'     => $totalPotonganKreditIdr,
                 'keterangan' => "Potongan/Diskon Pelunasan Utang ({$payment->nomor_pembayaran})",
+            ]);
+        }
+
+        // KREDIT: Keuntungan Selisih Kurs (jika ada laba kurs)
+        if ($forexGainIdr > 0 && $forexGainCoaId) {
+            JurnalDetail::create([
+                'jurnal_id'  => $jurnal->id,
+                'account_id' => $forexGainCoaId,
+                'debit'      => 0,
+                'kredit'     => $forexGainIdr,
+                'keterangan' => "Keuntungan Selisih Kurs Pembayaran Utang ({$payment->nomor_pembayaran})",
             ]);
         }
 
@@ -1741,7 +2688,7 @@ class PurchasePaymentController extends Controller
         }
 
         $saldoSebelum = (float) ($payment->kasBank?->saldo_berjalan ?? 0);
-        $saldoSesudah = $saldoSebelum - $totalBayar;
+        $saldoSesudah = $saldoSebelum - $totalKasKreditIdr;
 
         KasMutasi::create([
             'nomor_transaksi' => $nomorTransaksi,
@@ -1749,7 +2696,7 @@ class PurchasePaymentController extends Controller
             'tipe'            => 'Keluar',
             'kategori'        => 'Pembayaran Supplier',
             'lawan_coa_id'    => $apCoaId,
-            'jumlah'          => $totalBayar,
+            'jumlah'          => $totalKasKreditIdr,
             'saldo_sebelum'   => $saldoSebelum,
             'saldo_sesudah'   => $saldoSesudah,
             'tanggal'         => $payment->tanggal_bayar,
@@ -1761,14 +2708,14 @@ class PurchasePaymentController extends Controller
             'lampiran'        => $payment->lampiran,
             'status'          => 'Disetujui',
             'jurnal_id'       => $jurnal->id,
-            'company_id'      => $activeCompanyId,
-            'branch_id'       => $activeBranchId,
+            'company_id'      => $targetCompanyId,
+            'branch_id'       => $targetBranchId,
             'created_by'      => auth()->id(),
         ]);
 
         // Reduce KasBank running balance
         if ($payment->kasBank) {
-            $payment->kasBank->saldo_berjalan -= $totalBayar;
+            $payment->kasBank->saldo_berjalan -= $totalKasKreditIdr;
             $payment->kasBank->save();
         }
 
@@ -1881,5 +2828,35 @@ class PurchasePaymentController extends Controller
         @imagedestroy($dstImage);
 
         return $relativePath;
+    }
+
+    /**
+     * Isolasi Tenancy Ketat: Memastikan dokumen hanya diakses oleh PT / Cabang yang berwenang
+     */
+    private function authorizeTenantAccess(PurchasePayment $payment): void
+    {
+        $user = auth()->user();
+        if (!$user) return;
+        if ($user->hasRole('Super Admin') || $user->hasRole('Owner')) {
+            return;
+        }
+
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id') ?? $user->company_id;
+
+        if (!empty($activeBranchId)) {
+            // Sesi aktif adalah Cabang -> Dokumen WAJIB milik Cabang ini (company_id WAJIB NULL)
+            if (empty($payment->branch_id) || (int)$payment->branch_id !== (int)$activeBranchId) {
+                abort(403, 'Anda tidak memiliki hak akses ke dokumen pembayaran utang ini (khusus cabang terkait).');
+            }
+        } else {
+            // Sesi aktif adalah PT Pusat -> Dokumen WAJIB milik PT (branch_id WAJIB NULL)
+            if (!empty($payment->branch_id)) {
+                abort(403, 'Dokumen pembayaran utang ini adalah milik Cabang. Silakan beralih ke sesi Cabang terkait.');
+            }
+            if ($activeCompanyId && $payment->company_id && strval($activeCompanyId) !== strval($payment->company_id)) {
+                abort(403, 'Anda tidak memiliki akses ke dokumen pembayaran utang perusahaan lain.');
+            }
+        }
     }
 }

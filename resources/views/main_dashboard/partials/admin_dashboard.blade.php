@@ -92,112 +92,151 @@
     /* Main Container Glass Card */
     .cinematic-command-card {
         background: var(--bs-card-bg, #ffffff) !important;
-        border: 1px solid rgba(0, 0, 0, 0.08) !important;
-        border-radius: 20px !important;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
+        border-radius: 22px !important;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.05);
+        transition: box-shadow 0.3s ease, border-color 0.3s ease;
     }
     [data-bs-theme="dark"] .cinematic-command-card {
-        background: linear-gradient(145deg, #111827 0%, #0f172a 100%) !important;
+        background: linear-gradient(145deg, #0f172a 0%, #0b1120 100%) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        box-shadow: 0 16px 40px -15px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
 
-    /* Telemetry Box */
+    /* Telemetry Box - Modern, spacious, high-contrast */
     .cinematic-telemetry-box {
-        background: #f8fafc;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
         border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 1.1rem 1.15rem;
-        transition: all 0.2s ease;
+        border-radius: 16px;
+        padding: 1.25rem 1.35rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        min-height: 136px;
+        position: relative;
     }
     .cinematic-telemetry-box:hover {
         transform: translateY(-2px);
         border-color: #cbd5e1;
-        box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 12px 26px -6px rgba(15, 23, 42, 0.08);
     }
     [data-bs-theme="dark"] .cinematic-telemetry-box {
-        background: rgba(15, 23, 42, 0.7);
+        background: linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%);
         border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
     [data-bs-theme="dark"] .cinematic-telemetry-box:hover {
-        border-color: rgba(96, 165, 250, 0.4);
-        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4);
+        background: linear-gradient(180deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.88) 100%);
+        border-color: rgba(99, 102, 241, 0.4);
+        box-shadow: 0 14px 30px -8px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     .telemetry-icon-bubble {
-        width: 34px;
-        height: 34px;
+        width: 32px;
+        height: 32px;
         border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.05rem;
+        font-size: 0.95rem;
     }
 
-    /* Threat Status Banners */
+    /* Threat Status Banners - Sleek Modern Border & Subtle Tint */
     .threat-banner-safe {
-        background: #f0fdf4;
+        background: linear-gradient(135deg, rgba(240, 253, 244, 0.95) 0%, rgba(255, 255, 255, 0.95) 100%);
         border: 1px solid #bbf7d0;
-        border-left: 4px solid #10b981;
+        box-shadow: 0 4px 15px -3px rgba(16, 185, 129, 0.08);
     }
     .threat-banner-safe .threat-title { color: #15803d !important; }
-    .threat-banner-safe .threat-desc { color: #374151 !important; }
+    .threat-banner-safe .threat-desc { color: #374151 !important; line-height: 1.55; }
 
     .threat-banner-warning {
-        background: #fffbeb;
+        background: linear-gradient(135deg, rgba(254, 243, 199, 0.85) 0%, rgba(255, 255, 255, 0.95) 100%);
         border: 1px solid #fde68a;
-        border-left: 4px solid #f59e0b;
+        box-shadow: 0 4px 15px -3px rgba(245, 158, 11, 0.08);
     }
     .threat-banner-warning .threat-title { color: #b45309 !important; }
-    .threat-banner-warning .threat-desc { color: #4b5563 !important; }
+    .threat-banner-warning .threat-desc { color: #4b5563 !important; line-height: 1.55; }
 
     .threat-banner-danger {
-        background: #fef2f2;
+        background: linear-gradient(135deg, rgba(254, 226, 226, 0.85) 0%, rgba(255, 255, 255, 0.95) 100%);
         border: 1px solid #fecaca;
-        border-left: 4px solid #ef4444;
+        box-shadow: 0 4px 15px -3px rgba(239, 68, 68, 0.08);
     }
     .threat-banner-danger .threat-title { color: #b91c1c !important; }
-    .threat-banner-danger .threat-desc { color: #4b5563 !important; }
+    .threat-banner-danger .threat-desc { color: #4b5563 !important; line-height: 1.55; }
 
     [data-bs-theme="dark"] .threat-banner-safe {
-        background: rgba(16, 185, 129, 0.08);
-        border: 1px solid rgba(16, 185, 129, 0.25);
-        border-left: 4px solid #10b981;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.09) 0%, rgba(15, 23, 42, 0.55) 100%);
+        border: 1px solid rgba(16, 185, 129, 0.28);
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
     [data-bs-theme="dark"] .threat-banner-safe .threat-title { color: #34d399 !important; }
-    [data-bs-theme="dark"] .threat-banner-safe .threat-desc { color: #cbd5e1 !important; }
+    [data-bs-theme="dark"] .threat-banner-safe .threat-desc { color: #cbd5e1 !important; line-height: 1.55; }
 
     [data-bs-theme="dark"] .threat-banner-warning {
-        background: rgba(245, 158, 11, 0.1);
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.09) 0%, rgba(15, 23, 42, 0.55) 100%);
         border: 1px solid rgba(245, 158, 11, 0.3);
-        border-left: 4px solid #f59e0b;
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
     [data-bs-theme="dark"] .threat-banner-warning .threat-title { color: #fbbf24 !important; }
-    [data-bs-theme="dark"] .threat-banner-warning .threat-desc { color: #cbd5e1 !important; }
+    [data-bs-theme="dark"] .threat-banner-warning .threat-desc { color: #cbd5e1 !important; line-height: 1.55; }
 
     [data-bs-theme="dark"] .threat-banner-danger {
-        background: rgba(239, 68, 68, 0.12);
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(15, 23, 42, 0.55) 100%);
         border: 1px solid rgba(239, 68, 68, 0.35);
-        border-left: 4px solid #ef4444;
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
     [data-bs-theme="dark"] .threat-banner-danger .threat-title { color: #f87171 !important; }
-    [data-bs-theme="dark"] .threat-banner-danger .threat-desc { color: #cbd5e1 !important; }
+    [data-bs-theme="dark"] .threat-banner-danger .threat-desc { color: #cbd5e1 !important; line-height: 1.55; }
 
     /* Incident Item Card */
     .incident-item-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 0.6rem 0.85rem;
+        border-radius: 12px;
+        padding: 0.65rem 0.9rem;
     }
     [data-bs-theme="dark"] .incident-item-card {
-        background: rgba(15, 23, 42, 0.8);
+        background: rgba(15, 23, 42, 0.85);
         border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Custom Sleek Scrollbar for User Activity List */
+    .user-activity-list::-webkit-scrollbar {
+        width: 5px;
+    }
+    .user-activity-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .user-activity-list::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.25);
+        border-radius: 10px;
+    }
+    .user-activity-list::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.45);
+    }
+
+    .user-activity-item {
+        padding: 0.65rem 0.75rem;
+        border-radius: 14px;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    }
+    .user-activity-item:hover {
+        background: rgba(0, 0, 0, 0.02);
+    }
+    [data-bs-theme="dark"] .user-activity-item {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    [data-bs-theme="dark"] .user-activity-item:hover {
+        background: rgba(255, 255, 255, 0.035);
+    }
+    .user-activity-item:last-child {
+        border-bottom: none;
     }
 
     .tech-pill {
@@ -215,10 +254,10 @@
     <!-- Active Users Monitor (col-12 col-xl-4) -->
     @can('lihat-monitor-aktif')
     <div class="col-12 col-xl-4">
-        <div class="card p-4 h-100 cinematic-command-card">
+        <div class="card p-4 p-md-4.5 h-100 cinematic-command-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div class="d-flex align-items-center gap-2.5">
-                    <div class="badge-soft-emerald p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                    <div class="badge-soft-emerald p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                         <i class="bi bi-people-fill fs-5"></i>
                     </div>
                     <div>
@@ -231,7 +270,7 @@
                 </span>
             </div>
             
-            <div id="activeUsersList" class="user-activity-list" style="max-height: 380px; overflow-y: auto; padding-right: 5px;">
+            <div id="activeUsersList" class="user-activity-list" style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
                 <div class="text-center py-5 text-muted">
                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                     Memuat status user...
@@ -243,7 +282,7 @@
 
     <!-- System Health & Security Command Center (col-12 col-xl-8) -->
     <div class="col-12 {{ auth()->user()->can('lihat-monitor-aktif') ? 'col-xl-8' : 'col-xl-12' }}">
-        <div class="card p-4 h-100 cinematic-command-card">
+        <div class="card p-4 p-md-4.5 h-100 cinematic-command-card">
             
             <!-- Header Toolbar -->
             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-3">
@@ -269,26 +308,27 @@
                 </div>
             </div>
 
-            <!-- 3 Unified Telemetry Cards Grid -->
-            <div class="row g-3 mb-3.5">
+            <!-- 3 Unified Telemetry Cards Grid with Generous Spacing -->
+            <div class="row g-3.5 g-xl-4 mb-4">
                 
                 <!-- 1. Database Engine Card -->
                 <div class="col-12 col-sm-4">
                     <div class="cinematic-telemetry-box h-100">
                         <div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-secondary fs-8 fw-bold text-uppercase" style="letter-spacing: 0.5px;">Database Engine</span>
+                            <div class="d-flex justify-content-between align-items-center mb-2.5">
+                                <span class="text-secondary fs-8 fw-bold text-uppercase" style="letter-spacing: 0.6px;">Database Engine</span>
                                 <span id="dbStatusDot" class="rounded-circle animate-pulse-emerald" style="width: 10px; height: 10px; background-color: #10b981;"></span>
                             </div>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <h6 id="dbStatusText" class="fw-bold mb-0 text-success fs-6">Connected</h6>
-                                <span id="dbLatencyText" class="badge badge-soft-emerald fs-9 tech-pill px-2 py-0.5">0.00 ms</span>
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <h6 id="dbStatusText" class="fw-bold mb-0 text-success fs-5">Connected</h6>
+                                <span id="dbLatencyText" class="badge badge-soft-emerald fs-9 tech-pill px-2.5 py-1">0.00 ms</span>
                             </div>
                         </div>
-                        <div class="pt-2 border-top border-secondary border-opacity-10 mt-auto">
-                            <span id="dbVersionText" class="text-muted fs-9 text-truncate d-flex align-items-center tech-pill">
-                                <i class="bi bi-database me-1.5 text-primary"></i> <span>Memuat versi DB...</span>
+                        <div class="pt-2.5 border-top border-secondary border-opacity-10 mt-auto d-flex align-items-center justify-content-between">
+                            <span id="dbVersionText" class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle px-2.5 py-1 rounded-pill fs-9 fw-semibold d-inline-flex align-items-center gap-1.5">
+                                <i class="bi bi-database-check text-success"></i> <span>MariaDB Engine</span>
                             </span>
+                            <span class="fs-9 text-muted fw-medium">Active</span>
                         </div>
                     </div>
                 </div>
@@ -297,68 +337,72 @@
                 <div class="col-12 col-sm-4">
                     <div class="cinematic-telemetry-box h-100">
                         <div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-secondary fs-8 fw-bold text-uppercase" style="letter-spacing: 0.5px;">Audit Login (24 Jam)</span>
-                                <div class="telemetry-icon-bubble badge-soft-indigo" style="width: 26px; height: 26px;">
-                                    <i class="bi bi-person-lock fs-8"></i>
+                            <div class="d-flex justify-content-between align-items-center mb-2.5">
+                                <span class="text-secondary fs-8 fw-bold text-uppercase" style="letter-spacing: 0.6px;">Audit Login (24 Jam)</span>
+                                <div class="telemetry-icon-bubble badge-soft-indigo" style="width: 28px; height: 28px;">
+                                    <i class="bi bi-person-lock fs-7"></i>
                                 </div>
                             </div>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <h6 class="fw-bold mb-0 text-body fs-6"><span id="successLoginsCount" class="text-success">0</span> Sukses</h6>
-                                <span class="text-muted fs-9">/</span>
-                                <span id="failedLoginsBadge" class="badge badge-soft-amber fs-8 fw-bold px-2 py-0.5 rounded-pill">0 Gagal</span>
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <h6 class="fw-bold mb-0 text-body fs-5"><span id="successLoginsCount" class="text-success">0</span> Sukses</h6>
+                                <span class="text-muted fs-8">/</span>
+                                <span id="failedLoginsBadge" class="badge badge-soft-amber fs-8 fw-bold px-2.5 py-1 rounded-pill">0 Gagal</span>
                             </div>
                         </div>
-                        <div class="pt-2 border-top border-secondary border-opacity-10 mt-auto">
-                            <span id="bruteForceAlertSummary" class="fs-9 text-truncate d-flex align-items-center">
-                                <i class="bi bi-shield-check me-1.5 text-success"></i> <span>Semua login sukses</span>
+                        <div class="pt-2.5 border-top border-secondary border-opacity-10 mt-auto d-flex align-items-center justify-content-between">
+                            <span id="bruteForceAlertSummary" class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle px-2.5 py-1 rounded-pill fs-9 fw-semibold d-inline-flex align-items-center gap-1.5">
+                                <i class="bi bi-shield-check text-success"></i> <span>Semua sukses</span>
                             </span>
+                            <span class="fs-9 text-muted fw-medium">24 Jam</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- 3. Server Runtime Card -->
+                <!-- 3. Server Runtime Card (Secured: PHP Version Omitted) -->
                 <div class="col-12 col-sm-4">
                     <div class="cinematic-telemetry-box h-100">
                         <div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-secondary fs-8 fw-bold text-uppercase" style="letter-spacing: 0.5px;">Server & Runtime</span>
-                                <div class="telemetry-icon-bubble badge-soft-sky" style="width: 26px; height: 26px;">
-                                    <i class="bi bi-cpu-fill fs-8"></i>
+                            <div class="d-flex justify-content-between align-items-center mb-2.5">
+                                <span class="text-secondary fs-8 fw-bold text-uppercase" style="letter-spacing: 0.6px;">Server & Runtime</span>
+                                <div class="telemetry-icon-bubble badge-soft-sky" style="width: 28px; height: 28px;">
+                                    <i class="bi bi-cpu-fill fs-7"></i>
                                 </div>
                             </div>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <h6 id="phpVersionText" class="fw-bold mb-0 text-body fs-6 tech-pill">PHP {{ PHP_VERSION }}</h6>
-                                <span id="envBadge" class="badge badge-soft-sky fs-9 text-uppercase px-2 py-0.5 tech-pill fw-bold">{{ config('app.env', 'prod') }}</span>
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <h6 id="phpVersionText" class="fw-bold mb-0 text-body fs-5 tech-pill">PHP Engine</h6>
+                                <span id="envBadge" class="badge badge-soft-sky fs-9 text-uppercase px-2.5 py-1 tech-pill fw-bold">{{ config('app.env', 'prod') }}</span>
                             </div>
                         </div>
-                        <div class="pt-2 border-top border-secondary border-opacity-10 mt-auto">
-                            <span id="serverMemoryText" class="text-muted fs-9 text-truncate d-flex align-items-center tech-pill">
-                                <i class="bi bi-memory me-1.5 text-info"></i> <span>Mem: Memuat...</span>
+                        <div class="pt-2.5 border-top border-secondary border-opacity-10 mt-auto d-flex align-items-center justify-content-between">
+                            <span id="serverMemoryText" class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle px-2.5 py-1 rounded-pill fs-9 fw-semibold d-inline-flex align-items-center gap-1.5">
+                                <i class="bi bi-cpu text-info"></i> <span>Mem: Memuat...</span>
                             </span>
+                            <span class="fs-9 text-muted fw-medium">RAM</span>
                         </div>
                     </div>
                 </div>
 
             </div>
 
-            <!-- Threat Status Banner & Incident Detail Box -->
-            <div id="securityAlertBox" class="p-3 rounded-4 threat-banner-safe mb-0">
-                <div class="d-flex align-items-start gap-3">
-                    <div id="securityAlertIconContainer" class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs" style="width: 38px; height: 38px;">
+            <!-- Threat Status Banner & Incident Detail Box with Enhanced Spacing -->
+            <div id="securityAlertBox" class="p-3.5 p-md-4 rounded-4 threat-banner-safe mb-0">
+                <div class="d-flex align-items-start gap-3.5">
+                    <div id="securityAlertIconContainer" class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs" style="width: 42px; height: 42px;">
                         <i id="securityAlertIcon" class="bi bi-shield-check fs-5"></i>
                     </div>
                     <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-1.5 gap-2">
                             <h6 id="securityAlertTitle" class="fw-bold mb-0 threat-title fs-7">Sistem Keamanan Normal</h6>
-                            <span id="serverClock" class="badge badge-soft-neutral fs-9 tech-pill px-2.5 py-1">{{ now()->format('H:i:s') }} WIB</span>
+                            <span id="serverClock" class="badge badge-soft-neutral fs-9 tech-pill px-2.5 py-1 align-self-start align-self-sm-auto">
+                                <i class="bi bi-clock me-1"></i>{{ now()->format('H:i:s') }} WIB
+                            </span>
                         </div>
                         <p id="securityAlertDesc" class="fs-8 threat-desc mb-0">
                             Semua jalur otentikasi beroperasi normal. Tidak ada aktivitas login mencurigakan atau percobaan gagal dalam 24 jam terakhir.
                         </p>
 
                         <!-- Dynamic Incident Log List -->
-                        <div id="failedLoginsListContainer" class="mt-3 pt-3 border-top border-secondary border-opacity-15" style="display: none;">
+                        <div id="failedLoginsListContainer" class="mt-3.5 pt-3 border-top border-secondary border-opacity-15" style="display: none;">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="fs-8 fw-bold text-danger d-flex align-items-center gap-1.5">
                                     <i class="bi bi-exclamation-octagon-fill"></i> Rincian Percobaan Login Gagal Terakhir:
@@ -445,22 +489,30 @@
                     if (data.database.status === 'Connected') {
                         $('#dbStatusDot').css('background-color', '#10b981').removeClass('animate-pulse-rose').addClass('animate-pulse-emerald');
                         $('#dbStatusText').text('Connected').removeClass('text-danger').addClass('text-success');
-                        $('#dbLatencyText').text(data.database.latency_ms + ' ms')
-                                           .attr('class', 'badge badge-soft-emerald fs-9 tech-pill px-2 py-0.5');
-                        $('#dbVersionText').html('<i class="bi bi-database me-1.5 text-primary"></i><span>' + data.database.version + ' (' + data.database.name + ')</span>');
+                        $('#dbLatencyText').html('<i class="bi bi-lightning-charge-fill me-0.5"></i> ' + data.database.latency_ms + ' ms')
+                                           .attr('class', 'badge badge-soft-emerald fs-9 tech-pill px-2.5 py-1');
+                        let dbEngineLabel = (data.database.version || '').toLowerCase();
+                        if (dbEngineLabel.includes('mariadb')) {
+                            dbEngineLabel = 'MariaDB Engine';
+                        } else if (dbEngineLabel.includes('mysql')) {
+                            dbEngineLabel = 'MySQL Engine';
+                        } else {
+                            dbEngineLabel = data.database.version || 'SQL Engine';
+                        }
+                        $('#dbVersionText').html('<i class="bi bi-database-check text-success"></i> <span>' + dbEngineLabel + '</span>');
                     } else {
                         $('#dbStatusDot').css('background-color', '#ef4444').removeClass('animate-pulse-emerald').addClass('animate-pulse-rose');
                         $('#dbStatusText').text('Disconnected').removeClass('text-success').addClass('text-danger');
                         $('#dbLatencyText').text('Offline')
-                                           .attr('class', 'badge badge-soft-rose fs-9 tech-pill px-2 py-0.5');
-                        $('#dbVersionText').html('<i class="bi bi-database me-1.5 text-danger"></i><span class="text-danger fw-semibold">Database Disconnected</span>');
+                                           .attr('class', 'badge badge-soft-rose fs-9 tech-pill px-2.5 py-1');
+                        $('#dbVersionText').html('<i class="bi bi-database-slash text-danger"></i> <span class="text-danger fw-semibold">Disconnected</span>');
                     }
 
-                    // 2. Server Telemetry
-                    $('#phpVersionText').text('PHP ' + data.server.php_version);
+                    // 2. Server Telemetry (Secured: Version hidden)
+                    $('#phpVersionText').text(data.server.runtime_name || 'PHP Engine');
                     $('#envBadge').text(data.server.environment);
-                    $('#serverMemoryText').html('<i class="bi bi-memory me-1.5 text-info"></i><span>Mem: <strong class="text-body">' + data.server.memory_usage_mb + ' MB</strong> <span class="opacity-75">/ ' + data.server.memory_limit + '</span></span>');
-                    $('#serverClock').text(data.server.server_time);
+                    $('#serverMemoryText').html('<i class="bi bi-cpu text-info"></i> <span>Mem: ' + data.server.memory_usage_mb + ' MB</span>');
+                    $('#serverClock').html('<i class="bi bi-clock me-1"></i>' + data.server.server_time);
 
                     // 3. Security Telemetry & Threat Banner
                     $('#successLoginsCount').text(data.security.success_logins_24h);
@@ -481,9 +533,9 @@
                         statusBadge.attr('class', 'badge badge-soft-rose rounded-pill px-3 py-1.5 fs-8 fw-semibold animate-pulse-rose shadow-xs')
                                    .html('<i class="bi bi-exclamation-triangle-fill me-1"></i> Database Offline');
                         failedBadge.attr('class', 'badge badge-soft-neutral fs-8 fw-medium px-2 py-0.5 rounded-pill');
-                        $('#bruteForceAlertSummary').html('<span class="text-danger"><i class="bi bi-database-slash me-1.5"></i>Koneksi DB terputus</span>');
+                        $('#bruteForceAlertSummary').html('<i class="bi bi-database-slash text-danger"></i> <span class="text-danger">DB Terputus</span>');
 
-                        alertBox.attr('class', 'p-3 rounded-4 threat-banner-danger mb-0');
+                        alertBox.attr('class', 'p-3.5 p-md-4 rounded-4 threat-banner-danger mb-0');
                         alertIconContainer.attr('class', 'bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs animate-pulse-rose');
                         alertIcon.attr('class', 'bi bi-database-slash fs-5');
                         alertTitle.text('Koneksi Database Terputus (Offline)');
@@ -494,9 +546,9 @@
                         statusBadge.attr('class', 'badge badge-soft-rose rounded-pill px-3 py-1.5 fs-8 fw-semibold animate-pulse-rose shadow-xs')
                                    .html('<i class="bi bi-shield-slash-fill me-1"></i> Potensi Serangan');
                         failedBadge.attr('class', 'badge badge-soft-rose fs-8 fw-bold px-2 py-0.5 rounded-pill');
-                        $('#bruteForceAlertSummary').html('<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1.5"></i>' + failedCount + ' Gagal (Perhatian!)</span>');
+                        $('#bruteForceAlertSummary').html('<i class="bi bi-exclamation-triangle-fill text-danger"></i> <span class="text-danger fw-bold">' + failedCount + ' Gagal</span>');
 
-                        alertBox.attr('class', 'p-3 rounded-4 threat-banner-danger mb-0');
+                        alertBox.attr('class', 'p-3.5 p-md-4 rounded-4 threat-banner-danger mb-0');
                         alertIconContainer.attr('class', 'bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs animate-pulse-rose');
                         alertIcon.attr('class', 'bi bi-shield-exclamation fs-5');
                         alertTitle.text('Peringatan: Terdeteksi Anomali Login (24 Jam)');
@@ -506,9 +558,9 @@
                         statusBadge.attr('class', 'badge badge-soft-amber rounded-pill px-3 py-1.5 fs-8 fw-semibold animate-pulse-amber shadow-xs')
                                    .html('<i class="bi bi-shield-exclamation me-1"></i> ' + failedCount + ' Login Gagal');
                         failedBadge.attr('class', 'badge badge-soft-amber fs-8 fw-bold px-2 py-0.5 rounded-pill');
-                        $('#bruteForceAlertSummary').html('<span class="text-warning-emphasis fw-semibold"><i class="bi bi-info-circle me-1.5 text-warning"></i>' + failedCount + ' Gagal (24 Jam)</span>');
+                        $('#bruteForceAlertSummary').html('<i class="bi bi-info-circle text-warning"></i> <span class="text-warning-emphasis fw-semibold">' + failedCount + ' Gagal</span>');
 
-                        alertBox.attr('class', 'p-3 rounded-4 threat-banner-warning mb-0');
+                        alertBox.attr('class', 'p-3.5 p-md-4 rounded-4 threat-banner-warning mb-0');
                         alertIconContainer.attr('class', 'bg-warning text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs');
                         alertIcon.attr('class', 'bi bi-exclamation-diamond-fill fs-5');
                         alertTitle.text('Catatan Keamanan Operasional');
@@ -518,9 +570,9 @@
                         statusBadge.attr('class', 'badge badge-soft-emerald rounded-pill px-3 py-1.5 fs-8 fw-semibold shadow-xs')
                                    .html('<i class="bi bi-shield-check me-1"></i> Sistem Aman & Terlindungi');
                         failedBadge.attr('class', 'badge badge-soft-neutral fs-8 fw-medium px-2 py-0.5 rounded-pill');
-                        $('#bruteForceAlertSummary').html('<span class="text-success"><i class="bi bi-shield-check me-1.5"></i>Semua login sukses</span>');
+                        $('#bruteForceAlertSummary').html('<i class="bi bi-shield-check text-success"></i> <span class="text-success">Semua Sukses</span>');
 
-                        alertBox.attr('class', 'p-3 rounded-4 threat-banner-safe mb-0');
+                        alertBox.attr('class', 'p-3.5 p-md-4 rounded-4 threat-banner-safe mb-0');
                         alertIconContainer.attr('class', 'bg-success text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs');
                         alertIcon.attr('class', 'bi bi-shield-check fs-5');
                         alertTitle.text('Sistem Keamanan Normal');
@@ -557,12 +609,12 @@
 
                     $('#dbStatusDot').css('background-color', '#ef4444').removeClass('animate-pulse-emerald').addClass('animate-pulse-rose');
                     $('#dbStatusText').text('Disconnected').removeClass('text-success').addClass('text-danger');
-                    $('#dbLatencyText').text('Offline').attr('class', 'badge badge-soft-rose fs-9 tech-pill px-2 py-0.5');
-                    $('#dbVersionText').html('<i class="bi bi-database me-1.5 text-danger"></i><span class="text-danger fw-semibold">Database Disconnected</span>');
+                    $('#dbLatencyText').text('Offline').attr('class', 'badge badge-soft-rose fs-9 tech-pill px-2.5 py-1');
+                    $('#dbVersionText').html('<i class="bi bi-database-slash me-1.5 text-danger"></i><span class="text-danger fw-semibold">Database Disconnected</span>');
                     $('#threatStatusBadge').attr('class', 'badge badge-soft-rose rounded-pill px-3 py-1.5 fs-8 fw-semibold animate-pulse-rose')
                                            .html('<i class="bi bi-exclamation-triangle-fill me-1"></i> Database Offline');
                     
-                    $('#securityAlertBox').attr('class', 'p-3 rounded-4 threat-banner-danger mb-0');
+                    $('#securityAlertBox').attr('class', 'p-3.5 p-md-4 rounded-4 threat-banner-danger mb-0');
                     $('#securityAlertIconContainer').attr('class', 'bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs animate-pulse-rose');
                     $('#securityAlertIcon').attr('class', 'bi bi-database-slash fs-5');
                     $('#securityAlertTitle').text('Koneksi Database Terputus (Offline)');
@@ -661,7 +713,7 @@
 
                             let avatarHtml = '';
                             if (user.foto) {
-                                avatarHtml = `<img src="${user.foto}" alt="${user.nama_lengkap}" class="rounded-circle object-fit-cover shadow-sm border border-2 border-white" style="width: 42px; height: 42px;">`;
+                                avatarHtml = `<img src="${user.foto}" alt="${user.nama_lengkap}" class="rounded-circle object-fit-cover shadow-sm" style="width: 42px; height: 42px; box-shadow: 0 0 0 2px var(--bs-card-bg, #111827);">`;
                             } else {
                                 let names = user.nama_lengkap.split(' ');
                                 let initials = names.map(n => n.substring(0,1)).slice(0,2).join('').toUpperCase();
@@ -671,7 +723,7 @@
                                 let bgCol = colors[colorIdx];
                                 
                                 avatarHtml = `
-                                    <div class="d-flex align-items-center justify-content-center text-white rounded-circle shadow-sm fw-bold border border-2 border-white" style="width: 42px; height: 42px; background-color: ${bgCol}; font-size: 0.92rem;">
+                                    <div class="d-flex align-items-center justify-content-center text-white rounded-circle shadow-sm fw-bold" style="width: 42px; height: 42px; background-color: ${bgCol}; font-size: 0.92rem; box-shadow: 0 0 0 2px var(--bs-card-bg, #111827);">
                                         ${initials}
                                     </div>
                                 `;
@@ -681,22 +733,25 @@
                             let dotPulseClass = user.is_online ? 'animate-pulse-emerald' : '';
                             
                             let statusText = user.is_online 
-                                ? `<span class="badge badge-soft-emerald fw-semibold fs-9 rounded-pill px-2.5 py-0.5 d-inline-block">Aktif</span>
+                                ? `<span class="badge badge-soft-emerald fw-semibold fs-9 rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1 shadow-2xs">
+                                       <span class="rounded-circle animate-pulse-emerald" style="width: 6px; height: 6px; background-color: #10b981;"></span>
+                                       Aktif
+                                   </span>
                                    <span class="text-muted fs-9 d-block mt-0.5">Menit ini</span>`
-                                : `<span class="badge badge-soft-neutral fw-normal fs-9 rounded-pill px-2 py-0.5 d-inline-block">Offline</span>
+                                : `<span class="badge badge-soft-neutral fw-normal fs-9 rounded-pill px-2.5 py-0.5 d-inline-block">Offline</span>
                                    <span class="text-muted fs-9 text-nowrap d-block mt-0.5" title="${user.last_seen_title}">${user.last_seen_text}</span>`;
 
                             html += `
-                                <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom-dashed last-no-border">
+                                <div class="user-activity-item d-flex align-items-center justify-content-between mb-1">
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="position-relative">
                                             ${avatarHtml}
-                                            <span class="position-absolute bottom-0 end-0 rounded-circle border border-2 border-white ${dotPulseClass}" 
-                                                  style="width: 13px; height: 13px; background-color: ${statusDotColor};">
+                                            <span class="position-absolute bottom-0 end-0 rounded-circle ${dotPulseClass}" 
+                                                  style="width: 13px; height: 13px; background-color: ${statusDotColor}; box-shadow: 0 0 0 2px var(--bs-card-bg, #111827);">
                                             </span>
                                         </div>
                                         <div>
-                                            <h6 class="fw-bold mb-0 text-truncate text-body" style="max-width: 140px; font-size: 0.9rem;">${user.nama_lengkap}</h6>
+                                            <h6 class="fw-bold mb-0 text-truncate text-body" style="max-width: 145px; font-size: 0.9rem;">${user.nama_lengkap}</h6>
                                             <p class="text-muted mb-0 fs-8">${user.jabatan}</p>
                                         </div>
                                     </div>

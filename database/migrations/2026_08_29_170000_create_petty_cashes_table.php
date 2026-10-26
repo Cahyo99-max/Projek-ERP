@@ -47,6 +47,14 @@ return new class extends Migration
 
             $table->index(['company_id', 'branch_id', 'tipe_entitas']);
             $table->index(['tanggal', 'status']);
+            // 7M+ Extreme Scale Composite Indexes
+            $table->index(['company_id', 'tipe_entitas', 'tanggal', 'id'], 'idx_pc_company_entitas_tanggal_id');
+            $table->index(['branch_id', 'tipe_entitas', 'tanggal', 'id'], 'idx_pc_branch_entitas_tanggal_id');
+            $table->index(['coa_kas_id', 'tanggal', 'status'], 'idx_pc_coa_tanggal_status');
+            $table->index(['company_id', 'status', 'tipe', 'tanggal'], 'idx_pc_company_status_tipe_tanggal');
+            $table->index(['branch_id', 'status', 'tipe', 'tanggal'], 'idx_pc_branch_status_tipe_tanggal');
+            $table->index(['nama_pengaju', 'tanggal'], 'idx_pc_nama_pengaju_tanggal');
+            $table->index(['tender_id', 'tanggal'], 'idx_pc_tender_tanggal');
         });
     }
 

@@ -29,7 +29,13 @@ use App\Http\Controllers\MasterCustomerController;
 use App\Http\Controllers\TenderController;
 use App\Http\Controllers\SalesQuotationController;
 use App\Http\Controllers\SalesOrderController;
+use App\Http\Controllers\SalesDashboardController;
+use App\Http\Controllers\FinanceDashboardController;
 use App\Http\Controllers\DeliveryOrderController;
+use App\Http\Controllers\SalesInvoiceController;
+use App\Http\Controllers\FakturPajakController;
+use App\Http\Controllers\SalesPaymentController;
+use App\Http\Controllers\CustomerReceivableController;
 use App\Http\Controllers\PurchaseRequisitionController;
 use App\Http\Controllers\MasterPajakController;
 use App\Http\Controllers\MasterCurrencyController;
@@ -56,6 +62,54 @@ use Illuminate\Support\Facades\Route;
 // ===== PUBLIC/GUEST ROUTES =====
 Route::get('/', [UserLoginController::class, 'tampilFormLogin'])->name('login');
 Route::post('/login', [UserLoginController::class, 'prosesLogin']);
+
+// Dynamic PWA Web App Manifest
+Route::get('/manifest.json', function () {
+    $appName = 'Lumen ERP';
+    $appLogo = asset('gambar/logo.png');
+
+    try {
+        if (\Illuminate\Support\Facades\Schema::hasTable('app_settings') || \Illuminate\Support\Facades\Schema::hasTable('app_settings_tb')) {
+            $settings = \Illuminate\Support\Facades\DB::table('app_settings')->pluck('value', 'key')->all();
+            if (!empty($settings['app_name'])) {
+                $appName = $settings['app_name'];
+            }
+            if (!empty($settings['app_logo'])) {
+                $appLogo = asset('storage/' . $settings['app_logo']);
+            }
+        }
+    } catch (\Throwable $e) {}
+
+    $manifest = [
+        'name'             => $appName,
+        'short_name'       => $appName,
+        'description'      => 'Aplikasi Sistem ERP Terpadu - ' . $appName,
+        'start_url'        => '/',
+        'scope'            => '/',
+        'display'          => 'standalone',
+        'orientation'      => 'any',
+        'background_color' => '#0f172a',
+        'theme_color'      => '#111827',
+        'icons'            => [
+            [
+                'src'     => $appLogo,
+                'sizes'   => '192x192',
+                'type'    => 'image/png',
+                'purpose' => 'any maskable'
+            ],
+            [
+                'src'     => $appLogo,
+                'sizes'   => '512x512',
+                'type'    => 'image/png',
+                'purpose' => 'any maskable'
+            ]
+        ]
+    ];
+
+    return response()->json($manifest, 200, [
+        'Content-Type' => 'application/manifest+json; charset=UTF-8'
+    ]);
+});
 Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'id'])) {
         session(['locale' => $locale]);
@@ -275,12 +329,18 @@ Route::middleware('auth')->group(function () {
         Route::delete('/supplier/{supplier}/delete', [MasterSupplierController::class, 'destroy'])->name('supplier.destroy');
 
         // Master Customer CRUD
+        Route::get('/customer/export', [MasterCustomerController::class, 'exportExcel'])->middleware('throttle:30,1')->name('customer.export');
+        Route::get('/customer/import/template', [MasterCustomerController::class, 'downloadTemplate'])->name('customer.import.template');
+        Route::post('/customer/import', [MasterCustomerController::class, 'importExcel'])->middleware('throttle:15,1')->name('customer.import');
         Route::get('/customer', [MasterCustomerController::class, 'index'])->name('customer.index');
         Route::get('/customer/data', [MasterCustomerController::class, 'getData'])->name('customer.data');
-        Route::post('/customer/store', [MasterCustomerController::class, 'store'])->name('customer.store');
+        Route::post('/customer/store', [MasterCustomerController::class, 'store'])->middleware('throttle:30,1')->name('customer.store');
         Route::get('/customer/{customer}/edit', [MasterCustomerController::class, 'edit'])->name('customer.edit');
-        Route::post('/customer/{customer}/update', [MasterCustomerController::class, 'update'])->name('customer.update');
-        Route::delete('/customer/{customer}/delete', [MasterCustomerController::class, 'destroy'])->name('customer.destroy');
+        Route::post('/customer/{customer}/update', [MasterCustomerController::class, 'update'])->middleware('throttle:30,1')->name('customer.update');
+        Route::delete('/customer/{customer}/delete', [MasterCustomerController::class, 'destroy'])->middleware('throttle:30,1')->name('customer.destroy');
+
+        // ===== MODUL SALES: DASHBOARD =====
+        Route::get('/sales/dashboard', [SalesDashboardController::class, 'index'])->name('sales.dashboard');
 
         // Tender Management CRUD & Approval Workflow
         Route::get('/tender', [TenderController::class, 'index'])->name('tender.index');
@@ -312,6 +372,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/penawaran/{quotation}/update', [SalesQuotationController::class, 'update'])->name('penawaran.update');
         Route::delete('/penawaran/{quotation}/delete', [SalesQuotationController::class, 'destroy'])->name('penawaran.destroy');
         Route::post('/penawaran/{quotation}/revisi', [SalesQuotationController::class, 'createRevision'])->name('penawaran.revisi');
+        Route::post('/penawaran/{quotation}/ajukan', [SalesQuotationController::class, 'ajukan'])->name('penawaran.ajukan');
         Route::post('/penawaran/{quotation}/approve', [SalesQuotationController::class, 'approve'])->name('penawaran.approve');
         Route::post('/penawaran/{quotation}/convert-so', [SalesQuotationController::class, 'convertToSalesOrder'])->name('penawaran.convert-so');
         Route::get('/penawaran/{quotation}/print', [SalesQuotationController::class, 'printPdf'])->name('penawaran.print');
@@ -335,14 +396,83 @@ Route::middleware('auth')->group(function () {
 
         // Pengiriman & Surat Jalan (Delivery Order / DO)
         Route::prefix('marketing/delivery-order')->name('marketing.delivery-order.')->group(function () {
-            Route::get('/', [DeliveryOrderController::class, 'index'])->name('index');
-            Route::get('/data', [DeliveryOrderController::class, 'getData'])->name('data');
-            Route::get('/available-sos', [DeliveryOrderController::class, 'getAvailableSalesOrders'])->name('available-sos');
-            Route::get('/so/{order}/details', [DeliveryOrderController::class, 'getSalesOrderDetails'])->name('so-details');
-            Route::post('/store', [DeliveryOrderController::class, 'store'])->name('store');
-            Route::get('/{deliveryOrder}', [DeliveryOrderController::class, 'show'])->name('show');
-            Route::put('/{deliveryOrder}/status', [DeliveryOrderController::class, 'updateStatus'])->name('update-status');
-            Route::get('/{deliveryOrder}/print', [DeliveryOrderController::class, 'printSuratJalan'])->name('print');
+            Route::get('/', [DeliveryOrderController::class, 'index'])->name('index')->middleware('permission:lihat-delivery-order');
+            Route::get('/data', [DeliveryOrderController::class, 'getData'])->name('data')->middleware('permission:lihat-delivery-order');
+            Route::get('/available-sos', [DeliveryOrderController::class, 'getAvailableSalesOrders'])->name('available-sos')->middleware('permission:tambah-delivery-order');
+            Route::get('/available-serials', [DeliveryOrderController::class, 'getAvailableSerials'])->name('available-serials')->middleware('permission:tambah-delivery-order|edit-delivery-order');
+            Route::get('/so/{order}/details', [DeliveryOrderController::class, 'getSalesOrderDetails'])->name('so-details')->middleware('permission:tambah-delivery-order');
+            Route::post('/gudang-stocks', [DeliveryOrderController::class, 'getGudangStocks'])->name('gudang-stocks')->middleware('permission:tambah-delivery-order|edit-delivery-order');
+            Route::get('/check-nomor', [DeliveryOrderController::class, 'checkNomorDo'])->name('check-nomor')->middleware('permission:tambah-delivery-order');
+            Route::post('/store', [DeliveryOrderController::class, 'store'])->name('store')->middleware('permission:tambah-delivery-order');
+            Route::get('/{deliveryOrder}', [DeliveryOrderController::class, 'show'])->name('show')->middleware('permission:lihat-delivery-order');
+            Route::get('/{deliveryOrder}/edit', [DeliveryOrderController::class, 'edit'])->name('edit')->middleware('permission:edit-delivery-order');
+            Route::put('/{deliveryOrder}', [DeliveryOrderController::class, 'update'])->name('update')->middleware('permission:edit-delivery-order');
+            Route::put('/{deliveryOrder}/status', [DeliveryOrderController::class, 'updateStatus'])->name('update-status')->middleware('permission:edit-delivery-order');
+            Route::post('/{deliveryOrder}/approve', [DeliveryOrderController::class, 'approve'])->name('approve')->middleware('permission:approve-delivery-order');
+            Route::post('/{deliveryOrder}/reject', [DeliveryOrderController::class, 'reject'])->name('reject')->middleware('permission:approve-delivery-order');
+            Route::post('/{deliveryOrder}/confirm-arrival', [DeliveryOrderController::class, 'confirmArrival'])->name('confirm-arrival')->middleware('permission:selesai-delivery-order|approve-delivery-order');
+            Route::get('/{deliveryOrder}/jurnal', [DeliveryOrderController::class, 'getJurnal'])->name('jurnal')->middleware('permission:lihat-jurnal-delivery-order');
+            Route::get('/{deliveryOrder}/print', [DeliveryOrderController::class, 'printSuratJalan'])->name('print')->middleware('permission:cetak-delivery-order');
+        });
+
+        // Faktur Penjualan (Sales Invoice)
+        Route::prefix('modul-marketing/faktur-penjualan')->name('modul_marketing.faktur_penjualan.')->group(function () {
+            Route::get('/check-sync', [SalesInvoiceController::class, 'checkSync'])->name('check_sync')->middleware('permission:lihat-sales-invoice');
+            Route::get('/', [SalesInvoiceController::class, 'index'])->name('index')->middleware('permission:lihat-sales-invoice');
+            Route::get('/get-delivery-orders', [SalesInvoiceController::class, 'getDeliveryOrders'])->name('get_delivery_orders')->middleware('permission:tambah-sales-invoice');
+            Route::get('/do-details/{id}', [SalesInvoiceController::class, 'getDeliveryOrderDetails'])->name('do_details')->middleware('permission:tambah-sales-invoice');
+            Route::get('/get-sales-orders', [SalesInvoiceController::class, 'getSalesOrders'])->name('get_sales_orders')->middleware('permission:tambah-sales-invoice');
+            Route::get('/so-details/{id}', [SalesInvoiceController::class, 'getSalesOrderDetails'])->name('so_details')->middleware('permission:tambah-sales-invoice');
+            Route::post('/', [SalesInvoiceController::class, 'store'])->name('store')->middleware('permission:tambah-sales-invoice');
+            Route::get('/{id}/edit', [SalesInvoiceController::class, 'edit'])->name('edit')->middleware('permission:edit-sales-invoice');
+            Route::post('/{id}/update', [SalesInvoiceController::class, 'update'])->name('update')->middleware('permission:edit-sales-invoice');
+            Route::get('/{id}/download-document', [SalesInvoiceController::class, 'downloadDocument'])->name('download_document')->middleware('permission:lihat-sales-invoice');
+            Route::get('/{id}/print', [SalesInvoiceController::class, 'print'])->name('print')->middleware('permission:lihat-sales-invoice');
+            Route::get('/{id}/jurnal', [SalesInvoiceController::class, 'getJurnal'])->name('jurnal')->middleware('permission:lihat-jurnal-sales-invoice');
+            Route::get('/{id}', [SalesInvoiceController::class, 'show'])->name('show')->middleware('permission:lihat-sales-invoice');
+            Route::post('/{id}/send-whatsapp', [SalesInvoiceController::class, 'sendWhatsApp'])->name('send_whatsapp')->middleware('permission:lihat-sales-invoice');
+            Route::post('/{id}/submit', [SalesInvoiceController::class, 'submit'])->name('submit')->middleware('permission:edit-sales-invoice');
+            Route::post('/{id}/approve', [SalesInvoiceController::class, 'approve'])->name('approve')->middleware('permission:approve-sales-invoice');
+            Route::post('/{id}/reject', [SalesInvoiceController::class, 'reject'])->name('reject')->middleware('permission:approve-sales-invoice');
+            Route::post('/{id}/unapprove', [SalesInvoiceController::class, 'unapprove'])->name('unapprove')->middleware('role:Super Admin');
+            Route::delete('/{id}', [SalesInvoiceController::class, 'destroy'])->name('destroy')->middleware('permission:hapus-sales-invoice');
+        });
+
+        // Faktur Pajak (e-Faktur PPN DJP)
+        Route::prefix('modul-marketing/faktur-pajak')->name('modul_marketing.faktur_pajak.')->group(function () {
+            Route::get('/', [FakturPajakController::class, 'index'])->name('index')->middleware('permission:lihat-faktur-pajak');
+            Route::get('/unlinked-invoices/{customerId}', [FakturPajakController::class, 'getUnlinkedInvoices'])->name('unlinked_invoices')->middleware('permission:tambah-faktur-pajak');
+            Route::post('/invoices-details', [FakturPajakController::class, 'getInvoicesDetails'])->name('invoices_details')->middleware('permission:tambah-faktur-pajak');
+            Route::get('/next-nsfp', [FakturPajakController::class, 'getNextNsfp'])->name('next_nsfp')->middleware('permission:tambah-faktur-pajak');
+            Route::post('/', [FakturPajakController::class, 'store'])->name('store')->middleware('permission:tambah-faktur-pajak');
+            Route::get('/export-csv', [FakturPajakController::class, 'exportCsv'])->name('export_csv')->middleware('permission:export-faktur-pajak');
+            Route::get('/{id}', [FakturPajakController::class, 'show'])->name('show')->middleware('permission:lihat-faktur-pajak');
+            Route::post('/{id}/update-status', [FakturPajakController::class, 'updateStatus'])->name('update_status')->middleware('permission:edit-faktur-pajak');
+            Route::delete('/{id}', [FakturPajakController::class, 'destroy'])->name('destroy')->middleware('permission:hapus-faktur-pajak');
+        });
+
+        // Penerimaan Pembayaran Penjualan (Sales Payment / Pelunasan Piutang)
+        Route::prefix('modul-marketing/pembayaran')->name('modul_marketing.pembayaran.')->group(function () {
+            Route::get('/check-sync', [SalesPaymentController::class, 'checkSync'])->name('check_sync')->middleware('permission:lihat-sales-payment');
+            Route::get('/', [SalesPaymentController::class, 'index'])->name('index')->middleware('permission:lihat-sales-payment');
+            Route::get('/unpaid-invoices/{customerId}', [SalesPaymentController::class, 'getUnpaidInvoices'])->name('unpaid_invoices')->middleware('permission:lihat-sales-payment|tambah-sales-payment|edit-sales-payment');
+            Route::get('/all-unpaid-invoices', [SalesPaymentController::class, 'getAllUnpaidInvoices'])->name('all_unpaid_invoices')->middleware('permission:lihat-sales-payment|tambah-sales-payment|edit-sales-payment');
+            Route::post('/', [SalesPaymentController::class, 'store'])->name('store')->middleware('permission:tambah-sales-payment');
+            Route::get('/{id}/edit', [SalesPaymentController::class, 'edit'])->name('edit')->middleware('permission:edit-sales-payment');
+            Route::post('/{id}/update', [SalesPaymentController::class, 'update'])->name('update')->middleware('permission:edit-sales-payment');
+            Route::post('/{id}/submit', [SalesPaymentController::class, 'submitPayment'])->name('submit')->middleware('permission:tambah-sales-payment|edit-sales-payment');
+            Route::get('/{id}/jurnal', [SalesPaymentController::class, 'getJurnal'])->name('jurnal')->middleware('permission:lihat-jurnal-sales-payment');
+            Route::get('/{id}/print-kwitansi', [SalesPaymentController::class, 'printKwitansi'])->name('print_kwitansi')->middleware('permission:cetak-sales-payment|lihat-sales-payment');
+            Route::get('/{id}', [SalesPaymentController::class, 'show'])->name('show')->middleware('permission:lihat-sales-payment');
+            Route::post('/{id}/post', [SalesPaymentController::class, 'postPayment'])->name('post')->middleware('permission:approve-sales-payment');
+            Route::delete('/{id}', [SalesPaymentController::class, 'destroy'])->name('destroy')->middleware('permission:hapus-sales-payment|batalkan-sales-payment');
+        });
+
+        // Rekap Sisa Tagihan & Piutang Pelanggan (Customer Accounts Receivable & Aging)
+        Route::prefix('modul-marketing/piutang')->name('modul_marketing.piutang.')->group(function () {
+            Route::get('/', [CustomerReceivableController::class, 'index'])->name('index')->middleware('permission:lihat-piutang');
+            Route::get('/detail/{customerId}', [CustomerReceivableController::class, 'getDetail'])->name('detail')->middleware('permission:lihat-piutang');
+            Route::get('/print-statement/{customerId}', [CustomerReceivableController::class, 'printStatement'])->name('print_statement')->middleware('permission:cetak-piutang');
         });
 
         // Purchase Requisition CRUD
@@ -421,6 +551,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/purchase-order/{purchaseOrder}/update', [PurchaseOrderController::class, 'update'])->name('po.update');
         Route::post('/purchase-order/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve'])->name('po.approve');
         Route::post('/purchase-order/{purchaseOrder}/reject', [PurchaseOrderController::class, 'reject'])->name('po.reject');
+        Route::post('/purchase-order/{purchaseOrder}/reopen', [PurchaseOrderController::class, 'reopen'])->name('po.reopen');
         Route::get('/purchase-order/{purchaseOrder}/print', [PurchaseOrderController::class, 'print'])->name('po.print');
 
 
@@ -436,19 +567,29 @@ Route::middleware('auth')->group(function () {
         Route::get('/goods-receipt/{goodsReceipt}', [GoodsReceiptController::class, 'show'])->name('gr.show');
         Route::get('/goods-receipt/{goodsReceipt}/print', [GoodsReceiptController::class, 'print'])->name('gr.print');
         Route::post('/goods-receipt/{goodsReceipt}/post', [GoodsReceiptController::class, 'post'])->name('gr.post');
+        Route::post('/goods-receipt/{goodsReceipt}/cancel', [GoodsReceiptController::class, 'cancel'])->name('gr.cancel');
         Route::delete('/goods-receipt/{goodsReceipt}/delete', [GoodsReceiptController::class, 'destroy'])->name('gr.destroy');
 
         // Purchase Invoice (Faktur Pembelian)
         Route::get('/purchase-invoices', [\App\Http\Controllers\PurchaseInvoiceController::class, 'index'])->name('purchase-invoices.index');
+        Route::get('/purchase-invoices/eligible-grs', [\App\Http\Controllers\PurchaseInvoiceController::class, 'getEligibleGrs'])->name('purchase-invoices.eligible-grs');
+        Route::get('/purchase-invoices/gr/{gr}/details', [\App\Http\Controllers\PurchaseInvoiceController::class, 'getGrDetailForInvoice'])->name('purchase-invoices.gr-details');
         Route::get('/purchase-invoices/gr-detail/{gr}', [\App\Http\Controllers\PurchaseInvoiceController::class, 'getGrDetailForInvoice'])->name('purchase-invoices.gr-detail');
+        Route::get('/purchase-invoices/eligible-pos', [\App\Http\Controllers\PurchaseInvoiceController::class, 'getEligiblePos'])->name('purchase-invoices.eligible-pos');
+        Route::get('/purchase-invoices/po/{po}/details', [\App\Http\Controllers\PurchaseInvoiceController::class, 'getPoDetailForInvoice'])->name('purchase-invoices.po-details');
+        Route::get('/purchase-invoices/po-detail/{po}', [\App\Http\Controllers\PurchaseInvoiceController::class, 'getPoDetailForInvoice'])->name('purchase-invoices.po-detail');
         Route::post('/purchase-invoices/store', [\App\Http\Controllers\PurchaseInvoiceController::class, 'store'])->name('purchase-invoices.store');
         Route::get('/purchase-invoices/{purchaseInvoice}', [\App\Http\Controllers\PurchaseInvoiceController::class, 'show'])->name('purchase-invoices.show');
         Route::get('/purchase-invoices/{purchaseInvoice}/edit', [\App\Http\Controllers\PurchaseInvoiceController::class, 'edit'])->name('purchase-invoices.edit');
         Route::post('/purchase-invoices/{purchaseInvoice}/update', [\App\Http\Controllers\PurchaseInvoiceController::class, 'update'])->name('purchase-invoices.update');
         Route::post('/purchase-invoices/{purchaseInvoice}/post', [\App\Http\Controllers\PurchaseInvoiceController::class, 'post'])->name('purchase-invoices.post');
         Route::post('/purchase-invoices/{purchaseInvoice}/approve', [\App\Http\Controllers\PurchaseInvoiceController::class, 'approve'])->name('purchase-invoices.approve');
+        Route::post('/purchase-invoices/{purchaseInvoice}/reject', [\App\Http\Controllers\PurchaseInvoiceController::class, 'reject'])->name('purchase-invoices.reject');
+        Route::post('/purchase-invoices/{purchaseInvoice}/send-whatsapp', [\App\Http\Controllers\PurchaseInvoiceController::class, 'sendWhatsApp'])->name('purchase-invoices.send-whatsapp');
         Route::post('/purchase-invoices/{purchaseInvoice}/void', [\App\Http\Controllers\PurchaseInvoiceController::class, 'void'])->name('purchase-invoices.void');
+        Route::post('/purchase-invoices/{purchaseInvoice}/cancel', [\App\Http\Controllers\PurchaseInvoiceController::class, 'cancel'])->name('purchase-invoices.cancel');
         Route::get('/purchase-invoices/{purchaseInvoice}/pdf', [\App\Http\Controllers\PurchaseInvoiceController::class, 'pdf'])->name('purchase-invoices.pdf');
+        Route::get('/purchase-invoices/{purchaseInvoice}/jurnal-data', [\App\Http\Controllers\PurchaseInvoiceController::class, 'getJurnalData'])->name('purchase-invoices.jurnal-data');
         Route::delete('/purchase-invoices/{purchaseInvoice}/delete', [\App\Http\Controllers\PurchaseInvoiceController::class, 'destroy'])->name('purchase-invoices.destroy');
 
         // Purchase Payments (Pembayaran Utang Supplier)
@@ -462,6 +603,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/generate-code', [\App\Http\Controllers\PurchasePaymentController::class, 'generateCode'])->name('generate-code');
             Route::get('/{purchasePayment}', [\App\Http\Controllers\PurchasePaymentController::class, 'show'])->name('show');
             Route::get('/{purchasePayment}/edit', [\App\Http\Controllers\PurchasePaymentController::class, 'edit'])->name('edit');
+            Route::get('/{purchasePayment}/pdf', [\App\Http\Controllers\PurchasePaymentController::class, 'pdf'])->name('pdf');
             Route::post('/{purchasePayment}', [\App\Http\Controllers\PurchasePaymentController::class, 'update'])->name('update.rest');
             Route::put('/{purchasePayment}', [\App\Http\Controllers\PurchasePaymentController::class, 'update'])->name('update.put');
             Route::post('/{purchasePayment}/update', [\App\Http\Controllers\PurchasePaymentController::class, 'update'])->name('update');
@@ -474,7 +616,32 @@ Route::middleware('auth')->group(function () {
             Route::post('/{purchasePayment}/cancel', [\App\Http\Controllers\PurchasePaymentController::class, 'cancel'])->name('cancel');
             Route::delete('/{purchasePayment}', [\App\Http\Controllers\PurchasePaymentController::class, 'destroy'])->name('destroy.rest');
             Route::delete('/{purchasePayment}/delete', [\App\Http\Controllers\PurchasePaymentController::class, 'destroy'])->name('destroy');
-            Route::get('/{purchasePayment}/pdf', [\App\Http\Controllers\PurchasePaymentController::class, 'pdf'])->name('pdf');
+        });
+
+        // Rekap Sisa Tagihan & Utang Supplier (Supplier Accounts Payable & Aging)
+        Route::prefix('modul-purchasing/hutang')->name('modul_purchasing.hutang.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\SupplierPayableController::class, 'index'])->name('index');
+            Route::get('/export-excel', [\App\Http\Controllers\SupplierPayableController::class, 'exportExcel'])->name('export_excel');
+            Route::get('/print-pdf', [\App\Http\Controllers\SupplierPayableController::class, 'printPdf'])->name('print_pdf');
+            Route::get('/detail/{supplierId}', [\App\Http\Controllers\SupplierPayableController::class, 'getDetail'])->name('detail');
+            Route::get('/print-statement/{supplierId}', [\App\Http\Controllers\SupplierPayableController::class, 'printStatement'])->name('print_statement');
+        });
+        Route::get('/supplier-payables', [\App\Http\Controllers\SupplierPayableController::class, 'index'])->name('supplier-payables.index');
+
+        // Alokasi Biaya Pembelian (Landed Cost)
+        Route::prefix('alokasi-biaya')->name('alokasi-biaya.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\AlokasiBiayaController::class, 'index'])->name('index')->middleware('permission:lihat-alokasi-biaya');
+            Route::get('/eligible-pos', [\App\Http\Controllers\AlokasiBiayaController::class, 'getEligiblePos'])->name('eligible-pos');
+            Route::get('/eligible-grs', [\App\Http\Controllers\AlokasiBiayaController::class, 'getEligibleGrs'])->name('eligible-grs');
+            Route::post('/calculate-preview', [\App\Http\Controllers\AlokasiBiayaController::class, 'calculatePreview'])->name('calculate-preview');
+            Route::post('/store', [\App\Http\Controllers\AlokasiBiayaController::class, 'store'])->name('store')->middleware('permission:tambah-alokasi-biaya');
+            Route::get('/{alokasiBiaya}/edit-data', [\App\Http\Controllers\AlokasiBiayaController::class, 'getEditData'])->name('edit-data')->middleware('permission:edit-alokasi-biaya|tambah-alokasi-biaya');
+            Route::match(['POST', 'PUT'], '/{alokasiBiaya}/update', [\App\Http\Controllers\AlokasiBiayaController::class, 'update'])->name('update')->middleware('permission:edit-alokasi-biaya|tambah-alokasi-biaya');
+            Route::get('/{alokasiBiaya}', [\App\Http\Controllers\AlokasiBiayaController::class, 'show'])->name('show')->middleware('permission:detail-alokasi-biaya|lihat-alokasi-biaya');
+            Route::get('/{alokasiBiaya}/jurnal', [\App\Http\Controllers\AlokasiBiayaController::class, 'getJurnal'])->name('jurnal')->middleware('permission:lihat-jurnal-alokasi-biaya');
+            Route::post('/{alokasiBiaya}/post', [\App\Http\Controllers\AlokasiBiayaController::class, 'post'])->name('post')->middleware('permission:posting-alokasi-biaya');
+            Route::post('/{alokasiBiaya}/cancel', [\App\Http\Controllers\AlokasiBiayaController::class, 'cancel'])->name('cancel')->middleware('permission:batalkan-alokasi-biaya');
+            Route::delete('/{alokasiBiaya}/delete', [\App\Http\Controllers\AlokasiBiayaController::class, 'destroy'])->name('destroy')->middleware('permission:hapus-alokasi-biaya|batalkan-alokasi-biaya');
         });
 
 
@@ -573,6 +740,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/stock-card/export-excel', [KartuStokController::class, 'exportExcel'])->name('stock-card.export-excel');
         Route::get('/stock-overview', [StokGudangController::class, 'index'])->name('stock-overview.index');
         Route::get('/stock-overview/print', [StokGudangController::class, 'print'])->name('stock-overview.print');
+        Route::get('/stock-overview/export-excel', [StokGudangController::class, 'exportExcel'])->name('stock-overview.export-excel');
         Route::get('/stock-overview/last-updated', [StokGudangController::class, 'lastUpdated'])->name('stock-overview.last-updated');
         Route::get('/stock-overview/kartu-info', [StokGudangController::class, 'kartuInfo'])->name('stock-overview.kartu-info');
         Route::get('/stock-overview/mutasi-history', [StokGudangController::class, 'mutasiHistory'])->name('stock-overview.mutasi-history');
@@ -581,7 +749,7 @@ Route::middleware('auth')->group(function () {
         // Pengaturan Akses (Roles & Permissions)
         Route::get('/roles', [RolePermissionController::class, 'index'])->name('roles.index');
         Route::get('/roles/{role}/permissions', [RolePermissionController::class, 'getPermissions'])->name('roles.permissions');
-        Route::post('/roles/{role}/permissions/update', [RolePermissionController::class, 'update'])->name('roles.permissions.update');
+        Route::post('/roles/{role}/permissions/update', [RolePermissionController::class, 'update'])->middleware('throttle:30,1')->name('roles.permissions.update');
 
         // Profile Settings
         Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
@@ -600,6 +768,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/whatsapp/refresh-qr', [\App\Http\Controllers\WhatsAppGatewayController::class, 'refreshQr'])->name('settings.whatsapp.refresh-qr');
         Route::post('/settings/whatsapp/disconnect', [\App\Http\Controllers\WhatsAppGatewayController::class, 'disconnect'])->name('settings.whatsapp.disconnect');
         Route::get('/settings/whatsapp/status', [\App\Http\Controllers\WhatsAppGatewayController::class, 'checkStatus'])->name('settings.whatsapp.status');
+        Route::delete('/settings/whatsapp/prune', [\App\Http\Controllers\WhatsAppGatewayController::class, 'pruneLogs'])->name('settings.whatsapp.prune');
 
         // Session status check for real-time logout
         Route::get('/check-session', function () {
@@ -634,6 +803,20 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/akuntansi/category-mappings', [AkuntansiSettingsController::class, 'updateCategoryMappings'])->name('akuntansi.category-mappings.update');
         Route::post('/settings/akuntansi/system-mappings', [AkuntansiSettingsController::class, 'updateSystemMappings'])->name('akuntansi.system-mappings.update');
 
+        // Kas & Bank Category Mapping CRUD
+        Route::post('/settings/akuntansi/kas-kategori-mappings', [AkuntansiSettingsController::class, 'storeKasKategoriMapping'])->name('akuntansi.kas-kategori-mappings.store');
+        Route::get('/settings/akuntansi/kas-kategori-mappings/{id}/edit', [AkuntansiSettingsController::class, 'editKasKategoriMapping'])->name('akuntansi.kas-kategori-mappings.edit');
+        Route::put('/settings/akuntansi/kas-kategori-mappings/{id}', [AkuntansiSettingsController::class, 'updateKasKategoriMapping'])->name('akuntansi.kas-kategori-mappings.update');
+        Route::delete('/settings/akuntansi/kas-kategori-mappings/{id}', [AkuntansiSettingsController::class, 'destroyKasKategoriMapping'])->name('akuntansi.kas-kategori-mappings.destroy');
+        Route::patch('/settings/akuntansi/kas-kategori-mappings/{id}/toggle', [AkuntansiSettingsController::class, 'toggleKasKategoriMapping'])->name('akuntansi.kas-kategori-mappings.toggle');
+
+        // Petty Cash (Kas Kecil) Category Mapping CRUD
+        Route::post('/settings/akuntansi/petty-cash-mappings', [AkuntansiSettingsController::class, 'storePettyCashMapping'])->name('akuntansi.petty-cash-mappings.store');
+        Route::get('/settings/akuntansi/petty-cash-mappings/{id}/edit', [AkuntansiSettingsController::class, 'editPettyCashMapping'])->name('akuntansi.petty-cash-mappings.edit');
+        Route::put('/settings/akuntansi/petty-cash-mappings/{id}', [AkuntansiSettingsController::class, 'updatePettyCashMapping'])->name('akuntansi.petty-cash-mappings.update');
+        Route::delete('/settings/akuntansi/petty-cash-mappings/{id}', [AkuntansiSettingsController::class, 'destroyPettyCashMapping'])->name('akuntansi.petty-cash-mappings.destroy');
+        Route::patch('/settings/akuntansi/petty-cash-mappings/{id}/toggle', [AkuntansiSettingsController::class, 'togglePettyCashMapping'])->name('akuntansi.petty-cash-mappings.toggle');
+
         // Master Jenis Biaya CRUD
         Route::post('/settings/master-jenis-biayas', [MasterJenisBiayaController::class, 'store'])->name('master-jenis-biayas.store');
         Route::get('/settings/master-jenis-biayas/{masterJenisBiaya}/edit', [MasterJenisBiayaController::class, 'edit'])->name('master-jenis-biayas.edit');
@@ -641,6 +824,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('/settings/master-jenis-biayas/{masterJenisBiaya}', [MasterJenisBiayaController::class, 'destroy'])->name('master-jenis-biayas.destroy');
 
         // Master Tipe Akun CRUD
+        Route::get('/settings/master-tipe-akuns/generate-code', [MasterTipeAkunController::class, 'generateCode'])->name('master-tipe-akuns.generate-code');
+        Route::get('/settings/master-tipe-akuns/export', [MasterTipeAkunController::class, 'exportExcel'])->name('master-tipe-akuns.export');
+        Route::get('/settings/master-tipe-akuns/template', [MasterTipeAkunController::class, 'downloadTemplate'])->name('master-tipe-akuns.template');
+        Route::post('/settings/master-tipe-akuns/import', [MasterTipeAkunController::class, 'importExcel'])->name('master-tipe-akuns.import');
         Route::post('/settings/master-tipe-akuns', [MasterTipeAkunController::class, 'store'])->name('master-tipe-akuns.store');
         Route::get('/settings/master-tipe-akuns/{masterTipeAkun}/edit', [MasterTipeAkunController::class, 'edit'])->name('master-tipe-akuns.edit');
         Route::put('/settings/master-tipe-akuns/{masterTipeAkun}', [MasterTipeAkunController::class, 'update'])->name('master-tipe-akuns.update');
@@ -652,8 +839,12 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/master-tipe-pengeluarans/{masterTipePengeluaran}', [MasterTipePengeluaranController::class, 'update'])->name('master-tipe-pengeluarans.update');
         Route::delete('/settings/master-tipe-pengeluarans/{masterTipePengeluaran}', [MasterTipePengeluaranController::class, 'destroy'])->name('master-tipe-pengeluarans.destroy');
 
-        // Full Activity Logs View Route
+        // Full Activity Logs View Route & Prune
         Route::get('/activity-logs', [UserActivityLogController::class, 'index'])->name('activity-logs.index');
+        Route::delete('/activity-logs/prune', [UserActivityLogController::class, 'prune'])->name('activity-logs.prune');
+
+        // ===== MODUL PRODUKSI: DASHBOARD =====
+        Route::get('/produksi/dashboard', [MainDashboardController::class, 'dashboardProduksi'])->name('produksi.dashboard');
 
         // ===== MODUL PRODUKSI: MASTER BOM =====
         Route::prefix('produksi/bom')->name('produksi.bom.')->group(function () {
@@ -661,6 +852,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/generate-kode', [BomController::class, 'generateKode'])->name('generate-kode');
             Route::post('/', [BomController::class, 'store'])->name('store');
             Route::get('/search-barang', [BomController::class, 'searchBarang'])->name('search-barang');
+            Route::get('/search-tender', [BomController::class, 'searchTender'])->name('search-tender');
             Route::post('/{bom}/send-pending', [BomController::class, 'sendPending'])->name('send-pending');
             Route::post('/{bom}/approve', [BomController::class, 'approve'])->name('approve');
             Route::post('/{bom}/reject', [BomController::class, 'reject'])->name('reject');
@@ -678,6 +870,7 @@ Route::middleware('auth')->group(function () {
         Route::prefix('produksi/spk')->name('produksi.spk.')->group(function () {
             Route::get('/', [\App\Http\Controllers\SpkProduksiController::class, 'index'])->name('index');
             Route::get('/generate-kode', [\App\Http\Controllers\SpkProduksiController::class, 'generateKodeSpk'])->name('generate-kode');
+            Route::get('/suggest-serials', [\App\Http\Controllers\SpkProduksiController::class, 'suggestSerials'])->name('suggest-serials');
             Route::get('/search-bom', [\App\Http\Controllers\SpkProduksiController::class, 'searchApprovedBom'])->name('search-bom');
             Route::get('/bom/{bomId}/materials', [\App\Http\Controllers\SpkProduksiController::class, 'getBomDetailsWithStock'])->name('bom-materials');
             Route::post('/', [\App\Http\Controllers\SpkProduksiController::class, 'store'])->name('store');
@@ -716,6 +909,13 @@ Route::middleware('auth')->group(function () {
             Route::get('/spk-materials/{spkId}', [\App\Http\Controllers\PengeluaranBahanController::class, 'getSpkMaterials'])->name('spk-materials-alt');
             Route::get('/spk/{spkId}/history', [\App\Http\Controllers\PengeluaranBahanController::class, 'showSpkHistory'])->name('spk-history');
             Route::get('/spk/{spkId}/history/sessions', [\App\Http\Controllers\PengeluaranBahanController::class, 'getSpkHistorySessions'])->name('spk-history-sessions');
+            Route::get('/spk/{spkId}/closing-preview', [\App\Http\Controllers\PengeluaranBahanController::class, 'getClosingPreview'])->name('closing-preview');
+            Route::post('/spk/{spkId}/request-closing', [\App\Http\Controllers\PengeluaranBahanController::class, 'requestClosingMaterial'])->name('request-closing');
+            Route::post('/spk/{spkId}/cancel-closing-request', [\App\Http\Controllers\PengeluaranBahanController::class, 'cancelClosingRequest'])->name('cancel-closing-request');
+            Route::post('/spk/{spkId}/close', [\App\Http\Controllers\PengeluaranBahanController::class, 'closeMaterial'])->name('close');
+            Route::post('/spk/{spkId}/reject-closing', [\App\Http\Controllers\PengeluaranBahanController::class, 'rejectClosingMaterial'])->name('reject-closing');
+            Route::post('/spk/{spkId}/reopen', [\App\Http\Controllers\PengeluaranBahanController::class, 'reopenMaterial'])->name('reopen');
+            Route::get('/spk/{spkId}/jurnal-closing', [\App\Http\Controllers\PengeluaranBahanController::class, 'showSpkJurnalClosing'])->name('jurnal-closing');
             Route::post('/', [\App\Http\Controllers\PengeluaranBahanController::class, 'store'])->name('store');
             Route::get('/{id}', [\App\Http\Controllers\PengeluaranBahanController::class, 'show'])->name('show');
             Route::put('/{id}', [\App\Http\Controllers\PengeluaranBahanController::class, 'update'])->name('update');
@@ -730,13 +930,40 @@ Route::middleware('auth')->group(function () {
             Route::get('/spk/{spkId}/history', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'showSpkHistory'])->name('spk-history');
             Route::get('/spk/{spkId}/history/sessions', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'getSpkHistorySessions'])->name('spk-history-sessions');
             Route::get('/spk/{spkId}/sessions', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'getSpkHistorySessions'])->name('spk-sessions');
+            Route::get('/spk/{spkId}/suggest-serials', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'suggestSerials'])->name('spk-suggest-serials');
             Route::post('/', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'store'])->name('store');
             Route::get('/{id}', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'show'])->name('show');
             Route::put('/{id}', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'update'])->name('update');
             Route::delete('/{id}', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'destroy'])->name('destroy');
             Route::get('/{id}/print', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'printPdf'])->name('print');
+            Route::get('/{id}/preview-hpp', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'previewHppSession'])->name('preview-hpp-session');
+            Route::post('/{id}/approve-hpp', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'approveAndCalculateHpp'])->name('approve-hpp');
+            Route::post('/{id}/reject', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'rejectSession'])->name('reject-session');
+            Route::get('/spk/{spkId}/preview-closing', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'previewClosingFg'])->name('spk-preview-closing');
+            Route::post('/spk/{spkId}/request-closing', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'requestClosingFg'])->name('spk-request-closing');
+            Route::post('/spk/{spkId}/cancel-closing-request', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'cancelClosingFgRequest'])->name('spk-cancel-closing-request');
+            Route::post('/spk/{spkId}/close', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'closeFg'])->name('spk-close');
+            Route::post('/spk/{spkId}/reject-closing', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'rejectClosingFg'])->name('spk-reject-closing');
+            Route::post('/spk/{spkId}/reopen', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'reopenFg'])->name('spk-reopen');
+            Route::get('/spk/{spkId}/jurnal-closing', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'showSpkJurnalClosing'])->name('spk-jurnal-closing');
             Route::post('/spk/{id}/adjust-hpp', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'adjustHpp'])->name('spk-adjust-hpp');
             Route::post('/spk/{id}/unlock-hpp', [\App\Http\Controllers\PenerimaanBarangJadiController::class, 'unlockHpp'])->name('spk-unlock-hpp');
+        });
+
+        // ===== MODUL PRODUKSI & INVENTORI: PELACAKAN SERIAL NUMBER (SN TRACKER) =====
+        Route::prefix('produksi/tracking-sn')->name('produksi.tracking-sn.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\TrackingSerialController::class, 'index'])->name('index');
+            Route::get('/data', [\App\Http\Controllers\TrackingSerialController::class, 'data'])->name('data');
+            Route::get('/export-excel', [\App\Http\Controllers\TrackingSerialController::class, 'exportExcel'])->name('export-excel');
+            Route::get('/track/{serialNumber}', [\App\Http\Controllers\TrackingSerialController::class, 'track'])->name('track');
+        });
+
+        // ===== MODUL PRODUKSI: PUSAT CETAK LABEL QR & BARCODE =====
+        Route::prefix('produksi/cetak-label')->name('produksi.cetak-label.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\CetakLabelController::class, 'index'])->name('index');
+            Route::get('/data-serials', [\App\Http\Controllers\CetakLabelController::class, 'dataSerials'])->name('data-serials');
+            Route::get('/data-products', [\App\Http\Controllers\CetakLabelController::class, 'dataProducts'])->name('data-products');
+            Route::post('/bulk-serials', [\App\Http\Controllers\CetakLabelController::class, 'getBulkSerials'])->name('bulk-serials');
         });
 
         // ===== MODUL PRODUKSI: MASTER TAHAPAN (CUSTOM ROUTING PER TIPE SPK & BOM) =====
@@ -744,6 +971,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [\App\Http\Controllers\MasterTahapanProduksiController::class, 'index'])->name('index');
             Route::post('/', [\App\Http\Controllers\MasterTahapanProduksiController::class, 'store'])->name('store');
             Route::get('/api/all-active', [\App\Http\Controllers\MasterTahapanProduksiController::class, 'getAllActive'])->name('all-active');
+            Route::get('/search-bom', [\App\Http\Controllers\MasterTahapanProduksiController::class, 'searchBom'])->name('search-bom');
             Route::get('/bom/{bomKey}', [\App\Http\Controllers\MasterTahapanProduksiController::class, 'getTahapanByBom'])->name('by-bom');
             Route::post('/bom/{bomKey}/batch-update', [\App\Http\Controllers\MasterTahapanProduksiController::class, 'updateBatchByBom'])->name('batch-update-bom');
             Route::delete('/bom/{bomKey}', [\App\Http\Controllers\MasterTahapanProduksiController::class, 'destroyByBom'])->name('destroy-bom');
@@ -753,53 +981,63 @@ Route::middleware('auth')->group(function () {
             Route::get('/api/by-tipe/{tipeSpk}', [\App\Http\Controllers\MasterTahapanProduksiController::class, 'getByTipeSpk'])->name('by-tipe');
         });
 
+        // ===== MODUL AKUNTANSI & KEUANGAN: DASHBOARD =====
+        Route::get('/finance/dashboard', [FinanceDashboardController::class, 'index'])->name('finance.dashboard');
+
         // ===== MODUL AKUNTANSI & KEUANGAN: KAS & BANK =====
         Route::prefix('accounting/kas-bank')->name('accounting.kas-bank.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\KasBankController::class, 'index'])->name('index');
-            Route::get('/data', [\App\Http\Controllers\KasBankController::class, 'getData'])->name('data');
-            Route::get('/ledger', [\App\Http\Controllers\KasBankController::class, 'ledger'])->name('ledger');
-            Route::get('/ledger/print', [\App\Http\Controllers\KasBankController::class, 'printLedger'])->name('ledger.print');
-            Route::get('/ledger/{account}', [\App\Http\Controllers\KasBankController::class, 'ledger'])->name('ledger.account');
-            Route::get('/ledger/{account}/print', [\App\Http\Controllers\KasBankController::class, 'printLedger'])->name('ledger.account.print');
-            Route::post('/account', [\App\Http\Controllers\KasBankController::class, 'storeAccount'])->name('account.store');
-            Route::get('/account/{account}/edit', [\App\Http\Controllers\KasBankController::class, 'editAccount'])->name('account.edit');
-            Route::post('/account/{account}/update', [\App\Http\Controllers\KasBankController::class, 'updateAccount'])->name('account.update');
-            Route::post('/cash-in', [\App\Http\Controllers\KasBankController::class, 'storeCashIn'])->name('cash-in.store');
-            Route::post('/cash-out', [\App\Http\Controllers\KasBankController::class, 'storeCashOut'])->name('cash-out.store');
-            Route::post('/transfer', [\App\Http\Controllers\KasBankController::class, 'storeTransfer'])->name('transfer.store');
-            Route::get('/{mutasi}', [\App\Http\Controllers\KasBankController::class, 'show'])->name('show');
-            Route::post('/{mutasi}/cancel', [\App\Http\Controllers\KasBankController::class, 'cancel'])->name('cancel');
+            Route::get('/', [\App\Http\Controllers\KasBankController::class, 'index'])->name('index')->middleware('permission:lihat-kas-bank');
+            Route::get('/live-sync', [\App\Http\Controllers\KasBankController::class, 'liveSync'])->name('live-sync')->middleware('permission:lihat-kas-bank');
+            Route::get('/export-excel', [\App\Http\Controllers\KasBankController::class, 'exportAccountsExcel'])->name('export-excel')->middleware('permission:lihat-kas-bank');
+            Route::get('/print-rekening', [\App\Http\Controllers\KasBankController::class, 'printAccountsReport'])->name('print-rekening')->middleware('permission:lihat-kas-bank');
+            Route::get('/data', [\App\Http\Controllers\KasBankController::class, 'getData'])->name('data')->middleware('permission:lihat-kas-bank|lihat-mutasi-kas-bank');
+            Route::get('/ledger', [\App\Http\Controllers\KasBankController::class, 'ledger'])->name('ledger')->middleware('permission:lihat-mutasi-kas-bank');
+            Route::get('/ledger/print', [\App\Http\Controllers\KasBankController::class, 'printLedger'])->name('ledger.print')->middleware('permission:cetak-rekening-koran|lihat-mutasi-kas-bank');
+            Route::get('/ledger/{account}', [\App\Http\Controllers\KasBankController::class, 'ledger'])->name('ledger.account')->middleware('permission:lihat-mutasi-kas-bank');
+            Route::get('/ledger/{account}/print', [\App\Http\Controllers\KasBankController::class, 'printLedger'])->name('ledger.account.print')->middleware('permission:cetak-rekening-koran|lihat-mutasi-kas-bank');
+            Route::post('/account', [\App\Http\Controllers\KasBankController::class, 'storeAccount'])->name('account.store')->middleware('permission:tambah-kas-bank');
+            Route::get('/account/{account}/detail', [\App\Http\Controllers\KasBankController::class, 'showAccount'])->name('account.detail')->middleware('permission:detail-kas-bank');
+            Route::get('/account/{account}/edit', [\App\Http\Controllers\KasBankController::class, 'editAccount'])->name('account.edit')->middleware('permission:edit-kas-bank');
+            Route::post('/account/{account}/update', [\App\Http\Controllers\KasBankController::class, 'updateAccount'])->name('account.update')->middleware('permission:edit-kas-bank');
+            Route::post('/cash-in', [\App\Http\Controllers\KasBankController::class, 'storeCashIn'])->name('cash-in.store')->middleware('permission:tambah-kas-masuk');
+            Route::post('/cash-out', [\App\Http\Controllers\KasBankController::class, 'storeCashOut'])->name('cash-out.store')->middleware('permission:tambah-kas-keluar');
+            Route::post('/transfer', [\App\Http\Controllers\KasBankController::class, 'storeTransfer'])->name('transfer.store')->middleware('permission:transfer-kas-bank');
+            Route::get('/{mutasi}', [\App\Http\Controllers\KasBankController::class, 'show'])->name('show')->middleware('permission:lihat-kas-bank|lihat-mutasi-kas-bank');
+            Route::post('/{mutasi}/cancel', [\App\Http\Controllers\KasBankController::class, 'cancel'])->name('cancel')->middleware('permission:batalkan-mutasi-kas-bank');
         });
 
         // ===== MODUL AKUNTANSI & KEUANGAN: JURNAL UMUM (GENERAL JOURNAL) =====
         Route::prefix('accounting/jurnal-umum')->name('accounting.jurnal-umum.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\JurnalUmumController::class, 'index'])->name('index');
-            Route::get('/data', [\App\Http\Controllers\JurnalUmumController::class, 'getData'])->name('data');
-            Route::get('/print-all', [\App\Http\Controllers\JurnalUmumController::class, 'printAll'])->name('print-all');
-            Route::post('/store', [\App\Http\Controllers\JurnalUmumController::class, 'storeManual'])->name('store');
+            Route::get('/', [\App\Http\Controllers\JurnalUmumController::class, 'index'])->name('index')->middleware('permission:lihat-jurnal-umum');
+            Route::get('/data', [\App\Http\Controllers\JurnalUmumController::class, 'getData'])->name('data')->middleware('permission:lihat-jurnal-umum');
+            Route::get('/print-all', [\App\Http\Controllers\JurnalUmumController::class, 'printAll'])->name('print-all')->middleware(['permission:cetak-jurnal-umum', 'throttle:60,1']);
+            Route::get('/export-excel', [\App\Http\Controllers\JurnalUmumController::class, 'exportExcel'])->name('export-excel')->middleware(['permission:cetak-jurnal-umum', 'throttle:60,1']);
+            Route::post('/store', [\App\Http\Controllers\JurnalUmumController::class, 'storeManual'])->name('store')->middleware(['permission:tambah-jurnal-umum', 'throttle:30,1']);
             Route::get('/{jurnal}', [\App\Http\Controllers\JurnalUmumController::class, 'show'])->name('show');
-            Route::get('/{jurnal}/print', [\App\Http\Controllers\JurnalUmumController::class, 'print'])->name('print');
+            Route::get('/{jurnal}/print', [\App\Http\Controllers\JurnalUmumController::class, 'print'])->name('print')->middleware(['permission:cetak-jurnal-umum', 'throttle:60,1']);
         });
 
         // ===== MODUL AKUNTANSI & KEUANGAN: PETTY CASH (KAS KECIL) =====
-        Route::prefix('accounting/petty-cash')->name('accounting.petty-cash.')->group(function () {
+        Route::prefix('accounting/petty-cash')->name('accounting.petty-cash.')->middleware('permission:lihat-petty-cash')->group(function () {
             Route::get('/', [\App\Http\Controllers\PettyCashController::class, 'index'])->name('index');
             Route::get('/data', [\App\Http\Controllers\PettyCashController::class, 'data'])->name('data');
-            Route::post('/', [\App\Http\Controllers\PettyCashController::class, 'store'])->name('store');
-            Route::get('/{pettyCash}', [\App\Http\Controllers\PettyCashController::class, 'show'])->name('show');
-            Route::get('/{pettyCash}/edit', [\App\Http\Controllers\PettyCashController::class, 'edit'])->name('edit');
-            Route::put('/{pettyCash}', [\App\Http\Controllers\PettyCashController::class, 'update'])->name('update');
-            Route::delete('/{pettyCash}', [\App\Http\Controllers\PettyCashController::class, 'destroy'])->name('destroy');
+            Route::get('/print-pdf', [\App\Http\Controllers\PettyCashController::class, 'printPdf'])->name('print-pdf')->middleware(['permission:cetak-pdf-petty-cash', 'throttle:60,1']);
+            Route::get('/export-excel', [\App\Http\Controllers\PettyCashController::class, 'exportExcel'])->name('export-excel')->middleware(['permission:export-excel-petty-cash', 'throttle:60,1']);
+            Route::post('/', [\App\Http\Controllers\PettyCashController::class, 'store'])->name('store')->middleware(['permission:catat-petty-cash', 'throttle:60,1']);
+            Route::get('/{pettyCash}', [\App\Http\Controllers\PettyCashController::class, 'show'])->name('show')->middleware('permission:detail-petty-cash');
+            Route::post('/{pettyCash}/batal', [\App\Http\Controllers\PettyCashController::class, 'batal'])->name('batal')->middleware(['permission:batalkan-petty-cash', 'throttle:60,1']);
+            Route::delete('/{pettyCash}', [\App\Http\Controllers\PettyCashController::class, 'batal'])->name('destroy')->middleware(['permission:batalkan-petty-cash', 'throttle:60,1']);
         });
 
-        Route::prefix('accounting/paty-cas')->name('accounting.paty-cas.')->group(function () {
+        Route::prefix('accounting/paty-cas')->name('accounting.paty-cas.')->middleware('permission:lihat-petty-cash')->group(function () {
             Route::get('/', [\App\Http\Controllers\PettyCashController::class, 'index'])->name('index');
             Route::get('/data', [\App\Http\Controllers\PettyCashController::class, 'data'])->name('data');
-            Route::post('/', [\App\Http\Controllers\PettyCashController::class, 'store'])->name('store');
-            Route::get('/{pettyCash}', [\App\Http\Controllers\PettyCashController::class, 'show'])->name('show');
-            Route::get('/{pettyCash}/edit', [\App\Http\Controllers\PettyCashController::class, 'edit'])->name('edit');
-            Route::put('/{pettyCash}', [\App\Http\Controllers\PettyCashController::class, 'update'])->name('update');
-            Route::delete('/{pettyCash}', [\App\Http\Controllers\PettyCashController::class, 'destroy'])->name('destroy');
+            Route::get('/print-pdf', [\App\Http\Controllers\PettyCashController::class, 'printPdf'])->name('print-pdf')->middleware(['permission:cetak-pdf-petty-cash', 'throttle:60,1']);
+            Route::get('/export-excel', [\App\Http\Controllers\PettyCashController::class, 'exportExcel'])->name('export-excel')->middleware(['permission:export-excel-petty-cash', 'throttle:60,1']);
+            Route::post('/', [\App\Http\Controllers\PettyCashController::class, 'store'])->name('store')->middleware(['permission:catat-petty-cash', 'throttle:60,1']);
+            Route::get('/{pettyCash}', [\App\Http\Controllers\PettyCashController::class, 'show'])->name('show')->middleware('permission:detail-petty-cash');
+            Route::post('/{pettyCash}/batal', [\App\Http\Controllers\PettyCashController::class, 'batal'])->name('batal')->middleware(['permission:batalkan-petty-cash', 'throttle:60,1']);
+            Route::delete('/{pettyCash}', [\App\Http\Controllers\PettyCashController::class, 'batal'])->name('destroy')->middleware(['permission:batalkan-petty-cash', 'throttle:60,1']);
         });
     });
 });

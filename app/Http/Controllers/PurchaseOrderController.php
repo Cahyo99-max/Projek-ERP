@@ -31,6 +31,29 @@ class PurchaseOrderController extends Controller
         $paymentTerms   = \App\Models\PaymentTerm::forActiveCompany()->active()->get();
         $paymentMethods = \App\Models\PaymentMethod::forActiveCompany()->active()->get();
         $expenseTypes   = \App\Models\MasterJenisBiaya::forActiveCompany()->active()->get();
+        $coas           = \App\Models\ChartOfAccount::where('is_header', 0)->orderBy('code')->get(['id', 'code', 'name']);
+        $defaultPphCoaId = $this->resolveDefaultPphCoaId();
+
+        $pphCoaMap = [];
+        foreach ($pajaks as $pj) {
+            $mapped = \App\Helpers\AccountMappingHelper::getCoaId('tax', "tax_{$pj->id}_in");
+            if ($mapped) {
+                $pphCoaMap[$pj->id] = $mapped;
+            }
+        }
+
+        // Filter Pajak khusus PPh (Withholding Tax) — kecualikan PPN
+        $pphPajaks = $pajaks->filter(function($p) {
+            $n = strtolower($p->nama_pajak ?? '');
+            $k = strtolower($p->kode_pajak ?? '');
+            return str_contains($n, 'pph') || str_contains($k, 'pph');
+        });
+        if ($pphPajaks->isEmpty()) {
+            $pphPajaks = $pajaks->filter(function($p) {
+                return !str_contains(strtolower($p->nama_pajak ?? ''), 'ppn');
+            });
+        }
+
         $tenders        = \App\Models\Tender::forActiveCompany()
             ->whereNotIn(DB::raw('LOWER(status)'), ['draft', 'lost', 'rejected', 'kalah'])
             ->where(function($query) {
@@ -42,8 +65,23 @@ class PurchaseOrderController extends Controller
             ->get();
 
         return view('modul_purchasing.pembuatanpo.viewpo', compact(
-            'currencies', 'pajaks', 'paymentTerms', 'paymentMethods', 'expenseTypes', 'tenders'
+            'currencies', 'pajaks', 'pphPajaks', 'paymentTerms', 'paymentMethods', 'expenseTypes', 'tenders', 'coas', 'defaultPphCoaId', 'pphCoaMap'
         ));
+    }
+
+    /**
+     * Resolve default COA "Utang PPh" (liability) untuk PPh yang dipotong atas pembelian.
+     */
+    protected function resolveDefaultPphCoaId(): ?int
+    {
+        return \App\Helpers\AccountMappingHelper::getCoaId('tax', 'tax_pph_payable')
+            ?? \App\Models\ChartOfAccount::where('is_header', 0)->where(function ($q) {
+                $q->where('name', 'like', '%Utang PPh%')
+                  ->orWhere('name', 'like', '%Hutang PPh%')
+                  ->orWhere('name', 'like', '%PPh 23%')
+                  ->orWhere('name', 'like', '%PPh Pasal 23%');
+            })->value('id')
+            ?? \App\Models\ChartOfAccount::where('is_header', 0)->where('name', 'like', '%PPh%')->value('id');
     }
 
     /**
@@ -65,10 +103,20 @@ class PurchaseOrderController extends Controller
             'tender:id,nomor_kontrak,nama_tender',
             'branch:id,nama_cabang',
             'pajak:id,nama_pajak,tarif',
+            'pphPajak:id,nama_pajak,tarif',
+            'pphCoa:id,code,name',
+            'details:id,po_id,diskon_item,jumlah,tarif_ppn,ppn_nominal',
         ])
-        ->select('purchase_orders.*')
-        ->when($activeCompanyId, fn($q) => $q->where('purchase_orders.company_id', $activeCompanyId))
-        ->when(!empty($activeBranchId), fn($q) => $q->where('purchase_orders.branch_id', intval($activeBranchId)), fn($q) => $q->whereNull('purchase_orders.branch_id'));
+        ->select('purchase_orders.*');
+
+        if (!empty($activeBranchId)) {
+            $query->where('purchase_orders.branch_id', intval($activeBranchId));
+        } else {
+            $query->whereNull('purchase_orders.branch_id');
+            if ($activeCompanyId) {
+                $query->where('purchase_orders.company_id', $activeCompanyId);
+            }
+        }
 
         // Apply Filters
         if ($request->filled('filter_status')) {
@@ -183,15 +231,38 @@ class PurchaseOrderController extends Controller
                 return null;
             })
             ->addColumn('pajak_info', function ($po) {
+                $totalPajak = (float) $po->total_pajak;
+                $simbol = $po->currency ? $po->currency->simbol : 'Rp';
+                $details = $po->relationLoaded('details') ? $po->details : $po->details()->get();
+
+                $rates = [];
+                if ($details && $details->count()) {
+                    foreach ($details as $d) {
+                        $rate = (float) ($d->tarif_ppn ?? 0);
+                        if ($rate > 0) {
+                            $rates[(string)$rate] = true;
+                        }
+                    }
+                }
+                $rateKeys = array_keys($rates);
+                $rateText = '';
+                if (count($rateKeys) === 1) {
+                    $rateText = $rateKeys[0] . '%';
+                } elseif (count($rateKeys) > 1) {
+                    $rateText = 'Campur';
+                } elseif ($po->pajak && (float)$po->pajak->tarif > 0) {
+                    $rateText = ((float)$po->pajak->tarif) . '%';
+                }
+
                 return [
                     'nama_pajak'  => $po->pajak ? $po->pajak->nama_pajak : 'PPN',
-                    'tarif'       => $po->pajak ? (float) $po->pajak->tarif : 0,
-                    'total_pajak' => (float) $po->total_pajak,
-                    'simbol'      => $po->currency ? $po->currency->simbol : 'Rp',
+                    'tarif'       => $rateText,
+                    'total_pajak' => $totalPajak,
+                    'simbol'      => $simbol,
                 ];
             })
             ->addColumn('diskon_info', function ($po) {
-                $headerDiskon = (float) $po->total_diskon;
+                $savedTotalDiskon = (float) $po->total_diskon;
                 $itemDiskonTotal = 0;
                 $firstItemDiskonUnit = 0;
                 $itemCountWithDiskon = 0;
@@ -211,8 +282,8 @@ class PurchaseOrderController extends Controller
                     }
                 }
 
-                $grandDiskon = $headerDiskon + $itemDiskonTotal;
-                $grossSubtotal = (float)$po->subtotal + $itemDiskonTotal;
+                $grandDiskon = max($savedTotalDiskon, $itemDiskonTotal);
+                $grossSubtotal = (float)$po->subtotal + $grandDiskon;
                 $persen = (float) $po->diskon_persen;
                 if ($persen <= 0 && $grossSubtotal > 0 && $grandDiskon > 0) {
                     $persen = round(($grandDiskon / $grossSubtotal) * 100, 2);
@@ -220,8 +291,8 @@ class PurchaseOrderController extends Controller
 
                 return [
                     'diskon_persen'         => $persen,
-                    'total_diskon'          => $grandDiskon > 0 ? $grandDiskon : $headerDiskon,
-                    'header_diskon'         => $headerDiskon,
+                    'total_diskon'          => $grandDiskon,
+                    'header_diskon'         => $savedTotalDiskon > $itemDiskonTotal ? ($savedTotalDiskon - $itemDiskonTotal) : 0,
                     'item_diskon_total'     => $itemDiskonTotal,
                     'item_diskon_unit'      => $firstItemDiskonUnit,
                     'item_diskon_count'     => $itemCountWithDiskon,
@@ -237,6 +308,10 @@ class PurchaseOrderController extends Controller
                     'grand_total_idr' => (float) $po->grand_total_idr,
                     'down_payment'    => (float) $po->down_payment,
                     'biaya_lain'      => (float) $po->biaya_lain,
+                    'pph_nominal'     => (float) ($po->pph_nominal ?: $po->total_pph ?: 0),
+                    'tarif_pph'       => (float) $po->tarif_pph,
+                    'nama_pph'        => $po->pphPajak?->nama_pajak,
+                    'kode_pph_coa'    => $po->pphCoa?->code,
                     'sisa_bayar'      => (float) ($po->grand_total - $po->down_payment),
                 ];
             })
@@ -258,6 +333,13 @@ class PurchaseOrderController extends Controller
 
                 // User biasa HANYA boleh menghapus PO jika statusnya Draft
                 return $po->status === 'Draft';
+            })
+            ->addColumn('can_reopen', function ($po) {
+                $user = auth()->user();
+                if (!$user->can('buka-po') && !$user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director'])) {
+                    return false;
+                }
+                return $po->status !== 'Draft';
             })
             ->filterColumn('nomor_po', function ($query, $keyword) {
                 $query->where('nomor_po', 'like', "%{$keyword}%");
@@ -320,10 +402,17 @@ class PurchaseOrderController extends Controller
                 'pr:id,nomor_pr,diminta_oleh',
                 'pr.requester:id,nama_lengkap',
                 'details.barang.satuan',
-            ])
-            ->when($activeCompanyId, fn($q) => $q->where('company_id', $activeCompanyId))
-            ->when(!empty($activeBranchId), fn($q) => $q->where('branch_id', intval($activeBranchId)), fn($q) => $q->whereNull('branch_id'))
-            ->whereBetween('tanggal_po', [$start->toDateString(), $end->toDateString()]);
+            ]);
+
+            if (!empty($activeBranchId)) {
+                $query->where('branch_id', intval($activeBranchId));
+            } else {
+                $query->whereNull('branch_id');
+                if ($activeCompanyId) {
+                    $query->where('company_id', $activeCompanyId);
+                }
+            }
+            $query->whereBetween('tanggal_po', [$start->toDateString(), $end->toDateString()]);
 
             $userId = auth()->id();
             $user   = auth()->user();
@@ -435,10 +524,11 @@ class PurchaseOrderController extends Controller
 
                 $itemSummaryStr = !empty($itemNames) ? implode(' | ', $itemNames) : '-';
 
-                $subtotalGross = (float) $po->subtotal + $itemDiskon;
-                $headerDiskon  = (float) $po->total_diskon;
-                $headerPersen  = (float) $po->diskon_persen;
-                $totalDiskon   = $itemDiskon + $headerDiskon;
+                $savedTotalDiskon = (float) $po->total_diskon;
+                $headerDiskon     = max(0, $savedTotalDiskon - $itemDiskon);
+                $headerPersen     = (float) $po->diskon_persen;
+                $totalDiskon      = max($savedTotalDiskon, $itemDiskon);
+                $subtotalGross    = (float) $po->subtotal + $totalDiskon;
                 $biayaLain     = (float) $po->biaya_lain;
                 $dpp           = max(0, $subtotalGross - $totalDiskon);
                 $pajak         = (float) $po->total_pajak;
@@ -516,7 +606,7 @@ class PurchaseOrderController extends Controller
                     $fmtMoney($dp, $sym),
                     $fmtMoney($sisaBayar, $sym),
                     $currCode,
-                    'Rp ' . number_format($kurs, 2, ',', '.'),
+                    'Rp ' . number_format($kurs, ($kurs == round($kurs, 2) ? 2 : 4), ',', '.'),
                     'Rp ' . number_format($gtIdr, 2, ',', '.'),
                     $po->status,
                     $po->creator->nama_lengkap ?? '-',
@@ -603,12 +693,13 @@ class PurchaseOrderController extends Controller
 
         $q = trim($request->input('q', ''));
 
-        $barang = MasterBarang::with([
-            'satuan:id,nama_satuan,singkatan',
-            'konversiSatuan.satuan:id,nama_satuan,singkatan',
-            'primaryFoto:id,barang_id,foto_path',
-            'fotos:id,barang_id,foto_path'
-        ])
+        $barang = MasterBarang::forActiveCompany()
+            ->with([
+                'satuan:id,nama_satuan,singkatan',
+                'konversiSatuan.satuan:id,nama_satuan,singkatan',
+                'primaryFoto:id,barang_id,foto_path',
+                'fotos:id,barang_id,foto_path'
+            ])
             ->active()
             ->when($q, function ($query) use ($q) {
                 $query->where(function ($sub) use ($q) {
@@ -692,7 +783,7 @@ class PurchaseOrderController extends Controller
             ->with(['department', 'requester'])
             ->where('status', 'Approved')
             ->whereHas('details', function ($query) {
-                $query->whereRaw('jumlah > (select coalesce(sum(jumlah), 0) from purchase_order_details where purchase_order_details.pr_detail_id = purchase_requisition_details.id)');
+                $query->whereRaw('jumlah > (select coalesce(sum(pod.jumlah), 0) from purchase_order_details pod join purchase_orders po on po.id = pod.po_id where pod.pr_detail_id = purchase_requisition_details.id and po.status != "Rejected" and po.deleted_at is null)');
             })
             ->when(!empty($q), function ($query) use ($q) {
                 $query->where(function($q2) use ($q) {
@@ -808,11 +899,21 @@ class PurchaseOrderController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id');
 
-        if ($activeCompanyId && $pr->company_id != $activeCompanyId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
+        if (!empty($activeBranchId)) {
+            if (!$isPrivileged && strval($activeBranchId) !== strval($pr->branch_id)) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
+            }
+        } else {
+            if (!$isPrivileged && !empty($pr->branch_id)) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
+            }
+            if ($activeCompanyId && $pr->company_id && $pr->company_id != $activeCompanyId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
+            }
         }
-        if (strval($activeBranchId) !== strval($pr->branch_id)) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
+
+        if (!in_array($pr->status, ['Approved', 'Closed'])) {
+            return response()->json(['message' => 'Hanya pengajuan pembelian yang sudah disetujui (Approved) yang dapat diproses ke Purchase Order.'], 422);
         }
 
         // Fix N+1: Load all details with relations, then aggregate ordered qty in ONE query
@@ -820,7 +921,9 @@ class PurchaseOrderController extends Controller
 
         $detailIds = $details->pluck('id');
         $orderedMap = PurchaseOrderDetail::whereIn('pr_detail_id', $detailIds)
-            ->whereHas('po')
+            ->whereHas('po', function ($q) {
+                $q->where('status', '!=', 'Rejected');
+            })
             ->selectRaw('pr_detail_id, SUM(jumlah) as total_ordered')
             ->groupBy('pr_detail_id')
             ->pluck('total_ordered', 'pr_detail_id');
@@ -877,14 +980,18 @@ class PurchaseOrderController extends Controller
                 'supplier_id'      => 'required|exists:master_suppliers,id',
                 'currency_id'      => 'required|exists:master_currencies,id',
                 'kurs'             => 'required|numeric|min:0',
-                'pajak_id'         => 'nullable|exists:master_pajaks,id',
+                'pajak_id'         => 'nullable',
+                'pph_pajak_id'     => 'nullable|exists:master_pajaks,id',
+                'tarif_pph'        => 'nullable|numeric|min:0|max:100',
+                'pph_nominal'      => 'nullable|numeric|min:0',
+                'pph_coa_id'       => 'nullable|exists:chart_of_accounts,id',
                 'payment_term_id'  => 'nullable|exists:payment_terms,id',
                 'payment_method_id'=> 'nullable|exists:payment_methods,id',
                 'tanggal_pengiriman'=> 'nullable|date',
                 'pr_id'            => 'nullable|exists:purchase_requisitions,id',
                 'tender_id'        => 'nullable|exists:tenders,id',
-                'diskon_persen'    => 'required|numeric|min:0|max:100',
-                'diskon_nominal'   => 'required|numeric|min:0',
+                'diskon_persen'    => 'nullable|numeric|min:0|max:100',
+                'diskon_nominal'   => 'nullable|numeric|min:0',
                 'down_payment'     => 'nullable|numeric|min:0',
                 'biaya_lain'       => 'nullable|numeric|min:0',
                 'deskripsi_biaya_lain' => 'nullable|string|max:255',
@@ -898,7 +1005,11 @@ class PurchaseOrderController extends Controller
                 'items.*.pr_detail_id' => 'nullable|exists:purchase_requisition_details,id',
                 'items.*.jumlah'    => 'required|numeric|min:0.0001',
                 'items.*.harga_satuan' => 'required|numeric|min:0.01',
-                'items.*.diskon_item' => 'required|numeric|min:0',
+                'items.*.diskon_item' => 'nullable|numeric|min:0',
+                'items.*.diskon_persen' => 'nullable|numeric|min:0|max:100',
+                'items.*.diskon_tipe' => 'nullable|string|in:percent,nominal',
+                'items.*.ppn_pajak_id' => 'nullable|exists:master_pajaks,id',
+                'items.*.tarif_ppn' => 'nullable|numeric|min:0',
                 'items.*.keterangan' => 'nullable|string|max:255',
                 'expense_items'     => 'nullable|array|max:5',
             ], [
@@ -929,17 +1040,35 @@ class PurchaseOrderController extends Controller
             }
         }
 
+        // Validate all items belong to active company and are active
+        $submittedBarangIds = collect($request->items)->pluck('barang_id')->unique()->toArray();
+        $validBarangCount = MasterBarang::forActiveCompany()
+            ->whereIn('id', $submittedBarangIds)
+            ->where('status', 'Active')
+            ->count();
+
+        if ($validBarangCount !== count($submittedBarangIds)) {
+            return response()->json([
+                'message' => 'Satu atau lebih barang yang dipilih tidak valid, tidak aktif, atau bukan milik perusahaan Anda!'
+            ], 422);
+        }
+
         // Validate remaining PR quantity limits if PO is tied to a PR
         if ($request->pr_id) {
             $prCheck = PurchaseRequisition::find($request->pr_id);
-            if (!$prCheck || ($activeCompanyId && $prCheck->company_id != $activeCompanyId) || strval($prCheck->branch_id) !== strval(session('active_branch_id'))) {
+            if (!$prCheck || ($activeCompanyId && $prCheck->company_id && $prCheck->company_id != $activeCompanyId) || strval($prCheck->branch_id) !== strval(session('active_branch_id'))) {
                 return response()->json(['message' => 'Referensi PR tidak valid atau milik cabang lain / pusat!'], 403);
+            }
+            if (!in_array($prCheck->status, ['Approved', 'Closed'])) {
+                return response()->json(['message' => 'Hanya PR yang sudah disetujui (Approved) yang dapat diproses menjadi Purchase Order!'], 422);
             }
 
             foreach ($request->items as $item) {
                 if (!empty($item['pr_detail_id'])) {
                     $ordered = PurchaseOrderDetail::where('pr_detail_id', $item['pr_detail_id'])
-                        ->whereHas('po')
+                        ->whereHas('po', function ($q) {
+                            $q->where('status', '!=', 'Rejected');
+                        })
                         ->sum('jumlah');
                     $prDetail = PurchaseRequisitionDetail::find($item['pr_detail_id']);
                     if ($prDetail) {
@@ -962,13 +1091,17 @@ class PurchaseOrderController extends Controller
             $activeBranchId  = session('active_branch_id');
             $activeCompanyId = session('active_company_id');
 
+            $targetBranchId  = !empty($activeBranchId) ? $activeBranchId : null;
+            $targetCompanyId = !empty($activeBranchId) ? null : ($activeCompanyId ?: 1);
+
             // Force IDR currency rate to 1.00 regardless of user input; validate non-IDR
-            $kurs = floatval($request->kurs);
+            $kurs = round(floatval($request->kurs), 4); // kolom kurs decimal(16,4)
             $currency = MasterCurrency::find($request->currency_id);
             if ($currency && $currency->kode_currency === 'IDR') {
                 $kurs = 1.00;
             } else {
                 if ($kurs <= 0) {
+                    DB::rollBack();
                     return response()->json([
                         'message' => 'Validasi gagal!',
                         'errors' => ['kurs' => ['Nilai kurs untuk mata uang asing (' . ($currency?->kode_currency ?? '') . ') harus lebih besar dari 0!']]
@@ -1009,42 +1142,44 @@ class PurchaseOrderController extends Controller
                 $nomorPo = $request->nomor_po;
             }
 
-            // Create Header (initial values)
-            $po = PurchaseOrder::create([
-                'nomor_po'          => $nomorPo,
-                'tanggal_po'        => $request->tanggal_po,
-                'company_id'        => $activeCompanyId,
-                'branch_id'         => $activeBranchId,
-                'supplier_id'       => $request->supplier_id,
-                'currency_id'       => $request->currency_id,
-                'kurs'              => $kurs,
-                'pajak_id'          => $request->pajak_id ?: null,
-                'payment_term_id'   => $request->payment_term_id ?: null,
-                'payment_method_id' => $request->payment_method_id ?: null,
-                'tanggal_pengiriman'=> $request->tanggal_pengiriman ?: null,
-                'pr_id'             => $request->pr_id ?: null,
-                'tender_id'         => $request->tender_id ?: null,
-                'manual_pr_number'  => $request->pr_id ? null : $request->manual_pr_number,
-                'diskon_persen'   => $request->diskon_persen,
-                'diskon_nominal'  => $request->diskon_nominal,
-                'subtotal'        => 0,
-                'total_diskon'    => 0,
-                'total_pajak'     => 0,
-                'grand_total'     => 0,
-                'grand_total_idr' => 0,
-                'down_payment'    => 0,
-                'biaya_lain'      => 0,
-                'deskripsi_biaya_lain' => null,
-                'alokasi_biaya_lain'  => $request->input('alokasi_biaya_lain', 'Beban'),
-                'keterangan'      => $request->keterangan,
-                'status'          => $request->boolean('is_draft') ? 'Draft' : 'Pending',
-            ]);
+            // Process per-item calculations (gross, discount, and tax per item)
+            $subtotalGross = 0;
+            $totalDiskon = 0;
+            $totalPajak = 0;
+            $itemsData = [];
 
-            // Save details and calculate subtotal
-            $subtotal = 0;
+            // Pre-load tax rates from master (source of truth, scoped to active company)
+            $allTaxMap = MasterPajak::forActiveCompany()->pluck('tarif', 'id')->toArray();
+
             foreach ($request->items as $item) {
-                $lineSubtotal = round(($item['harga_satuan'] - $item['diskon_item']) * $item['jumlah'], 2);
-                $subtotal += $lineSubtotal;
+                // Samakan presisi dengan kolom DB agar harga x qty = subtotal yang tersimpan
+                $qty = round(floatval($item['jumlah']), 4);          // decimal(18,4)
+                $hargaSatuan = round(floatval($item['harga_satuan']), 2); // decimal(20,2)
+                $diskonTipe = ($item['diskon_tipe'] ?? 'percent') === 'nominal' ? 'nominal' : 'percent';
+                $diskonPersen = round(floatval($item['diskon_persen'] ?? 0), 2); // decimal(5,2)
+                $diskonItem = round(floatval($item['diskon_item'] ?? 0), 2);
+
+                if ($diskonTipe === 'percent') {
+                    if ($diskonPersen > 100) $diskonPersen = 100;
+                    $diskonUnit = round($hargaSatuan * ($diskonPersen / 100), 2);
+                } else {
+                    if ($diskonItem > $hargaSatuan) $diskonItem = $hargaSatuan;
+                    $diskonUnit = $diskonItem;
+                    $diskonPersen = $hargaSatuan > 0 ? round(($diskonUnit / $hargaSatuan) * 100, 2) : 0;
+                }
+
+                $lineGross = round($qty * $hargaSatuan, 2);
+                $lineDiskon = round($qty * $diskonUnit, 2);
+                $lineSubtotal = max(0, round($lineGross - $lineDiskon, 2));
+
+                // Per-item PPN
+                $ppnPajakId = !empty($item['ppn_pajak_id']) ? intval($item['ppn_pajak_id']) : null;
+                // Tarif SELALU dari master pajak (jangan percaya nilai dari client)
+                if ($ppnPajakId && !isset($allTaxMap[$ppnPajakId])) {
+                    $ppnPajakId = null; // pajak bukan milik company aktif
+                }
+                $tarifPpn = $ppnPajakId ? floatval($allTaxMap[$ppnPajakId]) : 0;
+                $ppnNominal = ($ppnPajakId && $tarifPpn > 0) ? round($lineSubtotal * ($tarifPpn / 100), 2) : 0;
 
                 $satuanId = $item['satuan_id'] ?? null;
                 $faktorPengali = floatval($item['faktor_pengali'] ?? 1);
@@ -1052,80 +1187,80 @@ class PurchaseOrderController extends Controller
                     $barang = MasterBarang::find($item['barang_id']);
                     $satuanId = $barang?->satuan_id;
                 }
-                $jumlahDasar = floatval($item['jumlah']) * ($faktorPengali ?: 1);
+                $jumlahDasar = $qty * ($faktorPengali ?: 1);
 
-                $po->details()->create([
+                $subtotalGross += $lineGross;
+                $totalDiskon += $lineDiskon;
+                $totalPajak += $ppnNominal;
+
+                $itemsData[] = [
                     'barang_id'      => $item['barang_id'],
                     'satuan_id'      => $satuanId,
                     'pr_detail_id'   => $item['pr_detail_id'] ?? null,
-                    'jumlah'         => $item['jumlah'],
+                    'jumlah'         => $qty,
                     'faktor_pengali' => $faktorPengali,
                     'jumlah_dasar'   => $jumlahDasar,
-                    'harga_satuan'   => $item['harga_satuan'],
-                    'diskon_item'    => $item['diskon_item'],
+                    'harga_satuan'   => $hargaSatuan,
+                    'diskon_item'    => $diskonUnit,
+                    'diskon_persen'  => $diskonPersen,
+                    'diskon_tipe'    => $diskonTipe,
                     'subtotal'       => $lineSubtotal,
+                    'ppn_pajak_id'   => $ppnPajakId,
+                    'tarif_ppn'      => $tarifPpn,
+                    'ppn_nominal'    => $ppnNominal,
                     'keterangan'     => $item['keterangan'] ?? null,
-                ]);
+                ];
             }
 
-            // Calculate global header discount accurately (prioritize exact nominal if provided)
-            $diskonNominalInput = floatval($request->diskon_nominal);
-            $diskonPersenInput = floatval($request->diskon_persen);
-            
-            $totalDiskon = 0;
-            $diskonPersen = 0;
-            $diskonNominal = 0;
+            $subtotalGross = round($subtotalGross, 2);
+            $totalDiskon = round($totalDiskon, 2);
+            $totalPajak = round($totalPajak, 2);
 
-            if ($diskonNominalInput > 0) {
-                $totalDiskon = round($diskonNominalInput, 2);
-                $diskonNominal = $totalDiskon;
-                $diskonPersen = $subtotal > 0 ? round(($totalDiskon / $subtotal) * 100, 4) : 0;
-            } elseif ($diskonPersenInput > 0) {
-                $diskonPersen = round($diskonPersenInput, 4);
-                $totalDiskon = round($subtotal * ($diskonPersen / 100), 2);
-                $diskonNominal = $totalDiskon;
-            }
-
-            if ($totalDiskon > $subtotal) {
-                $totalDiskon = $subtotal;
-            }
-
-            $subtotalNet = max(0, $subtotal - $totalDiskon);
+            // DPP = Subtotal Barang Kotor - Total Diskon Barang
+            $dpp = round(max(0, $subtotalGross - $totalDiskon), 2);
 
             $expenseItems = $request->input('expense_items', []);
             $biayaLain = 0;
-            $biayaInventory = 0;
-            $biayaExpense = 0;
             if (!empty($expenseItems) && is_array($expenseItems)) {
-                foreach ($expenseItems as $exp) {
-                    $nom = floatval($exp['nominal'] ?? 0);
-                    $biayaLain += $nom;
-                    $isHpp = isset($exp['masuk_hpp']) ? (string)$exp['masuk_hpp'] : '1';
-                    if ($isHpp === '1' || $isHpp === 'true') {
-                        $biayaInventory += $nom;
-                    } else {
-                        $biayaExpense += $nom;
+                foreach ($expenseItems as $idx => $exp) {
+                    $nom = round(floatval($exp['nominal'] ?? 0), 2);
+                    if ($nom < 0) {
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => 'Validasi gagal!',
+                            'errors' => ['expense_items' => ['Nominal biaya lain-lain tidak boleh negatif!']]
+                        ], 422);
                     }
+                    $expenseItems[$idx]['nominal'] = $nom;
+                    $biayaLain += $nom;
                 }
             } else {
-                $biayaLain = floatval($request->input('biaya_lain', 0));
-                $biayaInventory = $biayaLain;
+                $biayaLain = max(0, floatval($request->input('biaya_lain', 0)));
             }
+            $biayaLain = round($biayaLain, 2);
 
-            // DPP = Subtotal Barang Net (Pajak PPN hanya dikenakan dari nilai barang)
-            $dpp = $subtotalNet;
+            // Calculate PPh (Withholding Tax - Potongan Pajak Penghasilan)
+            $pphPajakId = $request->filled('pph_pajak_id') ? (int) $request->pph_pajak_id : null;
+            $tarifPph   = 0.0;
+            $pphNominal = 0.0;
+            $pphCoaId   = $request->filled('pph_coa_id') ? (int) $request->pph_coa_id : null;
 
-            // Calculate tax (PPN) from DPP
-            $totalPajak = 0;
-            if ($request->pajak_id) {
-                $pajak = MasterPajak::find($request->pajak_id);
-                if ($pajak) {
-                    $totalPajak = round($dpp * ($pajak->tarif / 100), 2);
+            if ($pphPajakId && isset($allTaxMap[$pphPajakId])) {
+                $tarifPph = floatval($allTaxMap[$pphPajakId]);
+                $pphNominal = round($dpp * ($tarifPph / 100), 2);
+                if (!$pphCoaId) {
+                    $pphCoaId = \App\Helpers\AccountMappingHelper::getCoaId('tax', "tax_{$pphPajakId}_in") ?? $this->resolveDefaultPphCoaId();
                 }
+            } else {
+                $pphPajakId = null;
+                $tarifPph   = 0.0;
+                $pphNominal = 0.0;
+                $pphCoaId   = null;
             }
 
-            $downPayment = floatval($request->input('down_payment', 0));
-            $grandTotal = round($dpp + $totalPajak + $biayaLain, 2);
+            // Grand Total = DPP + Total PPN + Biaya Lain-Lain - Potongan PPh
+            $grandTotal = round(max(0, $dpp + $totalPajak + $biayaLain - $pphNominal), 2);
+            $downPayment = round(floatval($request->input('down_payment', 0)), 2);
 
             // Validate down payment doesn't exceed grand total
             if ($downPayment > $grandTotal) {
@@ -1138,21 +1273,47 @@ class PurchaseOrderController extends Controller
 
             $grandTotalIdr = round($grandTotal * $kurs, 2);
 
-            // Update Header values
-            $po->update([
-                'diskon_persen'      => $diskonPersen,
-                'diskon_nominal'     => $diskonNominal,
-                'subtotal'           => $subtotal,
-                'total_diskon'       => $totalDiskon,
-                'total_pajak'        => $totalPajak,
-                'grand_total'        => $grandTotal,
-                'grand_total_idr'    => $grandTotalIdr,
-                'down_payment'       => $downPayment,
-                'biaya_lain'         => $biayaLain,
-                'biaya_lain_details' => !empty($expenseItems) ? $expenseItems : null,
+            // Create Header (No global discount, no global tax)
+            $po = PurchaseOrder::create([
+                'nomor_po'          => $nomorPo,
+                'tanggal_po'        => $request->tanggal_po,
+                'company_id'        => $targetCompanyId,
+                'branch_id'         => $targetBranchId,
+                'supplier_id'       => $request->supplier_id,
+                'currency_id'       => $request->currency_id,
+                'kurs'              => $kurs,
+                'pajak_id'          => null,
+                'payment_term_id'   => $request->payment_term_id ?: null,
+                'payment_method_id' => $request->payment_method_id ?: null,
+                'tanggal_pengiriman'=> $request->tanggal_pengiriman ?: null,
+                'pr_id'             => $request->pr_id ?: null,
+                'tender_id'         => $request->tender_id ?: null,
+                'manual_pr_number'  => $request->pr_id ? null : $request->manual_pr_number,
+                'diskon_persen'     => 0,
+                'diskon_nominal'    => 0,
+                'subtotal'          => $subtotalGross,
+                'total_diskon'      => $totalDiskon,
+                'total_pajak'       => $totalPajak,
+                'pph_pajak_id'      => $pphPajakId,
+                'tarif_pph'         => $tarifPph,
+                'pph_nominal'       => $pphNominal,
+                'total_pph'         => $pphNominal,
+                'pph_coa_id'        => $pphCoaId,
+                'grand_total'       => $grandTotal,
+                'grand_total_idr'   => $grandTotalIdr,
+                'down_payment'      => $downPayment,
+                'biaya_lain'        => $biayaLain,
+                'biaya_lain_details'=> !empty($expenseItems) ? $expenseItems : null,
                 'deskripsi_biaya_lain' => $request->input('deskripsi_biaya_lain'),
-                'alokasi_biaya_lain'  => $request->input('alokasi_biaya_lain', 'Beban'),
+                'alokasi_biaya_lain'   => $request->input('alokasi_biaya_lain', 'Beban'),
+                'keterangan'        => $request->keterangan,
+                'status'            => $request->boolean('is_draft') ? 'Draft' : 'Pending',
             ]);
+
+            // Save details
+            foreach ($itemsData as $data) {
+                $po->details()->create($data);
+            }
 
             // Re-evaluate PR status
             $this->reevaluatePrStatus($request->pr_id);
@@ -1185,7 +1346,7 @@ class PurchaseOrderController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id');
 
-        if ($activeCompanyId && $purchaseOrder->company_id != $activeCompanyId) {
+        if ($activeCompanyId && $purchaseOrder->company_id && $purchaseOrder->company_id != $activeCompanyId) {
             return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
         }
         if (!$isPrivileged && strval($activeBranchId) !== strval($purchaseOrder->branch_id)) {
@@ -1197,9 +1358,9 @@ class PurchaseOrderController extends Controller
         }
         
         $purchaseOrder->load([
-            'company', 'supplier', 'currency', 'pajak', 'pr.requester', 'tender.customer',
+            'company', 'supplier', 'currency', 'pajak', 'pphPajak', 'pphCoa', 'pr.requester', 'tender.customer',
             'creator', 'updater', 'approver', 'branch', 'paymentTerm', 'paymentMethod',
-            'details.barang.satuan', 'details.barang.primaryFoto', 'details.barang.fotos', 'details.satuan',
+            'details.barang.satuan', 'details.barang.primaryFoto', 'details.barang.fotos', 'details.satuan', 'details.ppnPajak',
         ]);
 
         // Resolve biaya_lain_details: enrich with jenis biaya name
@@ -1240,7 +1401,7 @@ class PurchaseOrderController extends Controller
 
         $isSuperAdmin = $user->hasRole('Super Admin') || $user->hasRole('Owner');
 
-        if ($activeCompanyId && $purchaseOrder->company_id != $activeCompanyId) {
+        if ($activeCompanyId && $purchaseOrder->company_id && $purchaseOrder->company_id != $activeCompanyId) {
             return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
         }
         if (!$isPrivileged && strval($activeBranchId) !== strval($purchaseOrder->branch_id)) {
@@ -1256,6 +1417,19 @@ class PurchaseOrderController extends Controller
             return response()->json([
                 'message' => 'Hanya Purchase Order dengan status Draft yang dapat dihapus! Dokumen berstatus ' . $purchaseOrder->status . ' tidak dapat dihapus.'
             ], 403);
+        }
+
+        // Integrity check: cannot delete if already received in Goods Receipt (LPB) or billed in Invoice
+        if (\App\Models\GoodsReceipt::where('po_id', $purchaseOrder->id)->exists()) {
+            return response()->json([
+                'message' => 'Purchase Order tidak dapat dihapus karena sudah memiliki transaksi Penerimaan Barang (Goods Receipt / LPB)!'
+            ], 422);
+        }
+
+        if (\App\Models\PurchaseInvoice::where('po_id', $purchaseOrder->id)->exists()) {
+            return response()->json([
+                'message' => 'Purchase Order tidak dapat dihapus karena sudah terhubung ke Faktur Pembelian (Purchase Invoice)!'
+            ], 422);
         }
 
         try {
@@ -1286,19 +1460,19 @@ class PurchaseOrderController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id');
 
-        if ($activeCompanyId && $purchaseOrder->company_id != $activeCompanyId) {
+        if ($activeCompanyId && $purchaseOrder->company_id && $purchaseOrder->company_id != $activeCompanyId) {
             return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
         }
         if (!$isPrivileged && strval($activeBranchId) !== strval($purchaseOrder->branch_id)) {
             return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
         }
 
-        if (!$isSuperAdmin && $purchaseOrder->status === 'Draft' && $purchaseOrder->created_by !== $user->id) {
+        if (!$isPrivileged && $purchaseOrder->status === 'Draft' && $purchaseOrder->created_by !== $user->id) {
             return response()->json(['message' => 'Draft Purchase Order ini bersifat privat dan hanya dapat diedit oleh akun pembuatnya.'], 403);
         }
 
         // Rejected PO: only the creator can edit/resubmit
-        if (!$isSuperAdmin && $purchaseOrder->status === 'Rejected' && $purchaseOrder->created_by !== $user->id) {
+        if (!$isPrivileged && $purchaseOrder->status === 'Rejected' && $purchaseOrder->created_by !== $user->id) {
             return response()->json(['message' => 'Hanya pembuat PO yang dapat mengedit PO yang ditolak untuk diajukan ulang.'], 403);
         }
 
@@ -1307,9 +1481,48 @@ class PurchaseOrderController extends Controller
             return response()->json(['message' => 'Purchase Order yang sudah disetujui atau diproses (' . $purchaseOrder->status . ') tidak dapat diedit lagi.'], 403);
         }
 
+        $activeGr = \App\Models\GoodsReceipt::where('po_id', $purchaseOrder->id)
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'Dibatalkan');
+            })
+            ->first();
+        if ($activeGr) {
+            return response()->json(['message' => 'Purchase Order tidak dapat diedit karena barang sudah diterima pada Penerimaan Barang (' . $activeGr->nomor_gr . '). Harap batalkan transaksi Penerimaan Barang terlebih dahulu.'], 422);
+        }
+
+        $activeAlokasiPo = \App\Models\AlokasiBiaya::where('po_biaya_id', $purchaseOrder->id)
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'dibatalkan');
+            })
+            ->first();
+        if ($activeAlokasiPo) {
+            return response()->json(['message' => 'Purchase Order tidak dapat diedit karena sedang digunakan sebagai PO Biaya pada transaksi Alokasi Biaya (' . $activeAlokasiPo->nomor_alokasi . '). Harap batalkan transaksi Alokasi Biaya terlebih dahulu.'], 422);
+        }
+
+        $activeAlokasiDetail = \App\Models\AlokasiBiayaDetail::whereHas('goodsReceipt', function ($q) use ($purchaseOrder) {
+                $q->where('po_id', $purchaseOrder->id);
+            })
+            ->whereHas('alokasiBiaya', function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'dibatalkan');
+            })
+            ->with('alokasiBiaya')
+            ->first();
+        if ($activeAlokasiDetail) {
+            return response()->json(['message' => 'Purchase Order tidak dapat diedit karena barang dari PO ini telah dialokasikan biayanya pada transaksi Alokasi Biaya (' . ($activeAlokasiDetail->alokasiBiaya?->nomor_alokasi ?? '-') . '). Harap batalkan transaksi Alokasi Biaya terlebih dahulu.'], 422);
+        }
+
+        $activeInvoice = \App\Models\PurchaseInvoice::where('po_id', $purchaseOrder->id)
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhereNotIn(DB::raw('LOWER(status)'), ['dibatalkan', 'cancelled', 'rejected']);
+            })
+            ->first();
+        if ($activeInvoice) {
+            return response()->json(['message' => 'Purchase Order tidak dapat diedit karena sudah terhubung ke Faktur Pembelian (' . $activeInvoice->nomor_invoice . '). Harap batalkan Faktur Pembelian terlebih dahulu.'], 422);
+        }
+
         $purchaseOrder->load([
-            'details.barang.satuan', 'details.barang.primaryFoto', 'details.barang.fotos',
-            'supplier', 'pr', 'tender', 'currency', 'pajak',
+            'details.barang.satuan', 'details.barang.primaryFoto', 'details.barang.fotos', 'details.satuan', 'details.ppnPajak',
+            'supplier', 'pr', 'tender', 'currency', 'pajak', 'pphPajak', 'pphCoa',
             'paymentTerm', 'paymentMethod',
         ]);
         return response()->json(['po' => $purchaseOrder]);
@@ -1325,25 +1538,64 @@ class PurchaseOrderController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id');
 
-        if ($activeCompanyId && $purchaseOrder->company_id != $activeCompanyId) {
+        if ($activeCompanyId && $purchaseOrder->company_id && $purchaseOrder->company_id != $activeCompanyId) {
             return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
         }
         if (!$isPrivileged && strval($activeBranchId) !== strval($purchaseOrder->branch_id)) {
             return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
         }
 
-        if (!$isSuperAdmin && $purchaseOrder->status === 'Draft' && $purchaseOrder->created_by !== $user->id) {
+        if (!$isPrivileged && $purchaseOrder->status === 'Draft' && $purchaseOrder->created_by !== $user->id) {
             return response()->json(['message' => 'Draft Purchase Order ini bersifat privat dan hanya dapat diubah oleh akun pembuatnya.'], 403);
         }
 
         // Rejected PO: only the creator can edit/resubmit
-        if (!$isSuperAdmin && $purchaseOrder->status === 'Rejected' && $purchaseOrder->created_by !== $user->id) {
+        if (!$isPrivileged && $purchaseOrder->status === 'Rejected' && $purchaseOrder->created_by !== $user->id) {
             return response()->json(['message' => 'Hanya pembuat PO yang dapat mengedit PO yang ditolak untuk diajukan ulang.'], 403);
         }
 
         // Non-Super Admin HANYA boleh mengedit Draft, Pending, atau Rejected
         if (!$isSuperAdmin && !in_array($purchaseOrder->status, ['Draft', 'Pending', 'Rejected'])) {
             return response()->json(['message' => 'Purchase Order yang sudah disetujui atau diproses (' . $purchaseOrder->status . ') tidak dapat diubah lagi.'], 403);
+        }
+
+        $activeGr = \App\Models\GoodsReceipt::where('po_id', $purchaseOrder->id)
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'Dibatalkan');
+            })
+            ->first();
+        if ($activeGr) {
+            return response()->json(['message' => 'Purchase Order tidak dapat diubah karena barang sudah diterima pada Penerimaan Barang (' . $activeGr->nomor_gr . '). Harap batalkan transaksi Penerimaan Barang terlebih dahulu.'], 422);
+        }
+
+        $activeAlokasiPo = \App\Models\AlokasiBiaya::where('po_biaya_id', $purchaseOrder->id)
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'dibatalkan');
+            })
+            ->first();
+        if ($activeAlokasiPo) {
+            return response()->json(['message' => 'Purchase Order tidak dapat diubah karena sedang digunakan sebagai PO Biaya pada transaksi Alokasi Biaya (' . $activeAlokasiPo->nomor_alokasi . '). Harap batalkan transaksi Alokasi Biaya terlebih dahulu.'], 422);
+        }
+
+        $activeAlokasiDetail = \App\Models\AlokasiBiayaDetail::whereHas('goodsReceipt', function ($q) use ($purchaseOrder) {
+                $q->where('po_id', $purchaseOrder->id);
+            })
+            ->whereHas('alokasiBiaya', function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'dibatalkan');
+            })
+            ->with('alokasiBiaya')
+            ->first();
+        if ($activeAlokasiDetail) {
+            return response()->json(['message' => 'Purchase Order tidak dapat diubah karena barang dari PO ini telah dialokasikan biayanya pada transaksi Alokasi Biaya (' . ($activeAlokasiDetail->alokasiBiaya?->nomor_alokasi ?? '-') . '). Harap batalkan transaksi Alokasi Biaya terlebih dahulu.'], 422);
+        }
+
+        $activeInvoice = \App\Models\PurchaseInvoice::where('po_id', $purchaseOrder->id)
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhereNotIn(DB::raw('LOWER(status)'), ['dibatalkan', 'cancelled', 'rejected']);
+            })
+            ->first();
+        if ($activeInvoice) {
+            return response()->json(['message' => 'Purchase Order tidak dapat diubah karena sudah terhubung ke Faktur Pembelian (' . $activeInvoice->nomor_invoice . '). Harap batalkan Faktur Pembelian terlebih dahulu.'], 422);
         }
 
         $originalPrId = $purchaseOrder->pr_id;
@@ -1355,14 +1607,18 @@ class PurchaseOrderController extends Controller
                 'supplier_id'       => 'required|exists:master_suppliers,id',
                 'currency_id'       => 'required|exists:master_currencies,id',
                 'kurs'              => 'required|numeric|min:0',
-                'pajak_id'          => 'nullable|exists:master_pajaks,id',
+                'pajak_id'          => 'nullable',
+                'pph_pajak_id'      => 'nullable|exists:master_pajaks,id',
+                'tarif_pph'         => 'nullable|numeric|min:0|max:100',
+                'pph_nominal'       => 'nullable|numeric|min:0',
+                'pph_coa_id'        => 'nullable|exists:chart_of_accounts,id',
                 'payment_term_id'   => 'nullable|exists:payment_terms,id',
                 'payment_method_id' => 'nullable|exists:payment_methods,id',
                 'tanggal_pengiriman'=> 'nullable|date',
                 'pr_id'             => 'nullable|exists:purchase_requisitions,id',
                 'tender_id'         => 'nullable|exists:tenders,id',
-                'diskon_persen'     => 'required|numeric|min:0|max:100',
-                'diskon_nominal'    => 'required|numeric|min:0',
+                'diskon_persen'     => 'nullable|numeric|min:0|max:100',
+                'diskon_nominal'    => 'nullable|numeric|min:0',
                 'down_payment'      => 'nullable|numeric|min:0',
                 'biaya_lain'        => 'nullable|numeric|min:0',
                 'deskripsi_biaya_lain' => 'nullable|string|max:255',
@@ -1375,7 +1631,11 @@ class PurchaseOrderController extends Controller
                 'items.*.pr_detail_id' => 'nullable|exists:purchase_requisition_details,id',
                 'items.*.jumlah'       => 'required|numeric|min:0.0001',
                 'items.*.harga_satuan' => 'required|numeric|min:0.01',
-                'items.*.diskon_item'  => 'required|numeric|min:0',
+                'items.*.diskon_item'  => 'nullable|numeric|min:0',
+                'items.*.diskon_persen'=> 'nullable|numeric|min:0|max:100',
+                'items.*.diskon_tipe'  => 'nullable|string|in:percent,nominal',
+                'items.*.ppn_pajak_id' => 'nullable|exists:master_pajaks,id',
+                'items.*.tarif_ppn'    => 'nullable|numeric|min:0',
                 'items.*.keterangan'   => 'nullable|string|max:255',
                 'expense_items'        => 'nullable|array|max:5',
             ], [
@@ -1391,19 +1651,37 @@ class PurchaseOrderController extends Controller
             ], 422);
         }
 
+        // Validate all items belong to active company and are active
+        $submittedBarangIds = collect($request->items)->pluck('barang_id')->unique()->toArray();
+        $validBarangCount = MasterBarang::forActiveCompany()
+            ->whereIn('id', $submittedBarangIds)
+            ->where('status', 'Active')
+            ->count();
+
+        if ($validBarangCount !== count($submittedBarangIds)) {
+            return response()->json([
+                'message' => 'Satu atau lebih barang yang dipilih tidak valid, tidak aktif, atau bukan milik perusahaan Anda!'
+            ], 422);
+        }
+
         // Validate remaining PR quantity limits if PO is tied to a PR (excluding this PO's own existing details to not double-count)
         if ($request->pr_id) {
             $prCheck = PurchaseRequisition::find($request->pr_id);
-            if (!$prCheck || ($activeCompanyId && $prCheck->company_id != $activeCompanyId) || strval($prCheck->branch_id) !== strval(session('active_branch_id'))) {
+            if (!$prCheck || ($activeCompanyId && $prCheck->company_id && $prCheck->company_id != $activeCompanyId) || strval($prCheck->branch_id) !== strval(session('active_branch_id'))) {
                 return response()->json(['message' => 'Referensi PR tidak valid atau milik cabang lain / pusat!'], 403);
+            }
+            if (!in_array($prCheck->status, ['Approved', 'Closed'])) {
+                return response()->json(['message' => 'Hanya PR yang sudah disetujui (Approved) yang dapat diproses menjadi Purchase Order!'], 422);
             }
 
             foreach ($request->items as $item) {
                 if (!empty($item['pr_detail_id'])) {
-                    // Sum other POs details for this PR detail
+                    // Sum other POs details for this PR detail (excluding rejected POs)
                     $ordered = PurchaseOrderDetail::where('pr_detail_id', $item['pr_detail_id'])
                         ->where('po_id', '!=', $purchaseOrder->id)
-                        ->whereHas('po')
+                        ->whereHas('po', function ($q) {
+                            $q->where('status', '!=', 'Rejected');
+                        })
                         ->sum('jumlah');
                     $prDetail = PurchaseRequisitionDetail::find($item['pr_detail_id']);
                     if ($prDetail) {
@@ -1422,12 +1700,13 @@ class PurchaseOrderController extends Controller
             DB::beginTransaction();
 
             // Force IDR currency rate to 1.00 regardless of user input; validate non-IDR
-            $kurs = floatval($request->kurs);
+            $kurs = round(floatval($request->kurs), 4); // kolom kurs decimal(16,4)
             $currency = MasterCurrency::find($request->currency_id);
             if ($currency && $currency->kode_currency === 'IDR') {
                 $kurs = 1.00;
             } else {
                 if ($kurs <= 0) {
+                    DB::rollBack();
                     return response()->json([
                         'message' => 'Validasi gagal!',
                         'errors' => ['kurs' => ['Nilai kurs untuk mata uang asing (' . ($currency?->kode_currency ?? '') . ') harus lebih besar dari 0!']]
@@ -1438,11 +1717,44 @@ class PurchaseOrderController extends Controller
             // Remove existing details first
             $purchaseOrder->details()->delete();
 
-            // Save details and calculate subtotal
-            $subtotal = 0;
+            // Process per-item calculations (gross, discount, and tax per item)
+            $subtotalGross = 0;
+            $totalDiskon = 0;
+            $totalPajak = 0;
+            $itemsData = [];
+
+            // Pre-load tax rates from master (source of truth, scoped to active company)
+            $allTaxMap = MasterPajak::forActiveCompany()->pluck('tarif', 'id')->toArray();
+
             foreach ($request->items as $item) {
-                $lineSubtotal = round(($item['harga_satuan'] - $item['diskon_item']) * $item['jumlah'], 2);
-                $subtotal += $lineSubtotal;
+                // Samakan presisi dengan kolom DB agar harga x qty = subtotal yang tersimpan
+                $qty = round(floatval($item['jumlah']), 4);          // decimal(18,4)
+                $hargaSatuan = round(floatval($item['harga_satuan']), 2); // decimal(20,2)
+                $diskonTipe = ($item['diskon_tipe'] ?? 'percent') === 'nominal' ? 'nominal' : 'percent';
+                $diskonPersen = round(floatval($item['diskon_persen'] ?? 0), 2); // decimal(5,2)
+                $diskonItem = round(floatval($item['diskon_item'] ?? 0), 2);
+
+                if ($diskonTipe === 'percent') {
+                    if ($diskonPersen > 100) $diskonPersen = 100;
+                    $diskonUnit = round($hargaSatuan * ($diskonPersen / 100), 2);
+                } else {
+                    if ($diskonItem > $hargaSatuan) $diskonItem = $hargaSatuan;
+                    $diskonUnit = $diskonItem;
+                    $diskonPersen = $hargaSatuan > 0 ? round(($diskonUnit / $hargaSatuan) * 100, 2) : 0;
+                }
+
+                $lineGross = round($qty * $hargaSatuan, 2);
+                $lineDiskon = round($qty * $diskonUnit, 2);
+                $lineSubtotal = max(0, round($lineGross - $lineDiskon, 2));
+
+                // Per-item PPN
+                $ppnPajakId = !empty($item['ppn_pajak_id']) ? intval($item['ppn_pajak_id']) : null;
+                // Tarif SELALU dari master pajak (jangan percaya nilai dari client)
+                if ($ppnPajakId && !isset($allTaxMap[$ppnPajakId])) {
+                    $ppnPajakId = null; // pajak bukan milik company aktif
+                }
+                $tarifPpn = $ppnPajakId ? floatval($allTaxMap[$ppnPajakId]) : 0;
+                $ppnNominal = ($ppnPajakId && $tarifPpn > 0) ? round($lineSubtotal * ($tarifPpn / 100), 2) : 0;
 
                 $satuanId = $item['satuan_id'] ?? null;
                 $faktorPengali = floatval($item['faktor_pengali'] ?? 1);
@@ -1450,80 +1762,80 @@ class PurchaseOrderController extends Controller
                     $barang = MasterBarang::find($item['barang_id']);
                     $satuanId = $barang?->satuan_id;
                 }
-                $jumlahDasar = floatval($item['jumlah']) * ($faktorPengali ?: 1);
+                $jumlahDasar = $qty * ($faktorPengali ?: 1);
 
-                $purchaseOrder->details()->create([
+                $subtotalGross += $lineGross;
+                $totalDiskon += $lineDiskon;
+                $totalPajak += $ppnNominal;
+
+                $itemsData[] = [
                     'barang_id'      => $item['barang_id'],
                     'satuan_id'      => $satuanId,
                     'pr_detail_id'   => $item['pr_detail_id'] ?? null,
-                    'jumlah'         => $item['jumlah'],
+                    'jumlah'         => $qty,
                     'faktor_pengali' => $faktorPengali,
                     'jumlah_dasar'   => $jumlahDasar,
-                    'harga_satuan'   => $item['harga_satuan'],
-                    'diskon_item'    => $item['diskon_item'],
+                    'harga_satuan'   => $hargaSatuan,
+                    'diskon_item'    => $diskonUnit,
+                    'diskon_persen'  => $diskonPersen,
+                    'diskon_tipe'    => $diskonTipe,
                     'subtotal'       => $lineSubtotal,
+                    'ppn_pajak_id'   => $ppnPajakId,
+                    'tarif_ppn'      => $tarifPpn,
+                    'ppn_nominal'    => $ppnNominal,
                     'keterangan'     => $item['keterangan'] ?? null,
-                ]);
+                ];
             }
 
-            // Calculate global header discount accurately (prioritize exact nominal if provided)
-            $diskonNominalInput = floatval($request->diskon_nominal);
-            $diskonPersenInput = floatval($request->diskon_persen);
-            
-            $totalDiskon = 0;
-            $diskonPersen = 0;
-            $diskonNominal = 0;
+            $subtotalGross = round($subtotalGross, 2);
+            $totalDiskon = round($totalDiskon, 2);
+            $totalPajak = round($totalPajak, 2);
 
-            if ($diskonNominalInput > 0) {
-                $totalDiskon = round($diskonNominalInput, 2);
-                $diskonNominal = $totalDiskon;
-                $diskonPersen = $subtotal > 0 ? round(($totalDiskon / $subtotal) * 100, 4) : 0;
-            } elseif ($diskonPersenInput > 0) {
-                $diskonPersen = round($diskonPersenInput, 4);
-                $totalDiskon = round($subtotal * ($diskonPersen / 100), 2);
-                $diskonNominal = $totalDiskon;
-            }
-
-            if ($totalDiskon > $subtotal) {
-                $totalDiskon = $subtotal;
-            }
-
-            $subtotalNet = max(0, $subtotal - $totalDiskon);
+            // DPP = Subtotal Barang Kotor - Total Diskon Barang
+            $dpp = round(max(0, $subtotalGross - $totalDiskon), 2);
 
             $expenseItems = $request->input('expense_items', []);
             $biayaLain = 0;
-            $biayaInventory = 0;
-            $biayaExpense = 0;
             if (!empty($expenseItems) && is_array($expenseItems)) {
-                foreach ($expenseItems as $exp) {
-                    $nom = floatval($exp['nominal'] ?? 0);
-                    $biayaLain += $nom;
-                    $isHpp = isset($exp['masuk_hpp']) ? (string)$exp['masuk_hpp'] : '1';
-                    if ($isHpp === '1' || $isHpp === 'true') {
-                        $biayaInventory += $nom;
-                    } else {
-                        $biayaExpense += $nom;
+                foreach ($expenseItems as $idx => $exp) {
+                    $nom = round(floatval($exp['nominal'] ?? 0), 2);
+                    if ($nom < 0) {
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => 'Validasi gagal!',
+                            'errors' => ['expense_items' => ['Nominal biaya lain-lain tidak boleh negatif!']]
+                        ], 422);
                     }
+                    $expenseItems[$idx]['nominal'] = $nom;
+                    $biayaLain += $nom;
                 }
             } else {
-                $biayaLain = floatval($request->input('biaya_lain', 0));
-                $biayaInventory = $biayaLain;
+                $biayaLain = max(0, floatval($request->input('biaya_lain', 0)));
             }
+            $biayaLain = round($biayaLain, 2);
 
-            // DPP = Subtotal Barang Net (Pajak PPN hanya dikenakan dari nilai barang)
-            $dpp = $subtotalNet;
+            // Calculate PPh (Withholding Tax - Potongan Pajak Penghasilan)
+            $pphPajakId = $request->filled('pph_pajak_id') ? (int) $request->pph_pajak_id : null;
+            $tarifPph   = 0.0;
+            $pphNominal = 0.0;
+            $pphCoaId   = $request->filled('pph_coa_id') ? (int) $request->pph_coa_id : null;
 
-            // Calculate tax (PPN) from DPP
-            $totalPajak = 0;
-            if ($request->pajak_id) {
-                $pajak = MasterPajak::find($request->pajak_id);
-                if ($pajak) {
-                    $totalPajak = round($dpp * ($pajak->tarif / 100), 2);
+            if ($pphPajakId && isset($allTaxMap[$pphPajakId])) {
+                $tarifPph = floatval($allTaxMap[$pphPajakId]);
+                $pphNominal = round($dpp * ($tarifPph / 100), 2);
+                if (!$pphCoaId) {
+                    $pphCoaId = \App\Helpers\AccountMappingHelper::getCoaId('tax', "tax_{$pphPajakId}_in") ?? $this->resolveDefaultPphCoaId();
                 }
+            } else {
+                $pphPajakId = null;
+                $tarifPph   = 0.0;
+                $pphNominal = 0.0;
+                $pphCoaId   = null;
             }
 
-            $downPayment = floatval($request->input('down_payment', 0));
-            $grandTotal = round($dpp + $totalPajak + $biayaLain, 2);
+            // Grand Total = DPP + Total PPN + Biaya Lain-Lain - Potongan PPh
+            $grandTotal = round(max(0, $dpp + $totalPajak + $biayaLain - $pphNominal), 2);
+            $downPayment = round(floatval($request->input('down_payment', 0)), 2);
 
             // Validate down payment doesn't exceed grand total
             if ($downPayment > $grandTotal) {
@@ -1536,24 +1848,34 @@ class PurchaseOrderController extends Controller
 
             $grandTotalIdr = round($grandTotal * $kurs, 2);
 
+            // Save details
+            foreach ($itemsData as $data) {
+                $purchaseOrder->details()->create($data);
+            }
+
             // Update Header values
             $purchaseOrder->update([
                 'supplier_id'        => $request->supplier_id,
                 'tanggal_po'         => $request->tanggal_po,
                 'currency_id'        => $request->currency_id,
                 'kurs'               => $kurs,
-                'pajak_id'           => $request->pajak_id ?: null,
+                'pajak_id'           => null,
                 'payment_term_id'    => $request->payment_term_id ?: null,
                 'payment_method_id'  => $request->payment_method_id ?: null,
                 'tanggal_pengiriman' => $request->tanggal_pengiriman ?: null,
                 'pr_id'              => $request->pr_id ?: null,
                 'tender_id'          => $request->tender_id ?: null,
                 'manual_pr_number'   => $request->pr_id ? null : $request->manual_pr_number,
-                'diskon_persen'      => $diskonPersen,
-                'diskon_nominal'     => $diskonNominal,
-                'subtotal'           => $subtotal,
+                'diskon_persen'      => 0,
+                'diskon_nominal'     => 0,
+                'subtotal'           => $subtotalGross,
                 'total_diskon'       => $totalDiskon,
                 'total_pajak'        => $totalPajak,
+                'pph_pajak_id'       => $pphPajakId,
+                'tarif_pph'          => $tarifPph,
+                'pph_nominal'        => $pphNominal,
+                'total_pph'          => $pphNominal,
+                'pph_coa_id'         => $pphCoaId,
                 'grand_total'        => $grandTotal,
                 'grand_total_idr'    => $grandTotalIdr,
                 'down_payment'       => $downPayment,
@@ -1602,7 +1924,7 @@ class PurchaseOrderController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id');
 
-        if ($activeCompanyId && $purchaseOrder->company_id != $activeCompanyId) {
+        if ($activeCompanyId && $purchaseOrder->company_id && $purchaseOrder->company_id != $activeCompanyId) {
             return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
         }
         if (!$isPrivileged && strval($activeBranchId) !== strval($purchaseOrder->branch_id)) {
@@ -1613,8 +1935,23 @@ class PurchaseOrderController extends Controller
             return response()->json(['message' => 'Hanya PO dengan status Pending yang dapat disetujui!'], 400);
         }
 
+        // Segregation of Duties (SOD): Creator cannot self-approve their own PO unless Super Admin, Owner, or Director
+        $isCreator = ($purchaseOrder->created_by === $user->id);
+        $hasBypassRole = $user->hasAnyRole(['Super Admin', 'Owner', 'Director']);
+        if ($isCreator && !$hasBypassRole) {
+            return response()->json([
+                'message' => 'Anda tidak dapat menyetujui Purchase Order yang Anda buat sendiri (Prinsip Segregation of Duties).'
+            ], 403);
+        }
+
         try {
             DB::beginTransaction();
+
+            $purchaseOrder = PurchaseOrder::where('id', $purchaseOrder->id)->lockForUpdate()->first();
+            if (!$purchaseOrder || $purchaseOrder->status !== 'Pending') {
+                DB::rollBack();
+                return response()->json(['message' => 'Hanya PO dengan status Pending yang dapat disetujui!'], 400);
+            }
 
             $purchaseOrder->status = 'Ordered';
             $purchaseOrder->approved_by = auth()->id();
@@ -1648,7 +1985,7 @@ class PurchaseOrderController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id');
 
-        if ($activeCompanyId && $purchaseOrder->company_id != $activeCompanyId) {
+        if ($activeCompanyId && $purchaseOrder->company_id && $purchaseOrder->company_id != $activeCompanyId) {
             return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
         }
         if (!$isPrivileged && strval($activeBranchId) !== strval($purchaseOrder->branch_id)) {
@@ -1659,6 +1996,15 @@ class PurchaseOrderController extends Controller
             return response()->json(['message' => 'Hanya PO dengan status Pending yang dapat ditolak!'], 400);
         }
 
+        // Segregation of Duties (SOD): Creator cannot reject their own PO unless Super Admin, Owner, or Director
+        $isCreator = ($purchaseOrder->created_by === $user->id);
+        $hasBypassRole = $user->hasAnyRole(['Super Admin', 'Owner', 'Director']);
+        if ($isCreator && !$hasBypassRole) {
+            return response()->json([
+                'message' => 'Anda tidak dapat memproses penolakan Purchase Order yang Anda buat sendiri (Prinsip Segregation of Duties).'
+            ], 403);
+        }
+
         $alasan = trim($request->input('alasan_ditolak', ''));
         if (empty($alasan)) {
             return response()->json(['message' => 'Alasan penolakan wajib diisi!'], 422);
@@ -1666,6 +2012,12 @@ class PurchaseOrderController extends Controller
 
         try {
             DB::beginTransaction();
+
+            $purchaseOrder = PurchaseOrder::where('id', $purchaseOrder->id)->lockForUpdate()->first();
+            if (!$purchaseOrder || $purchaseOrder->status !== 'Pending') {
+                DB::rollBack();
+                return response()->json(['message' => 'Hanya PO dengan status Pending yang dapat ditolak!'], 400);
+            }
 
             $purchaseOrder->update([
                 'status'         => 'Rejected',
@@ -1696,6 +2048,134 @@ class PurchaseOrderController extends Controller
     }
 
     /**
+     * Buka kembali Purchase Order / Kembalikan ke Draft agar bisa diedit kembali.
+     * Persyaratan:
+     * 1. Tidak memiliki transaksi Penerimaan Barang (GR) aktif (atau harus dibatalkan terlebih dahulu).
+     * 2. Tidak sedang digunakan dalam Alokasi Biaya aktif (atau harus dibatalkan terlebih dahulu).
+     * 3. Tidak memiliki Faktur Pembelian (Purchase Invoice) aktif (atau harus dibatalkan terlebih dahulu).
+     */
+    public function reopen(PurchaseOrder $purchaseOrder)
+    {
+        $user      = auth()->user();
+        $canReopen = $user->can('buka-po') || $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director']);
+
+        if (!$canReopen) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses (role permission: buka-po) untuk membuka kembali Purchase Order ini ke status draft.'
+            ], 403);
+        }
+
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
+
+        if ($activeCompanyId && $purchaseOrder->company_id && $purchaseOrder->company_id != $activeCompanyId) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
+        }
+        if (!$user->hasRole('Super Admin') && !$user->hasRole('Owner') && strval($activeBranchId) !== strval($purchaseOrder->branch_id)) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
+        }
+
+        if ($purchaseOrder->status === 'Draft') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Purchase Order ini sudah berstatus Draft dan dapat langsung diedit.'
+            ], 400);
+        }
+
+        // 1. Cek Penerimaan Barang (Goods Receipt / LPB)
+        $activeGr = \App\Models\GoodsReceipt::where('po_id', $purchaseOrder->id)
+            ->where(function ($q) {
+                $q->whereNull('status')
+                  ->orWhere('status', '!=', 'Dibatalkan');
+            })
+            ->first();
+
+        if ($activeGr) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Purchase Order tidak dapat dikembalikan ke draft karena barang sudah diterima pada transaksi <b>Penerimaan Barang (' . e($activeGr->nomor_gr) . ')</b>. Silakan batalkan transaksi Penerimaan Barang tersebut terlebih dahulu!'
+            ], 422);
+        }
+
+        // 2. Cek Alokasi Biaya (sebagai PO Biaya yang dialokasikan)
+        $activeAlokasiPo = \App\Models\AlokasiBiaya::where('po_biaya_id', $purchaseOrder->id)
+            ->where(function ($q) {
+                $q->whereNull('status')
+                  ->orWhere('status', '!=', 'dibatalkan');
+            })
+            ->first();
+
+        if ($activeAlokasiPo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Purchase Order tidak dapat dikembalikan ke draft karena sedang digunakan sebagai PO Biaya pada transaksi <b>Alokasi Biaya (' . e($activeAlokasiPo->nomor_alokasi) . ')</b>. Silakan batalkan transaksi Alokasi Biaya tersebut terlebih dahulu!'
+            ], 422);
+        }
+
+        // 2b. Cek Alokasi Biaya (barang PO ini menerima alokasi biaya)
+        $activeAlokasiDetail = \App\Models\AlokasiBiayaDetail::whereHas('goodsReceipt', function ($q) use ($purchaseOrder) {
+                $q->where('po_id', $purchaseOrder->id);
+            })
+            ->whereHas('alokasiBiaya', function ($q) {
+                $q->whereNull('status')
+                  ->orWhere('status', '!=', 'dibatalkan');
+            })
+            ->with('alokasiBiaya')
+            ->first();
+
+        if ($activeAlokasiDetail) {
+            $nomorAlokasi = $activeAlokasiDetail->alokasiBiaya?->nomor_alokasi ?? '-';
+            return response()->json([
+                'success' => false,
+                'message' => 'Purchase Order tidak dapat dikembalikan ke draft karena barang dari PO ini telah dialokasikan biayanya pada transaksi <b>Alokasi Biaya (' . e($nomorAlokasi) . ')</b>. Silakan batalkan transaksi Alokasi Biaya tersebut terlebih dahulu!'
+            ], 422);
+        }
+
+        // 3. Cek Faktur Pembelian (Purchase Invoice)
+        $activeInvoice = \App\Models\PurchaseInvoice::where('po_id', $purchaseOrder->id)
+            ->where(function ($q) {
+                $q->whereNull('status')
+                  ->orWhereNotIn(DB::raw('LOWER(status)'), ['dibatalkan', 'cancelled', 'rejected']);
+            })
+            ->first();
+
+        if ($activeInvoice) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Purchase Order tidak dapat dikembalikan ke draft karena sudah memiliki transaksi <b>Faktur Pembelian (' . e($activeInvoice->nomor_invoice) . ')</b>. Silakan batalkan Faktur Pembelian terlebih dahulu!'
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $purchaseOrder->update([
+                'status'         => 'Draft',
+                'approved_by'    => null,
+                'approved_at'    => null,
+                'alasan_ditolak' => null,
+            ]);
+
+            // Re-evaluasi status PR terkait jika ada
+            if ($purchaseOrder->pr_id) {
+                $this->reevaluatePrStatus($purchaseOrder->pr_id);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Purchase Order <b>' . e($purchaseOrder->nomor_po) . '</b> berhasil dikembalikan ke status <b>Draft</b>! Dokumen PO sekarang dapat diedit kembali.'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error reopen PO: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan sistem saat mengembalikan PO ke draft.'], 500);
+        }
+    }
+
+    /**
      * Helper: Re-evaluate PR status using a SINGLE aggregate query per call.
      * Eliminates N+1 problem in store(), update(), and approve().
      *
@@ -1714,7 +2194,9 @@ class PurchaseOrderController extends Controller
 
         // Single aggregate query: sum ordered qty per pr_detail_id
         $orderedMap = PurchaseOrderDetail::whereIn('pr_detail_id', $prDetailIds)
-            ->whereHas('po')
+            ->whereHas('po', function ($q) {
+                $q->where('status', '!=', 'Rejected');
+            })
             ->selectRaw('pr_detail_id, SUM(jumlah) as total_ordered')
             ->groupBy('pr_detail_id')
             ->pluck('total_ordered', 'pr_detail_id');
@@ -1738,7 +2220,7 @@ class PurchaseOrderController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id');
 
-        if ($activeCompanyId && $purchaseOrder->company_id != $activeCompanyId) {
+        if ($activeCompanyId && $purchaseOrder->company_id && $purchaseOrder->company_id != $activeCompanyId) {
             abort(403, 'Anda tidak memiliki akses ke data perusahaan lain.');
         }
         if (!$isPrivileged && strval($activeBranchId) !== strval($purchaseOrder->branch_id)) {
@@ -1750,11 +2232,11 @@ class PurchaseOrderController extends Controller
         }
 
         $purchaseOrder->load([
-            'company', 'supplier', 'currency', 'pajak', 'pr',
+            'company', 'supplier', 'currency', 'pajak', 'pphPajak', 'pphCoa', 'pr',
             'creator.activeSignature', 'creator.position',
             'approver.activeSignature', 'approver.position',
             'branch', 'paymentTerm', 'paymentMethod',
-            'details.barang.satuan', 'details.satuan', 'details.barang.primaryFoto', 'details.barang.warna'
+            'details.barang.satuan', 'details.satuan', 'details.barang.primaryFoto', 'details.barang.warna', 'details.ppnPajak'
         ]);
 
         $activeBranch = $purchaseOrder->branch;

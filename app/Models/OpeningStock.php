@@ -37,31 +37,28 @@ class OpeningStock extends Model
             if (auth()->check()) {
                 $model->created_by = auth()->id();
             }
-            if (!$model->company_id && session()->has('active_company_id')) {
-                $model->company_id = session('active_company_id');
-            }
-            if (!$model->branch_id && session()->has('active_branch_id')) {
-                $model->branch_id = session('active_branch_id');
-            }
-            // Auto fallback from Gudang if branch_id or company_id is missing
-            if ($model->gudang_id && (!$model->branch_id || !$model->company_id)) {
-                $gudang = MasterGudang::find($model->gudang_id);
-                if ($gudang) {
-                    if (!$model->branch_id) $model->branch_id = $gudang->cabang_id ?: 1;
-                    if (!$model->company_id) $model->company_id = $gudang->company_id ?: 1;
-                }
-            }
-            if (!$model->branch_id) {
-                $model->branch_id = 1;
-            }
-            if (!$model->company_id) {
-                $model->company_id = 1;
+
+            $branchId  = $model->branch_id ?: session('active_branch_id');
+            $companyId = $model->company_id ?: session('active_company_id');
+
+            if (!empty($branchId)) {
+                $model->branch_id  = $branchId;
+                $model->company_id = null;
+            } else {
+                $model->branch_id  = null;
+                $model->company_id = $companyId ?: 1;
             }
         });
 
         static::updating(function ($model) {
             if (auth()->check()) {
                 $model->updated_by = auth()->id();
+            }
+
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            } else if (!empty($model->company_id)) {
+                $model->branch_id = null;
             }
         });
 
@@ -81,10 +78,31 @@ class OpeningStock extends Model
     public function scopeForActiveCompany($query)
     {
         $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId) {
-            return $query->where($this->getTable() . '.company_id', $activeCompanyId);
+        $activeBranchId  = session('active_branch_id');
+
+        if (!empty($activeBranchId)) {
+            return $query;
+        }
+
+        if (!empty($activeCompanyId)) {
+            return $query->where(function ($q) use ($activeCompanyId) {
+                $q->where($this->getTable() . '.company_id', $activeCompanyId)
+                  ->orWhereHas('gudang', function ($sq) use ($activeCompanyId) {
+                      $sq->where('company_id', $activeCompanyId);
+                  });
+            });
         }
         return $query;
+    }
+
+    public function scopeForActiveBranch($query)
+    {
+        $activeBranchId = session('active_branch_id');
+        if (!empty($activeBranchId)) {
+            return $query->where($this->getTable() . '.branch_id', $activeBranchId);
+        } else {
+            return $query->whereNull($this->getTable() . '.branch_id');
+        }
     }
 
     public function gudang(): BelongsTo

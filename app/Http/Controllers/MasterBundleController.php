@@ -64,33 +64,27 @@ class MasterBundleController extends Controller
             ->whereIn('tipe_item', ['Stok', 'Barang Jadi'])
             ->where('status', 'Active')
             ->whereIn('kategori_barang_id', $allowedBundleKategoriIds)
-            ->with(['satuan', 'kategori', 'brand', 'fotos', 'stokGudangs'])
+            ->with(['satuan', 'kategori', 'brand', 'fotos', 'stokGudangs.gudang'])
             ->orderBy('nama_barang', 'asc')
             ->get()
             ->map(function ($b) {
-                // Stok total dari semua gudang
-                $stokTotal = (float)$b->stokGudangs->sum('stok_aktual');
-
-                // HPP dari stok_gudangs (prioritas harga_pokok_rata_rata, fallback harga_beli_terakhir)
-                $hppGudang = 0;
-                $sgValid = $b->stokGudangs->first(fn($sg) => (float)$sg->harga_pokok_rata_rata > 0);
-                if ($sgValid) {
-                    $hppGudang = (float)$sgValid->harga_pokok_rata_rata;
-                } else {
-                    $sgBeli = $b->stokGudangs->first(fn($sg) => (float)$sg->harga_beli_terakhir > 0);
-                    if ($sgBeli) $hppGudang = (float)$sgBeli->harga_beli_terakhir;
-                }
-
-                $b->stok_total      = $stokTotal;
-                $b->hpp_dari_gudang = $hppGudang;
+                $b->stok_total      = $this->resolveChildStock($b);
+                $b->hpp_dari_gudang = $this->resolveChildHpp($b);
                 return $b;
             });
 
-        // Warehouses list for Assembly Transaction
-        $gudangs = \App\Models\MasterGudang::forActiveCompany()
-            ->where('status', 'Active')
-            ->orderBy('nama_gudang', 'asc')
-            ->get();
+        // Warehouses list for Assembly Transaction (Strictly scoped: PT Pusat = cabang_id NULL, Cabang = cabang_id matching)
+        $activeBranchId = session('active_branch_id');
+        $gudangsQuery = \App\Models\MasterGudang::forActiveCompany()
+            ->where('status', 'Active');
+
+        if ($activeBranchId) {
+            $gudangsQuery->where('cabang_id', $activeBranchId);
+        } else {
+            $gudangsQuery->whereNull('cabang_id');
+        }
+
+        $gudangs = $gudangsQuery->orderBy('nama_gudang', 'asc')->get();
 
         // Active Bundles list for Assembly Modal
         $activeBundles = MasterBarang::forActiveCompany()
@@ -130,7 +124,7 @@ class MasterBundleController extends Controller
                 'satuan',
                 'fotos',
                 'bundleComponents.childBarang.satuan',
-                'bundleComponents.childBarang.stokGudangs'
+                'bundleComponents.childBarang.stokGudangs.gudang'
             ])
             ->orderBy('id', 'desc');
 
@@ -143,7 +137,7 @@ class MasterBundleController extends Controller
         }
 
         if ($request->filled('satuan_id') && $request->satuan_id !== 'all') {
-            $query->where('satuan_dasar_id', $request->satuan_id);
+            $query->where('satuan_id', $request->satuan_id);
         }
 
         if ($request->filled('brand_id') && $request->brand_id !== 'all') {
@@ -198,7 +192,7 @@ class MasterBundleController extends Controller
             })
             ->addColumn('estimasi_stok_bundle', function ($b) {
                 // Calculate max assembleable bundle packs based on lowest child component stock
-                $bundleItems = MasterBarangBundle::where('parent_barang_id', $b->id)->get();
+                $bundleItems = $b->bundleComponents;
                 if ($bundleItems->isEmpty()) {
                     return '<span class="badge bg-secondary bg-opacity-20 text-secondary border border-secondary border-opacity-25 rounded-pill px-2.5 py-1 font-monospace">0 Set</span>';
                 }
@@ -208,7 +202,9 @@ class MasterBundleController extends Controller
                     $qtyNeeded = (float)$item->qty;
                     if ($qtyNeeded <= 0) continue;
 
-                    $totalChildStock = (float)StokGudang::where('barang_id', $item->child_barang_id)->sum('stok_aktual');
+                    $totalChildStock = (float)($item->childBarang
+                        ? $this->resolveChildStock($item->childBarang)
+                        : 0);
                     $possibleForThisChild = floor($totalChildStock / $qtyNeeded);
 
                     if ($possibleForThisChild < $maxBundlesPossible) {
@@ -304,25 +300,69 @@ class MasterBundleController extends Controller
             // Auto-generate code if empty
             $kodeBarang = $validated['kode_barang'];
             if (empty($kodeBarang)) {
-                $kodeBarang = MasterBarang::generateKodeBarang('Bundle');
+                $kodeBarang = \App\Helpers\CodeGeneratorHelper::generate('master_barang', 'BDL-', 'kode_barang');
             }
 
-            // Validasi Keamanan: Pastikan semua barang komponen memiliki stok > 0 di gudang
+            $activeBranchId = session('active_branch_id');
+            $locationLabel = $activeBranchId ? 'Cabang' : 'PT Pusat';
+
+            $totalBundleHpp = 0.0;
+
+            // Validasi Keamanan & HPP Ketat: Pastikan semua komponen terdaftar di PT & memiliki HPP > 0 di entitas ini
             foreach ($validated['komponen'] as $comp) {
-                $childItem = MasterBarang::forActiveCompany()->with('stokGudangs')->find($comp['child_id']);
+                $childItem = MasterBarang::forActiveCompany()
+                    ->with(['stokGudangs.gudang'])
+                    ->find($comp['child_id']);
+
                 if (!$childItem) {
+                    DB::rollBack();
                     return response()->json([
                         'success' => false,
                         'message' => 'Barang komponen tidak ditemukan di database.'
                     ], 422);
                 }
-                $currentStock = (float)$childItem->stokGudangs->sum('stok_aktual');
-                if ($currentStock <= 0) {
+
+                $childHpp = $this->resolveChildHpp($childItem);
+                if ($childHpp <= 0) {
+                    DB::rollBack();
                     return response()->json([
                         'success' => false,
-                        'message' => "Gagal! Barang penyusun '{$childItem->nama_barang}' ({$childItem->kode_barang}) memiliki stok 0 di gudang. Tidak dapat dijadikan komponen paket bundle."
+                        'message' => "Gagal Menyimpan: Komponen '{$childItem->nama_barang}' ({$childItem->kode_barang}) belum memiliki nilai HPP (Rp 0) di {$locationLabel}. Silakan lakukan penerimaan/pembelian stok komponen di {$locationLabel} terlebih dahulu!"
                     ], 422);
                 }
+
+                $totalBundleHpp += ($childHpp * (float)$comp['qty']);
+            }
+
+            // Validasi Margin Rugi (HPP vs Harga Jual)
+            $hargaRetail = (float)($validated['harga_jual_retail'] ?? 0);
+            $hargaGrosir = (float)($validated['harga_jual_grosir'] ?? 0);
+            $hargaTender = (float)($validated['harga_jual_tender'] ?? 0);
+
+            $invalidTiers = [];
+            if ($hargaRetail > 0 && $hargaRetail < $totalBundleHpp) {
+                $rugiRp = number_format($totalBundleHpp - $hargaRetail, 0, ',', '.');
+                $invalidTiers[] = "Harga Retail (Rp " . number_format($hargaRetail, 0, ',', '.') . " - Rugi Rp {$rugiRp})";
+            }
+
+            if ($hargaGrosir > 0 && $hargaGrosir < $totalBundleHpp) {
+                $rugiRp = number_format($totalBundleHpp - $hargaGrosir, 0, ',', '.');
+                $invalidTiers[] = "Harga Grosir (Rp " . number_format($hargaGrosir, 0, ',', '.') . " - Rugi Rp {$rugiRp})";
+            }
+
+            if ($hargaTender > 0 && $hargaTender < $totalBundleHpp) {
+                $rugiRp = number_format($totalBundleHpp - $hargaTender, 0, ',', '.');
+                $invalidTiers[] = "Harga Tender (Rp " . number_format($hargaTender, 0, ',', '.') . " - Rugi Rp {$rugiRp})";
+            }
+
+            if (!empty($invalidTiers)) {
+                DB::rollBack();
+                $hppFormatted = number_format($totalBundleHpp, 0, ',', '.');
+                $tierListStr = implode(', ', $invalidTiers);
+                return response()->json([
+                    'success' => false,
+                    'message' => "Gagal Menyimpan: Terdeteksi MARGIN RUGI! Total HPP Bundle adalah Rp {$hppFormatted}. Skema harga jual berikut lebih rendah dari HPP: {$tierListStr}. Silakan naikkan harga jual atau sesuaikan komposisi!"
+                ], 422);
             }
 
             $bundle = MasterBarang::create([
@@ -333,7 +373,7 @@ class MasterBundleController extends Controller
                 'kategori_barang_id' => $validated['kategori_barang_id'],
                 'brand_id'           => $validated['brand_id'] ?? null,
                 'tipe_barang_id'     => $validated['tipe_barang_id'],
-                'satuan_dasar_id'    => $validated['satuan_id'],
+                'satuan_id'          => $validated['satuan_id'],
                 'tipe_item'          => 'Bundle',
                 'harga_jual_retail'  => $validated['harga_jual_retail'] ?? 0,
                 'harga_jual_grosir'  => $validated['harga_jual_grosir'] ?? 0,
@@ -390,6 +430,12 @@ class MasterBundleController extends Controller
         }
 
         $gudangId = $request->query('gudang_id');
+        if ($gudangId) {
+            $validGudang = \App\Models\MasterGudang::forActiveCompany()->find($gudangId);
+            if (!$validGudang) {
+                $gudangId = null;
+            }
+        }
 
         $bundle = MasterBarang::forActiveCompany()
             ->where('tipe_item', 'Bundle')
@@ -403,27 +449,13 @@ class MasterBundleController extends Controller
 
         $totalRealtimeHpp = 0;
         $components = MasterBarangBundle::where('parent_barang_id', $bundle->id)
-            ->with(['childBarang.satuan', 'childBarang.kategori', 'childBarang.primaryFoto', 'childBarang.fotos', 'childBarang.stokGudangs'])
+            ->with(['childBarang.satuan', 'childBarang.kategori', 'childBarang.primaryFoto', 'childBarang.fotos', 'childBarang.stokGudangs.gudang'])
             ->get()
             ->map(function($comp) use ($gudangId, &$totalRealtimeHpp) {
                 $child = $comp->childBarang;
 
-                if ($gudangId) {
-                    $stockInWarehouses = (float)StokGudang::where('gudang_id', $gudangId)->where('barang_id', $child->id)->value('stok_aktual') ?? 0;
-                } else {
-                    $stockInWarehouses = (float)StokGudang::where('barang_id', $child->id)->sum('stok_aktual');
-                }
-
-                $childHpp = 0;
-                if ($child && $child->stokGudangs) {
-                    $sgValid = $child->stokGudangs->first(fn($sg) => (float)$sg->harga_pokok_rata_rata > 0);
-                    if ($sgValid) {
-                        $childHpp = (float)$sgValid->harga_pokok_rata_rata;
-                    } else {
-                        $sgBeli = $child->stokGudangs->first(fn($sg) => (float)$sg->harga_beli_terakhir > 0);
-                        if ($sgBeli) $childHpp = (float)$sgBeli->harga_beli_terakhir;
-                    }
-                }
+                $stockInWarehouses = $this->resolveChildStock($child, $gudangId);
+                $childHpp          = $this->resolveChildHpp($child, $gudangId);
 
                 $subtotalHpp = $childHpp * (float)$comp->qty;
                 $totalRealtimeHpp += $subtotalHpp;
@@ -448,27 +480,30 @@ class MasterBundleController extends Controller
 
         $maxAssembleable = $components->isEmpty() ? 0 : $components->min('possible_bundles');
 
+        $payload = [
+            'id'                => $bundle->id,
+            'kode_barang'       => $bundle->kode_barang,
+            'nama_barang'       => $bundle->nama_barang,
+            'nama_alias'        => $bundle->nama_alias,
+            'kategori_nama'     => $bundle->kategori ? $bundle->kategori->nama_kategori : '-',
+            'brand_nama'        => $bundle->brand ? $bundle->brand->nama_brand : '-',
+            'satuan_nama'       => $bundle->satuan ? $bundle->satuan->nama_satuan : 'Set',
+            'realtime_hpp'      => $totalRealtimeHpp,
+            'harga_jual_retail' => (float)($bundle->harga_jual_retail ?? 0),
+            'harga_jual_grosir' => (float)($bundle->harga_jual_grosir ?? 0),
+            'harga_jual_tender' => (float)($bundle->harga_jual_tender ?? 0),
+            'spesifikasi'       => $bundle->spesifikasi,
+            'status'            => $bundle->status,
+            'foto_url'          => $bundle->primaryFoto ? asset('storage/' . $bundle->primaryFoto->foto_path) : ($bundle->fotos->first() ? asset('storage/' . $bundle->fotos->first()->foto_path) : null),
+            'fotos'             => $bundle->fotos->map(fn($f) => ['id' => $f->id, 'url' => asset('storage/' . $f->foto_path), 'is_primary' => $f->is_primary]),
+            'max_assembleable'  => $maxAssembleable,
+            'components'        => $components
+        ];
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'id'                => $bundle->id,
-                'kode_barang'       => $bundle->kode_barang,
-                'nama_barang'       => $bundle->nama_barang,
-                'nama_alias'        => $bundle->nama_alias,
-                'kategori_nama'     => $bundle->kategori ? $bundle->kategori->nama_kategori : '-',
-                'brand_nama'        => $bundle->brand ? $bundle->brand->nama_brand : '-',
-                'satuan_nama'       => $bundle->satuan ? $bundle->satuan->nama_satuan : 'Set',
-                'realtime_hpp'      => $totalRealtimeHpp,
-                'harga_jual_retail' => (float)($bundle->harga_jual_retail ?? 0),
-                'harga_jual_grosir' => (float)($bundle->harga_jual_grosir ?? 0),
-                'harga_jual_tender' => (float)($bundle->harga_jual_tender ?? 0),
-                'spesifikasi'       => $bundle->spesifikasi,
-                'status'            => $bundle->status,
-                'foto_url'          => $bundle->primaryFoto ? asset('storage/' . $bundle->primaryFoto->foto_path) : ($bundle->fotos->first() ? asset('storage/' . $bundle->fotos->first()->foto_path) : null),
-                'fotos'             => $bundle->fotos->map(fn($f) => ['id' => $f->id, 'url' => asset('storage/' . $f->foto_path), 'is_primary' => $f->is_primary]),
-                'max_assembleable'  => $maxAssembleable,
-                'components'        => $components
-            ]
+            'data'    => $payload,
+            'bundle'  => $payload
         ]);
     }
 
@@ -484,24 +519,15 @@ class MasterBundleController extends Controller
 
         $bundle = MasterBarang::forActiveCompany()
             ->where('tipe_item', 'Bundle')
-            ->with(['fotos', 'kategori', 'brand', 'satuan'])
+            ->with(['fotos', 'kategori', 'brand', 'satuan', 'tipeBarang'])
             ->findOrFail($id);
 
         $components = MasterBarangBundle::where('parent_barang_id', $bundle->id)
-            ->with(['childBarang.satuan', 'childBarang.stokGudangs'])
+            ->with(['childBarang.satuan', 'childBarang.stokGudangs.gudang'])
             ->get()
             ->map(function($comp) {
                 $child = $comp->childBarang;
-                $childHpp = 0;
-                if ($child && $child->stokGudangs) {
-                    $sgValid = $child->stokGudangs->first(fn($sg) => (float)$sg->harga_pokok_rata_rata > 0);
-                    if ($sgValid) {
-                        $childHpp = (float)$sgValid->harga_pokok_rata_rata;
-                    } else {
-                        $sgBeli = $child->stokGudangs->first(fn($sg) => (float)$sg->harga_beli_terakhir > 0);
-                        if ($sgBeli) $childHpp = (float)$sgBeli->harga_beli_terakhir;
-                    }
-                }
+                $childHpp = $this->resolveChildHpp($child);
 
                 return [
                     'id'             => $comp->id,
@@ -572,7 +598,7 @@ class MasterBundleController extends Controller
                 'kategori_barang_id' => $validated['kategori_barang_id'],
                 'brand_id'           => $validated['brand_id'] ?? null,
                 'tipe_barang_id'     => $validated['tipe_barang_id'],
-                'satuan_dasar_id'    => $validated['satuan_id'],
+                'satuan_id'          => $validated['satuan_id'],
                 'harga_jual_retail'  => $validated['harga_jual_retail'] ?? 0,
                 'harga_jual_grosir'  => $validated['harga_jual_grosir'] ?? 0,
                 'harga_jual_tender'  => $validated['harga_jual_tender'] ?? 0,
@@ -581,22 +607,66 @@ class MasterBundleController extends Controller
                 'updated_by'         => auth()->id(),
             ]);
 
-            // Validasi Keamanan: Pastikan semua barang komponen memiliki stok > 0 di gudang
+            $activeBranchId = session('active_branch_id');
+            $locationLabel = $activeBranchId ? 'Cabang' : 'PT Pusat';
+
+            $totalBundleHpp = 0.0;
+
+            // Validasi Keamanan & HPP Ketat: Pastikan semua komponen terdaftar di PT & memiliki HPP > 0 di entitas ini
             foreach ($validated['komponen'] as $comp) {
-                $childItem = MasterBarang::forActiveCompany()->with('stokGudangs')->find($comp['child_id']);
+                $childItem = MasterBarang::forActiveCompany()
+                    ->with(['stokGudangs.gudang'])
+                    ->find($comp['child_id']);
+
                 if (!$childItem) {
+                    DB::rollBack();
                     return response()->json([
                         'success' => false,
                         'message' => 'Barang komponen tidak ditemukan di database.'
                     ], 422);
                 }
-                $currentStock = (float)$childItem->stokGudangs->sum('stok_aktual');
-                if ($currentStock <= 0) {
+
+                $childHpp = $this->resolveChildHpp($childItem);
+                if ($childHpp <= 0) {
+                    DB::rollBack();
                     return response()->json([
                         'success' => false,
-                        'message' => "Gagal! Barang penyusun '{$childItem->nama_barang}' ({$childItem->kode_barang}) memiliki stok 0 di gudang. Tidak dapat dijadikan komponen paket bundle."
+                        'message' => "Gagal Perbarui: Komponen '{$childItem->nama_barang}' ({$childItem->kode_barang}) belum memiliki nilai HPP (Rp 0) di {$locationLabel}. Silakan lakukan penerimaan/pembelian stok komponen di {$locationLabel} terlebih dahulu!"
                     ], 422);
                 }
+
+                $totalBundleHpp += ($childHpp * (float)$comp['qty']);
+            }
+
+            // Validasi Margin Rugi (HPP vs Harga Jual)
+            $hargaRetail = (float)($validated['harga_jual_retail'] ?? 0);
+            $hargaGrosir = (float)($validated['harga_jual_grosir'] ?? 0);
+            $hargaTender = (float)($validated['harga_jual_tender'] ?? 0);
+
+            $invalidTiers = [];
+            if ($hargaRetail > 0 && $hargaRetail < $totalBundleHpp) {
+                $rugiRp = number_format($totalBundleHpp - $hargaRetail, 0, ',', '.');
+                $invalidTiers[] = "Harga Retail (Rp " . number_format($hargaRetail, 0, ',', '.') . " - Rugi Rp {$rugiRp})";
+            }
+
+            if ($hargaGrosir > 0 && $hargaGrosir < $totalBundleHpp) {
+                $rugiRp = number_format($totalBundleHpp - $hargaGrosir, 0, ',', '.');
+                $invalidTiers[] = "Harga Grosir (Rp " . number_format($hargaGrosir, 0, ',', '.') . " - Rugi Rp {$rugiRp})";
+            }
+
+            if ($hargaTender > 0 && $hargaTender < $totalBundleHpp) {
+                $rugiRp = number_format($totalBundleHpp - $hargaTender, 0, ',', '.');
+                $invalidTiers[] = "Harga Tender (Rp " . number_format($hargaTender, 0, ',', '.') . " - Rugi Rp {$rugiRp})";
+            }
+
+            if (!empty($invalidTiers)) {
+                DB::rollBack();
+                $hppFormatted = number_format($totalBundleHpp, 0, ',', '.');
+                $tierListStr = implode(', ', $invalidTiers);
+                return response()->json([
+                    'success' => false,
+                    'message' => "Gagal Perbarui: Terdeteksi MARGIN RUGI! Total HPP Bundle adalah Rp {$hppFormatted}. Skema harga jual berikut lebih rendah dari HPP: {$tierListStr}. Silakan naikkan harga jual atau sesuaikan komposisi!"
+                ], 422);
             }
 
             // Replace component mappings
@@ -703,6 +773,25 @@ class MasterBundleController extends Controller
             ->where('tipe_item', 'Bundle')
             ->findOrFail($validated['parent_barang_id']);
 
+        $activeBranchId = session('active_branch_id');
+        $locationLabel  = $activeBranchId ? 'Cabang' : 'PT Pusat';
+
+        $gudangKomponen = \App\Models\MasterGudang::forActiveCompany()->find($validated['gudang_komponen_id']);
+        if (!$gudangKomponen || ($activeBranchId ? $gudangKomponen->cabang_id != $activeBranchId : !is_null($gudangKomponen->cabang_id))) {
+            return response()->json([
+                'success' => false,
+                'message' => "Gudang asal komponen tidak valid untuk entitas {$locationLabel} ini."
+            ], 422);
+        }
+
+        $gudangBundle = \App\Models\MasterGudang::forActiveCompany()->find($validated['gudang_bundle_id']);
+        if (!$gudangBundle || ($activeBranchId ? $gudangBundle->cabang_id != $activeBranchId : !is_null($gudangBundle->cabang_id))) {
+            return response()->json([
+                'success' => false,
+                'message' => "Gudang tujuan bundle tidak valid untuk entitas {$locationLabel} ini."
+            ], 422);
+        }
+
         $komponens = MasterBarangBundle::where('parent_barang_id', $bundle->id)
             ->with(['childBarang.satuan'])
             ->get();
@@ -720,7 +809,9 @@ class MasterBundleController extends Controller
         try {
             DB::beginTransaction();
 
-            // 1. Validate component stock in origin warehouse & decrease stock
+            $totalBundleHppPerSet = 0.0;
+
+            // 1. Validate component stock in origin warehouse & decrease stock + calculate valuation
             foreach ($komponens as $comp) {
                 $child = $comp->childBarang;
                 $qtyPerSet = (float)$comp->qty;
@@ -743,10 +834,34 @@ class MasterBundleController extends Controller
                     ], 422);
                 }
 
-                // Decrement stock
+                // Determine HPP of child component (strictly from origin warehouse)
+                $hppChild = (float)($stokComp && (float)$stokComp->harga_pokok_rata_rata > 0 
+                    ? $stokComp->harga_pokok_rata_rata 
+                    : ($stokComp && (float)$stokComp->harga_beli_terakhir > 0 
+                        ? $stokComp->harga_beli_terakhir 
+                        : 0));
+
+                if ($hppChild <= 0) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Gagal Merakit: Komponen '{$child->nama_barang}' ({$child->kode_barang}) belum memiliki nilai HPP (Rp 0) di gudang asal '{$gudangKomponen->nama_gudang}'. Perakitan dibatalkan!"
+                    ], 422);
+                }
+                $nilaiTotalChild = round($totalQtyNeeded * $hppChild, 4);
+                $totalBundleHppPerSet += ($qtyPerSet * $hppChild);
+
+                // Decrement stock and inventory valuation
                 $stokAwal = $currentStock;
                 $stokAkhir = $stokAwal - $totalQtyNeeded;
-                $stokComp->update(['stok_aktual' => $stokAkhir]);
+                $nilaiAwalChild = (float)($stokComp->nilai_persediaan ?: 0);
+                $nilaiAkhirChild = max(0, round($nilaiAwalChild - $nilaiTotalChild, 4));
+
+                $stokComp->update([
+                    'stok_aktual'      => $stokAkhir,
+                    'nilai_persediaan' => $nilaiAkhirChild,
+                ]);
+                StokGudang::syncMasterHpp($child->id);
 
                 // Record KartuStok Out
                 \App\Models\KartuStok::create([
@@ -756,6 +871,8 @@ class MasterBundleController extends Controller
                     'jumlah'          => $totalQtyNeeded,
                     'stok_awal'       => $stokAwal,
                     'stok_akhir'      => $stokAkhir,
+                    'harga_satuan'    => $hppChild,
+                    'nilai_total'     => $nilaiTotalChild,
                     'referensi_jenis' => 'Perakitan Bundle',
                     'referensi_nomor' => $nomorRakit,
                     'keterangan'      => "Pengeluaran komponen penyusun untuk perakitan " . number_format($jumlahPaket, 0, ',', '.') . " Set Paket {$bundle->nama_barang}",
@@ -763,7 +880,7 @@ class MasterBundleController extends Controller
                 ]);
             }
 
-            // 2. Increase Parent Bundle Stock in destination warehouse
+            // 2. Increase Parent Bundle Stock & Valuation in destination warehouse
             $stokBundle = StokGudang::where('gudang_id', $validated['gudang_bundle_id'])
                 ->where('barang_id', $bundle->id)
                 ->lockForUpdate()
@@ -771,15 +888,27 @@ class MasterBundleController extends Controller
 
             if (!$stokBundle) {
                 $stokBundle = StokGudang::create([
-                    'gudang_id'   => $validated['gudang_bundle_id'],
-                    'barang_id'   => $bundle->id,
-                    'stok_aktual' => 0,
+                    'gudang_id'             => $validated['gudang_bundle_id'],
+                    'barang_id'             => $bundle->id,
+                    'stok_aktual'           => 0,
+                    'nilai_persediaan'      => 0,
+                    'harga_pokok_rata_rata' => $totalBundleHppPerSet,
                 ]);
             }
 
-            $stokAwalBundle = (float)$stokBundle->stok_aktual;
+            $totalNilaiBundleCreated = round($jumlahPaket * $totalBundleHppPerSet, 4);
+            $stokAwalBundle = (float)($stokBundle->stok_aktual ?: 0);
             $stokAkhirBundle = $stokAwalBundle + $jumlahPaket;
-            $stokBundle->update(['stok_aktual' => $stokAkhirBundle]);
+            $nilaiAwalBundle = (float)($stokBundle->nilai_persediaan ?: 0);
+            $nilaiAkhirBundle = round($nilaiAwalBundle + $totalNilaiBundleCreated, 4);
+            $hppAvgBundleNew = $stokAkhirBundle > 0 ? round($nilaiAkhirBundle / $stokAkhirBundle, 6) : $totalBundleHppPerSet;
+
+            $stokBundle->update([
+                'stok_aktual'            => $stokAkhirBundle,
+                'nilai_persediaan'       => $nilaiAkhirBundle,
+                'harga_pokok_rata_rata'  => $hppAvgBundleNew,
+            ]);
+            StokGudang::syncMasterHpp($bundle->id);
 
             // Record KartuStok In
             \App\Models\KartuStok::create([
@@ -789,6 +918,8 @@ class MasterBundleController extends Controller
                 'jumlah'          => $jumlahPaket,
                 'stok_awal'       => $stokAwalBundle,
                 'stok_akhir'      => $stokAkhirBundle,
+                'harga_satuan'    => $totalBundleHppPerSet,
+                'nilai_total'     => $totalNilaiBundleCreated,
                 'referensi_jenis' => 'Perakitan Bundle',
                 'referensi_nomor' => $nomorRakit,
                 'keterangan'      => $validated['keterangan'] ?: "Penerimaan stok hasil perakitan " . number_format($jumlahPaket, 0, ',', '.') . " Set Paket {$bundle->nama_barang}",
@@ -938,5 +1069,95 @@ class MasterBundleController extends Controller
                 'message' => 'Gagal memproses bulk update: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Resolve HPP for a child component with STRICT isolation:
+     * 1. If $gudangId provided: check ONLY that warehouse.
+     * 2. If logged in at Cabang (active_branch_id): check ONLY warehouses of that Cabang.
+     * 3. If logged in at PT Pusat (no active_branch_id): check ONLY PT Pusat warehouses (cabang_id null).
+     * Returns 0.0 if HPP is not found/0 in active scope (Strict No-Bypass).
+     */
+    private function resolveChildHpp($child, $gudangId = null): float
+    {
+        if (!$child || !$child->relationLoaded('stokGudangs')) return 0.0;
+
+        // 1. Gudang Spesifik (jika dipilih)
+        if ($gudangId) {
+            $sgTarget = $child->stokGudangs->firstWhere('gudang_id', $gudangId);
+            if ($sgTarget) {
+                if ((float)$sgTarget->harga_pokok_rata_rata > 0) {
+                    return (float)$sgTarget->harga_pokok_rata_rata;
+                }
+                if ((float)$sgTarget->harga_beli_terakhir > 0) {
+                    return (float)$sgTarget->harga_beli_terakhir;
+                }
+            }
+            return 0.0;
+        }
+
+        $activeBranchId = session('active_branch_id');
+
+        // 2. KETAT CABANG: Jika user login di Cabang, HANYA cek gudang cabang ini
+        if ($activeBranchId) {
+            $sgBranchValid = $child->stokGudangs->first(function($sg) use ($activeBranchId) {
+                return $sg->gudang && $sg->gudang->cabang_id == $activeBranchId && (float)$sg->harga_pokok_rata_rata > 0;
+            });
+            if ($sgBranchValid) {
+                return (float)$sgBranchValid->harga_pokok_rata_rata;
+            }
+
+            $sgBranchBeli = $child->stokGudangs->first(function($sg) use ($activeBranchId) {
+                return $sg->gudang && $sg->gudang->cabang_id == $activeBranchId && (float)$sg->harga_beli_terakhir > 0;
+            });
+            if ($sgBranchBeli) {
+                return (float)$sgBranchBeli->harga_beli_terakhir;
+            }
+
+            // KETAT: Tidak ada fallback ke PT Pusat/Cabang lain!
+            return 0.0;
+        }
+
+        // 3. KETAT PT PUSAT: Jika user login di PT Pusat (cabang_id null), HANYA cek gudang PT Pusat
+        $sgPusatValid = $child->stokGudangs->first(function($sg) {
+            return $sg->gudang && is_null($sg->gudang->cabang_id) && (float)$sg->harga_pokok_rata_rata > 0;
+        });
+        if ($sgPusatValid) {
+            return (float)$sgPusatValid->harga_pokok_rata_rata;
+        }
+
+        $sgPusatBeli = $child->stokGudangs->first(function($sg) {
+            return $sg->gudang && is_null($sg->gudang->cabang_id) && (float)$sg->harga_beli_terakhir > 0;
+        });
+        if ($sgPusatBeli) {
+            return (float)$sgPusatBeli->harga_beli_terakhir;
+        }
+
+        // KETAT: Tidak ada HPP di PT Pusat
+        return 0.0;
+    }
+
+    /**
+     * Resolve stock for a child component prioritized by Active Branch or target warehouse.
+     */
+    private function resolveChildStock($child, $gudangId = null): float
+    {
+        if (!$child || !$child->relationLoaded('stokGudangs')) return 0.0;
+
+        if ($gudangId) {
+            $sgTarget = $child->stokGudangs->firstWhere('gudang_id', $gudangId);
+            return $sgTarget ? (float)$sgTarget->stok_aktual : 0.0;
+        }
+
+        $activeBranchId = session('active_branch_id');
+        if ($activeBranchId) {
+            return (float)$child->stokGudangs->filter(function($sg) use ($activeBranchId) {
+                return $sg->gudang && $sg->gudang->cabang_id == $activeBranchId;
+            })->sum('stok_aktual');
+        }
+
+        return (float)$child->stokGudangs->filter(function($sg) {
+            return $sg->gudang && is_null($sg->gudang->cabang_id);
+        })->sum('stok_aktual');
     }
 }

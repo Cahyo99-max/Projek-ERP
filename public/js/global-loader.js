@@ -155,11 +155,18 @@
             href.startsWith('javascript:') || 
             href.startsWith('mailto:') || 
             href.startsWith('tel:') ||
+            href.startsWith('blob:') ||
+            href.startsWith('data:') ||
+            href.includes('download') ||
+            href.includes('export') ||
+            href.includes('template') ||
             link.hasAttribute('download') ||
             link.getAttribute('target') === '_blank' ||
             link.getAttribute('data-bs-toggle') === 'collapse' ||
             link.getAttribute('data-bs-toggle') === 'modal' ||
-            link.classList.contains('no-loader')
+            link.classList.contains('no-loader') ||
+            link.getAttribute('data-no-loader') === 'true' ||
+            link.classList.contains('btn-download-document')
         ) {
             return;
         }

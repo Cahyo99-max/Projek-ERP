@@ -398,9 +398,13 @@
                     if (status === 'abort') return;
                     console.error('[DetailPR] Gagal memuat data detail PR:', error, xhr);
                     let errMessage = 'Terjadi gangguan jaringan saat memuat data.';
-                    if (xhr.status === 403) errMessage = 'Anda tidak memiliki hak akses untuk melihat pengajuan ini.';
-                    else if (xhr.status === 404) errMessage = 'Pengajuan pembelian tidak ditemukan atau sudah dihapus.';
-                    else if (xhr.responseJSON && xhr.responseJSON.message) errMessage = xhr.responseJSON.message;
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errMessage = xhr.responseJSON.message;
+                    } else if (xhr.status === 403) {
+                        errMessage = 'Anda tidak memiliki hak akses untuk melihat pengajuan ini.';
+                    } else if (xhr.status === 404) {
+                        errMessage = 'Pengajuan pembelian tidak ditemukan atau sudah dihapus.';
+                    }
 
                     $('#detail_status_badge').html('<span class="badge bg-danger rounded-pill px-3 py-1">Gagal Memuat</span>');
                     $('#detail_items_tbody').html(`

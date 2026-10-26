@@ -31,16 +31,41 @@ class PurchaseRequisition extends Model
     protected static function booted()
     {
         static::creating(function ($model) {
-            if (empty($model->company_id) && session()->has('active_company_id')) {
-                $model->company_id = session('active_company_id');
+            if (empty($model->dibuat_oleh) && auth()->check()) {
+                $model->dibuat_oleh = auth()->id();
+            }
+
+            $branchId  = $model->branch_id ?: session('active_branch_id');
+            $companyId = $model->company_id ?: session('active_company_id');
+
+            if (!empty($branchId)) {
+                $model->branch_id  = $branchId;
+                $model->company_id = null;
+            } else {
+                $model->branch_id  = null;
+                $model->company_id = $companyId ?: 1;
+            }
+        });
+
+        static::updating(function ($model) {
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            } else if (!empty($model->company_id)) {
+                $model->branch_id = null;
             }
         });
     }
 
     protected $casts = [
-        'tanggal_pr' => 'date',
+        'company_id'         => 'integer',
+        'branch_id'          => 'integer',
+        'departemen_id'      => 'integer',
+        'diminta_oleh'       => 'integer',
+        'dibuat_oleh'        => 'integer',
+        'disetujui_oleh'     => 'integer',
+        'tanggal_pr'         => 'date',
         'tanggal_dibutuhkan' => 'date',
-        'tanggal_disetujui' => 'datetime',
+        'tanggal_disetujui'  => 'datetime',
     ];
 
     public function company()
@@ -86,6 +111,12 @@ class PurchaseRequisition extends Model
     public function scopeForActiveCompany($query)
     {
         $activeCompanyId = session('active_company_id');
+        $activeBranchId  = session('active_branch_id');
+
+        if (!empty($activeBranchId)) {
+            return $query;
+        }
+
         if ($activeCompanyId) {
             return $query->where($this->getTable() . '.company_id', $activeCompanyId);
         }

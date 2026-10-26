@@ -95,7 +95,7 @@
                                         <label class="form-label fw-semibold">Mata Uang <span class="text-danger">*</span></label>
                                         <select name="currency_id" id="edit_currency_id" class="form-select select2-edit-init" required>
                                             @foreach($currencies as $curr)
-                                                <option value="{{ $curr->id }}" data-symbol="{{ $curr->simbol }}">
+                                                <option value="{{ $curr->id }}" data-symbol="{{ $curr->simbol }}" data-code="{{ $curr->kode_currency }}">
                                                     {{ $curr->kode_currency }} ({{ $curr->simbol }})
                                                 </option>
                                             @endforeach
@@ -124,22 +124,6 @@
                                                 <i class="bi bi-search"></i>
                                             </button>
                                         </div>
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label fw-semibold">Pajak (PPN)</label>
-                                        <select name="pajak_id" id="edit_pajak_id" class="d-none">
-                                            <option value="" data-tarif="0">Non-PPN (0%)</option>
-                                            @foreach($pajaks as $pj)
-                                                <option value="{{ $pj->id }}" data-tarif="{{ $pj->tarif }}">{{ $pj->nama_pajak }} ({{ number_format($pj->tarif, 0) }}%)</option>
-                                            @endforeach
-                                        </select>
-                                        <div class="input-group">
-                                            <input type="text" id="edit_pajak_display" class="form-control form-control-custom" value="Non-PPN (0%)" readonly style="cursor:pointer; border-top-right-radius:0; border-bottom-right-radius:0;">
-                                            <button type="button" class="btn btn-warning px-3 text-white" id="btnOpenEditPajakPicker" title="Cari Pajak" style="border-radius: 0 10px 10px 0;">
-                                                <i class="bi bi-search"></i>
-                                            </button>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -179,16 +163,17 @@
                                 0 / 25 Item
                             </span>
                         </div>
-                        <div class="table-responsive mb-2">
+                        <div class="table-responsive table-po-details-wrapper mb-2">
                             <table class="table align-middle responsive-po-table table-modern" id="edit_tableDetailsPO">
                                 <thead>
                                     <tr>
-                                        <th width="30%">Nama Barang</th>
-                                        <th width="11%" class="text-center">Satuan</th>
-                                        <th width="12%" class="text-center">Jumlah Qty</th>
-                                        <th width="15%" class="text-end">Harga Satuan</th>
-                                        <th width="16%" class="text-center">Diskon Item</th>
-                                        <th width="13%" class="text-end">Subtotal</th>
+                                        <th width="26%">Nama Barang</th>
+                                        <th width="9%" class="text-center">Satuan</th>
+                                        <th width="10%" class="text-center">Jumlah Qty</th>
+                                        <th width="13%" class="text-end">Harga Satuan</th>
+                                        <th width="14%" class="text-center">Diskon Item</th>
+                                        <th width="12%" class="text-end">Subtotal</th>
+                                        <th width="13%" class="text-center">PPN</th>
                                         <th width="3%" class="text-center"></th>
                                     </tr>
                                 </thead>
@@ -276,19 +261,9 @@
                                     <span class="fw-bold text-warning" id="edit_label_biaya_expense">0.00</span>
                                 </div>
 
-                                <div class="row g-2 align-items-center mb-2">
-                                    <div class="col-6">
-                                        <span class="text-secondary small">Diskon PO:</span>
-                                    </div>
-                                    <div class="col-3">
-                                        <div class="input-group input-group-sm">
-                                            <input type="number" name="diskon_persen" id="edit_diskon_persen" class="form-control text-end" value="0" min="0" max="100" step="any">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-3">
-                                        <input type="text" name="diskon_nominal" id="edit_diskon_nominal" class="form-control form-control-sm text-end number-format" value="0">
-                                    </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-secondary small">Total Diskon Barang</span>
+                                    <span class="fw-bold text-danger" id="edit_label_diskon">- 0.00</span>
                                 </div>
 
                                 <hr class="my-2 text-muted opacity-25">
@@ -299,8 +274,66 @@
                                 </div>
 
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-secondary small" id="edit_label_pajak_title">PPN (0%)</span>
+                                    <span class="text-secondary small" id="edit_label_pajak_title">Total PPN (Pajak Barang)</span>
                                     <span class="fw-bold text-dark" id="edit_label_pajak">0.00</span>
+                                </div>
+
+                                <div class="d-flex justify-content-between mb-2" id="edit_row_pph_summary" style="display: none;">
+                                    <span class="text-warning small fw-semibold" id="edit_label_pph_title">Potongan PPh</span>
+                                    <span class="fw-bold text-warning" id="edit_label_pph">- 0.00</span>
+                                </div>
+
+                                <!-- PANEL POTONGAN PPh (WITHHOLDING TAX) -->
+                                <div class="p-3 my-3 rounded-3 po-pph-box" style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.25);">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <i class="bi bi-percent text-warning fs-6"></i>
+                                        <span class="fw-bold small text-dark">Potongan PPh (Withholding Tax)</span>
+                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle rounded-pill ms-auto extra-small" style="font-size:0.65rem;">Potongan Pembelian</span>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6 position-relative po-pph-col">
+                                            @php
+                                                $editPphList = collect($pphPajaks ?? $pajaks ?? [])->filter(function($p) {
+                                                    $n = strtolower($p->nama_pajak ?? '');
+                                                    $k = strtolower($p->kode_pajak ?? '');
+                                                    return str_contains($n, 'pph') || str_contains($k, 'pph');
+                                                });
+                                                if ($editPphList->isEmpty()) {
+                                                    $editPphList = collect($pajaks ?? [])->filter(function($p) {
+                                                        return !str_contains(strtolower($p->nama_pajak ?? ''), 'ppn');
+                                                    });
+                                                }
+                                            @endphp
+                                            <select class="form-select form-select-sm select-pph-pajak" id="edit_pph_pajak_id" name="pph_pajak_id">
+                                                <option value="" data-tarif="0">Tanpa PPh (0%)</option>
+                                                @foreach($editPphList as $pj)
+                                                    <option value="{{ $pj->id }}" data-tarif="{{ (float) $pj->tarif }}">{{ $pj->nama_pajak }} ({{ rtrim(rtrim(number_format($pj->tarif, 2, ',', '.'), '0'), ',') }}%)</option>
+                                                @endforeach
+                                            </select>
+                                            <input type="hidden" name="tarif_pph" id="edit_tarif_pph" value="0">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label text-muted mb-1" style="font-size: 0.73rem;">Nominal PPh</label>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text currency-symbol-addon py-0 px-2 small bg-light font-monospace">Rp</span>
+                                                <input type="text" class="form-control form-control-sm text-end fw-bold number-format input-pph-nominal bg-light" id="edit_pph_nominal" name="pph_nominal" value="0.00" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 mt-2 position-relative po-pph-col">
+                                            <label class="form-label text-muted mb-1 d-flex justify-content-between align-items-center" style="font-size: 0.73rem;">
+                                                <span>Akun Utang PPh (COA)</span>
+                                                <small class="text-primary fw-normal" style="font-size: 0.68rem;"><i class="bi bi-search me-0.5"></i>Bisa dicari & diubah</small>
+                                            </label>
+                                            <select class="form-select form-select-sm select-pph-coa" id="edit_pph_coa_id" name="pph_coa_id" disabled>
+                                                <option value="">-- Pilih Akun PPh --</option>
+                                                @if(isset($coas) && count($coas))
+                                                    @foreach($coas as $c)
+                                                        <option value="{{ $c->id }}">{{ $c->code }} - {{ $c->name }}</option>
+                                                    @endforeach
+                                                @endif
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <hr class="my-2 text-muted opacity-25">
@@ -315,7 +348,10 @@
                                         <span class="text-secondary small">Uang Muka (DP):</span>
                                     </div>
                                     <div class="col-6">
-                                        <input type="text" name="down_payment" id="edit_down_payment" class="form-control form-control-sm text-end number-format" value="0">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text currency-symbol-addon py-0 px-2 small bg-light font-monospace">Rp</span>
+                                            <input type="text" name="down_payment" id="edit_down_payment" class="form-control form-control-sm text-end number-format" value="0">
+                                        </div>
                                     </div>
                                 </div>
 
@@ -367,6 +403,14 @@
             });
         }
         initEditSelect2();
+
+        let editPajakOptionsHtml = function(selectedId = '') {
+            let html = `<option value="" data-tarif="0" ${!selectedId ? 'selected' : ''}>Non PPN (0%)</option>`;
+            @foreach($pajaks as $pj)
+                html += `<option value="{{ $pj->id }}" data-tarif="{{ (float)$pj->tarif }}" ${selectedId == '{{ $pj->id }}' ? 'selected' : ''}>{{ $pj->nama_pajak }} ({{ rtrim(rtrim(number_format($pj->tarif, 2, ',', '.'), '0'), ',') }}%)</option>`;
+            @endforeach
+            return html;
+        };
 
         // ===== BIAYA LAIN-LAIN DYNAMIC ROWS (EDIT FORM) =====
         function editAddExpenseRow(data = {}, isDefault = false) {
@@ -533,25 +577,23 @@
                         fotosArray = [fotoUrl];
                     }
 
+                    let discType = d.diskon_tipe || 'percent';
                     let discNominalVal = parseFloat(d.diskon_item || 0);
                     let hargaVal = parseFloat(d.harga_satuan || 0);
                     let discVal = 0;
-                    let discType = 'percent';
-                    let discTypeLabel = '%';
 
-                    if (discNominalVal > 0 && hargaVal > 0) {
-                        let pct = (discNominalVal / hargaVal) * 100;
-                        let roundedPct = Math.round(pct * 100) / 100;
-                        if (roundedPct > 0 && roundedPct <= 100 && Math.abs(hargaVal * (roundedPct / 100) - discNominalVal) < 0.01) {
-                            discVal = roundedPct;
-                            discType = 'percent';
-                            discTypeLabel = '%';
-                        } else {
-                            discVal = discNominalVal;
-                            discType = 'nominal';
-                            discTypeLabel = 'Rp';
-                        }
+                    if (discType === 'percent') {
+                        discVal = (d.diskon_persen !== undefined && d.diskon_persen !== null) ? parseFloat(d.diskon_persen) : (hargaVal > 0 ? (discNominalVal / hargaVal) * 100 : 0);
+                    } else {
+                        discVal = discNominalVal;
                     }
+                    let selectedCurrOpt = $('#edit_currency_id').find(':selected');
+                    let currCode = selectedCurrOpt.text().trim().split(' ')[0] || 'IDR';
+                    let currSymbol = selectedCurrOpt.data('symbol') || (currCode === 'IDR' ? 'Rp' : currCode);
+                    let discTypeLabel = discType === 'percent' ? '%' : currSymbol;
+
+                    let ppnSelectedId = d.ppn_pajak_id || '';
+                    let linePpnNominal = parseFloat(d.ppn_nominal) || 0;
 
                     let rowHtml = `
                         <tr class="po-row" data-row-id="${rowId}">
@@ -588,7 +630,7 @@
                             <td data-label="Diskon Item">
                                 <div class="input-group input-group-sm">
                                     <input type="text" class="form-control form-control-sm text-end discount-val-input number-format" value="${formatDiscountVal(discVal, discType)}" min="0">
-                                    <button type="button" class="btn btn-outline-secondary btn-disc-type-toggle px-2" title="Tipe Diskon: ${discType === 'percent' ? 'Persen (%)' : 'Rupiah (Nominal)'}" style="font-size: 0.75rem; font-weight: 700; min-width: 32px;">
+                                    <button type="button" class="btn btn-outline-secondary btn-disc-type-toggle px-2" title="Tipe Diskon: ${discType === 'percent' ? 'Persen (%)' : 'Nominal (' + currSymbol + ')'}" style="font-size: 0.75rem; font-weight: 700; min-width: 32px;">
                                         ${discTypeLabel}
                                     </button>
                                     <input type="hidden" class="discount-type-input" value="${discType}">
@@ -597,6 +639,12 @@
                             </td>
                             <td class="text-end fw-bold text-dark" data-label="Subtotal">
                                 <span class="row-subtotal">0.00</span>
+                            </td>
+                            <td data-label="PPN">
+                                <select class="form-select form-select-sm select-item-ppn">
+                                    ${editPajakOptionsHtml(ppnSelectedId)}
+                                </select>
+                                <small class="text-muted d-block text-end item-ppn-nominal-preview mt-0.5" style="font-size: 0.72rem;">${linePpnNominal > 0 ? '+ ' + currSymbol + ' ' + formatNumber(linePpnNominal) : '+ 0'}</small>
                             </td>
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-row-manual-edit">
@@ -607,6 +655,7 @@
                     `;
                     $('#edit_po_details_tbody').append(rowHtml);
                 });
+                window.initPajakSelect2($('#edit_po_details_tbody .select-item-ppn'), $('#modalEditPO'));
             }
         }
 
@@ -634,7 +683,6 @@
                 let tenderDisp = po.tender ? (po.tender.nama_tender + (po.tender.nomor_kontrak ? ' (' + po.tender.nomor_kontrak + ')' : '')) : '';
                 $('#edit_tender_display').val(tenderDisp);
                 $('#edit_currency_id').val(po.currency_id).trigger('change', [true]);
-                $('#edit_pajak_id').val(po.pajak_id || '').trigger('change');
                 let termName = po.payment_term ? po.payment_term.nama_term : 'Cash / COD';
                 $('#edit_payment_term_id').val(po.payment_term_id || '');
                 $('#edit_payment_term_display').val(termName);
@@ -650,25 +698,7 @@
                 if (code === 'IDR') {
                     $('#edit_kurs_input').val('1').prop('readonly', true).addClass('bg-light');
                 } else {
-                    $('#edit_kurs_input').val(formatNumber(po.kurs)).prop('readonly', false).removeClass('bg-light');
-                }
-
-                // set diskon
-                let poDiskonNom = parseFloat(po.diskon_nominal || 0);
-                let poDiskonPct = parseFloat(po.diskon_persen || 0);
-
-                if (poDiskonNom > 0) {
-                    $('#edit_diskon_nominal').val(formatNumber(poDiskonNom));
-                    $('#edit_diskon_persen').val(poDiskonPct > 0 ? (poDiskonPct % 1 === 0 ? poDiskonPct.toFixed(0) : poDiskonPct.toFixed(1)) : '0');
-                    editDiscountType = 'nominal';
-                } else if (poDiskonPct > 0) {
-                    $('#edit_diskon_persen').val(poDiskonPct % 1 === 0 ? poDiskonPct.toFixed(0) : poDiskonPct.toFixed(1));
-                    $('#edit_diskon_nominal').val('0');
-                    editDiscountType = 'percent';
-                } else {
-                    $('#edit_diskon_persen').val('0');
-                    $('#edit_diskon_nominal').val('0');
-                    editDiscountType = 'percent';
+                    $('#edit_kurs_input').val(formatKurs(po.kurs)).prop('readonly', false).removeClass('bg-light');
                 }
 
                 // set biaya lain & dp
@@ -690,6 +720,28 @@
                         nominal: po.biaya_lain,
                         masuk_hpp: po.alokasi_biaya_lain === 'HPP' ? '1' : '0'
                     });
+                }
+
+                // Populate PPh (Withholding Tax) state in edit modal
+                if (po.pph_pajak_id) {
+                    $('#edit_pph_pajak_id').val(String(po.pph_pajak_id)).trigger('change.select2');
+                    $('#edit_tarif_pph').val(po.tarif_pph || 0);
+                    $('#edit_pph_nominal').val(formatNumber(po.pph_nominal || po.total_pph || 0));
+                    $('#edit_pph_coa_id').prop('disabled', false);
+                    if (po.pph_coa_id) {
+                        $('#edit_pph_coa_id').val(String(po.pph_coa_id)).data('userPicked', true).trigger('change.select2');
+                    } else {
+                        let autoCoaId = (window.pphCoaMap && window.pphCoaMap[po.pph_pajak_id]) ? window.pphCoaMap[po.pph_pajak_id] : window.defaultPphCoaId;
+                        if (autoCoaId) {
+                            $('#edit_pph_coa_id').val(String(autoCoaId)).data('userPicked', false).trigger('change.select2');
+                        }
+                    }
+                } else {
+                    $('#edit_pph_pajak_id').val('').trigger('change.select2');
+                    $('#edit_tarif_pph').val(0);
+                    $('#edit_pph_nominal').val('0.00');
+                    $('#edit_pph_coa_id').val('').data('userPicked', false).prop('disabled', true).trigger('change.select2');
+                    $('#edit_row_pph_summary').hide();
                 }
 
                 // Clear current details table
@@ -799,23 +851,23 @@
                                 let poItemDiskon = poDetailObj ? parseFloat(poDetailObj.diskon_item || 0) : 0;
                                 let poItemHarga = poDetailObj ? poDetailObj.harga_satuan : (item.harga_estimasi || 0);
 
+                                let discType = (poDetailObj && poDetailObj.diskon_tipe) ? poDetailObj.diskon_tipe : 'percent';
                                 let discVal = 0;
-                                let discType = 'percent';
-                                let discTypeLabel = '%';
-
-                                if (poItemDiskon > 0 && poItemHarga > 0) {
-                                    let pct = (poItemDiskon / poItemHarga) * 100;
-                                    let roundedPct = Math.round(pct * 100) / 100;
-                                    if (roundedPct > 0 && roundedPct <= 100 && Math.abs(poItemHarga * (roundedPct / 100) - poItemDiskon) < 0.01) {
-                                        discVal = roundedPct;
-                                        discType = 'percent';
-                                        discTypeLabel = '%';
-                                    } else {
-                                        discVal = poItemDiskon;
-                                        discType = 'nominal';
-                                        discTypeLabel = 'Rp';
-                                    }
+                                if (discType === 'percent') {
+                                    discVal = (poDetailObj && poDetailObj.diskon_persen !== undefined && poDetailObj.diskon_persen !== null)
+                                        ? parseFloat(poDetailObj.diskon_persen)
+                                        : (poItemHarga > 0 ? (poItemDiskon / poItemHarga) * 100 : 0);
+                                } else {
+                                    discVal = poItemDiskon;
                                 }
+
+                                let selectedCurrOpt = $('#edit_currency_id').find(':selected');
+                                let currCode = selectedCurrOpt.text().trim().split(' ')[0] || 'IDR';
+                                let currSymbol = selectedCurrOpt.data('symbol') || (currCode === 'IDR' ? 'Rp' : currCode);
+                                let discTypeLabel = discType === 'percent' ? '%' : currSymbol;
+
+                                let poPpnId = (poDetailObj && poDetailObj.ppn_pajak_id) ? poDetailObj.ppn_pajak_id : '';
+                                let poPpnNominal = (poDetailObj && poDetailObj.ppn_nominal) ? parseFloat(poDetailObj.ppn_nominal) : 0;
 
                                 let konversiBadge = '';
                                 if (itemFaktor !== 1) {
@@ -858,7 +910,7 @@
                                         <td data-label="Diskon Item">
                                             <div class="input-group input-group-sm">
                                                 <input type="text" class="form-control form-control-sm text-end discount-val-input number-format" value="${formatDiscountVal(discVal, discType)}" min="0">
-                                                <button type="button" class="btn btn-outline-secondary btn-disc-type-toggle px-2" title="Tipe Diskon: ${discType === 'percent' ? 'Persen (%)' : 'Rupiah (Nominal)'}" style="font-size: 0.75rem; font-weight: 700; min-width: 32px;">
+                                                <button type="button" class="btn btn-outline-secondary btn-disc-type-toggle px-2" title="Tipe Diskon: ${discType === 'percent' ? 'Persen (%)' : 'Nominal (' + currSymbol + ')'}" style="font-size: 0.75rem; font-weight: 700; min-width: 32px;">
                                                     ${discTypeLabel}
                                                 </button>
                                                 <input type="hidden" class="discount-type-input" value="${discType}">
@@ -867,6 +919,12 @@
                                         </td>
                                         <td class="text-end fw-bold text-dark" data-label="Subtotal">
                                             <span class="row-subtotal">0.00</span>
+                                        </td>
+                                        <td data-label="PPN">
+                                            <select class="form-select form-select-sm select-item-ppn">
+                                                ${editPajakOptionsHtml(poPpnId)}
+                                            </select>
+                                            <small class="text-muted d-block text-end item-ppn-nominal-preview mt-0.5" style="font-size: 0.72rem;">${poPpnNominal > 0 ? '+ ' + currSymbol + ' ' + formatNumber(poPpnNominal) : '+ 0'}</small>
                                         </td>
                                         <td class="text-center">
                                             <button type="button" class="btn btn-sm btn-outline-danger border-0 edit-btn-remove-row-pr" data-pr-detail-id="${item.pr_detail_id}">
@@ -881,6 +939,7 @@
 
                         $('#edit_pr_items_tbody').html(html);
                         $('#edit_pr_items_card').removeClass('d-none');
+                        window.initPajakSelect2($('#edit_po_details_tbody .select-item-ppn'), $('#modalEditPO'));
                         hideLoader();
                     }).fail(function() {
                         $('#edit_pr_items_card').addClass('d-none');
@@ -902,9 +961,10 @@
         // Currency Change (Edit)
         $('#edit_currency_id').on('change', function (e, isInitial) {
             let selectedOpt = $(this).find(':selected');
-            let code = selectedOpt.text().trim().split(' ')[0] || 'IDR';
+            let code = selectedOpt.data('code') || selectedOpt.text().trim().split(' ')[0] || 'IDR';
             let symbol = selectedOpt.data('symbol') || (code === 'IDR' ? 'Rp' : code);
             $('.edit-exp-currency-label').text(code);
+            $('#modalEditPO .currency-symbol-addon').text(symbol);
 
             // Update discount buttons that are in nominal mode
             $('#edit_po_details_tbody tr').each(function() {
@@ -931,7 +991,10 @@
         });
 
         // Calculate totals dynamically on inputs (Edit)
-        $(document).on('input', '#edit_po_details_tbody .qty-input, #edit_po_details_tbody .price-input, #edit_po_details_tbody .discount-input, #edit_diskon_persen, #edit_diskon_nominal, #edit_kurs_input, #edit_biaya_lain, #edit_down_payment', function () {
+        $(document).on('input', '#edit_po_details_tbody .qty-input, #edit_po_details_tbody .price-input, #edit_po_details_tbody .discount-val-input, #edit_kurs_input, #edit_biaya_lain, #edit_down_payment', function () {
+            calculateEditTotals();
+        });
+        $(document).on('change', '#edit_po_details_tbody .select-item-ppn', function () {
             calculateEditTotals();
         });
         
@@ -968,14 +1031,10 @@
             }
         });
 
-        $('#edit_pajak_id').on('change', function () {
-            let text = $(this).find('option:selected').text() || 'Non-PPN (0%)';
-            $('#edit_pajak_display').val(text);
-            calculateEditTotals();
-        });
-
         function calculateEditTotals() {
-            let subtotal = 0;
+            let subtotalGross = 0;
+            let totalDiskon = 0;
+            let totalPajak = 0;
             let itemCount = $('#edit_po_details_tbody tr.po-row').length;
             let badgeEl = $('#edit_po_item_count_badge');
             badgeEl.text(itemCount + ' / 25 Item');
@@ -985,10 +1044,12 @@
                 badgeEl.removeClass('bg-danger text-white').addClass('bg-primary bg-opacity-10 text-primary');
             }
 
+            let symbol = $('#edit_currency_id').find(':selected').data('symbol') || 'Rp';
+
             $('#edit_po_details_tbody tr').each(function () {
-                let qty = parseFloat($(this).find('.qty-input').val()) || 0;
-                let price = unformatNumber($(this).find('.price-input').val());
-                let discVal = unformatNumber($(this).find('.discount-val-input').val()) || 0;
+                let qty = Math.round((parseFloat($(this).find('.qty-input').val()) || 0) * 10000) / 10000;
+                let price = Math.round(unformatNumber($(this).find('.price-input').val()) * 100) / 100;
+                let discVal = Math.round((unformatNumber($(this).find('.discount-val-input').val()) || 0) * 100) / 100;
                 let discType = $(this).find('.discount-type-input').val() || 'percent';
                 
                 let discPerUnit = 0;
@@ -1005,6 +1066,7 @@
                     }
                     discPerUnit = discVal;
                 }
+                discPerUnit = Math.round(discPerUnit * 100) / 100;
                 $(this).find('.discount-input').val(discPerUnit);
 
                 let faktor = parseFloat($(this).find('.faktor-pengali-val').val()) || 1;
@@ -1013,50 +1075,31 @@
                     $(this).find('.conversion-preview-text').text(formatQty(totalDasar));
                 }
 
-                let rowSubtotal = (price - discPerUnit) * qty;
-                rowSubtotal = Math.round(rowSubtotal * 100) / 100;
-                if (rowSubtotal < 0) rowSubtotal = 0;
-                
-                subtotal += rowSubtotal;
-                $(this).find('.row-subtotal').text(formatNumber(rowSubtotal));
+                let lineGross = Math.round(qty * price * 100) / 100;
+                let lineDiskon = Math.round(qty * discPerUnit * 100) / 100;
+                let lineNet = Math.max(0, lineGross - lineDiskon);
+                lineNet = Math.round(lineNet * 100) / 100;
+
+                // Per-item PPN calculation
+                let $ppnSel = $(this).find('.select-item-ppn option:selected');
+                let tarifPpn = parseFloat($ppnSel.attr('data-tarif')) || parseFloat($ppnSel.data('tarif')) || 0;
+                let linePpn = Math.round(lineNet * (tarifPpn / 100) * 100) / 100;
+                $(this).find('.item-ppn-nominal-preview').text(linePpn > 0 ? '+ ' + symbol + ' ' + formatNumber(linePpn) : '+ 0');
+
+                subtotalGross += lineGross;
+                totalDiskon += lineDiskon;
+                totalPajak += linePpn;
+
+                $(this).find('.row-subtotal').text(formatNumber(lineNet));
             });
 
-            // Global Discount
-            let discPersen = parseFloat($('#edit_diskon_persen').val()) || 0;
-            let discNominal = unformatNumber($('#edit_diskon_nominal').val());
-            let totalDiskon = 0;
-            let activeId = document.activeElement ? document.activeElement.id : '';
+            subtotalGross = Math.round(subtotalGross * 100) / 100;
+            totalDiskon = Math.round(totalDiskon * 100) / 100;
+            totalPajak = Math.round(totalPajak * 100) / 100;
 
-            if (editDiscountType === 'nominal' && discNominal > 0) {
-                totalDiskon = discNominal;
-                if (totalDiskon > subtotal) totalDiskon = subtotal;
-                if (activeId !== 'edit_diskon_persen') {
-                    let computedPersen = subtotal > 0 ? (totalDiskon / subtotal) * 100 : 0;
-                    if (computedPersen > 100) computedPersen = 100;
-                    let formattedPersen = (computedPersen % 1 === 0) ? computedPersen.toFixed(0) : parseFloat(computedPersen.toFixed(2)).toString();
-                    $('#edit_diskon_persen').val(formattedPersen);
-                }
-            } else if (editDiscountType === 'percent' && discPersen > 0) {
-                totalDiskon = subtotal * (discPersen / 100);
-                totalDiskon = Math.round(totalDiskon * 100) / 100;
-                if (totalDiskon > subtotal) totalDiskon = subtotal;
-                if (activeId !== 'edit_diskon_nominal') {
-                    $('#edit_diskon_nominal').val(formatNumber(totalDiskon));
-                }
-            } else if (discNominal > 0) {
-                totalDiskon = discNominal;
-                if (totalDiskon > subtotal) totalDiskon = subtotal;
-            } else if (discPersen > 0) {
-                totalDiskon = Math.round(subtotal * (discPersen / 100) * 100) / 100;
-                if (totalDiskon > subtotal) totalDiskon = subtotal;
-            } else {
-                if (activeId !== 'edit_diskon_nominal') $('#edit_diskon_nominal').val(0);
-                if (activeId !== 'edit_diskon_persen') $('#edit_diskon_persen').val(0);
-            }
-
-            let setelahDiskon = subtotal - totalDiskon;
-            setelahDiskon = Math.round(setelahDiskon * 100) / 100;
-            if (setelahDiskon < 0) setelahDiskon = 0;
+            // DPP = Subtotal Barang Gross - Total Diskon Barang
+            let dpp = Math.max(0, subtotalGross - totalDiskon);
+            dpp = Math.round(dpp * 100) / 100;
 
             // Calculate Expense Items (Inventory vs Expense)
             let totalBiayaInventory = 0;
@@ -1077,18 +1120,31 @@
 
             $('#edit_biaya_lain').val(totalBiayaLain);
 
-            // DPP = Subtotal Net (Nilai barang setelah diskon, bebas dari Biaya Lain-Lain)
-            let dpp = setelahDiskon;
-            dpp = Math.round(dpp * 100) / 100;
+            // Calculate PPh (Withholding Tax - Potongan Pajak Penghasilan)
+            let pphPajakId = $('#edit_pph_pajak_id').val();
+            let tarifPph = 0;
+            let totalPph = 0;
 
-            // Global Tax (PPN) = DPP * Tarif Pajak
-            let taxRate = parseFloat($('#edit_pajak_id').find(':selected').data('tarif')) || 0;
-            let totalPajak = dpp * (taxRate / 100);
-            totalPajak = Math.round(totalPajak * 100) / 100;
-            if (totalPajak < 0) totalPajak = 0;
+            if (pphPajakId) {
+                let $pphOpt = $('#edit_pph_pajak_id').find('option:selected');
+                tarifPph = parseFloat($pphOpt.attr('data-tarif')) || parseFloat($pphOpt.data('tarif')) || 0;
+                totalPph = Math.round(dpp * (tarifPph / 100) * 100) / 100;
+                $('#edit_tarif_pph').val(tarifPph);
+                $('#edit_pph_nominal').val(formatNumber(totalPph));
 
-            // Grand Total = DPP + PPN + Biaya Lain-Lain
-            let grandTotal = dpp + totalPajak + totalBiayaLain;
+                let pphName = $pphOpt.text().split('(')[0].trim() || 'PPh';
+                let tarifTxt = tarifPph > 0 ? ` (${String(tarifPph).replace('.', ',')}%)` : '';
+                $('#edit_label_pph_title').text(`Potongan ${pphName}${tarifTxt}`);
+                $('#edit_label_pph').text('- ' + symbol + ' ' + formatNumber(totalPph));
+                $('#edit_row_pph_summary').show();
+            } else {
+                $('#edit_tarif_pph').val(0);
+                $('#edit_pph_nominal').val('0.00');
+                $('#edit_row_pph_summary').hide();
+            }
+
+            // Grand Total = DPP + Total PPN + Biaya Lain-Lain - Potongan PPh
+            let grandTotal = Math.max(0, dpp + totalPajak + totalBiayaLain - totalPph);
             grandTotal = Math.round(grandTotal * 100) / 100;
 
             let downPayment = unformatNumber($('#edit_down_payment').val()) || 0;
@@ -1106,8 +1162,9 @@
 
             let sisaBayar = grandTotal - downPayment;
             sisaBayar = Math.round(sisaBayar * 100) / 100;
+            if (sisaBayar < 0) sisaBayar = 0;
 
-            let code = $('#edit_currency_id').find(':selected').text().trim().split(' ')[0] || 'IDR';
+            let code = $('#edit_currency_id').find(':selected').data('code') || $('#edit_currency_id').find(':selected').text().trim().split(' ')[0] || 'IDR';
             let kurs = 1;
             if (code !== 'IDR') {
                 kurs = unformatNumber($('#edit_kurs_input').val()) || 0;
@@ -1115,67 +1172,18 @@
             let grandTotalIdr = grandTotal * (code === 'IDR' ? 1 : kurs);
             grandTotalIdr = Math.round(grandTotalIdr * 100) / 100;
 
-            let symbol = $('#edit_currency_id').find(':selected').data('symbol') || 'Rp';
-
             // Update Labels
-            $('#edit_label_subtotal').text(symbol + ' ' + formatNumber(subtotal));
+            $('#edit_label_subtotal').text(symbol + ' ' + formatNumber(subtotalGross));
+            $('#edit_label_diskon').text(totalDiskon > 0 ? '- ' + symbol + ' ' + formatNumber(totalDiskon) : '0.00');
             $('#edit_label_biaya_inventory').text(symbol + ' ' + formatNumber(totalBiayaInventory));
             $('#edit_label_biaya_expense').text(symbol + ' ' + formatNumber(totalBiayaExpense));
             $('#edit_label_dpp').text(symbol + ' ' + formatNumber(dpp));
-            if (taxRate > 0) {
-                $('#edit_label_pajak_title').text('PPN (' + taxRate + '%)');
-            } else {
-                $('#edit_label_pajak_title').text('PPN (0%)');
-            }
             $('#edit_label_pajak').text(symbol + ' ' + formatNumber(totalPajak));
             $('#edit_label_grand_total').text(symbol + ' ' + formatNumber(grandTotal));
             $('#edit_grand_total_calc').val(grandTotal);
             $('#edit_label_sisa_bayar').text(symbol + ' ' + formatNumber(sisaBayar));
             $('#edit_label_grand_total_idr').text('Rp ' + formatNumber(grandTotalIdr));
         }
-
-        // Two-way Discount Sync (Edit)
-        $('#edit_diskon_persen').on('input', function() {
-            editDiscountType = 'percent';
-            let subtotal = 0;
-            $('#edit_po_details_tbody tr').each(function () {
-                let qty = parseFloat($(this).find('.qty-input').val()) || 0;
-                let price = unformatNumber($(this).find('.price-input').val());
-                let discVal = parseFloat($(this).find('.discount-input').val()) || 0;
-                subtotal += (price - discVal) * qty;
-            });
-            
-            let persen = parseFloat($(this).val()) || 0;
-            if (persen > 0) {
-                let nominal = subtotal * (persen / 100);
-                $('#edit_diskon_nominal').val(formatNumber(nominal));
-            } else {
-                $('#edit_diskon_nominal').val(0);
-            }
-            calculateEditTotals();
-        });
-
-        $('#edit_diskon_nominal').on('input', function() {
-            editDiscountType = 'nominal';
-            let subtotal = 0;
-            $('#edit_po_details_tbody tr').each(function () {
-                let qty = parseFloat($(this).find('.qty-input').val()) || 0;
-                let price = unformatNumber($(this).find('.price-input').val());
-                let discVal = parseFloat($(this).find('.discount-input').val()) || 0;
-                subtotal += (price - discVal) * qty;
-            });
-
-            let nominal = unformatNumber($(this).val()) || 0;
-            if (subtotal > 0 && nominal > 0) {
-                let persen = (nominal / subtotal) * 100;
-                if (persen > 100) persen = 100;
-                let formattedPersen = (persen % 1 === 0) ? persen.toFixed(0) : parseFloat(persen.toFixed(2)).toString();
-                $('#edit_diskon_persen').val(formattedPersen);
-            } else {
-                $('#edit_diskon_persen').val(0);
-            }
-            calculateEditTotals();
-        });
 
         $('#edit_pr_display').on('input', function() {
             if ($('#edit_pr_id').val()) {
@@ -1339,18 +1347,18 @@
                                 <input type="hidden" class="satuan-dasar-val" value="${escapeHtml(satuanDasar)}">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="product-img-wrapper cursor-pointer" data-fotos='${escapeHtml(typeof fotosData === "string" ? fotosData : JSON.stringify(fotosData))}' style="cursor: pointer;">
-                                        ${foto ? `<img src="${foto}" alt="${nama}" class="product-img">` : `<i class="bi bi-image text-muted"></i>`}
+                                        ${foto ? `<img src="${escapeHtml(foto)}" alt="${escapeHtml(nama)}" class="product-img">` : `<i class="bi bi-image text-muted"></i>`}
                                     </div>
                                     <div>
-                                        <span class="fw-semibold text-dark">${nama}</span>
+                                        <span class="fw-semibold text-dark">${escapeHtml(nama)}</span>
                                         <div class="mt-1">
-                                            <span class="badge small px-2 py-0.5 rounded-pill" style="font-size: 0.65rem; ${bg}">${tipe.toUpperCase()}</span>
+                                            <span class="badge small px-2 py-0.5 rounded-pill" style="font-size: 0.65rem; ${bg}">${escapeHtml(tipe.toUpperCase())}</span>
                                         </div>
                                     </div>
                                 </div>
                             </td>
                             <td class="text-center" data-label="Satuan">
-                                <span class="badge bg-light text-secondary border px-2 py-1">${satuan}</span>
+                                <span class="badge bg-light text-secondary border px-2 py-1">${escapeHtml(satuan)}</span>
                                 ${konversiBadge}
                             </td>
                             <td data-label="Jumlah Qty">
@@ -1373,6 +1381,12 @@
                             <td class="text-end fw-bold text-dark" data-label="Subtotal">
                                 <span class="row-subtotal">${formatNumber(remaining * harga)}</span>
                             </td>
+                            <td data-label="PPN">
+                                <select class="form-select form-select-sm select-item-ppn">
+                                    ${editPajakOptionsHtml()}
+                                </select>
+                                <small class="text-muted d-block text-end item-ppn-nominal-preview mt-0.5" style="font-size: 0.72rem;">+ 0</small>
+                            </td>
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-outline-danger border-0 edit-btn-remove-row-pr" data-pr-detail-id="${prDetailId}">
                                     <i class="bi bi-x-lg"></i>
@@ -1381,9 +1395,11 @@
                         </tr>
                     `;
                     $('#edit_po_details_tbody').append(rowHtml);
+                    window.initPajakSelect2($('#edit_po_details_tbody tr[data-pr-detail-id="' + prDetailId + '"] .select-item-ppn'), $('#modalEditPO'));
                 }
             } else {
                 if (existingRow.length > 0) {
+                    existingRow.find('.select-item-ppn').select2('destroy');
                     existingRow.remove();
                 }
             }
@@ -1395,7 +1411,9 @@
         $(document).on('click', '.edit-btn-remove-row-pr', function () {
             let prDetailId = $(this).attr('data-pr-detail-id') || $(this).data('pr-detail-id');
             $(`.edit-chk-pr-item[data-pr-detail-id="${prDetailId}"]`).prop('checked', false);
-            $(`#edit_po_details_tbody tr[data-pr-detail-id="${prDetailId}"]`).remove();
+            let rowToDel = $(`#edit_po_details_tbody tr[data-pr-detail-id="${prDetailId}"]`);
+            rowToDel.find('.select-item-ppn').select2('destroy');
+            rowToDel.remove();
             $('#edit_po_item_count_badge').text($('#edit_po_details_tbody tr.po-row').length + ' / 25 Item');
             calculateEditTotals();
         });
@@ -1461,7 +1479,7 @@
                         <input type="number" class="form-control form-control-sm text-center qty-input" value="1" min="0.01" step="0.01" required>
                     </td>
                     <td data-label="Harga Satuan">
-                        <input type="text" class="form-control form-control-sm text-end number-format price-input" value="0" required>
+                        <input type="text" class="form-control form-control-sm text-end number-format price-input" value="0,00" required>
                     </td>
                     <td data-label="Diskon Item">
                         <div class="input-group input-group-sm">
@@ -1476,6 +1494,12 @@
                     <td class="text-end fw-bold text-dark" data-label="Subtotal">
                         <span class="row-subtotal">0.00</span>
                     </td>
+                    <td data-label="PPN">
+                        <select class="form-select form-select-sm select-item-ppn">
+                            ${editPajakOptionsHtml()}
+                        </select>
+                        <small class="text-muted d-block text-end item-ppn-nominal-preview mt-0.5" style="font-size: 0.72rem;">+ 0</small>
+                    </td>
                     <td class="text-center">
                         <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-row-manual-edit">
                             <i class="bi bi-x-lg"></i>
@@ -1484,6 +1508,7 @@
                 </tr>
             `;
             $('#edit_po_details_tbody').append(rowHtml);
+            window.initPajakSelect2($('#edit_po_details_tbody tr:last .select-item-ppn'), $('#modalEditPO'));
             $('#edit_po_item_count_badge').text($('#edit_po_details_tbody tr.po-row').length + ' / 25 Item');
             calculateEditTotals();
         });
@@ -1511,6 +1536,7 @@
         // Remove manual row (Edit Modal)
         $(document).on('click', '.btn-remove-row-manual-edit', function () {
             let tr = $(this).closest('tr');
+            tr.find('.select-item-ppn').select2('destroy');
             tr.remove();
             $('#edit_po_item_count_badge').text($('#edit_po_details_tbody tr.po-row').length + ' / 25 Item');
             calculateEditTotals();
@@ -1580,6 +1606,19 @@
                 let satuanId = $(this).find('.satuan-id-val').val() || null;
                 let faktorPengali = parseFloat($(this).find('.faktor-pengali-val').val()) || 1;
 
+                let discType = $(this).find('.discount-type-input').val() || 'percent';
+                let discVal = unformatNumber($(this).find('.discount-val-input').val()) || 0;
+                let discPerUnit = parseFloat($(this).find('.discount-input').val()) || 0;
+                let discPersen = discType === 'percent' ? discVal : 0;
+
+                let ppnPajakId = $(this).find('.select-item-ppn').val() || null;
+                let tarifPpn = parseFloat($(this).find('.select-item-ppn option:selected').data('tarif')) || 0;
+                
+                let lineGross = qty * price;
+                let lineDiskon = qty * discPerUnit;
+                let lineNet = Math.max(0, lineGross - lineDiskon);
+                let linePpn = Math.round(lineNet * (tarifPpn / 100) * 100) / 100;
+
                 items.push({
                     barang_id: barangId,
                     pr_detail_id: prDetailId,
@@ -1587,7 +1626,12 @@
                     faktor_pengali: faktorPengali,
                     jumlah: qty,
                     harga_satuan: price,
-                    diskon_item: parseFloat($(this).find('.discount-input').val()) || 0,
+                    diskon_item: discPerUnit,
+                    diskon_persen: discPersen,
+                    diskon_tipe: discType,
+                    ppn_pajak_id: ppnPajakId,
+                    tarif_ppn: tarifPpn,
+                    ppn_nominal: linePpn,
                     keterangan: ''
                 });
             });
@@ -1608,7 +1652,7 @@
             }
 
             // Kurs validation for foreign currency
-            let currCode = $('#edit_currency_id').find(':selected').text().trim().split(' ')[0] || 'IDR';
+            let currCode = $('#edit_currency_id').find(':selected').data('code') || $('#edit_currency_id').find(':selected').text().trim().split(' ')[0] || 'IDR';
             let kursVal = unformatNumber($('#edit_kurs_input').val());
             if (currCode !== 'IDR' && kursVal <= 0) {
                 Swal.fire('Gagal!', 'Nilai Kurs untuk mata uang asing (' + currCode + ') harus lebih besar dari 0!', 'warning');
@@ -1629,7 +1673,9 @@
             $('#edit_expense_items_tbody tr').each(function() {
                 let jId = $(this).find('.exp-jenis-id-val').val() || $(this).find('.exp-jenis-select').val() || '';
                 let customName = $(this).find('.exp-custom-name-input').val() || '';
-                let namaJenis = jId === 'custom' ? customName : ($(this).find('.exp-jenis-name-val').val() || $(this).find('.exp-jenis-display').val() || '');
+                let selectedOpt = $(this).find('.exp-jenis-select option:selected');
+                let optName = selectedOpt.data('name') || selectedOpt.text().trim();
+                let namaJenis = jId === 'custom' ? customName : (optName || $(this).find('.exp-jenis-name-val').val() || $(this).find('.exp-jenis-display').val() || '');
                 let ket = $(this).find('.exp-ket-input').val() || '';
                 let nom = unformatNumber($(this).find('.exp-nom-input').val()) || 0;
                 let hpp = $(this).find('.exp-hpp-select').val();
@@ -1650,14 +1696,18 @@
                 supplier_id: $('#edit_supplier_id').val(),
                 currency_id: $('#edit_currency_id').val(),
                 kurs: unformatNumber($('#edit_kurs_input').val()),
-                pajak_id: $('#edit_pajak_id').val(),
+                pajak_id: null,
                 payment_term_id: $('#edit_payment_term_id').val(),
                 payment_method_id: $('#edit_payment_method_id').val(),
                 tanggal_pengiriman: $('#edit_tanggal_pengiriman').val(),
                 pr_id: $('#edit_pr_id').val(),
                 tender_id: $('#edit_tender_id').val(),
-                diskon_persen: parseFloat($('#edit_diskon_persen').val()) || 0,
-                diskon_nominal: unformatNumber($('#edit_diskon_nominal').val()),
+                diskon_persen: 0,
+                diskon_nominal: 0,
+                pph_pajak_id: $('#edit_pph_pajak_id').val() || null,
+                tarif_pph: parseFloat($('#edit_tarif_pph').val()) || 0,
+                pph_nominal: unformatNumber($('#edit_pph_nominal').val()) || 0,
+                pph_coa_id: $('#edit_pph_coa_id').val() || null,
                 biaya_lain: unformatNumber($('#edit_biaya_lain').val()) || 0,
                 expense_items: expense_items,
                 deskripsi_biaya_lain: $('#edit_deskripsi_biaya_lain').val(),
@@ -1707,6 +1757,48 @@
                     Swal.fire({ title: 'Gagal!', html: errorMsg, icon: 'error' });
                 }
             });
+        });
+
+        // Inisialisasi Select2 Jenis PPh & COA PPh saat modal edit dibuka
+        if (typeof window.initPphPajakSelect2 === 'function') {
+            window.initPphPajakSelect2($('#edit_pph_pajak_id'), $('#modalEditPO'));
+        }
+        if (typeof window.initCoaSelect2 === 'function') {
+            window.initCoaSelect2($('#edit_pph_coa_id'), $('#modalEditPO'));
+        }
+
+        // Handler perubahan dropdown PPh Edit
+        $(document).on('change', '#edit_pph_pajak_id', function() {
+            let pphId = $(this).val();
+            let $coa = $('#edit_pph_coa_id');
+
+            if (!pphId) {
+                $coa.val('').prop('disabled', true).trigger('change.select2');
+            } else {
+                $coa.prop('disabled', false);
+                // Auto-select COA jika belum dipilih user
+                if (!$coa.data('userPicked') || !$coa.val()) {
+                    let autoCoaId = (window.pphCoaMap && window.pphCoaMap[pphId]) ? window.pphCoaMap[pphId] : window.defaultPphCoaId;
+                    if (autoCoaId) {
+                        $coa.val(String(autoCoaId)).trigger('change.select2');
+                    }
+                }
+            }
+            calculateEditTotals();
+        });
+
+        // Tandai jika user secara manual memilih akun COA Edit
+        $(document).on('select2:select', '#edit_pph_coa_id', function() {
+            $(this).data('userPicked', true);
+        });
+
+        $('#modalEditPO').on('shown.bs.modal', function () {
+            if (typeof window.initPphPajakSelect2 === 'function') {
+                window.initPphPajakSelect2($('#edit_pph_pajak_id'), $('#modalEditPO'));
+            }
+            if (typeof window.initCoaSelect2 === 'function') {
+                window.initCoaSelect2($('#edit_pph_coa_id'), $('#modalEditPO'));
+            }
         });
 
         $('#modalEditPO').on('hidden.bs.modal', function () {

@@ -450,9 +450,12 @@ class KartuStokController extends Controller
         foreach ($mutasi as $idx => $m) {
             $tglStr = $m->created_at ? $m->created_at->format('d/m/Y H:i:s') : '-';
             
-            $fmtStokAwal = (floor($m->stok_awal) == $m->stok_awal) ? number_format($m->stok_awal, 0, ',', '.') : rtrim(rtrim(number_format($m->stok_awal, 4, ',', '.'), '0'), ',');
-            $fmtJumlah   = (floor($m->jumlah) == $m->jumlah) ? number_format($m->jumlah, 0, ',', '.') : rtrim(rtrim(number_format($m->jumlah, 4, ',', '.'), '0'), ',');
-            $fmtStokAkhir = (floor($m->stok_akhir) == $m->stok_akhir) ? number_format($m->stok_akhir, 0, ',', '.') : rtrim(rtrim(number_format($m->stok_akhir, 4, ',', '.'), '0'), ',');
+            $rStokAwal   = round($m->stok_awal, 2);
+            $fmtStokAwal = (floor($rStokAwal) == $rStokAwal) ? number_format($rStokAwal, 0, ',', '.') : rtrim(rtrim(number_format($rStokAwal, 2, ',', '.'), '0'), ',');
+            $rJumlah     = round($m->jumlah, 2);
+            $fmtJumlah   = (floor($rJumlah) == $rJumlah) ? number_format($rJumlah, 0, ',', '.') : rtrim(rtrim(number_format($rJumlah, 2, ',', '.'), '0'), ',');
+            $rStokAkhir  = round($m->stok_akhir, 2);
+            $fmtStokAkhir = (floor($rStokAkhir) == $rStokAkhir) ? number_format($rStokAkhir, 0, ',', '.') : rtrim(rtrim(number_format($rStokAkhir, 2, ',', '.'), '0'), ',');
 
             $signQty = ($m->tipe === 'Masuk' ? '+' : '-') . $fmtJumlah;
             
@@ -491,8 +494,10 @@ class KartuStokController extends Controller
         }
 
         // Summary footer rows
-        $fmtTotMasuk  = (floor($totalQtyMasuk) == $totalQtyMasuk) ? number_format($totalQtyMasuk, 0, ',', '.') : rtrim(rtrim(number_format($totalQtyMasuk, 4, ',', '.'), '0'), ',');
-        $fmtTotKeluar = (floor($totalQtyKeluar) == $totalQtyKeluar) ? number_format($totalQtyKeluar, 0, ',', '.') : rtrim(rtrim(number_format($totalQtyKeluar, 4, ',', '.'), '0'), ',');
+        $rTotMasuk    = round($totalQtyMasuk, 2);
+        $fmtTotMasuk  = (floor($rTotMasuk) == $rTotMasuk) ? number_format($rTotMasuk, 0, ',', '.') : rtrim(rtrim(number_format($rTotMasuk, 2, ',', '.'), '0'), ',');
+        $rTotKeluar   = round($totalQtyKeluar, 2);
+        $fmtTotKeluar = (floor($rTotKeluar) == $rTotKeluar) ? number_format($rTotKeluar, 0, ',', '.') : rtrim(rtrim(number_format($rTotKeluar, 2, ',', '.'), '0'), ',');
 
         $fmtTotNilaiMasuk  = 'Rp ' . number_format($totalNilaiMasuk, 2, ',', '.');
         $fmtTotNilaiKeluar = 'Rp ' . number_format($totalNilaiKeluar, 2, ',', '.');

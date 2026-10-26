@@ -2,15 +2,16 @@
     $appLogoSetting = \App\Models\AppSetting::where('key', 'app_logo')->value('value');
     $appLogoPath = null;
 
-    if (isset($company) && !empty($company->logo) && file_exists(public_path('storage/' . $company->logo))) {
-        $appLogoPath = public_path('storage/' . $company->logo);
-    } elseif ($appLogoSetting && file_exists(public_path('storage/' . $appLogoSetting))) {
+    // Prioritaskan Logo Aplikasi Resmi dari AppSetting / default logo.png
+    if ($appLogoSetting && file_exists(public_path('storage/' . $appLogoSetting))) {
         $appLogoPath = public_path('storage/' . $appLogoSetting);
+    } elseif ($appLogoSetting && file_exists(storage_path('app/public/' . $appLogoSetting))) {
+        $appLogoPath = storage_path('app/public/' . $appLogoSetting);
     } elseif (file_exists(public_path('gambar/logo.png'))) {
         $appLogoPath = public_path('gambar/logo.png');
     }
 
-    $appLogoUrl = asset('gambar/logo.png');
+    $appLogoUrl = $appLogo ?? asset('gambar/logo.png');
     if ($appLogoPath && file_exists($appLogoPath)) {
         $ext = strtolower(pathinfo($appLogoPath, PATHINFO_EXTENSION));
         $mime = ($ext === 'png') ? 'image/png' : (($ext === 'webp') ? 'image/webp' : 'image/jpeg');
@@ -193,7 +194,7 @@
 
         /* HEADER TITLE BANNER */
         .doc-title-banner {
-            background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+            background-color: #1e3a8a;
             color: #ffffff;
             padding: 12px 16px;
             border-radius: 8px;
@@ -262,7 +263,7 @@
 
         .progress-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, #1d4ed8 0%, #0284c7 100%);
+            background-color: #2563eb;
             border-radius: 50px;
             transition: width 0.4s ease;
         }
@@ -471,14 +472,9 @@
 
             {{-- KOP PERUSAHAAN EXECUTIVE --}}
             <div class="kop-header">
-                <div class="d-flex align-items-center gap-3">
-                    @if(!empty($company->logo))
-                        <img src="{{ asset('storage/'.$company->logo) }}" style="max-height: 50px; max-width: 120px;" alt="Logo">
-                    @endif
-                    <div>
-                        <h1 class="company-title">{{ $company->nama_perusahaan ?? 'PABRIK ERP PRODUCTION' }}</h1>
-                        <div class="company-subtitle">System Manufaktur & Control Realisasi Produksi</div>
-                    </div>
+                <div>
+                    <h1 class="company-title">{{ $entityName ?? ($company->nama_perusahaan ?? 'PABRIK ERP PRODUCTION') }}</h1>
+                    <div class="company-subtitle">System Manufaktur & Control Realisasi Produksi</div>
                 </div>
                 <div class="text-end">
                     <div class="spk-badge-main">{{ $spk->nomor_spk }}</div>
@@ -516,7 +512,7 @@
                             @endphp
                             @if($fotoPath)
                                 <a href="javascript:void(0)" onclick="openFotoPreviewModal('{{ asset('storage/' . $fotoPath) }}', 'Foto Produk Jadi - {{ e($spk->barangJadi->nama_barang ?? '') }}')">
-                                    <img src="{{ asset('storage/' . $fotoPath) }}" style="max-height: 42px; max-width: 85px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(255,255,255,0.4); cursor: pointer;" title="Klik untuk perbesar foto produk">
+                                    <img src="{{ asset('storage/' . $fotoPath) }}" crossorigin="anonymous" style="max-height: 42px; max-width: 85px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(255,255,255,0.4); cursor: pointer;" title="Klik untuk perbesar foto produk">
                                 </a>
                             @else
                                 <span class="text-white-50 small" style="font-size: 10px;">- No Photo -</span>
@@ -531,13 +527,26 @@
                         </div>
                     </div>
                 </div>
+
+                @php
+                    $progressTender = $spk->tender ?? ($spk->bom?->tender);
+                @endphp
+                @if($progressTender)
+                <div class="mt-2 pt-2 border-top border-white border-opacity-25 d-flex align-items-center gap-2">
+                    <span class="badge bg-white text-dark rounded-pill px-2.5 py-0.5 fw-bold" style="font-size: 8.5px;">📁 TENDER / PROYEK</span>
+                    <span class="text-white fw-bold" style="font-size: 10.5px;">
+                        {{ $progressTender->nama_tender }}
+                    </span>
+                </div>
+                @endif
             </div>
 
             {{-- OVERALL PROGRESS BAR MODERN --}}
             @php
+                $totalTahapCount = $spk->tahapans->count();
+                $completedTahapCount = $spk->tahapans->where('status', 'Selesai')->count();
                 $totTarget = (float)$spk->tahapans->sum('target_qty');
                 $totSelesai = (float)$spk->tahapans->sum('qty_selesai');
-                $totReject = (float)$spk->tahapans->sum('qty_reject');
                 $calcPct = $totTarget > 0 ? round(($totSelesai / $totTarget) * 100, 1) : 0;
             @endphp
             <div class="progress-card-modern">
@@ -546,11 +555,13 @@
                         <i class="bi bi-speedometer2 text-primary me-1"></i> AKUMULASI TOTAL PROGRES PENGERJAAN SPK
                     </div>
                     <div class="fw-extrabold text-primary" style="font-size: 12px;">
-                        {{ $calcPct }}% SELESAI <span class="text-muted fw-normal" style="font-size: 10px;">({{ number_format($totSelesai, 0, ',', '.') }} / {{ number_format($spk->jumlah_rencana, 0, ',', '.') }} {{ $spk->satuan->nama_satuan ?? 'Pcs' }})</span>
+                        {{ $calcPct }}% SELESAI <span class="text-muted fw-normal" style="font-size: 10px;">({{ $completedTahapCount }} dari {{ $totalTahapCount }} Tahapan Selesai • Target SPK: {{ number_format($spk->jumlah_rencana, 0, ',', '.') }} {{ $spk->satuan->nama_satuan ?? 'Pcs' }})</span>
                     </div>
                 </div>
                 <div class="progress-bar-container">
-                    <div class="progress-bar-fill" style="width: {{ min(100, $calcPct) }}%;"></div>
+                    @if($calcPct > 0)
+                        <div class="progress-bar-fill" style="width: {{ min(100, $calcPct) }}%;"></div>
+                    @endif
                 </div>
             </div>
 
@@ -593,8 +604,8 @@
                                     <span class="status-pill status-menunggu"><i class="bi bi-clock"></i> Menunggu</span>
                                 @endif
                             </td>
-                            <td>{{ number_format($tgt, 0, ',', '.') }} {{ $sat }}</td>
-                            <td class="fw-bold text-primary">{{ number_format($fin, 0, ',', '.') }} {{ $sat }}</td>
+                            <td>{{ number_format($tgt, 0, ',', '.') }}</td>
+                            <td class="fw-bold text-primary">{{ number_format($fin, 0, ',', '.') }}</td>
                             <td class="{{ $rej > 0 ? 'fw-bold text-danger' : 'text-muted' }}">{{ number_format($rej, 0, ',', '.') }}</td>
                             <td class="fw-bold text-dark">{{ $pct }}%</td>
                             <td style="text-align: left;" class="fw-semibold">{{ $t->pic_operator ?: ($spk->penanggungJawab->nama_lengkap ?? '-') }}</td>
@@ -649,12 +660,12 @@
                         <tr class="log-row-filled" data-log-date="{{ $logDateYmd }}">
                             <td class="text-center fw-bold text-dark" style="white-space: nowrap;">{{ formatTanggalIndo($log->tanggal) }}</td>
                             <td class="fw-bold text-dark">{{ $log->tahapan_nama }}</td>
-                            <td class="text-center fw-bold text-primary">+{{ number_format($log->qty_hasil_hari_ini, 0, ',', '.') }} {{ $sat }}</td>
+                            <td class="text-center fw-bold text-primary">+{{ number_format($log->qty_hasil_hari_ini, 0, ',', '.') }}</td>
                             <td class="text-center {{ (float)$log->qty_reject_hari_ini > 0 ? 'text-danger fw-bold' : 'text-muted' }}">+{{ number_format($log->qty_reject_hari_ini, 0, ',', '.') }}</td>
                             <td class="text-center py-1">
                                 @if($log->foto_bukti_url)
                                     <a href="javascript:void(0)" onclick="openFotoPreviewModal('{{ $log->foto_bukti_url }}', 'Foto Bukti {{ formatTanggalIndo($log->tanggal) }} - {{ e($log->tahapan_nama) }}')">
-                                        <img src="{{ $log->foto_bukti_url }}" class="img-thumb-frame" style="cursor: pointer;" title="Klik untuk perbesar foto bukti">
+                                        <img src="{{ $log->foto_bukti_url }}" crossorigin="anonymous" class="img-thumb-frame" style="cursor: pointer;" title="Klik untuk perbesar foto bukti">
                                     </a>
                                 @else
                                     <span class="text-muted small">-</span>
@@ -679,7 +690,7 @@
                         <tr class="log-row-blank d-none">
                             <td class="text-center text-muted small py-2" style="height: 32px;">____ / ____ / 2026</td>
                             <td class="text-muted small">_________________________</td>
-                            <td class="text-center text-muted small">+ ______ {{ $sat }}</td>
+                            <td class="text-center text-muted small">+ ______</td>
                             <td class="text-center text-muted small">+ ______</td>
                             <td class="text-center text-muted small">[ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</td>
                             <td class="text-muted small">_____________________________________</td>
@@ -690,7 +701,7 @@
 
             {{-- FOOTER DOCUMENT WATERMARK --}}
             <div class="doc-footer">
-                <div><i class="bi bi-shield-check text-primary me-1"></i> ERP Production Management System • Dokumen Resmi Kontrol Produksi</div>
+                <div><span class="text-muted"><i class="bi bi-shield-check text-primary me-1"></i> Dokumen Kontrol Produksi</span></div>
                 <div>Halaman 1 dari 1</div>
             </div>
 
@@ -816,34 +827,87 @@
                 return;
             }
 
-            const originalTransform = page.style.transform;
-            const originalMarginBottom = page.style.marginBottom;
+            // Reset transform for 100% crisp full-resolution capture
             page.style.transform = 'none';
             page.style.marginBottom = '0px';
+
+            const fileNo = "{{ str_replace(['/', '\\'], '_', $spk->nomor_spk) }}";
+            const filename = `Laporan_Progress_Produksi_${fileNo}.png`;
+
+            const finish = () => {
+                scaleA4ToScreen();
+                if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+            };
 
             html2canvas(page, {
                 scale: 2,
                 useCORS: true,
-                allowTaint: true,
+                allowTaint: false,
                 backgroundColor: '#ffffff',
-                logging: false
+                logging: false,
+                onclone: (clonedDoc) => {
+                    const clonedPage = clonedDoc.getElementById('printableArea');
+                    if (clonedPage) {
+                        clonedPage.style.transform = 'none';
+                        clonedPage.style.marginBottom = '0px';
+
+                        // 1. Remove background-image/gradient from any element with 0 width or 0 height to prevent CanvasRenderingContext2D.createPattern crash
+                        const allEls = clonedPage.querySelectorAll('*');
+                        allEls.forEach(el => {
+                            const w = el.offsetWidth || el.clientWidth || 0;
+                            const h = el.offsetHeight || el.clientHeight || 0;
+                            if (w <= 0 || h <= 0) {
+                                el.style.backgroundImage = 'none';
+                                el.style.background = 'transparent';
+                            }
+                        });
+
+                        // 2. Hide broken or 0-dimension images
+                        const imgs = clonedPage.querySelectorAll('img');
+                        imgs.forEach(img => {
+                            if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+                                img.style.display = 'none';
+                            } else {
+                                img.crossOrigin = 'anonymous';
+                            }
+                        });
+                    }
+                }
             }).then(canvas => {
-                page.style.transform = originalTransform;
-                page.style.marginBottom = originalMarginBottom;
-
-                const link = document.createElement('a');
-                const fileNo = "{{ str_replace(['/', '\\'], '_', $spk->nomor_spk) }}";
-                link.download = `Laporan_Progress_Produksi_${fileNo}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-
-                if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+                if (canvas.toBlob) {
+                    canvas.toBlob(blob => {
+                        if (blob) {
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.download = filename;
+                            link.href = url;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            setTimeout(() => URL.revokeObjectURL(url), 2000);
+                        } else {
+                            const link = document.createElement('a');
+                            link.download = filename;
+                            link.href = canvas.toDataURL('image/png');
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }
+                        finish();
+                    }, 'image/png');
+                } else {
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = canvas.toDataURL('image/png');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    finish();
+                }
             }).catch(err => {
                 console.error('Screenshot error:', err);
-                page.style.transform = originalTransform;
-                page.style.marginBottom = originalMarginBottom;
-                alert('Gagal mengambil screenshot dokumen. Silakan coba lagi.');
-                if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+                finish();
+                alert('Gagal mengambil screenshot dokumen: ' + (err.message || 'Silakan coba lagi.'));
             });
         }
 

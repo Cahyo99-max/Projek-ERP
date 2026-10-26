@@ -20,19 +20,19 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-6">
-                            <label class="form-label small fw-semibold">Alokasi Biaya</label>
-                            <select class="form-select rounded-3" id="alokasi_biaya" name="alokasi_biaya">
+                            <label class="form-label small fw-semibold">Alokasi Biaya <span class="text-danger">*</span></label>
+                            <select class="form-select rounded-3" id="alokasi_biaya" name="alokasi_biaya" required>
                                 <option value="Berdasarkan Nilai Barang">Berdasarkan Nilai Barang</option>
                                 <option value="Berdasarkan Qty">Berdasarkan Qty</option>
                                 <option value="Tanpa Alokasi">Tanpa Alokasi</option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-semibold">Akun COA (Mapping)</label>
-                            <select class="form-select rounded-3" id="exp_coa_id" name="coa_id">
-                                <option value="">-- Pilih Akun COA --</option>
+                            <label class="form-label small fw-semibold">Akun COA (Mapping) <span class="text-danger">*</span></label>
+                            <select class="form-select rounded-3 select2-exp-coa" id="exp_coa_id" name="coa_id" required>
+                                <option value="">-- Pilih Akun COA (Wajib) --</option>
                                 @foreach($detailCoas as $coa)
-                                    <option value="{{ $coa->id }}">{{ $coa->code }} - {{ $coa->name }}</option>
+                                    <option value="{{ $coa->id }}">[{{ $coa->code }}] {{ $coa->name }} ({{ $coa->type_label }})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -45,8 +45,8 @@
                             </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-semibold">Status</label>
-                            <select class="form-select rounded-3" id="exp_status" name="status">
+                            <label class="form-label small fw-semibold">Status <span class="text-danger">*</span></label>
+                            <select class="form-select rounded-3" id="exp_status" name="status" required>
                                 <option value="Active">Active</option>
                                 <option value="Inactive">Inactive</option>
                             </select>

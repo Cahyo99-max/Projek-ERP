@@ -303,6 +303,10 @@ class StockAdjustmentController extends Controller
     // ══════════════════════════════════════════════════════════════
     public function searchBarang(Request $request)
     {
+        $user = auth()->user();
+        $isSupervisor = $user ? $user->hasAnyRole(['Super Admin', 'Owner']) : false;
+        $canSeeHpp = $user ? ($isSupervisor || $user->can('lihat-hpp-stok-adjustment')) : false;
+
         $q = $request->q;
         $gudangId = $request->gudang_id;
 
@@ -316,7 +320,7 @@ class StockAdjustmentController extends Controller
                 }
             })
             ->select('id', 'kode_barang', 'nama_barang', 'satuan_id', 'parent_id')
-            ->take(30)
+            ->take(100)
             ->get();
 
         $result = [];
@@ -339,7 +343,7 @@ class StockAdjustmentController extends Controller
                 'kode_barang'  => $b->kode_barang,
                 'nama_barang'  => $b->nama_barang,
                 'satuan_name'  => $b->satuan ? $b->satuan->nama_satuan : 'Pcs',
-                'hpp_satuan'   => $hpp,
+                'hpp_satuan'   => $canSeeHpp ? $hpp : 0,
                 'stok_aktual'  => $stokAktual,
                 'foto_url'     => $fotoUrl,
             ];
@@ -366,7 +370,7 @@ class StockAdjustmentController extends Controller
             'items'              => 'required|array|min:1|max:25',
             'items.*.barang_id'  => 'required|exists:master_barang,id',
             'items.*.jumlah'     => 'required|numeric|gt:0',
-            'items.*.harga_satuan' => 'required|numeric|gte:0',
+            'items.*.harga_satuan' => 'nullable|numeric|gte:0',
         ]);
 
         $gudang = $this->resolveGudang((int)$request->gudang_id);
@@ -435,7 +439,17 @@ class StockAdjustmentController extends Controller
                     $systemHpp = $masterBarang ? (float)$masterBarang->hpp : 0;
                 }
 
-                $harga      = ($systemHpp > 0) ? round($systemHpp, 6) : round((float)$item['harga_satuan'], 6);
+                $harga      = ($systemHpp > 0) ? round($systemHpp, 6) : round((float)($item['harga_satuan'] ?? 0), 6);
+
+                if ($request->tipe_adjustment === 'Penambahan' && $harga <= 0) {
+                    $barang = MasterBarang::find($item['barang_id']);
+                    $namaBarang = $barang ? $barang->nama_barang : 'Barang #' . $item['barang_id'];
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => "HPP / Harga Satuan untuk barang '{$namaBarang}' tidak boleh Rp 0 pada penyesuaian penambahan barang masuk! Silakan masukkan nilai HPP yang valid."
+                    ], 422);
+                }
+
                 $nilaiTotal = round($qty * $harga, 4);
 
                 // Akumulasi total header
@@ -581,11 +595,21 @@ class StockAdjustmentController extends Controller
 
         $stockAdjustment->load(['gudang:id,nama_gudang', 'details.barang.satuan', 'details.barang.primaryFoto']);
 
+        $canSeeHpp = $isSupervisor || $user->can('lihat-hpp-stok-adjustment');
+
         foreach ($stockAdjustment->details as $d) {
             $stokGudang = StokGudang::where('gudang_id', $stockAdjustment->gudang_id)
                 ->where('barang_id', $d->barang_id)
                 ->first();
             $d->stok_aktual = $stokGudang ? (float)$stokGudang->stok_aktual : 0;
+            if (!$canSeeHpp) {
+                $d->harga_satuan = 0;
+                $d->nilai_total  = 0;
+            }
+        }
+
+        if (!$canSeeHpp) {
+            $stockAdjustment->total_nilai = 0;
         }
 
         return response()->json($stockAdjustment);
@@ -620,7 +644,7 @@ class StockAdjustmentController extends Controller
             'items'              => 'required|array|min:1|max:25',
             'items.*.barang_id'  => 'required|exists:master_barang,id',
             'items.*.jumlah'     => 'required|numeric|gt:0',
-            'items.*.harga_satuan' => 'required|numeric|gte:0',
+            'items.*.harga_satuan' => 'nullable|numeric|gte:0',
         ]);
 
         try {
@@ -666,7 +690,17 @@ class StockAdjustmentController extends Controller
                     $systemHpp = $masterBarang ? (float)$masterBarang->hpp : 0;
                 }
 
-                $harga      = ($systemHpp > 0) ? round($systemHpp, 6) : round((float)$item['harga_satuan'], 6);
+                $harga      = ($systemHpp > 0) ? round($systemHpp, 6) : round((float)($item['harga_satuan'] ?? 0), 6);
+
+                if ($request->tipe_adjustment === 'Penambahan' && $harga <= 0) {
+                    $barang = MasterBarang::find($item['barang_id']);
+                    $namaBarang = $barang ? $barang->nama_barang : 'Barang #' . $item['barang_id'];
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => "HPP / Harga Satuan untuk barang '{$namaBarang}' tidak boleh Rp 0 pada penyesuaian penambahan barang masuk! Silakan masukkan nilai HPP yang valid."
+                    ], 422);
+                }
+
                 $nilaiTotal = round($qty * $harga, 4);
 
                 $totalQty   += $qty;

@@ -84,7 +84,47 @@
                             <span class="input-group-text kb-input-icon font-monospace fw-bold text-success">Rp</span>
                             <input type="text" inputmode="numeric" class="form-control kb-form-control font-monospace fw-bold text-success fs-5 input-currency" name="saldo_awal" id="add_acc_saldo_awal" value="0" placeholder="0" autocomplete="off">
                         </div>
-                        <div class="form-text small text-muted">Saldo awal akan otomatis dicatat sebagai modal awal buku kas.</div>
+                        <div class="form-text small text-muted">Isi saldo awal jika buku kas/rekening ini sudah memiliki dana saat didaftarkan.</div>
+                    </div>
+
+                    <!-- Akun Lawan Saldo Awal (Muncul jika Saldo Awal > 0) -->
+                    <div class="col-12" id="box_lawan_saldo_awal" style="display: none;">
+                        <div class="p-3 rounded-4 border border-warning-subtle bg-warning-subtle bg-opacity-25 shadow-sm">
+                            <label class="form-label small fw-bold text-body-emphasis mb-1">
+                                Akun Lawan Saldo Awal (Kredit) <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select select2-coa" name="lawan_coa_id" id="add_acc_lawan_coa_id" style="width: 100%;">
+                                <option value="">-- Pilih Akun Lawan (Default: Modal / Ekuitas) --</option>
+                                @php
+                                    $equityCoas = $coaAccounts->filter(function($c) {
+                                        return $c->type === 'equity' || str_starts_with((string)$c->code, '3') || str_contains(strtolower($c->name), 'modal') || str_contains(strtolower($c->name), 'ekuitas');
+                                    });
+                                    $otherCoas = $coaAccounts->reject(function($c) use ($equityCoas) {
+                                        return $equityCoas->contains('id', $c->id);
+                                    });
+                                @endphp
+                                @if($equityCoas->isNotEmpty())
+                                    <optgroup label="Akun Modal &amp; Ekuitas (Direkomendasikan)">
+                                        @foreach($equityCoas as $coa)
+                                            <option value="{{ $coa->id }}" {{ (str_contains(strtolower($coa->name), 'modal') || str_contains(strtolower($coa->name), 'ekuitas')) ? 'selected' : '' }}>
+                                                {{ $coa->code }} - {{ $coa->name }}
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                                @if($otherCoas->isNotEmpty())
+                                    <optgroup label="Akun Lainnya (Hutang / Liabilitas / RAK)">
+                                        @foreach($otherCoas as $coa)
+                                            <option value="{{ $coa->id }}">{{ $coa->code }} - {{ $coa->name }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                            </select>
+                            <div class="form-text small text-muted mt-1">
+                                <i class="bi bi-info-circle text-warning me-1"></i>
+                                Akun penyeimbang jurnal saldo awal (Debit: Kas/Bank, Kredit: Akun Lawan).
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-12">

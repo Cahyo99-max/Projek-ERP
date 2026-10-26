@@ -56,20 +56,25 @@ class MasterPajak extends Model
     public function scopeForActiveCompany($query)
     {
         $activeCompanyId = session('active_company_id');
+        if (!$activeCompanyId && session('active_branch_id')) {
+            $branch = Branch::find(session('active_branch_id'));
+            $activeCompanyId = $branch ? $branch->company_id : null;
+        }
+        if (!$activeCompanyId && auth()->check()) {
+            $activeCompanyId = auth()->user()->company_id ?? 1;
+        }
         if ($activeCompanyId) {
-            return $query->where($this->getTable() . '.company_id', $activeCompanyId);
+            return $query->where(function($q) use ($activeCompanyId) {
+                $q->where($this->getTable() . '.company_id', $activeCompanyId)
+                  ->orWhereNull($this->getTable() . '.company_id');
+            });
         }
         return $query;
     }
 
     public function scopeActive($query)
     {
-        $q = $query->where($this->getTable() . '.status', 'Active');
-        $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId) {
-            $q->where($this->getTable() . '.company_id', $activeCompanyId);
-        }
-        return $q;
+        return $query->where($this->getTable() . '.status', 'Active');
     }
 }
 

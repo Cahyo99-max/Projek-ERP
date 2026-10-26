@@ -25,7 +25,7 @@
                 </div>
 
                 {{-- Result Table / Cards --}}
-                <div id="resultLookupBarangAdj" class="rounded-3 border overflow-hidden" style="max-height: 400px; overflow-y: auto;">
+                <div id="resultLookupBarangAdj" class="rounded-3 border" style="max-height: 420px; overflow-y: auto; overflow-x: auto;">
                     <div class="text-center py-5">
                         <i class="bi bi-search fs-1 d-block mb-2 text-primary opacity-50"></i>
                         <span class="text-muted">Ketik kode atau nama barang di atas untuk mencari...</span>
@@ -40,11 +40,16 @@
     </div>
 </div>
 
+@php
+    $canSeeHpp = auth()->check() && (auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-hpp-stok-adjustment'));
+@endphp
+
 @push('scripts')
 <script>
     let activeTargetRowId = null;
     let activeFormContext = 'input'; // 'input' or 'edit'
     let searchAdjTimeout = null;
+    const canSeeHppLookup = @json($canSeeHpp);
 
     function bukaModalLookupBarangAdj(rowId, context = 'input') {
         activeTargetRowId = rowId;
@@ -105,16 +110,16 @@
                 }
 
                 let rowsHtml = `
-                    <div class="table-responsive">
+                    <div class="table-responsive mb-0" style="max-height: 400px; overflow-y: auto;">
                         <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem; min-width: 620px;">
-                            <thead class="sticky-top">
+                            <thead class="sticky-top bg-body shadow-xs" style="z-index: 5;">
                                 <tr class="text-uppercase text-nowrap">
                                     <th style="width: 40px;" class="text-center">FOTO</th>
                                     <th>KODE</th>
                                     <th>NAMA BARANG</th>
                                     <th class="text-center">SATUAN</th>
                                     <th class="text-center">STOK GUDANG</th>
-                                    <th class="text-end">HPP SATUAN</th>
+                                    ${canSeeHppLookup ? '<th class="text-end">HPP SATUAN</th>' : ''}
                                     <th class="text-center" style="width: 80px;">AKSI</th>
                                 </tr>
                             </thead>
@@ -125,6 +130,10 @@
                     const thumbFotoHtml = b.foto_url
                         ? `<img src="${b.foto_url}" class="rounded border" style="width: 32px; height: 32px; object-fit: cover;">`
                         : `<div class="rounded border bg-light d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;"><i class="bi bi-image text-muted"></i></div>`;
+
+                    const hppCellHtml = canSeeHppLookup 
+                        ? `<td class="text-end font-monospace text-body">Rp ${numberFormatID(b.hpp_satuan)}</td>`
+                        : ``;
 
                     rowsHtml += `
                         <tr class="cursor-pointer row-select-barang-adj" 
@@ -140,7 +149,7 @@
                             <td class="fw-semibold text-body">${escapeHtmlAdj(b.nama_barang)}</td>
                             <td class="text-center"><span class="badge bg-secondary bg-opacity-10 text-body border-0 px-2.5 py-1">${escapeHtmlAdj(b.satuan_name)}</span></td>
                             <td class="text-center fw-bold font-monospace ${b.stok_aktual > 0 ? 'text-success' : 'text-danger'}">${numberFormatID(b.stok_aktual)}</td>
-                            <td class="text-end font-monospace text-body">Rp ${numberFormatID(b.hpp_satuan)}</td>
+                            ${hppCellHtml}
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold shadow-xs">
                                     <i class="bi bi-check-lg"></i> Pilih

@@ -1,614 +1,10 @@
 <x-layouts title="Manajemen Proyek Tender & Kontrak">
 
     @push('styles')
+    <link rel="stylesheet" href="{{ asset('modul_smd/tender.css') }}?v={{ time() }}">
     <style>
-        /* ==========================================================
-           MODERN CINEMATIC TENDER & PIPELINE KANBAN STYLES
-           ========================================================== */
-        :root {
-            --tender-bg-surface: #ffffff;
-            --tender-border: #e2e8f0;
-            --tender-text-main: #1e293b;
-            --tender-text-muted: #64748b;
-        }
-        [data-bs-theme="dark"] {
-            --tender-bg-surface: #1e293b;
-            --tender-border: rgba(255, 255, 255, 0.09);
-            --tender-text-main: #f8fafc;
-            --tender-text-muted: #94a3b8;
-        }
-
-        /* Frosted Glass KPI Cards */
-        .tender-kpi-card {
-            background: var(--tender-bg-surface);
-            border: 1px solid var(--tender-border);
-            border-radius: 18px;
-            padding: 1.25rem 1.4rem;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        }
-        [data-bs-theme="dark"] .tender-kpi-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.25);
-        }
-        .tender-kpi-card:hover {
-            transform: translateY(-3px);
-            border-color: #10b981;
-            box-shadow: 0 12px 30px rgba(16, 185, 129, 0.12);
-        }
-        .tender-kpi-icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            flex-shrink: 0;
-        }
-
-        /* View Switcher Tabs */
-        .tender-view-pills {
-            background: rgba(0, 0, 0, 0.04);
-            padding: 4px;
-            border-radius: 14px;
-            display: inline-flex;
-            border: 1px solid var(--tender-border);
-        }
-        [data-bs-theme="dark"] .tender-view-pills {
-            background: rgba(15, 23, 42, 0.6);
-        }
-        .tender-view-btn {
-            border: none;
-            background: transparent;
-            color: var(--tender-text-muted);
-            padding: 8px 18px;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-        }
-        .tender-view-btn.active {
-            background: #10b981;
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
-        }
-
-        /* KANBAN PIPELINE BOARD */
-        .kanban-board-wrapper {
-            display: flex;
-            gap: 16px;
-            overflow-x: auto;
-            padding-bottom: 20px;
-            scrollbar-width: thin;
-            min-height: 550px;
-        }
-        .kanban-column {
-            flex: 0 0 320px;
-            background: rgba(241, 245, 249, 0.6);
-            border: 1px solid var(--tender-border);
-            border-radius: 18px;
-            display: flex;
-            flex-direction: column;
-            max-height: calc(100vh - 260px);
-        }
-        [data-bs-theme="dark"] .kanban-column {
-            background: rgba(15, 23, 42, 0.5);
-            border-color: rgba(255, 255, 255, 0.06);
-        }
-        .kanban-col-header {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--tender-border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .kanban-col-body {
-            padding: 12px;
-            overflow-y: auto;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            scrollbar-width: thin;
-        }
-
-        /* KANBAN CARDS */
-        .kanban-card {
-            background: var(--tender-bg-surface);
-            border: 1px solid var(--tender-border);
-            border-radius: 14px;
-            padding: 14px;
-            cursor: pointer;
-            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-        }
-        [data-bs-theme="dark"] .kanban-card {
-            background: #1e293b;
-            border-color: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        .kanban-card:hover {
-            transform: translateY(-3px) scale(1.01);
-            border-color: #10b981;
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.18);
-        }
-        .kanban-card-title {
-            font-size: 0.95rem;
-            font-weight: 700;
-            line-height: 1.35;
-            color: var(--tender-text-main);
-            margin-bottom: 6px;
-        }
-        .kanban-card-value {
-            font-size: 1.05rem;
-            font-weight: 800;
-            font-family: var(--bs-font-monospace);
-        }
-
-        /* Priority Dot Badges */
-        .badge-priority-high {
-            background: rgba(239, 68, 68, 0.15);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        .badge-priority-medium {
-            background: rgba(245, 158, 11, 0.15);
-            color: #f59e0b;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-        .badge-priority-low {
-            background: rgba(59, 130, 246, 0.15);
-            color: #3b82f6;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-
-        /* Nav Tabs in Modals */
-        .nav-tabs-custom .nav-link {
-            border: none;
-            color: var(--tender-text-muted);
-            font-weight: 700;
-            padding: 0.75rem 1.25rem;
-            position: relative;
-            background: transparent;
-            transition: all 0.2s ease;
-        }
-        .nav-tabs-custom .nav-link.active {
-            color: #10b981;
-            background: transparent;
-        }
-        .nav-tabs-custom .nav-link.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background-color: #10b981;
-            border-radius: 3px;
-        }
-
-        /* Category Filter Chips in Lookup Modal */
-        .btn-kategori-tender-chip {
-            border: 1px solid var(--tender-border);
-            color: var(--tender-text-muted);
-            background: transparent;
-            font-size: 0.75rem;
-            transition: all 0.2s ease;
-        }
-        .btn-kategori-tender-chip:hover {
-            border-color: #10b981;
-            color: #10b981;
-        }
-        .btn-kategori-tender-chip.active {
-            background: #10b981 !important;
-            border-color: #10b981 !important;
-            color: #ffffff !important;
-            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.35);
-        }
-
-        /* Modal Sizing (Ultra Spacious & Wide for Executive Dashboard) */
-        .modal-custom-xl {
-            max-width: 1540px !important;
-            width: 96vw !important;
-        }
-        .modal-custom-xxl {
-            max-width: 1580px !important;
-            width: 96vw !important;
-        }
-        @media (min-width: 1600px) {
-            .modal-custom-xl {
-                max-width: 1580px !important;
-            }
-            .modal-custom-xxl {
-                max-width: 1640px !important;
-            }
-        }
-
-        /* ==========================================================
-           CINEMATIC & MODERN TENDER TABLE STYLES (DARK & LIGHT)
-           ========================================================== */
-        .tender-table-card {
-            background: var(--tender-bg-surface);
-            border: 1px solid var(--tender-border);
-            border-radius: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-            transition: all 0.3s ease;
-        }
-        [data-bs-theme="dark"] .tender-table-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-color: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-        }
-
-        .tender-table-header {
-            background: transparent;
-            border-bottom: 1px solid var(--tender-border);
-        }
-        [data-bs-theme="dark"] .tender-table-header {
-            border-color: rgba(255, 255, 255, 0.08);
-        }
-
-        /* Modern Table Aesthetics */
-        .tender-modern-table {
-            border-collapse: separate !important;
-            border-spacing: 0 !important;
-            width: 100% !important;
-            margin-bottom: 0 !important;
-        }
-        .tender-modern-table thead th {
-            background: #f8fafc !important;
-            color: #475569 !important;
-            font-size: 0.72rem !important;
-            font-weight: 800 !important;
-            letter-spacing: 0.06em !important;
-            text-transform: uppercase !important;
-            padding: 1rem 0.85rem !important;
-            border-top: none !important;
-            border-bottom: 2px solid #e2e8f0 !important;
-            white-space: nowrap !important;
-        }
-        [data-bs-theme="dark"] .tender-modern-table thead th {
-            background: #141b2d !important;
-            color: #94a3b8 !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-        }
-
-        .tender-modern-table tbody tr {
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            background: transparent !important;
-        }
-        .tender-modern-table tbody tr:hover {
-            background: rgba(16, 185, 129, 0.04) !important;
-            box-shadow: inset 3px 0 0 #10b981 !important;
-        }
-        [data-bs-theme="dark"] .tender-modern-table tbody tr:hover {
-            background: rgba(255, 255, 255, 0.03) !important;
-            box-shadow: inset 3px 0 0 #10b981 !important;
-        }
-
-        .tender-modern-table tbody td {
-            padding: 1.05rem 0.85rem !important;
-            vertical-align: middle !important;
-            border-bottom: 1px solid var(--tender-border) !important;
-            border-top: none !important;
-        }
-        [data-bs-theme="dark"] .tender-modern-table tbody td {
-            border-color: rgba(255, 255, 255, 0.06) !important;
-        }
-
-        /* Number Badge */
-        .table-no-badge {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.04);
-            color: var(--tender-text-muted);
-            font-weight: 800;
-            font-family: var(--bs-font-monospace);
-            font-size: 0.78rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid var(--tender-border);
-        }
-        [data-bs-theme="dark"] .table-no-badge {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.09);
-            color: #94a3b8;
-        }
-
-        /* Contract Badge */
-        .badge-kontrak-tender {
-            background: rgba(59, 130, 246, 0.08);
-            color: #2563eb;
-            border: 1px solid rgba(59, 130, 246, 0.25);
-            font-family: var(--bs-font-monospace);
-            font-size: 0.74rem;
-            padding: 4px 9px;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-weight: 700;
-        }
-        [data-bs-theme="dark"] .badge-kontrak-tender {
-            background: rgba(59, 130, 246, 0.15);
-            color: #93c5fd;
-            border-color: rgba(147, 197, 253, 0.25);
-        }
-
-        /* Category Badges */
-        .badge-kategori-b2g {
-            background: rgba(59, 130, 246, 0.12);
-            color: #2563eb;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-        [data-bs-theme="dark"] .badge-kategori-b2g {
-            background: rgba(59, 130, 246, 0.2);
-            color: #93c5fd;
-            border-color: rgba(59, 130, 246, 0.35);
-        }
-
-        .badge-kategori-tni {
-            background: rgba(16, 185, 129, 0.12);
-            color: #059669;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        [data-bs-theme="dark"] .badge-kategori-tni {
-            background: rgba(16, 185, 129, 0.2);
-            color: #6ee7b7;
-            border-color: rgba(16, 185, 129, 0.35);
-        }
-
-        .badge-kategori-bumn {
-            background: rgba(245, 158, 11, 0.12);
-            color: #d97706;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-        [data-bs-theme="dark"] .badge-kategori-bumn {
-            background: rgba(245, 158, 11, 0.2);
-            color: #fcd34d;
-            border-color: rgba(245, 158, 11, 0.35);
-        }
-
-        .badge-kategori-b2b {
-            background: rgba(168, 85, 247, 0.12);
-            color: #9333ea;
-            border: 1px solid rgba(168, 85, 247, 0.3);
-        }
-        [data-bs-theme="dark"] .badge-kategori-b2b {
-            background: rgba(168, 85, 247, 0.2);
-            color: #d8b4fe;
-            border-color: rgba(168, 85, 247, 0.35);
-        }
-
-        /* Action Buttons */
-        .btn-table-action {
-            width: 32px;
-            height: 32px;
-            border-radius: 9px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-            border: 1px solid transparent;
-        }
-        .btn-table-action:hover {
-            transform: translateY(-2px) scale(1.08);
-        }
-
-        .btn-action-print {
-            background: rgba(6, 182, 212, 0.12);
-            color: #0891b2;
-            border-color: rgba(6, 182, 212, 0.25);
-        }
-        .btn-action-print:hover {
-            background: #0891b2;
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.35);
-        }
-        [data-bs-theme="dark"] .btn-action-print {
-            background: rgba(6, 182, 212, 0.18);
-            color: #67e8f9;
-            border-color: rgba(103, 232, 249, 0.25);
-        }
-        [data-bs-theme="dark"] .btn-action-print:hover {
-            background: #06b6d4;
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
-        }
-
-        .btn-action-view {
-            background: rgba(59, 130, 246, 0.12);
-            color: #2563eb;
-            border-color: rgba(59, 130, 246, 0.25);
-        }
-        .btn-action-view:hover {
-            background: #2563eb;
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
-        }
-        [data-bs-theme="dark"] .btn-action-view {
-            background: rgba(59, 130, 246, 0.18);
-            color: #93c5fd;
-            border-color: rgba(147, 197, 253, 0.25);
-        }
-        [data-bs-theme="dark"] .btn-action-view:hover {
-            background: #3b82f6;
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-        }
-
-        .btn-action-edit {
-            background: rgba(245, 158, 11, 0.12);
-            color: #d97706;
-            border-color: rgba(245, 158, 11, 0.25);
-        }
-        .btn-action-edit:hover {
-            background: #d97706;
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
-        }
-        [data-bs-theme="dark"] .btn-action-edit {
-            background: rgba(245, 158, 11, 0.18);
-            color: #fcd34d;
-            border-color: rgba(252, 211, 77, 0.25);
-        }
-        [data-bs-theme="dark"] .btn-action-edit:hover {
-            background: #f59e0b;
-            color: #0f172a;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-        }
-
-        /* DataTables Controls Integration */
-        .dataTables_wrapper {
-            padding: 1rem 1.25rem;
-        }
-        .dataTables_wrapper .dataTables_length,
-        .dataTables_wrapper .dataTables_filter {
-            margin-bottom: 1rem;
-        }
-        .dataTables_wrapper .dataTables_length label,
-        .dataTables_wrapper .dataTables_filter label {
-            color: var(--tender-text-muted);
-            font-size: 0.82rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .dataTables_wrapper .dataTables_length select {
-            border: 1px solid var(--tender-border) !important;
-            border-radius: 10px !important;
-            padding: 5px 28px 5px 12px !important;
-            font-size: 0.8rem !important;
-            background-color: var(--tender-bg-surface) !important;
-            color: var(--tender-text-main) !important;
-        }
-        .dataTables_wrapper .dataTables_filter input {
-            border: 1px solid var(--tender-border) !important;
-            border-radius: 20px !important;
-            padding: 6px 16px !important;
-            font-size: 0.82rem !important;
-            background-color: var(--tender-bg-surface) !important;
-            color: var(--tender-text-main) !important;
-            outline: none !important;
-            transition: all 0.2s ease !important;
-        }
-        .dataTables_wrapper .dataTables_filter input:focus {
-            border-color: #10b981 !important;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
-        }
-        .dataTables_wrapper .dataTables_info {
-            color: var(--tender-text-muted) !important;
-            font-size: 0.8rem !important;
-            padding-top: 1rem !important;
-            font-weight: 500 !important;
-        }
-        .dataTables_wrapper .dataTables_paginate {
-            padding-top: 0.85rem !important;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
-            border-radius: 8px !important;
-            border: 1px solid transparent !important;
-            font-size: 0.8rem !important;
-            font-weight: 700 !important;
-            padding: 5px 12px !important;
-            color: var(--tender-text-muted) !important;
-            transition: all 0.2s ease !important;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-            background: #10b981 !important;
-            border-color: #10b981 !important;
-            color: #ffffff !important;
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
-        }
-        /* ==========================================================
-           CINEMATIC CUSTOMER LOOKUP MODAL (DUAL THEME)
-           ========================================================== */
-        .modal-customer-cinematic {
-            border-radius: 24px !important;
-            background: #ffffff !important;
-            border: 1px solid rgba(0, 0, 0, 0.08) !important;
-            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25) !important;
-        }
-        [data-bs-theme="dark"] .modal-customer-cinematic {
-            background: #1e293b !important;
-            border-color: rgba(255, 255, 255, 0.08) !important;
-            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6) !important;
-        }
-
-        .customer-lookup-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 12px 16px;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-            cursor: pointer;
-            position: relative;
-        }
-        .customer-lookup-card:hover {
-            border-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.03);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.1);
-        }
-        [data-bs-theme="dark"] .customer-lookup-card {
-            background: rgba(15, 23, 42, 0.5);
-            border-color: rgba(255, 255, 255, 0.07);
-        }
-        [data-bs-theme="dark"] .customer-lookup-card:hover {
-            background: rgba(59, 130, 246, 0.1);
-            border-color: #3b82f6;
-            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
-        }
-
-        .customer-avatar-badge {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 0.92rem;
-            flex-shrink: 0;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.25) 100%);
-            color: #2563eb;
-            border: 1px solid rgba(59, 130, 246, 0.25);
-        }
-        [data-bs-theme="dark"] .customer-avatar-badge {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(29, 78, 216, 0.3) 100%);
-            color: #93c5fd;
-            border-color: rgba(147, 197, 253, 0.25);
-        }
-
-        .customer-lookup-scroll {
-            max-height: 440px;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(150, 150, 150, 0.3) transparent;
-        }
-        .customer-lookup-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-        .customer-lookup-scroll::-webkit-scrollbar-thumb {
-            background: rgba(150, 150, 150, 0.3);
-            border-radius: 10px;
+        .customer-lookup-card.is-hidden {
+            display: none !important;
         }
     </style>
     @endpush
@@ -623,36 +19,25 @@
                         <span class="p-2 rounded-3 bg-primary-subtle text-primary d-inline-flex align-items-center">
                             <i class="bi bi-briefcase-fill fs-5"></i>
                         </span>
-                        Manajemen Proyek Tender & Kontrak
+                        Manajemen Proyek Tender
                     </h4>
-                    @if($activeCompany)
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5 rounded-pill fs-7 d-inline-flex align-items-center gap-1.5 shadow-sm">
-                        <i class="bi bi-building"></i>
-                        <span>PT: <strong>{{ $activeCompany->nama_perusahaan }}</strong></span>
-                        @if($activeBranch)
-                            <span class="mx-1 text-muted">|</span>
-                            <i class="bi bi-geo-alt"></i>
-                            <span>{{ $activeBranch->nama_cabang }}</span>
-                        @endif
-                    </span>
-                    @endif
                 </div>
-                <div class="text-muted small">Pencatatan lelang, spesifikasi kebutuhan barang, berkas RKS, penawaran resmi, hingga konversi otomatis ke SPK Proyek.</div>
+                <div class="text-muted small">Manajemen data kontrak, spesifikasi barang, penawaran harga, negosiasi, hingga status lelang aktif.</div>
             </div>
 
-            <!-- Action Buttons & View Switcher -->
-            <div class="d-flex align-items-center gap-2.5">
-                <div class="tender-view-pills">
-                    <button type="button" class="tender-view-btn active" id="btn_view_kanban">
-                        <i class="bi bi-kanban-fill"></i> Pipeline Kanban
+            <!-- Action Buttons & View Switcher (Fully Responsive on Mobile & Desktop) -->
+            <div class="tender-header-actions d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2.5 w-100 w-md-auto">
+                <div class="tender-view-pills d-flex w-100 w-sm-auto">
+                    <button type="button" class="tender-view-btn flex-fill justify-content-center active" id="btn_view_kanban">
+                        <i class="bi bi-kanban-fill"></i> <span>Papan Pipeline</span>
                     </button>
-                    <button type="button" class="tender-view-btn" id="btn_view_table">
-                        <i class="bi bi-table"></i> DataTables
+                    <button type="button" class="tender-view-btn flex-fill justify-content-center" id="btn_view_table">
+                        <i class="bi bi-table"></i> <span>Tabel Data</span>
                     </button>
                 </div>
 
                 @can('tambah-tender')
-                <button type="button" class="btn btn-success rounded-pill px-3.5 py-2 fw-bold d-flex align-items-center gap-1.5 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahTender">
+                <button type="button" class="btn btn-success btn-tambah-tender-main rounded-pill px-3.5 py-2 fw-bold d-flex align-items-center justify-content-center gap-1.5 shadow-sm w-100 w-sm-auto" data-bs-toggle="modal" data-bs-target="#modalTambahTender">
                     <i class="bi bi-plus-circle-fill fs-6"></i>
                     <span>+ Proposal Tender Baru</span>
                 </button>
@@ -668,8 +53,8 @@
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <div class="text-muted small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em;">Total Proyek Tender</div>
-                            <div class="fs-2 fw-bold mt-1 text-body font-monospace">{{ number_format($countTotal) }}</div>
-                            <div class="text-muted small mt-1"><i class="bi bi-clock-history me-1"></i>{{ $countActive }} Proyek Aktif Berjalan</div>
+                            <div class="fs-2 fw-bold mt-1 text-body font-monospace" id="kpi_count_total">{{ number_format($countTotal) }}</div>
+                            <div class="text-muted small mt-1" id="kpi_count_active"><i class="bi bi-clock-history me-1"></i>{{ $countActive }} Proyek Aktif Berjalan</div>
                         </div>
                         <div class="tender-kpi-icon bg-primary-subtle text-primary">
                             <i class="bi bi-file-earmark-text-fill"></i>
@@ -684,8 +69,8 @@
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <div class="text-success small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em;">Tender Menang (Won)</div>
-                            <div class="fs-2 fw-bold mt-1 text-success font-monospace">{{ number_format($countWon) }} <span class="fs-6 text-muted fw-normal">Proyek</span></div>
-                            <div class="text-success small fw-bold mt-1"><i class="bi bi-trophy-fill me-1"></i>Win Rate: {{ $winRate }}%</div>
+                            <div class="fs-2 fw-bold mt-1 text-success font-monospace" id="kpi_count_won">{{ number_format($countWon) }} <span class="fs-6 text-muted fw-normal">Proyek</span></div>
+                            <div class="text-success small fw-bold mt-1" id="kpi_win_rate"><i class="bi bi-trophy-fill me-1"></i>Win Rate: {{ $winRate }}%</div>
                         </div>
                         <div class="tender-kpi-icon bg-success-subtle text-success">
                             <i class="bi bi-trophy-fill"></i>
@@ -700,7 +85,7 @@
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <div class="text-success small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em;">Nilai Kontrak Deal (Won)</div>
-                            <div class="fs-4 fw-bold mt-1 text-success font-monospace">Rp {{ number_format($valueWon, 0, ',', '.') }}</div>
+                            <div class="fs-4 fw-bold mt-1 text-success font-monospace" id="kpi_value_won">Rp {{ number_format($valueWon, 0, ',', '.') }}</div>
                             <div class="text-muted small mt-1"><i class="bi bi-check2-all me-1"></i>Omset SPK Tervalidasi</div>
                         </div>
                         <div class="tender-kpi-icon bg-success-subtle text-success">
@@ -716,7 +101,7 @@
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <div class="text-info small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em;">Pipeline Tender Berjalan</div>
-                            <div class="fs-4 fw-bold mt-1 text-info font-monospace">Rp {{ number_format($valuePipeline, 0, ',', '.') }}</div>
+                            <div class="fs-4 fw-bold mt-1 text-info font-monospace" id="kpi_value_pipeline">Rp {{ number_format($valuePipeline, 0, ',', '.') }}</div>
                             <div class="text-muted small mt-1"><i class="bi bi-graph-up-arrow me-1"></i>Potensi Pendapatan</div>
                         </div>
                         <div class="tender-kpi-icon bg-info-subtle text-info">
@@ -733,7 +118,7 @@
                 <!-- Injected Dynamically via AJAX -->
                 <div class="w-100 text-center py-5">
                     <div class="spinner-border text-success" role="status"></div>
-                    <p class="text-muted mt-2 small">Memuat Pipeline Kanban...</p>
+                    <p class="text-muted mt-2 small">Memuat Tahapan Pipeline Tender...</p>
                 </div>
             </div>
         </div>
@@ -741,64 +126,224 @@
         <!-- ===== VIEW 2: DATATABLES TABLE VIEW ===== -->
         <div id="section_table_view" class="d-none">
             <div class="tender-table-card overflow-hidden mb-4">
-                <div class="tender-table-header p-3.5 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                    <div class="d-flex align-items-center gap-2.5">
-                        <div class="p-2 rounded-3 bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center" style="width:38px;height:38px;">
+                <div class="tender-table-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="p-2.5 rounded-3 bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center" style="width:42px;height:42px;">
                             <i class="bi bi-table fs-5"></i>
                         </div>
                         <div>
-                            <h6 class="fw-bold mb-0 text-body">Daftar Rekapitulasi Proyek Tender</h6>
-                            <div class="text-muted small" style="font-size:0.75rem;">Manajemen data kontrak, penawaran harga & status lelang aktif</div>
+                            <h6 class="fw-bold mb-0 text-body fs-6">Daftar Rekapitulasi Proyek Tender</h6>
+                            <div class="text-muted small" style="font-size:0.78rem;">Manajemen data kontrak, penawaran harga & status lelang aktif</div>
                         </div>
                     </div>
                     
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <div class="d-flex align-items-center gap-1.5 bg-body-tertiary px-2 py-1 rounded-3 border">
-                            <i class="bi bi-funnel text-muted small"></i>
-                            <select class="form-select form-select-sm border-0 bg-transparent py-1 pe-4 fw-semibold text-body" id="table_filter_status" style="width: 175px; font-size: 0.8rem; box-shadow: none;">
-                                <option value="all">Semua Status</option>
-                                <option value="Draft">Draft</option>
-                                <option value="Pending Approval">Menunggu Approval</option>
-                                <option value="Approved">Disetujui (Approved)</option>
-                                <option value="Rejected">Ditolak (Rejected)</option>
-                                <option value="Sent">Sent (Dikirim)</option>
-                                <option value="Negotiation">Negosiasi</option>
-                                <option value="Won">Won (Menang)</option>
-                                <option value="Lost">Lost (Kalah)</option>
-                            </select>
+                    <div class="tender-filter-container d-flex flex-wrap align-items-center gap-2">
+                        <!-- Quick Status Filter Pills for Fast Switching -->
+                        <div class="tender-filter-pills-group d-none d-xl-inline-flex align-items-center me-1">
+                            <button type="button" class="tender-quick-filter-btn active" data-status="all">
+                                <span>Semua</span>
+                            </button>
+                            <button type="button" class="tender-quick-filter-btn" data-status="Draft">
+                                <span class="dot-indicator dot-draft"></span>
+                                <span>Draft</span>
+                            </button>
+                            <button type="button" class="tender-quick-filter-btn" data-status="Pending Approval">
+                                <span class="dot-indicator dot-review"></span>
+                                <span>Review</span>
+                            </button>
+                            <button type="button" class="tender-quick-filter-btn" data-status="Negotiation">
+                                <span class="dot-indicator dot-negotiation"></span>
+                                <span>Negosiasi</span>
+                            </button>
+                            <button type="button" class="tender-quick-filter-btn" data-status="Won">
+                                <span class="dot-indicator dot-won"></span>
+                                <span>Won</span>
+                            </button>
+                            <button type="button" class="tender-quick-filter-btn" data-status="Lost">
+                                <span class="dot-indicator dot-lost"></span>
+                                <span>Lost</span>
+                            </button>
                         </div>
-                        <div class="d-flex align-items-center gap-1.5 bg-body-tertiary px-2 py-1 rounded-3 border">
-                            <i class="bi bi-flag text-muted small"></i>
-                            <select class="form-select form-select-sm border-0 bg-transparent py-1 pe-4 fw-semibold text-body" id="table_filter_priority" style="width: 145px; font-size: 0.8rem; box-shadow: none;">
-                                <option value="all">Semua Prioritas</option>
-                                <option value="High">Tinggi (High)</option>
-                                <option value="Medium">Sedang (Medium)</option>
-                                <option value="Low">Rendah (Low)</option>
-                            </select>
+
+                        <!-- Modern Custom Dropdown: Status Filter -->
+                        <div class="dropdown">
+                            <button type="button" class="tender-modern-filter-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" id="btn_filter_status">
+                                <i class="bi bi-funnel-fill text-success"></i>
+                                <span id="label_filter_status">Semua Status</span>
+                                <i class="bi bi-chevron-down chevron-icon"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end tender-custom-dropdown-menu shadow-lg">
+                                <li class="dropdown-header text-uppercase">Status Proyek Tender</li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item active" href="javascript:void(0)" data-filter-type="status" data-value="all" data-label="Semua Status">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-grid-fill text-muted"></i>
+                                            <span>Semua Status</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item" href="javascript:void(0)" data-filter-type="status" data-value="Draft" data-label="Draft">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="status-dot dot-draft"></span>
+                                            <span>Draft (Penyusunan)</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item" href="javascript:void(0)" data-filter-type="status" data-value="Pending Approval" data-label="Review">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="status-dot dot-review"></span>
+                                            <span>Menunggu Approval</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item" href="javascript:void(0)" data-filter-type="status" data-value="Approved" data-label="Disetujui">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="status-dot dot-approved"></span>
+                                            <span>Disetujui (Approved)</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item" href="javascript:void(0)" data-filter-type="status" data-value="Rejected" data-label="Ditolak">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="status-dot dot-rejected"></span>
+                                            <span>Ditolak (Rejected)</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item" href="javascript:void(0)" data-filter-type="status" data-value="Sent" data-label="Sent">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="status-dot dot-sent"></span>
+                                            <span>Sent (Penawaran Dikirim)</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item" href="javascript:void(0)" data-filter-type="status" data-value="Negotiation" data-label="Negosiasi">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="status-dot dot-negotiation"></span>
+                                            <span>Negosiasi / Aanwijzing</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item" href="javascript:void(0)" data-filter-type="status" data-value="Won" data-label="Won">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="status-dot dot-won"></span>
+                                            <span>Won (Menang / SPK)</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item" href="javascript:void(0)" data-filter-type="status" data-value="Lost" data-label="Lost">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="status-dot dot-lost"></span>
+                                            <span>Lost (Kalah Lelang)</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
+
+                        <!-- Modern Custom Dropdown: Priority Filter -->
+                        <div class="dropdown">
+                            <button type="button" class="tender-modern-filter-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" id="btn_filter_priority">
+                                <i class="bi bi-fire text-warning"></i>
+                                <span id="label_filter_priority">Semua Prioritas</span>
+                                <i class="bi bi-chevron-down chevron-icon"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end tender-custom-dropdown-menu shadow-lg">
+                                <li class="dropdown-header text-uppercase">Tingkat Prioritas</li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item active" href="javascript:void(0)" data-filter-type="priority" data-value="all" data-label="Semua Prioritas">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-lightning-charge text-muted"></i>
+                                            <span>Semua Prioritas</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item" href="javascript:void(0)" data-filter-type="priority" data-value="High" data-label="Tinggi (High)">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="badge badge-priority-high px-2 py-0.5 rounded-pill"><i class="bi bi-fire me-1"></i>High</span>
+                                            <span>Tinggi (Prioritas Utama)</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item" href="javascript:void(0)" data-filter-type="priority" data-value="Medium" data-label="Sedang (Medium)">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="badge badge-priority-medium px-2 py-0.5 rounded-pill"><i class="bi bi-dash-circle me-1"></i>Medium</span>
+                                            <span>Sedang (Standar)</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item tender-filter-item" href="javascript:void(0)" data-filter-type="priority" data-value="Low" data-label="Rendah (Low)">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="badge badge-priority-low px-2 py-0.5 rounded-pill"><i class="bi bi-arrow-down-circle me-1"></i>Low</span>
+                                            <span>Rendah (Opsional)</span>
+                                        </span>
+                                        <i class="bi bi-check2 check-icon"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Reset Filter Button -->
+                        <button type="button" class="btn-tender-filter-reset d-none" id="btn_reset_tender_filters" title="Reset Semua Filter">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                            <span>Reset</span>
+                        </button>
+
+                        <!-- Hidden Inputs to preserve state & AJAX parameters -->
+                        <input type="hidden" id="table_filter_status" value="all">
+                        <input type="hidden" id="table_filter_priority" value="all">
                     </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0 w-100 tender-modern-table" id="tableTender">
-                        <thead>
-                            <tr>
-                                <th class="text-center ps-3" width="4%">NO</th>
-                                <th width="13%">NO. KONTRAK / RKS</th>
-                                <th width="21%">NAMA PROYEK & KLIEN</th>
-                                <th width="12%">ENTITAS</th>
-                                <th width="11%">KATEGORI INSTANSI</th>
-                                <th class="text-end" width="13%">NILAI ESTIMASI (IDR)</th>
-                                <th class="text-center" width="10%">DEADLINE</th>
-                                <th class="text-center" width="8%">PRIORITAS</th>
-                                <th class="text-center" width="9%">STATUS</th>
-                                <th class="text-center pe-3" width="8%">AKSI</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Populated by DataTables -->
-                        </tbody>
-                    </table>
+                <div class="tender-table-wrapper">
+                    <div class="tender-table-inner">
+                        <div class="table-responsive mb-0">
+                            <table class="table align-middle mb-0 w-100 tender-modern-table" id="tableTender">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center ps-3" width="4%">NO</th>
+                                        <th width="14%">NO. KONTRAK / RKS</th>
+                                        <th width="21%">NAMA PROYEK & KLIEN</th>
+                                        <th width="11%">ENTITAS</th>
+                                        <th width="11%">KATEGORI INSTANSI</th>
+                                        <th class="text-end" width="13%">NILAI ESTIMASI (IDR)</th>
+                                        <th class="text-center" width="10%">DEADLINE</th>
+                                        <th class="text-center" width="8%">PRIORITAS</th>
+                                        <th class="text-center" width="9%">STATUS</th>
+                                        <th class="text-center pe-3" width="7%">AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated by DataTables -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -849,12 +394,23 @@
                             } elseif (str_starts_with(mb_strtoupper($corpName), 'UD ')) {
                                 $initials = 'UD';
                             }
+                            $searchPayload = mb_strtolower(implode(' ', array_filter([
+                                $corpName,
+                                $c->nama_perusahaan,
+                                $c->nama_customer,
+                                $c->kode_customer,
+                                $c->telepon,
+                                $c->hp,
+                                $c->email,
+                                $c->jenis_customer,
+                                $c->alamat,
+                            ])));
                         @endphp
                         <div class="customer-lookup-card customer-lookup-row d-flex align-items-center justify-content-between gap-3" 
                              data-id="{{ $c->id }}" 
                              data-name="{{ $corpName }}"
                              data-pic="{{ $c->nama_customer }}"
-                             data-search="{{ strtolower($corpName . ' ' . $c->nama_customer . ' ' . $c->kode_customer . ' ' . $c->telepon) }}">
+                             data-search="{{ $searchPayload }}">
                             
                             <div class="d-flex align-items-center gap-3 min-w-0 flex-grow-1">
                                 <div class="customer-avatar-badge font-monospace shadow-2xs">
@@ -923,7 +479,7 @@
                 </div>
                 <div class="modal-body p-4 pt-3">
                     <div class="mb-3 position-relative">
-                        <input type="text" id="search_barang_tender_input" class="form-control tender-input rounded-pill ps-5 py-2.5 shadow-xs" placeholder="Ketik nama barang, kode SKU, atau kategori...">
+                        <input type="text" id="search_barang_tender_input" class="form-control tender-input rounded-pill ps-5 py-2.5 shadow-xs" placeholder="Ketik nama barang, kode SKU, atau kategori..." autocomplete="off">
                         <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3.5 text-muted fs-6"></i>
                     </div>
 
@@ -942,14 +498,14 @@
                         @endforeach
                     </div>
 
-                    <div class="table-responsive border rounded-4 tender-table-wrapper bg-body" style="max-height: 420px; overflow-y: auto;">
-                        <table class="table table-hover align-middle mb-0" id="table_lookup_barang_tender" style="cursor: pointer;">
+                    <div class="table-responsive border rounded-4 tender-table-responsive bg-body" style="max-height: 420px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0" id="table_lookup_barang_tender" style="cursor: pointer; min-width: 620px;">
                             <thead class="bg-body-tertiary sticky-top border-bottom">
                                 <tr>
-                                    <th class="ps-4 py-3 fw-bold text-muted small" width="52%;">PRODUK & SPESIFIKASI</th>
-                                    <th class="py-3 fw-bold text-muted small" width="22%;">KATEGORI</th>
-                                    <th class="text-center py-3 fw-bold text-muted small" width="12%;">SATUAN</th>
-                                    <th class="text-center py-3 pe-4 fw-bold text-muted small" width="14%;">AKSI</th>
+                                    <th class="ps-4 py-3 fw-bold text-muted small" style="min-width: 250px;">PRODUK & SPESIFIKASI</th>
+                                    <th class="py-3 fw-bold text-muted small" style="min-width: 140px;">KATEGORI</th>
+                                    <th class="text-center py-3 fw-bold text-muted small" style="min-width: 90px;">SATUAN</th>
+                                    <th class="text-center py-3 pe-4 fw-bold text-muted small" style="min-width: 90px;">AKSI</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1072,6 +628,15 @@
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
+        };
+
+        window.userPermissions = {
+            canEdit: @json(auth()->user() ? (auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('edit-tender')) : false),
+            canDelete: @json(auth()->user() ? (auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('hapus-tender')) : false),
+            canApprove: @json(auth()->user() ? (auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('approve-tender')) : false),
+            canKirim: @json(auth()->user() ? (auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('kirim-lelang-tender')) : false),
+            canNego: @json(auth()->user() ? (auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('negosiasi-tender')) : false),
+            canFinal: @json(auth()->user() ? (auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('keputusan-final-tender')) : false),
         };
 
         $(document).ready(function () {
@@ -1200,9 +765,36 @@
                 tableTender.ajax.reload();
             });
 
-            // ===== LOAD KANBAN BOARD =====
-            function loadKanbanBoard() {
-                $.get('{{ route("tender.kanban-data") }}', function (res) {
+            // ===== GLOBAL REALTIME PIPELINE KANBAN & KPI LOADER =====
+            window.loadKanbanBoard = function (showSpinner = false) {
+                if (showSpinner) {
+                    $('#kanban_board_container').html(`
+                        <div class="w-100 text-center py-5">
+                            <div class="spinner-border text-success" role="status"></div>
+                            <p class="text-muted mt-2 small">Memuat Tahapan Pipeline Tender...</p>
+                        </div>
+                    `);
+                }
+
+                let filterEntitas = $('#filter_entitas').length ? $('#filter_entitas').val() : 'all';
+                let filterStatus = $('#table_filter_status').length ? $('#table_filter_status').val() : 'all';
+                let filterPriority = $('#table_filter_priority').length ? $('#table_filter_priority').val() : 'all';
+
+                $.get('{{ route("tender.kanban-data") }}', {
+                    filter_entitas: filterEntitas,
+                    filter_status: filterStatus,
+                    filter_priority: filterPriority
+                }, function (res) {
+                    // Update KPI Metrics Realtime
+                    if (res.metrics) {
+                        $('#kpi_count_total').text(Number(res.metrics.count_total).toLocaleString('id-ID'));
+                        $('#kpi_count_active').html(`<i class="bi bi-clock-history me-1"></i>${res.metrics.count_active} Proyek Aktif Berjalan`);
+                        $('#kpi_count_won').html(`${Number(res.metrics.count_won).toLocaleString('id-ID')} <span class="fs-6 text-muted fw-normal">Proyek</span>`);
+                        $('#kpi_win_rate').html(`<i class="bi bi-trophy-fill me-1"></i>Win Rate: ${res.metrics.win_rate}%`);
+                        $('#kpi_value_won').text(res.metrics.value_won_formatted);
+                        $('#kpi_value_pipeline').text(res.metrics.value_pipeline_formatted);
+                    }
+
                     let stages = res.stages;
                     let html = '';
 
@@ -1246,10 +838,6 @@
                                     countdownBadge = `<span class="badge bg-secondary-subtle text-secondary rounded-pill small"><i class="bi bi-calendar3 me-1"></i>${t.deadline}</span>`;
                                 }
 
-                                let soBadge = t.sales_order_id 
-                                    ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill small"><i class="bi bi-check-circle-fill me-1"></i>SPK Terbit</span>` 
-                                    : '';
-
                                 let entitasBadge = t.branch_id
                                     ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill font-monospace" style="font-size:0.65rem;"><i class="bi bi-shop me-0.5"></i>${escapeHtml(t.entitas_label)}</span>`
                                     : `<span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill font-monospace" style="font-size:0.65rem;"><i class="bi bi-building me-0.5"></i>PT (Pusat)</span>`;
@@ -1257,11 +845,10 @@
                                 html += `
                                     <div class="kanban-card btn-view-detail" data-id="${t.id}">
                                         <div class="d-flex justify-content-between align-items-center mb-1.5 flex-wrap gap-1">
-                                            <span class="badge bg-secondary-subtle text-secondary font-monospace" style="font-size:0.7rem;">${t.nomor_kontrak}</span>
+                                            <span class="badge bg-secondary-subtle text-secondary font-monospace" style="font-size:0.7rem;">${escapeHtml(t.nomor_kontrak)}</span>
                                             <div class="d-flex align-items-center gap-1">
                                                 ${entitasBadge}
                                                 ${prioBadge}
-                                                ${soBadge}
                                             </div>
                                         </div>
                                         <div class="kanban-card-title">${escapeHtml(t.nama_tender)}</div>
@@ -1269,6 +856,7 @@
                                         
                                         <div class="kanban-card-value text-success mb-2">
                                             ${formatRp(t.nilai_estimasi)}
+                                            ${(t.status === 'Won' && t.nilai_deal > 0 && t.pagu_awal > 0 && t.nilai_deal !== t.pagu_awal) ? `<div class="text-muted font-monospace" style="font-size:0.68rem;">Pagu: ${formatRp(t.pagu_awal)}</div>` : ''}
                                         </div>
 
                                         <div class="d-flex align-items-center justify-content-between pt-2 border-top small text-muted">
@@ -1290,20 +878,40 @@
 
                     $('#kanban_board_container').html(html);
                 });
-            }
+            };
+
+            // Global helper to refresh both Kanban & DataTables simultaneously
+            window.refreshTenderViews = function () {
+                window.loadKanbanBoard(false);
+                if ($.fn.DataTable.isDataTable('#tableTender')) {
+                    $('#tableTender').DataTable().ajax.reload(null, false);
+                }
+            };
 
             // Initial load Kanban
-            loadKanbanBoard();
+            window.loadKanbanBoard(true);
+
+            // Auto-Refresh Realtime Multi-User (Setiap 15 Detik di latar belakang secara hening / silent)
+            setInterval(function () {
+                if (!$('.modal.show').length) {
+                    if (!$('#section_kanban_view').hasClass('d-none')) {
+                        window.loadKanbanBoard(false);
+                    } else if (!$('#section_table_view').hasClass('d-none') && $.fn.DataTable.isDataTable('#tableTender')) {
+                        $('#tableTender').DataTable().ajax.reload(null, false);
+                    }
+                }
+            }, 15000);
 
             // ===== DATATABLES INITIALIZATION =====
             let tableTender = $('#tableTender').DataTable({
-                processing: true,
+                processing: false,
                 serverSide: true,
                 ajax: {
                     url: '{{ route("tender.data") }}',
                     data: function (d) {
-                        d.filter_status = $('#table_filter_status').val();
-                        d.filter_priority = $('#table_filter_priority').val();
+                        d.filter_entitas = $('#filter_entitas').length ? $('#filter_entitas').val() : 'all';
+                        d.filter_status = $('#table_filter_status').val() || 'all';
+                        d.filter_priority = $('#table_filter_priority').val() || 'all';
                     }
                 },
                 columns: [
@@ -1321,25 +929,25 @@
                         data: 'nomor_kontrak', 
                         name: 'nomor_kontrak',
                         render: function (data, type, row) {
-                            let text = (data && data !== '-') ? escapeHtml(data) : `TND-${row.id}`;
-                            return `<span class="badge-kontrak-tender"><i class="bi bi-file-earmark-text text-primary"></i> ${text}</span>`;
+                            return `<a href="javascript:void(0)" class="btn-view-detail badge-kontrak-tender text-decoration-none" data-id="${row.id}" title="Klik untuk lihat detail"><i class="bi bi-file-earmark-text me-1"></i>${escapeHtml(data)}</a>`;
                         }
                     },
                     { 
                         data: 'nama_tender', 
                         name: 'nama_tender',
                         render: function (data, type, row) {
-                            let soBadge = row.has_sales_order ? `<span class="badge bg-success-subtle text-success border border-success-subtle py-0.5 px-2 rounded-pill font-monospace" style="font-size:0.68rem;"><i class="bi bi-check2-all me-0.5"></i> SO Terbit</span>` : '';
+                            let custName = (row.customer_name || '').trim();
+                            custName = custName.replace(/^(\s*PT[\.\s]+)+/i, 'PT ');
+
                             return `
                                 <div>
                                     <div class="fw-bold text-body btn-view-detail cursor-pointer d-flex align-items-center gap-1.5 flex-wrap" data-id="${row.id}" title="Klik untuk lihat detail">
-                                        <span class="hover-primary transition">${escapeHtml(data)}</span>
-                                        ${soBadge}
+                                        <span class="hover-primary transition" style="font-size:0.88rem;">${escapeHtml(data)}</span>
                                     </div>
-                                    <div class="text-muted small mt-1" style="font-size:0.75rem;">
-                                        <i class="bi bi-building me-1 text-primary"></i> ${escapeHtml(row.customer_name)}
-                                        <span class="mx-1.5 text-muted opacity-50">•</span>
-                                        <i class="bi bi-person text-secondary me-0.5"></i> ${escapeHtml(row.sales_name)}
+                                    <div class="text-muted small mt-1 d-flex align-items-center gap-2 flex-wrap" style="font-size:0.75rem;">
+                                        <span class="d-inline-flex align-items-center text-truncate" style="max-width:240px;"><i class="bi bi-building me-1 text-primary"></i> ${escapeHtml(custName)}</span>
+                                        <span class="text-muted opacity-50">•</span>
+                                        <span class="d-inline-flex align-items-center"><i class="bi bi-person text-secondary me-1"></i> ${escapeHtml(row.sales_name)}</span>
                                     </div>
                                 </div>
                             `;
@@ -1350,7 +958,7 @@
                         name: 'entitas_badge',
                         orderable: false,
                         render: function (data, type, row) {
-                            return row.entitas_badge || '<span class="badge badge-soft-indigo fs-9 px-2 py-0.5 rounded-pill">PT (Pusat)</span>';
+                            return row.entitas_badge || '<span class="badge badge-entitas-pt px-2.5 py-1 rounded-pill fw-semibold" style="font-size:0.75rem;"><i class="bi bi-building me-1"></i>PT (Pusat)</span>';
                         }
                     },
                     { 
@@ -1377,10 +985,17 @@
                         data: 'nilai_estimasi', 
                         name: 'nilai_estimasi',
                         className: 'text-end',
-                        render: function (data) {
-                            let val = Number(data) || 0;
-                            if (val > 0) {
-                                return `<div class="font-monospace fw-bold text-success fs-6"><span style="font-size:0.72rem;" class="text-success-emphasis me-0.5">Rp</span>${val.toLocaleString('id-ID')}</div>`;
+                        render: function (data, type, row) {
+                            let dealVal = Number(row.nilai_deal) || 0;
+                            let estVal = Number(data) || 0;
+                            if (row.status === 'Won' && dealVal > 0) {
+                                return `
+                                    <div class="font-monospace fw-bold text-success" style="font-size:0.92rem;"><span style="font-size:0.74rem;" class="text-success-emphasis me-1">Rp</span>${dealVal.toLocaleString('id-ID')}</div>
+                                    ${dealVal !== estVal && estVal > 0 ? `<div class="text-muted font-monospace" style="font-size:0.68rem;" title="Pagu Awal">Pagu: Rp ${estVal.toLocaleString('id-ID')}</div>` : ''}
+                                `;
+                            }
+                            if (estVal > 0) {
+                                return `<div class="font-monospace fw-bold text-success" style="font-size:0.92rem;"><span style="font-size:0.74rem;" class="text-success-emphasis me-1">Rp</span>${estVal.toLocaleString('id-ID')}</div>`;
                             }
                             return `<span class="text-muted font-monospace small">-</span>`;
                         }
@@ -1437,14 +1052,18 @@
                         searchable: false, 
                         className: 'text-center pe-3',
                         render: function (data, type, row) {
+                            let editBtn = (window.userPermissions && window.userPermissions.canEdit) ? `
+                                <button type="button" class="btn-table-action btn-action-edit btn-edit-tender" data-id="${data}" title="Ubah Proposal Tender">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            ` : '';
+
                             return `
                                 <div class="d-flex justify-content-center align-items-center gap-1.5">
                                     <button type="button" class="btn-table-action btn-action-view btn-view-detail" data-id="${data}" title="Lihat Detail Tender">
                                         <i class="bi bi-eye"></i>
                                     </button>
-                                    <button type="button" class="btn-table-action btn-action-edit btn-edit-tender" data-id="${data}" title="Ubah Proposal Tender">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
+                                    ${editBtn}
                                 </div>
                             `;
                         }
@@ -1452,24 +1071,103 @@
                 ]
             });
 
-            $('#table_filter_status, #table_filter_priority').on('change', function () {
-                tableTender.ajax.reload();
+            // ===== MODERN DUAL-THEME FILTER CONTROLLER =====
+            function updateTenderFilter(type, val, label) {
+                if (type === 'status') {
+                    $('#table_filter_status').val(val);
+                    $('#label_filter_status').text(label || 'Semua Status');
+                    
+                    // Update dropdown checkmark
+                    $('[data-filter-type="status"]').removeClass('active');
+                    $(`[data-filter-type="status"][data-value="${val}"]`).addClass('active');
+
+                    // Highlight trigger button if filtered
+                    if (val !== 'all') {
+                        $('#btn_filter_status').addClass('active-filtered');
+                    } else {
+                        $('#btn_filter_status').removeClass('active-filtered');
+                    }
+
+                    // Sync quick filter pills
+                    $('.tender-quick-filter-btn').removeClass('active');
+                    $(`.tender-quick-filter-btn[data-status="${val}"]`).addClass('active');
+                } else if (type === 'priority') {
+                    $('#table_filter_priority').val(val);
+                    $('#label_filter_priority').text(label || 'Semua Prioritas');
+
+                    // Update dropdown checkmark
+                    $('[data-filter-type="priority"]').removeClass('active');
+                    $(`[data-filter-type="priority"][data-value="${val}"]`).addClass('active');
+
+                    // Highlight trigger button if filtered
+                    if (val !== 'all') {
+                        $('#btn_filter_priority').addClass('active-filtered');
+                    } else {
+                        $('#btn_filter_priority').removeClass('active-filtered');
+                    }
+                }
+
+                // Check if any filter is active to show/hide Reset button
+                let st = $('#table_filter_status').val();
+                let pr = $('#table_filter_priority').val();
+                let ent = $('#filter_entitas').length ? $('#filter_entitas').val() : 'all';
+
+                if (st !== 'all' || pr !== 'all' || (ent && ent !== 'all')) {
+                    $('#btn_reset_tender_filters').removeClass('d-none');
+                } else {
+                    $('#btn_reset_tender_filters').addClass('d-none');
+                }
+
+                // Refresh both Kanban & DataTable
+                window.refreshTenderViews();
+            }
+
+            // Click dropdown item
+            $(document).on('click', '.tender-filter-item', function (e) {
+                e.preventDefault();
+                let type = $(this).data('filter-type');
+                let val = $(this).data('value');
+                let label = $(this).data('label');
+                updateTenderFilter(type, val, label);
+            });
+
+            // Click quick filter pill
+            $(document).on('click', '.tender-quick-filter-btn', function () {
+                let val = $(this).data('status');
+                let label = $(`[data-filter-type="status"][data-value="${val}"]`).data('label') || $(this).find('span:last').text().trim();
+                updateTenderFilter('status', val, label);
+            });
+
+            // Reset all filters
+            $('#btn_reset_tender_filters').on('click', function () {
+                updateTenderFilter('status', 'all', 'Semua Status');
+                updateTenderFilter('priority', 'all', 'Semua Prioritas');
+                if ($('#filter_entitas').length) {
+                    $('#filter_entitas').val('all');
+                }
+            });
+
+            $('#filter_entitas').on('change', function () {
+                window.refreshTenderViews();
             });
 
             // ===== CUSTOMER LOOKUP MODAL (CINEMATIC CARD-BASED) =====
             $(document).on('click', '.btn-lookup-customer', function () {
-                let prefix = $(this).data('prefix');
+                let prefix = $(this).data('prefix') || 'tambah';
                 $('#modalCariCustomer').data('target-prefix', prefix);
                 $('#search_customer_input').val('');
                 $('#btn_clear_search_customer').addClass('d-none');
-                $('#customer_lookup_container .customer-lookup-card').show();
+                $('#customer_lookup_container .customer-lookup-card').removeClass('is-hidden d-none');
                 $('#customer_lookup_empty').addClass('d-none');
+                $('#badge_total_customer').text('{{ $customers->count() }} Terdaftar');
                 $('#modalCariCustomer').modal('show');
                 setTimeout(() => $('#search_customer_input').focus(), 300);
             });
 
-            $('#search_customer_input').on('input', function () {
-                let val = $(this).val().toLowerCase().trim();
+            $('#search_customer_input').on('input keyup', function () {
+                let rawVal = $(this).val() || '';
+                let val = rawVal.toLowerCase().trim();
+                let terms = val.split(/\s+/).filter(Boolean);
                 let visibleCount = 0;
 
                 if (val.length > 0) {
@@ -1479,16 +1177,42 @@
                 }
 
                 $('#customer_lookup_container .customer-lookup-card').each(function () {
-                    let searchStr = $(this).data('search') || $(this).text().toLowerCase();
-                    let matches = searchStr.indexOf(val) > -1;
-                    $(this).toggle(matches);
-                    if (matches) visibleCount++;
+                    let $card = $(this);
+                    let searchStr = (($card.attr('data-search') || '') + ' ' + $card.text()).toLowerCase();
+                    
+                    let matches = true;
+                    if (terms.length > 0) {
+                        matches = terms.every(term => searchStr.indexOf(term) > -1);
+                    }
+
+                    if (matches) {
+                        $card.removeClass('is-hidden d-none');
+                        visibleCount++;
+                    } else {
+                        $card.addClass('is-hidden d-none');
+                    }
                 });
 
                 if (visibleCount === 0) {
                     $('#customer_lookup_empty').removeClass('d-none');
+                    $('#badge_total_customer').text('0 Ditemukan');
                 } else {
                     $('#customer_lookup_empty').addClass('d-none');
+                    if (terms.length > 0) {
+                        $('#badge_total_customer').text(visibleCount + ' Ditemukan');
+                    } else {
+                        $('#badge_total_customer').text('{{ $customers->count() }} Terdaftar');
+                    }
+                }
+            });
+
+            $('#search_customer_input').on('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    let firstVisible = $('#customer_lookup_container .customer-lookup-card:not(.is-hidden):not(.d-none):first');
+                    if (firstVisible.length) {
+                        firstVisible.find('.btn-select-customer').trigger('click');
+                    }
                 }
             });
 

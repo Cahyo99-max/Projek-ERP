@@ -266,6 +266,7 @@
 @include('modul_produksi.bom._modal_edit')
 @include('modul_produksi.bom._modal_detail')
 @include('modul_produksi.bom._modal_lookup_barang')
+@include('modul_produksi.bom._modal_lookup_tender')
 @include('modul_produksi.bom._modal_filter')
 @endpush
 

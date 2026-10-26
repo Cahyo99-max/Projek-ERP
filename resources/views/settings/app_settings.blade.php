@@ -4,36 +4,53 @@
     @push('styles')
     <style>
         .settings-card {
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            background: var(--card-bg, #fff);
-            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            background: var(--bs-card-bg, #ffffff);
+            border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.08));
+            transition: all 0.3s ease;
+        }
+
+        [data-bs-theme="dark"] .settings-card,
+        html[data-theme="dark"] .settings-card,
+        .dark-mode .settings-card {
+            background: #111827 !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.45) !important;
         }
 
         .logo-preview-container {
             position: relative;
-            width: 120px;
-            height: 120px;
+            width: 130px;
+            height: 130px;
             margin: 0 auto;
-            border-radius: 12px;
-            border: 2px dashed #cbd5e1;
+            border-radius: 16px;
+            border: 2px dashed rgba(148, 163, 184, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            background: #f8fafc;
+            background: rgba(248, 250, 252, 0.8);
             transition: all 0.3s ease;
         }
 
+        [data-bs-theme="dark"] .logo-preview-container,
+        html[data-theme="dark"] .logo-preview-container,
+        .dark-mode .logo-preview-container {
+            background: rgba(15, 23, 42, 0.6) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+        }
+
         .logo-preview-container:hover {
-            border-color: var(--primary, #2563eb);
-            background: rgba(37, 99, 235, 0.02);
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
         }
 
         .logo-preview-container img {
             width: 100%;
             height: 100%;
             object-fit: contain;
+            padding: 8px;
         }
 
         .upload-placeholder {
@@ -41,7 +58,7 @@
             flex-direction: column;
             align-items: center;
             gap: 8px;
-            color: #64748b;
+            color: #94a3b8;
             font-size: 0.75rem;
             cursor: pointer;
             text-align: center;
@@ -49,8 +66,8 @@
         }
 
         .upload-placeholder i {
-            font-size: 1.5rem;
-            color: var(--primary, #2563eb);
+            font-size: 1.6rem;
+            color: #3b82f6;
         }
 
         .file-input {
@@ -62,48 +79,70 @@
         }
 
         .btn-save-settings {
-            background: linear-gradient(135deg, var(--primary, #2563eb) 0%, #1d4ed8 100%);
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
             border: none;
             color: white;
             font-weight: 600;
-            padding: 10px 24px;
-            border-radius: 30px;
+            padding: 11px 24px;
+            border-radius: 50rem;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
         }
 
         .btn-save-settings:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+            color: white;
+        }
+
+        .lang-select-btn {
+            border-radius: 12px !important;
+            background: var(--bs-body-bg, #ffffff) !important;
+            border: 1px solid var(--bs-border-color, #cbd5e1) !important;
+            color: var(--bs-body-color) !important;
+        }
+        [data-bs-theme="dark"] .lang-select-btn,
+        html[data-theme="dark"] .lang-select-btn,
+        .dark-mode .lang-select-btn {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f1f5f9 !important;
         }
     </style>
     @endpush
 
-    <div class="container-fluid py-4 px-4">
-        <!-- Breadcrumb / Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="container-fluid py-4 px-3 px-md-4">
+        <!-- Header Toolbar -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <div class="d-flex align-items-center justify-content-center text-white rounded-3 shadow-sm flex-shrink-0"
+                 style="width: 44px; height: 44px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);">
+                <i class="bi bi-sliders fs-5"></i>
+            </div>
             <div>
+                <h4 class="fw-bold text-body-emphasis mb-0">Pengaturan Aplikasi</h4>
                 <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-1">
+                    <ol class="breadcrumb mb-0" style="font-size: 0.78rem;">
                         <li class="breadcrumb-item"><a href="/dashbord" class="text-decoration-none text-muted">Dashboard</a></li>
-                        <li class="breadcrumb-item text-muted" aria-current="page">Pengaturan</li>
-                        <li class="breadcrumb-item active text-primary" aria-current="page">Pengaturan Aplikasi</li>
+                        <li class="breadcrumb-item text-muted">Pengaturan</li>
+                        <li class="breadcrumb-item active text-primary fw-medium" aria-current="page">Pengaturan Aplikasi</li>
                     </ol>
                 </nav>
-                <h4 class="fw-bold text-dark mb-0">Pengaturan Aplikasi</h4>
             </div>
         </div>
 
         <div class="row justify-content-center">
-            <div class="col-12 col-md-6 col-lg-5">
-                <div class="card settings-card p-4">
+            <div class="col-12 col-md-7 col-lg-5">
+                <div class="card settings-card p-4 p-md-4.5">
                     <form id="formAppSettings" enctype="multipart/form-data">
                         @csrf
                         <div class="text-center mb-4">
-                            <h6 class="fw-bold text-secondary text-uppercase tracking-wider small">Logo Aplikasi</h6>
+                            <h6 class="fw-bold text-body-emphasis text-uppercase tracking-wider small mb-1">Logo Aplikasi</h6>
                             <p class="small text-muted mb-3">Logo ini akan digunakan pada halaman login dan sidebar menu.</p>
                             
                             <div class="logo-preview-container">
+                                @can('edit-pengaturan-aplikasi')
                                 <input type="file" name="app_logo" id="app_logo" class="file-input" accept="image/*">
+                                @endcan
                                 <img id="logo_preview_img" src="{{ $appLogoSetting }}" alt="Preview Logo">
                                 <div class="upload-placeholder d-none" id="upload_placeholder">
                                     <i class="bi bi-cloud-arrow-up-fill"></i>
@@ -111,54 +150,59 @@
                                 </div>
                             </div>
                             <div class="mt-2">
+                                @can('edit-pengaturan-aplikasi')
                                 <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 mt-2 d-none" id="btn_remove_new_logo">
                                     Batal Pilih Gambar
                                 </button>
-                                <div class="form-text text-muted mt-2">
+                                <div class="form-text text-muted mt-2" style="font-size: 0.76rem;">
                                     Format: PNG, JPG, JPEG, WEBP. Maks 5MB.<br>
-                                    <span class="text-primary font-weight-bold">Gambar akan otomatis dikompres menjadi ±800 KB demi kecepatan performa loading.</span>
+                                    <span class="text-primary fw-semibold">Gambar otomatis dikompres menjadi ±800 KB demi kecepatan loading.</span>
                                 </div>
+                                @endcan
                             </div>
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-semibold text-dark">Nama Aplikasi <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold text-body-emphasis small mb-1.5">
+                                Nama Aplikasi <span class="text-danger">*</span>
+                            </label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0" style="border-radius: 8px 0 0 8px;">
+                                <span class="input-group-text bg-body-tertiary border-end-0" style="border-radius: 10px 0 0 10px;">
                                     <i class="bi bi-display text-muted"></i>
                                 </span>
                                 <input type="text" name="app_name" id="app_name" 
                                     class="form-control border-start-0" 
                                     value="{{ $appNameSetting }}" 
-                                    style="border-radius: 0 8px 8px 0;" 
-                                    placeholder="Masukkan Nama Aplikasi..." required>
+                                    style="border-radius: 0 10px 10px 0;" 
+                                    placeholder="Masukkan Nama Aplikasi..." 
+                                    {{ auth()->user()->hasRole('Super Admin') || auth()->user()->can('edit-pengaturan-aplikasi') ? 'required' : 'readonly' }}>
                             </div>
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-semibold text-dark">Bahasa / Language</label>
-                            <div class="dropdown mt-2">
-                                <button class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-between p-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 8px; background: white; border-color: #dee2e6;">
-                                    <span class="d-flex align-items-center gap-2 text-dark">
+                            <label class="form-label fw-semibold text-body-emphasis small mb-1.5">Bahasa / Language</label>
+                            <div class="dropdown">
+                                <button class="btn lang-select-btn w-100 d-flex align-items-center justify-content-between p-2.5 shadow-xs" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="d-flex align-items-center gap-2">
                                         @if(app()->getLocale() == 'id')
                                             <span class="flag flag-xs flag-country-id rounded shadow-sm"></span>
-                                            <span>Indonesia</span>
+                                            <span class="fw-medium">Indonesia</span>
                                         @else
                                             <span class="flag flag-xs flag-country-gb rounded shadow-sm"></span>
-                                            <span>English</span>
+                                            <span class="fw-medium">English</span>
                                         @endif
                                     </span>
-                                    <i class="bi bi-chevron-down text-muted"></i>
+                                    <i class="bi bi-chevron-down text-muted small"></i>
                                 </button>
-                                <ul class="dropdown-menu shadow border-0 mt-1 p-2 w-100" style="border-radius: 12px;">
+                                <ul class="dropdown-menu shadow border mt-1 p-2 w-100" style="border-radius: 14px;">
                                     <li>
-                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2 rounded-2 {{ app()->getLocale() == 'id' ? 'active bg-light' : '' }}" href="{{ route('lang.switch', 'id') }}">
+                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2 rounded-2 {{ app()->getLocale() == 'id' ? 'active' : '' }}" href="{{ route('lang.switch', 'id') }}">
                                             <span class="flag flag-xs flag-country-id rounded"></span>
                                             <span class="fs-7 fw-medium">Indonesia</span>
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2 rounded-2 {{ app()->getLocale() == 'en' ? 'active bg-light' : '' }}" href="{{ route('lang.switch', 'en') }}">
+                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2 rounded-2 {{ app()->getLocale() == 'en' ? 'active' : '' }}" href="{{ route('lang.switch', 'en') }}">
                                             <span class="flag flag-xs flag-country-gb rounded"></span>
                                             <span class="fs-7 fw-medium">English</span>
                                         </a>
@@ -167,11 +211,18 @@
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-end">
-                            <button type="submit" class="btn btn-save-settings w-100 py-2.5">
-                                <i class="bi bi-save me-1.5"></i> Simpan Perubahan
+                        @if(auth()->user()->hasRole('Super Admin') || auth()->user()->can('edit-pengaturan-aplikasi'))
+                        <div class="d-flex justify-content-end pt-1">
+                            <button type="submit" class="btn btn-save-settings w-100">
+                                <i class="bi bi-floppy-fill me-1.5"></i> Simpan Perubahan
                             </button>
                         </div>
+                        @else
+                        <div class="alert alert-secondary d-flex align-items-center gap-2 mb-0 py-2.5 px-3 small rounded-3 border-0 bg-body-tertiary">
+                            <i class="bi bi-info-circle-fill text-info flex-shrink-0"></i>
+                            <span class="text-muted">Mode Lihat Saja. Anda tidak memiliki hak akses untuk mengubah pengaturan ini.</span>
+                        </div>
+                        @endif
                     </form>
                 </div>
             </div>

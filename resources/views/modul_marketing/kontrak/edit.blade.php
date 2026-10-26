@@ -1,50 +1,5 @@
 {{-- ===== MODAL EDIT TENDER (ULTRA-CINEMATIC DUAL-THEME DARK & LIGHT) ===== --}}
-<style>
-    /* ==========================================================
-       DUAL THEME COMPATIBILITY FOR EDIT MODAL
-       ========================================================== */
-    [data-bs-theme="dark"] #modalEditTender .tender-modal-content,
-    .dark #modalEditTender .tender-modal-content,
-    body.dark-mode #modalEditTender .tender-modal-content {
-        background: radial-gradient(130% 120% at 50% 0%, #1e293b 0%, #0f172a 100%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(245, 158, 11, 0.08) !important;
-    }
-    [data-bs-theme="dark"] #modalEditTender .tender-modal-title,
-    .dark #modalEditTender .tender-modal-title,
-    body.dark-mode #modalEditTender .tender-modal-title {
-        color: #f8fafc !important;
-    }
-    [data-bs-theme="dark"] #modalEditTender .tender-modal-subtitle,
-    .dark #modalEditTender .tender-modal-subtitle,
-    body.dark-mode #modalEditTender .tender-modal-subtitle {
-        color: #94a3b8 !important;
-    }
-    [data-bs-theme="dark"] #modalEditTender .tender-tabs-container,
-    .dark #modalEditTender .tender-tabs-container,
-    body.dark-mode #modalEditTender .tender-tabs-container {
-        background: rgba(15, 23, 42, 0.85) !important;
-        border-color: rgba(255, 255, 255, 0.08) !important;
-    }
-    [data-bs-theme="dark"] #modalEditTender .tender-nav-pills .tender-tab-btn,
-    .dark #modalEditTender .tender-nav-pills .tender-tab-btn,
-    body.dark-mode #modalEditTender .tender-nav-pills .tender-tab-btn {
-        color: #94a3b8 !important;
-    }
-    [data-bs-theme="dark"] #modalEditTender .tender-nav-pills .tender-tab-btn:hover,
-    .dark #modalEditTender .tender-nav-pills .tender-tab-btn:hover,
-    body.dark-mode #modalEditTender .tender-nav-pills .tender-tab-btn:hover {
-        color: #f8fafc !important;
-        background: rgba(255, 255, 255, 0.06) !important;
-    }
-    [data-bs-theme="dark"] #modalEditTender .tender-nav-pills .tender-tab-btn.active,
-    .dark #modalEditTender .tender-nav-pills .tender-tab-btn.active,
-    body.dark-mode #modalEditTender .tender-nav-pills .tender-tab-btn.active {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
-        color: #ffffff !important;
-        box-shadow: 0 4px 20px rgba(245, 158, 11, 0.45) !important;
-    }
-</style>
+
 
 <div class="modal modal-blur fade" id="modalEditTender" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
@@ -80,12 +35,12 @@
                             </li>
                             <li class="nav-item flex-fill text-center" role="presentation">
                                 <button class="nav-link tender-tab-btn w-100" id="edit-barang-tab" data-bs-toggle="tab" data-bs-target="#edit-barang" type="button" role="tab">
-                                    <i class="bi bi-cart-check-fill me-1.5"></i> 2. Kebutuhan Barang / Jasa <span class="badge bg-white text-dark rounded-pill ms-1 font-monospace" id="badge_edit_item_count">0</span>
+                                    <i class="bi bi-cart-check-fill me-1.5"></i> 2. Kebutuhan Barang / Jasa <span class="text-danger fw-bold">*</span> <span class="badge bg-white text-dark rounded-pill ms-1 font-monospace" id="badge_edit_item_count">0</span>
                                 </button>
                             </li>
                             <li class="nav-item flex-fill text-center" role="presentation">
                                 <button class="nav-link tender-tab-btn w-100" id="edit-dokumen-tab" data-bs-toggle="tab" data-bs-target="#edit-dokumen" type="button" role="tab">
-                                    <i class="bi bi-folder-fill me-1.5"></i> 3. Berkas Dokumen Lelang
+                                    <i class="bi bi-folder-fill me-1.5"></i> 3. Berkas Dokumen Lelang <span class="badge bg-secondary-subtle text-secondary rounded-pill ms-1 font-monospace" id="badge_edit_doc_count">0/30</span>
                                 </button>
                             </li>
                         </ul>
@@ -118,10 +73,10 @@
                                     <div class="col-12 col-lg-4">
                                         <label class="form-label tender-form-label">Kategori Instansi / Klien <span class="text-danger">*</span></label>
                                         <select name="kategori_instansi" id="edit_kategori_instansi" class="form-select tender-input" required>
-                                            <option value="Pemerintah / B2G">🏛️ Pemerintah / B2G (Dinas/Kementerian)</option>
+                                            <option value="Pemerintah / B2G">🏛️ Pemerintah (Dinas/Kementerian)</option>
                                             <option value="TNI / POLRI">🎖️ TNI / POLRI</option>
                                             <option value="BUMN / BUMD">🏢 BUMN / BUMD</option>
-                                            <option value="Swasta / B2B">💼 Swasta / B2B Corporate</option>
+                                            <option value="Swasta / B2B">💼 Swasta</option>
                                             <option value="Lainnya">🌐 Lainnya</option>
                                         </select>
                                     </div>
@@ -140,8 +95,12 @@
                                     <div class="col-12 col-md-6">
                                         <label class="form-label tender-form-label">Sales Owner / PIC Proyek <span class="text-danger">*</span></label>
                                         <select name="sales_id" id="edit_sales_id" class="form-select tender-input" required>
+                                            <option value="">-- Pilih Sales PIC --</option>
                                             @foreach($salesList as $sales)
-                                                <option value="{{ $sales->id }}">{{ $sales->nama_lengkap }} {{ $sales->department ? '(' . $sales->department->nama_departemen . ')' : '' }}</option>
+                                                @php
+                                                    $deptOrPos = $sales->department?->department_name ?: $sales->position?->position_name;
+                                                @endphp
+                                                <option value="{{ $sales->id }}">{{ $sales->nama_lengkap }}{{ !empty($deptOrPos) ? ' (' . $deptOrPos . ')' : '' }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -251,29 +210,37 @@
                         <div class="tab-pane fade" id="edit-barang" role="tabpanel">
                             
                             <div class="tender-form-card p-3 p-md-4 mb-3.5">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="p-1.5 rounded-2 bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
                                             <i class="bi bi-list-task fs-6"></i>
                                         </span>
-                                        <h6 class="fw-bold mb-0 text-body fs-6">Daftar Barang yang Diajukan</h6>
+                                        <div>
+                                            <h6 class="fw-bold mb-0 text-body fs-6">Daftar Barang yang Diajukan</h6>
+                                            <div class="text-muted small d-none d-md-block" style="font-size: 0.72rem;">Kebutuhan item barang, jasa, atau aset yang akan diajukan dalam lelang.</div>
+                                        </div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_edit_tender_item_row">
-                                        <i class="bi bi-plus-circle-fill"></i> <span>Tambah Barang</span>
-                                    </button>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-body-tertiary text-muted border d-md-none" style="font-size: 0.7rem;">
+                                            <i class="bi bi-arrow-left-right me-1"></i>Geser tabel
+                                        </span>
+                                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_edit_tender_item_row">
+                                            <i class="bi bi-plus-circle-fill"></i> <span>Tambah Barang</span>
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-borderless align-middle mb-0 w-100" id="table_edit_items">
+                                <div class="table-responsive tender-table-responsive">
+                                    <table class="table table-sm table-borderless align-middle mb-0 w-100 tender-modal-table" id="table_edit_items">
                                         <thead>
                                             <tr class="border-bottom text-muted small" style="font-size: 0.75rem; font-weight: 600;">
-                                                <th width="4%" class="text-center py-2">No</th>
-                                                <th width="12%">Tipe</th>
-                                                <th width="44%">Nama Barang</th>
-                                                <th width="10%" class="text-center">Satuan</th>
-                                                <th width="12%">Jumlah</th>
-                                                <th width="14%">Catatan</th>
-                                                <th width="4%" class="text-center">Aksi</th>
+                                                <th style="width: 45px;" class="text-center py-2">No</th>
+                                                <th style="width: 110px;">Tipe</th>
+                                                <th style="min-width: 280px;">Nama Barang <span class="text-danger">*</span></th>
+                                                <th style="width: 90px;" class="text-center">Satuan</th>
+                                                <th style="width: 100px;">Jumlah <span class="text-danger">*</span></th>
+                                                <th style="width: 150px;">Catatan</th>
+                                                <th style="width: 45px;" class="text-center">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbody_edit_items">
@@ -297,7 +264,7 @@
                             </div>
 
                             <div class="tender-form-card p-3 p-md-4 mb-3.5 border-top">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="p-1.5 rounded-2 bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
                                             <i class="bi bi-paperclip fs-6"></i>
@@ -307,19 +274,24 @@
                                             <div class="text-muted small" style="font-size: 0.72rem;">Maksimal 30 berkas (PDF, Word, Excel, ZIP).</div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_edit_dokumen_row">
-                                        <i class="bi bi-plus-circle-fill"></i> <span>Tambah Lampiran</span>
-                                    </button>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-body-tertiary text-muted border d-md-none" style="font-size: 0.7rem;">
+                                            <i class="bi bi-arrow-left-right me-1"></i>Geser tabel
+                                        </span>
+                                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_edit_dokumen_row">
+                                            <i class="bi bi-plus-circle-fill"></i> <span>Tambah Lampiran</span>
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-borderless align-middle mb-0 w-100" id="table_edit_dokumen">
+                                <div class="table-responsive tender-table-responsive">
+                                    <table class="table table-sm table-borderless align-middle mb-0 w-100 tender-modal-doc-table" id="table_edit_dokumen">
                                         <thead>
                                             <tr class="border-bottom text-muted small" style="font-size: 0.75rem; font-weight: 600;">
-                                                <th width="5%" class="text-center py-2">No</th>
-                                                <th width="42%">Nama Dokumen</th>
-                                                <th width="48%">Pilih Berkas</th>
-                                                <th width="5%" class="text-center">Aksi</th>
+                                                <th style="width: 45px;" class="text-center py-2">No</th>
+                                                <th style="min-width: 200px;">Nama Dokumen</th>
+                                                <th style="min-width: 240px;">Pilih Berkas</th>
+                                                <th style="width: 45px;" class="text-center">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbody_edit_dokumen">
@@ -336,8 +308,8 @@
                 </div>
 
                 <!-- MODAL FOOTER ACTION BAR -->
-                <div class="modal-footer tender-modal-footer pt-3 pb-4 px-4 d-flex justify-content-between align-items-center">
-                    <button type="button" class="btn btn-tender-cancel rounded-pill px-4 py-2" data-bs-dismiss="modal">
+                <div class="modal-footer tender-modal-footer d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-tender-cancel rounded-pill px-4 py-2.5" data-bs-dismiss="modal">
                         Batal
                     </button>
                     <button type="submit" class="btn btn-warning rounded-pill px-4 py-2.5 fw-bold d-flex align-items-center gap-2 shadow-sm tender-btn-submit text-dark" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border:none;">
@@ -376,6 +348,24 @@
 
     if (typeof window.renumberDocRows !== 'function') {
         window.renumberDocRows = function(prefix) {
+            let count = $(`#tbody_${prefix}_dokumen tr`).length;
+            if (prefix === 'edit') {
+                let existingCount = $('#edit_existing_documents_container .existing-doc-card').length;
+                let total = existingCount + count;
+                $(`#badge_${prefix}_doc_count`).text(`${total}/30`);
+                if (total >= 30) {
+                    $(`#badge_${prefix}_doc_count`).removeClass('bg-secondary-subtle text-secondary').addClass('bg-danger text-white');
+                } else {
+                    $(`#badge_${prefix}_doc_count`).removeClass('bg-danger text-white').addClass('bg-secondary-subtle text-secondary');
+                }
+            } else {
+                $(`#badge_${prefix}_doc_count`).text(`${count}/30`);
+                if (count >= 30) {
+                    $(`#badge_${prefix}_doc_count`).removeClass('bg-secondary-subtle text-secondary').addClass('bg-danger text-white');
+                } else {
+                    $(`#badge_${prefix}_doc_count`).removeClass('bg-danger text-white').addClass('bg-secondary-subtle text-secondary');
+                }
+            }
             $(`#tbody_${prefix}_dokumen tr`).each(function(idx) {
                 $(this).find('.doc-row-number').text(idx + 1);
             });
@@ -499,6 +489,18 @@
     // Helper functions for Document rows in Edit (Delegated)
     $(document).on('click', '#btn_edit_dokumen_row', function(e) {
         e.preventDefault();
+        let existingCount = $('#edit_existing_documents_container .existing-doc-card').length;
+        let newCount = $('#tbody_edit_dokumen tr').length;
+        if ((existingCount + newCount) >= 30) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Batas Maksimal Berkas',
+                text: `Maksimal 30 berkas dokumen yang dapat dilampirkan! (Sudah tersimpan: ${existingCount}, Berkas baru: ${newCount})`,
+                confirmButtonColor: '#0d6efd'
+            });
+            return;
+        }
+
         docIndexEdit++;
         let rowHtml = `
             <tr id="doc_row_edit_${docIndexEdit}">
@@ -537,10 +539,31 @@
     // Trigger Edit Click
     $(document).on('click', '.btn-edit-tender', function (e) {
         e.preventDefault();
+
+        if (window.userPermissions && window.userPermissions.canEdit === false) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Akses Ditolak',
+                text: 'Anda tidak memiliki hak akses (Role & Permission) untuk mengubah proposal tender.',
+                confirmButtonColor: '#0d6efd'
+            });
+            return;
+        }
+
         let id = $(this).data('id');
         if (!id) return;
 
         $.get(`/tender/${id}/detail-json`, function (res) {
+            if (res.can_edit === false) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Akses Ditolak',
+                    text: 'Anda tidak memiliki hak akses untuk mengubah proposal tender ini.',
+                    confirmButtonColor: '#0d6efd'
+                });
+                return;
+            }
+
             if (!res.tender) return;
             let t = res.tender;
 
@@ -594,7 +617,7 @@
             if (t.documents && t.documents.length > 0) {
                 t.documents.forEach(doc => {
                     docsHtml += `
-                        <div class="d-flex align-items-center justify-content-between p-2.5 mb-1.5 border rounded-3 bg-body small shadow-xs">
+                        <div class="existing-doc-card d-flex align-items-center justify-content-between p-2.5 mb-1.5 border rounded-3 bg-body small shadow-xs">
                             <div class="d-flex align-items-center gap-2">
                                 <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>
                                 <div>
@@ -613,6 +636,7 @@
             }
             $('#edit_existing_documents_container').html(docsHtml);
             $('#tbody_edit_dokumen').empty();
+            renumberDocRows('edit');
 
             $('#edit-umum-tab').tab('show');
             $('#modalEditTender').modal('show');
@@ -655,6 +679,63 @@
             Swal.fire('Peringatan Karakter', 'Catatan Tender maksimal 50 karakter!', 'warning');
             $('#edit-umum-tab').tab('show');
             $('#edit_catatan').focus();
+            return;
+        }
+
+        // Mandatory Item Checks
+        let itemRows = $('#tbody_edit_items tr.item-row');
+        if (itemRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Daftar Barang Wajib Diisi',
+                text: 'Silakan tambahkan minimal 1 barang / jasa kebutuhan lelang!',
+                confirmButtonColor: '#0d6efd'
+            });
+            $('#edit-barang-tab').tab('show');
+            return;
+        }
+
+        let hasEmptyBarang = false;
+        let hasEmptyQty = false;
+        itemRows.each(function() {
+            let bId = $(this).find('.item-barang-id').val();
+            let bName = $(this).find('.item-barang-name').val();
+            let qty = parseFloat($(this).find('.item-qty-input').val()) || 0;
+            if (!bId && !bName) {
+                hasEmptyBarang = true;
+            }
+            if (qty <= 0) {
+                hasEmptyQty = true;
+            }
+        });
+
+        if (hasEmptyBarang) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Pilih Barang Katalog',
+                text: 'Ada baris barang yang belum dipilih produknya. Silakan pilih barang dari katalog!',
+                confirmButtonColor: '#0d6efd'
+            });
+            $('#edit-barang-tab').tab('show');
+            return;
+        }
+
+        if (hasEmptyQty) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Jumlah Barang Tidak Valid',
+                text: 'Jumlah / Kuantitas barang pada setiap baris harus lebih dari 0!',
+                confirmButtonColor: '#0d6efd'
+            });
+            $('#edit-barang-tab').tab('show');
+            return;
+        }
+
+        let existingDocCount = $('#edit_existing_documents_container .existing-doc-card').length;
+        let newDocCount = $('#tbody_edit_dokumen tr').length;
+        if ((existingDocCount + newDocCount) > 30) {
+            Swal.fire('Peringatan Berkas', `Total lampiran berkas dokumen maksimal 30 berkas! (Sudah tersimpan: ${existingDocCount}, Berkas baru: ${newDocCount})`, 'warning');
+            $('#edit-dokumen-tab').tab('show');
             return;
         }
 

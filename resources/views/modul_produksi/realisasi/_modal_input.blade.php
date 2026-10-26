@@ -28,17 +28,17 @@
                     {{-- INFO CARD TAHAPAN & KUMPULAN PROGRESS --}}
                     <div class="card border-0 spk-modal-summary-card rounded-3 p-3 mb-3 border-start border-4 border-info">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="badge bg-info bg-opacity-25 text-info font-monospace" id="real_info_spk">SPK-0000</span>
+                            <span class="badge bg-info bg-opacity-25 text-info font-monospace fw-bold px-2.5 py-1" id="real_info_spk" style="font-size: 11.5px;">SPK-0000</span>
                             <span id="real_info_status"></span>
                         </div>
-                        <h6 class="fw-bold mb-1 spk-card-title-text" id="real_info_nama_tahapan">Nama Tahapan</h6>
-                        <small class="d-block mb-2 spk-card-sub-text" id="real_info_barang">Produk: -</small>
+                        <h6 class="fw-bold mb-1 spk-card-title-text" id="real_info_nama_tahapan" style="font-size: 15px; color: #ffffff;">Nama Tahapan</h6>
+                        <small class="d-block mb-2 spk-card-sub-text" id="real_info_barang" style="color: #cbd5e1; font-size: 12.5px;">Produk: -</small>
 
                         {{-- VISUAL PROGRESS BAR HARIAN --}}
                         <div>
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <small class="spk-card-sub-text">Kumulatif Selesai</small>
-                                <small class="fw-bold text-info" id="real_info_percent_text">0 / 0 Pcs (0%)</small>
+                                <small style="color: #94a3b8; font-weight: 600; font-size: 11.5px;">Kumulatif Selesai</small>
+                                <small class="fw-bold font-monospace" id="real_info_percent_text" style="color: #38bdf8; font-size: 12.5px;">0 / 0 Pcs (0%)</small>
                             </div>
                             <div class="progress bg-secondary bg-opacity-25" style="height: 8px;">
                                 <div id="real_info_percent_bar" class="progress-bar bg-info" role="progressbar" style="width: 0%;"></div>
@@ -49,12 +49,12 @@
                     {{-- INPUT FIELDS --}}
                     <div class="row g-3">
                         <div class="col-12 col-sm-6">
-                            <label class="form-label spk-input-label small fw-semibold mb-1">Tanggal Laporan <span class="text-danger">*</span></label>
+                            <label class="form-label spk-input-label small fw-semibold mb-1" style="color: #e2e8f0 !important; font-size: 12.5px;">Tanggal Laporan <span class="text-danger">*</span></label>
                             <input type="date" id="real_tanggal" name="tanggal" class="form-control form-control-sm spk-form-input fw-bold" value="{{ date('Y-m-d') }}" required>
                         </div>
 
                         <div class="col-12 col-sm-6">
-                            <label class="form-label spk-input-label small fw-semibold mb-1">Target Total Qty</label>
+                            <label class="form-label spk-input-label small fw-semibold mb-1" style="color: #e2e8f0 !important; font-size: 12.5px;">Target Total Qty</label>
                             <div class="input-group input-group-sm">
                                 <input type="text" id="real_target_qty" class="form-control spk-form-input fw-bold" readonly>
                                 <span class="input-group-text spk-form-addon real_satuan_label">Pcs</span>
@@ -62,39 +62,41 @@
                         </div>
 
                         <div class="col-12 col-sm-6">
-                            <label class="form-label spk-input-label small fw-semibold mb-1">Hasil Produksi Hari Ini <span class="text-danger">*</span></label>
+                            <label class="form-label spk-input-label small fw-semibold mb-1" style="color: #e2e8f0 !important; font-size: 12.5px;">Hasil Produksi Hari Ini <span class="text-danger">*</span></label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-info bg-opacity-25 text-info border-info fw-bold">+</span>
                                 <input type="number" id="real_qty_hasil_hari_ini" name="qty_hasil_hari_ini" class="form-control spk-form-input border-info fw-bold qty-limit-6" placeholder="Maks 6 digit" min="0" step="any" required maxlength="6">
                                 <span class="input-group-text spk-form-addon real_satuan_label">Pcs</span>
                             </div>
-                            <small class="spk-input-subtext d-block text-info font-monospace fw-semibold" id="real_subtext_sisa_target" style="font-size: 11px;">Sisa Boleh Diisi: -</small>
+                            <small class="spk-input-subtext d-block font-monospace fw-semibold mt-1" id="real_subtext_sisa_target" style="font-size: 11.5px; color: #94a3b8 !important;">Sisa Boleh Diisi: -</small>
                         </div>
 
                         <div class="col-12 col-sm-6">
-                            <label class="form-label spk-input-label small fw-semibold mb-1">Reject / Defect Hari Ini</label>
+                            <label class="form-label spk-input-label small fw-semibold mb-1" style="color: #e2e8f0 !important; font-size: 12.5px;">Reject / Defect Hari Ini</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-danger bg-opacity-25 text-danger border-danger fw-bold">+</span>
                                 <input type="number" id="real_qty_reject_hari_ini" name="qty_reject_hari_ini" class="form-control spk-form-input border-danger fw-bold qty-limit-6" value="0" min="0" step="any" maxlength="6">
                                 <span class="input-group-text spk-form-addon real_satuan_label">Pcs</span>
                             </div>
-                            <small class="spk-input-subtext" style="font-size: 10.5px;">Maksimal 6 karakter (angka)</small>
+                            <small class="spk-input-subtext d-block mt-1" style="font-size: 11.5px; color: #94a3b8 !important;">Maksimal 6 karakter (angka)</small>
                         </div>
 
                         <div class="col-12">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label spk-input-label small fw-semibold mb-0">Catatan Pengerjaan Hari Ini</label>
-                                <small id="counter_real_catatan" class="text-info fw-bold" style="font-size: 10.5px;">0 / 40 Karakter</small>
+                                <label class="form-label spk-input-label small fw-semibold mb-0" style="color: #e2e8f0 !important; font-size: 12.5px;">Catatan Pengerjaan Hari Ini</label>
+                                <small id="counter_real_catatan" class="fw-bold" style="font-size: 11px; color: #38bdf8 !important;">0 / 40 Karakter</small>
                             </div>
                             <textarea id="real_catatan" name="catatan" class="form-control spk-form-input catatan-limit-40" rows="2" placeholder="Catatan spesifik pengerjaan hari ini (maks 40 karakter)..." maxlength="40"></textarea>
                         </div>
 
                         <div class="col-12">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="form-label spk-input-label small fw-semibold mb-0">
-                                    <i class="bi bi-camera-fill me-1 text-info"></i>Foto Bukti Hasil Pengerjaan
+                                <label class="form-label spk-input-label small fw-semibold mb-0" style="color: #e2e8f0 !important; font-size: 12.5px;">
+                                    <i class="bi bi-camera-fill me-1.5 text-info"></i>Foto Bukti Hasil Pengerjaan
                                 </label>
-                                <span class="badge bg-danger bg-opacity-20 text-danger border border-danger border-opacity-30 px-2 py-0.5" style="font-size: 10px;">* (Wajib)</span>
+                                <span class="badge bg-danger text-white fw-bold px-2.5 py-1 shadow-sm" style="font-size: 10.5px; letter-spacing: 0.3px;">
+                                    <i class="bi bi-asterisk me-0.5" style="font-size: 8.5px;"></i> Wajib
+                                </span>
                             </div>
                             
                             <input type="hidden" id="real_foto_bukti_base64" name="foto_bukti_base64">
@@ -103,15 +105,15 @@
                             <div id="containerBtnKamera" class="cinematic-camera-card">
                                 <div class="row g-2 align-items-center">
                                     <div class="col-7 col-sm-8">
-                                        <button type="button" class="btn btn-cinematic-camera w-100 py-2.5 px-2 px-sm-3 d-flex align-items-center justify-content-center gap-1.5" onclick="openLiveCameraStream()">
+                                        <button type="button" class="btn btn-cinematic-camera w-100 py-2.5 px-2 px-sm-3 d-flex align-items-center justify-content-center gap-2" onclick="openLiveCameraStream()">
                                             <i class="bi bi-camera-fill fs-6"></i>
-                                            <span>AMBIL FOTO KAMERA</span>
+                                            <span class="fw-bold" style="font-size: 12px; letter-spacing: 0.5px;">AMBIL FOTO KAMERA</span>
                                         </button>
                                     </div>
                                     <div class="col-5 col-sm-4">
-                                        <button type="button" class="btn btn-cinematic-file w-100 py-2.5 px-2 px-sm-3 d-flex align-items-center justify-content-center gap-1.5" onclick="$('#real_foto_bukti').click()">
+                                        <button type="button" class="btn btn-cinematic-file w-100 py-2.5 px-2 px-sm-3 d-flex align-items-center justify-content-center gap-2" onclick="$('#real_foto_bukti').click()">
                                             <i class="bi bi-folder2-open fs-6"></i>
-                                            <span>Pilih File</span>
+                                            <span class="fw-bold" style="font-size: 12px;">Pilih File</span>
                                         </button>
                                         <input type="file" id="real_foto_bukti" name="foto_bukti" class="d-none" accept="image/*" onchange="previewFotoBuktiInput(this)">
                                     </div>
@@ -164,7 +166,7 @@
                         <div class="col-12">
                             <div class="form-check form-switch mt-1">
                                 <input class="form-check-input" type="checkbox" id="real_mark_as_selesai" name="mark_as_selesai" value="1">
-                                <label class="form-check-label spk-switch-label small fw-semibold" for="real_mark_as_selesai">
+                                <label class="form-check-label spk-switch-label small fw-semibold" for="real_mark_as_selesai" style="color: #e2e8f0 !important; font-size: 12.5px;">
                                     Tandai Tahapan Ini Selesai 100% (Serahkan ke Divisi Berikutnya)
                                 </label>
                             </div>
@@ -213,8 +215,8 @@
         background: rgba(15, 23, 42, 0.7);
         border-color: rgba(56, 189, 248, 0.35) !important;
     }
-    .spk-card-title-text { color: #ffffff; }
-    .spk-card-sub-text   { color: rgba(226, 232, 240, 0.75); }
+    .spk-card-title-text { color: #ffffff !important; font-weight: 700 !important; }
+    .spk-card-sub-text   { color: #cbd5e1 !important; font-weight: 500 !important; }
 
     .spk-form-input {
         background-color: #0f172a !important;
@@ -228,19 +230,25 @@
         box-shadow: 0 0 12px rgba(56, 189, 248, 0.4) !important;
     }
     .spk-form-input[readonly] {
-        background-color: rgba(15, 23, 42, 0.6) !important;
-        color: #94a3b8 !important;
+        background-color: rgba(15, 23, 42, 0.7) !important;
+        color: #cbd5e1 !important;
+        font-weight: 600 !important;
+    }
+    .spk-form-input::placeholder {
+        color: #64748b !important;
+        opacity: 0.85 !important;
     }
 
     .spk-form-addon {
         background-color: #0f172a !important;
-        color: #94a3b8 !important;
+        color: #cbd5e1 !important;
         border-color: rgba(56, 189, 248, 0.3) !important;
+        font-weight: 600 !important;
     }
 
-    .spk-input-label   { color: rgba(226, 232, 240, 0.85) !important; }
-    .spk-input-subtext { color: rgba(148, 163, 184, 0.7) !important; }
-    .spk-switch-label  { color: #ffffff !important; }
+    .spk-input-label   { color: #e2e8f0 !important; font-weight: 600 !important; font-size: 12.5px !important; }
+    .spk-input-subtext { color: #94a3b8 !important; font-weight: 500 !important; font-size: 11.5px !important; }
+    .spk-switch-label  { color: #e2e8f0 !important; font-weight: 600 !important; font-size: 12.5px !important; }
 
     /* ═══════════════════════════════════════════════════════
        LIGHT MODE OVERRIDES FOR ALL MODALS
@@ -989,7 +997,7 @@
                                 <th class="text-center" style="min-width:130px;"><i class="bi bi-check2-circle me-1 opacity-60"></i>Hasil Hari Ini</th>
                                 <th class="text-center" style="min-width:105px;"><i class="bi bi-x-circle me-1 opacity-60"></i>Reject</th>
                                 <th class="text-center" style="min-width:80px;"><i class="bi bi-camera me-1 opacity-60"></i>Foto</th>
-                                <th style="min-width:145px;"><i class="bi bi-person me-1 opacity-60"></i>Operator / PIC</th>
+                                <th style="min-width:145px;"><i class="bi bi-person me-1 opacity-60"></i>PIC</th>
                                 <th style="min-width:170px; white-space:normal;"><i class="bi bi-chat-left-text me-1 opacity-60"></i>Catatan</th>
                                 <th class="text-center" style="min-width:60px;">Aksi</th>
                             </tr>
@@ -1083,7 +1091,7 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label spk-input-label small mb-1"><i class="bi bi-lock-fill me-1 text-warning"></i>PIC Operator (Tidak Dapat Diubah)</label>
+                        <label class="form-label spk-input-label small mb-1"><i class="bi bi-lock-fill me-1 text-warning"></i>PIC (Tidak Dapat Diubah)</label>
                         <input type="text" id="edit_pic_operator" name="pic_operator" class="form-control spk-form-input fw-semibold" readonly tabindex="-1">
                     </div>
                     <div class="mb-3">
@@ -1602,8 +1610,10 @@
                 $('#real_info_percent_bar').css('width', `${percent}%`);
 
                 const maxSisa = Math.max(0, target - selesai);
-                const sisaColor = maxSisa > 0 ? 'text-info' : 'text-danger';
-                $('#real_subtext_sisa_target').html(`Sisa Maksimal Boleh Diisi: <b class="${sisaColor}">${maxSisa} ${satuan}</b>${maxSisa === 0 ? ' <span class="text-success">(Sudah 100% Selesai)</span>' : ''}`);
+                const sisaValHtml = maxSisa > 0 
+                    ? `<b style="color: #38bdf8; font-weight: 700;">${maxSisa} ${satuan}</b>` 
+                    : `<b style="color: #f87171; font-weight: 700;">0 ${satuan}</b> <span style="color: #34d399; font-weight: 700;">(Sudah 100% Selesai)</span>`;
+                $('#real_subtext_sisa_target').html(`Sisa Maksimal Boleh Diisi: ${sisaValHtml}`);
 
                 $('#real_qty_hasil_hari_ini').removeAttr('max').val('');
                 $('#real_qty_reject_hari_ini').val('0');

@@ -264,7 +264,18 @@
                 $('#inp_gudang_id').val(p.gudang_id);
                 $('#display_gudang_pilihan').val(`[${gKode}] ${gNama}`).addClass('fw-bold text-primary');
 
-                const tgl = p.tanggal_pengeluaran ? p.tanggal_pengeluaran.substring(0, 10) : '';
+                let tgl = '';
+                if (p.tanggal_pengeluaran) {
+                    if (p.tanggal_pengeluaran.includes('T')) {
+                        const d = new Date(p.tanggal_pengeluaran);
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        tgl = `${y}-${m}-${day}`;
+                    } else {
+                        tgl = p.tanggal_pengeluaran.substring(0, 10);
+                    }
+                }
                 $('#inp_tanggal_pengeluaran').val(tgl);
 
                 let penyerahName = p.penyerah_nama || (p.penyerah ? p.penyerah.nama_lengkap : '') || 'Petugas Gudang';

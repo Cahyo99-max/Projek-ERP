@@ -9,6 +9,147 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('dashboard/purchasing_dashboard.css') }}">
+    <style>
+        /* ── Ultra-Professional AP Telemetry Styles ── */
+        .ap-telemetry-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+        }
+        .ap-telemetry-card::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .ap-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(59, 130, 246, 0.22));
+            color: #6366f1;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.2);
+            flex-shrink: 0;
+        }
+        [data-bs-theme="dark"] .ap-icon-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(59, 130, 246, 0.15));
+            color: #818cf8;
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+        .ap-hero-box {
+            background: var(--pch-surface-sub);
+            border: 1px solid var(--pch-card-border);
+            border-left: 3.5px solid #6366f1 !important;
+            border-radius: 14px;
+            padding: 1.15rem 1.25rem;
+            transition: all 0.2s ease;
+        }
+        [data-bs-theme="dark"] .ap-hero-box {
+            background: rgba(15, 23, 42, 0.6);
+            border-color: rgba(255, 255, 255, 0.08);
+            border-left: 3.5px solid #818cf8 !important;
+        }
+        .ap-tile-neutral {
+            background: var(--pch-surface-sub);
+            border: 1px solid var(--pch-card-border);
+            border-radius: 14px;
+            padding: 0.95rem 1rem;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+        [data-bs-theme="dark"] .ap-tile-neutral {
+            background: rgba(15, 23, 42, 0.5);
+            border-color: rgba(255, 255, 255, 0.07);
+        }
+        .ap-tile-neutral:hover {
+            transform: translateY(-2px);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+        .ap-tile-alert {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            border-radius: 14px;
+            padding: 0.95rem 1rem;
+            transition: transform 0.2s ease;
+        }
+        [data-bs-theme="dark"] .ap-tile-alert {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.45);
+        }
+        .ap-tile-warning {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: 14px;
+            padding: 0.95rem 1rem;
+            transition: transform 0.2s ease;
+        }
+        [data-bs-theme="dark"] .ap-tile-warning {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.45);
+        }
+        .ap-action-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.15rem;
+            border-radius: 9999px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(99, 102, 241, 0.08));
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            color: #2563eb;
+            text-decoration: none !important;
+            font-weight: 700;
+            font-size: 0.82rem;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        [data-bs-theme="dark"] .ap-action-link {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(99, 102, 241, 0.12));
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+        .ap-action-link:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2));
+            border-color: #3b82f6;
+            color: #3b82f6;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px -3px rgba(59, 130, 246, 0.3);
+        }
+        .live-status-pulse {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .live-pulse-emerald {
+            background-color: #10b981;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse-dot-green 2s infinite;
+        }
+        .live-pulse-rose {
+            background-color: #ef4444;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            animation: pulse-dot-red 1.8s infinite;
+        }
+        @keyframes pulse-dot-green {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        @keyframes pulse-dot-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
 @endpush
 
 {{-- ══════════════════════════════════════════════════════════════════════════ --}}
@@ -22,8 +163,16 @@
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>
                     <div class="kpi-title-label">Belanja PO (Bulan Ini)</div>
-                    <div class="kpi-main-metric text-truncate" title="Rp {{ number_format($poSpendThisMonth, 0, ',', '.') }}">
-                        Rp {{ number_format($poSpendThisMonth >= 1000000 ? $poSpendThisMonth / 1000000 : $poSpendThisMonth / 1000, 1, ',', '.') }} {{ $poSpendThisMonth >= 1000000 ? 'Jt' : 'Rb' }}
+                    <div class="kpi-main-metric text-truncate" title="Rp {{ number_format($poSpendThisMonth ?? 0, 0, ',', '.') }}">
+                        @if(($poSpendThisMonth ?? 0) <= 0)
+                            Rp 0
+                        @elseif($poSpendThisMonth >= 1000000000)
+                            Rp {{ number_format($poSpendThisMonth / 1000000000, 1, ',', '.') }} M
+                        @elseif($poSpendThisMonth >= 1000000)
+                            Rp {{ number_format($poSpendThisMonth / 1000000, 1, ',', '.') }} Jt
+                        @else
+                            Rp {{ number_format($poSpendThisMonth / 1000, 1, ',', '.') }} Rb
+                        @endif
                     </div>
                 </div>
                 <div class="kpi-icon-bubble">
@@ -492,6 +641,279 @@
 
 </div>
 
+{{-- ══════════════════════════════════════════════════════════════════════════ --}}
+{{-- 4. RADAR TAGIHAN & JATUH TEMPO SUPPLIER (ACCOUNTS PAYABLE RADAR) --}}
+{{-- ══════════════════════════════════════════════════════════════════════════ --}}
+@php
+    $fmtRupiah = function($val) {
+        $num = (float) ($val ?? 0);
+        if ($num <= 0) return 'Rp 0';
+        if ($num >= 1000000000) return 'Rp ' . number_format($num / 1000000000, 2, ',', '.') . ' M';
+        if ($num >= 1000000) return 'Rp ' . number_format($num / 1000000, 1, ',', '.') . ' Jt';
+        if ($num >= 1000) return 'Rp ' . number_format($num, 0, ',', '.');
+        return 'Rp ' . number_format($num, 0, ',', '.');
+    };
+@endphp
+
+<div class="row g-4 mb-4" id="apRadarSection">
+    
+    {{-- Left: AP Telemetry Summary Card (Col 4) --}}
+    <div class="col-xl-4">
+        <div class="cinematic-box ap-telemetry-card h-100 d-flex flex-column justify-content-between p-4">
+            <div>
+                {{-- Header with Glow Avatar & Live Indicator --}}
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom" style="border-color: var(--pch-card-border) !important;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="ap-icon-box">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                        <div>
+                            <h5 class="pch-heading mb-0 fs-6 fw-bold">Radar Utang Supplier</h5>
+                            <div class="d-flex align-items-center mt-0.5">
+                                <span class="live-status-pulse {{ ($countOverdueInvoices ?? 0) > 0 ? 'live-pulse-rose' : 'live-pulse-emerald' }}"></span>
+                                <small class="pch-subtext fs-9 fw-semibold">AP Telemetry Stream</small>
+                            </div>
+                        </div>
+                    </div>
+                    @if(($countOverdueInvoices ?? 0) > 0)
+                        <span class="pill-badge pill-badge-rose">
+                            <i class="bi bi-exclamation-triangle-fill"></i> {{ $countOverdueInvoices }} Overdue
+                        </span>
+                    @else
+                        <span class="pill-badge pill-badge-emerald">
+                            <i class="bi bi-shield-check"></i> Lancar
+                        </span>
+                    @endif
+                </div>
+
+                {{-- Metric 1: Total Utang Berjalan (Hero Box) --}}
+                <div class="ap-hero-box mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-1.5">
+                        <span class="kpi-title-label mb-0" style="font-size: 0.73rem; letter-spacing: 0.7px;">SISA UTANG DAGANG AKTIF</span>
+                        @if(($totalUtangBelumLunas ?? 0) > 0)
+                            <span class="pill-badge pill-badge-blue" style="font-size: 0.68rem; padding: 0.15rem 0.55rem;">
+                                <i class="bi bi-hourglass-split"></i> Tertunda
+                            </span>
+                        @else
+                            <span class="pill-badge pill-badge-emerald" style="font-size: 0.68rem; padding: 0.15rem 0.55rem;">
+                                <i class="bi bi-check2"></i> Nihil
+                            </span>
+                        @endif
+                    </div>
+                    <div class="pch-heading fs-2 fw-bold text-truncate mb-1.5" title="Rp {{ number_format($totalUtangBelumLunas ?? 0, 0, ',', '.') }}">
+                        {{ $fmtRupiah($totalUtangBelumLunas ?? 0) }}
+                    </div>
+                    @if(($totalUtangBelumLunas ?? 0) > 0)
+                        <small class="pch-subtext fs-9 d-flex align-items-center gap-1.5">
+                            <i class="bi bi-info-circle text-primary"></i> Akumulasi faktur pembelian belum lunas
+                        </small>
+                    @else
+                        <small class="text-success fs-9 fw-semibold d-flex align-items-center gap-1.5">
+                            <i class="bi bi-check-circle-fill"></i> Seluruh tagihan lunas &amp; aman
+                        </small>
+                    @endif
+                </div>
+
+                {{-- Metric 2 & 3: Breakdown Overdue vs Due Soon (Pro Tiles) --}}
+                <div class="row g-2.5 mb-2">
+                    {{-- Lewat Tempo Tile --}}
+                    <div class="col-6">
+                        @if(($countOverdueInvoices ?? 0) > 0)
+                            <div class="ap-tile-alert h-100 d-flex flex-column justify-content-between" style="min-height: 100px;">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="fs-9 fw-bold text-danger letter-spacing-wide">LEWAT TEMPO</span>
+                                    <i class="bi bi-exclamation-octagon-fill text-danger fs-8"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-danger fs-4 lh-1 mb-1">
+                                        {{ $countOverdueInvoices }} <span class="fs-9 fw-semibold text-danger opacity-75">Faktur</span>
+                                    </div>
+                                    <small class="text-danger fw-bold fs-9 d-block text-truncate" title="Rp {{ number_format($totalUtangOverdue ?? 0, 0, ',', '.') }}">
+                                        {{ $fmtRupiah($totalUtangOverdue ?? 0) }}
+                                    </small>
+                                </div>
+                            </div>
+                        @else
+                            <div class="ap-tile-neutral h-100 d-flex flex-column justify-content-between" style="min-height: 100px;">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="fs-9 fw-bold text-muted letter-spacing-wide">LEWAT TEMPO</span>
+                                    <i class="bi bi-check-circle-fill text-success fs-8"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-success fs-4 lh-1 mb-1">
+                                        0 <span class="fs-9 fw-semibold pch-subtext">Faktur</span>
+                                    </div>
+                                    <small class="pch-subtext fs-9 d-block text-success">
+                                        <i class="bi bi-shield-check me-0.5"></i> Tidak ada tunggakan
+                                    </small>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Tempo 7 Hari Tile --}}
+                    <div class="col-6">
+                        @if(($countDueSoonInvoices ?? 0) > 0)
+                            <div class="ap-tile-warning h-100 d-flex flex-column justify-content-between" style="min-height: 100px;">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="fs-9 fw-bold text-warning letter-spacing-wide">TEMPO 7 HARI</span>
+                                    <i class="bi bi-clock-history text-warning fs-8"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-warning fs-4 lh-1 mb-1">
+                                        {{ $countDueSoonInvoices }} <span class="fs-8 fw-semibold text-warning opacity-75">Faktur</span>
+                                    </div>
+                                    <small class="text-warning fw-semibold fs-9 d-block">Jadwalkan bayar segera</small>
+                                </div>
+                            </div>
+                        @else
+                            <div class="ap-tile-neutral h-100 d-flex flex-column justify-content-between" style="min-height: 100px;">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="fs-9 fw-bold text-muted letter-spacing-wide">TEMPO 7 HARI</span>
+                                    <i class="bi bi-calendar2-check text-muted fs-8"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold pch-heading fs-4 lh-1 mb-1">
+                                        0 <span class="fs-9 fw-semibold pch-subtext">Faktur</span>
+                                    </div>
+                                    <small class="pch-subtext fs-9 d-block">Aman minggu ini</small>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Action Shortcuts (Premium Action Bar) --}}
+            @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-hutang'))
+            <div class="pt-3 border-top mt-2" style="border-color: var(--pch-card-border) !important;">
+                <a href="{{ route('modul_purchasing.hutang.index') }}" class="ap-action-link">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-journal-text fs-6"></i>
+                        <span>Buka Rekap Utang Supplier</span>
+                    </div>
+                    <i class="bi bi-arrow-right fs-7 ms-auto"></i>
+                </a>
+            </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- Right: Priority Due Invoices Table (Col 8) --}}
+    <div class="col-xl-8">
+        <div class="cinematic-box h-100 p-4">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3 pb-2 border-bottom" style="border-color: var(--pch-card-border) !important;">
+                <div>
+                    <h5 class="pch-heading mb-1 d-flex align-items-center gap-2 fs-6 fw-bold">
+                        <i class="bi bi-receipt text-danger fs-5"></i> Tagihan Prioritas &amp; Mendekati Jatuh Tempo
+                    </h5>
+                    <p class="pch-subtext mb-0 fs-8">Faktur supplier yang mendesak untuk dijadwalkan pembayaran agar pasokan lancar</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/purchase-invoices" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold fs-8 text-nowrap">
+                        Lihat Semua Faktur <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table align-middle cinematic-table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="padding: 0.85rem 1rem;">No. Faktur</th>
+                            <th style="padding: 0.85rem 1rem;">Supplier</th>
+                            <th style="padding: 0.85rem 1rem;">Tgl. Jatuh Tempo</th>
+                            <th class="text-end" style="padding: 0.85rem 1rem;">Sisa Tagihan</th>
+                            <th class="text-center" style="padding: 0.85rem 1rem;">Status Aging</th>
+                            <th class="text-end" style="padding: 0.85rem 1rem;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($dueInvoices ?? [] as $inv)
+                            @php
+                                $days = (int) $inv->days_diff;
+                                $isOverdue = $days < 0;
+                                $isDueToday = $days === 0;
+                                $isDueSoon = $days > 0 && $days <= 7;
+                            @endphp
+                            <tr>
+                                <td style="padding: 0.95rem 1rem;">
+                                    <a href="/purchase-invoices" class="pch-link fw-bold">
+                                        {{ $inv->nomor_faktur }}
+                                    </a>
+                                    @if(!empty($inv->nomor_faktur_supplier))
+                                        <small class="pch-subtext d-block fs-9 font-monospace mt-0.5">Ref: {{ $inv->nomor_faktur_supplier }}</small>
+                                    @endif
+                                </td>
+                                <td style="padding: 0.95rem 1rem;">
+                                    <div class="pch-heading fs-8 text-truncate" style="max-width: 220px;" title="{{ $inv->nama_supplier }}">
+                                        {{ $inv->nama_supplier }}
+                                    </div>
+                                </td>
+                                <td style="padding: 0.95rem 1rem;">
+                                    <div class="pch-body-text fs-8 font-monospace">
+                                        {{ $inv->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($inv->tanggal_jatuh_tempo)->format('d/m/Y') : '-' }}
+                                    </div>
+                                </td>
+                                <td class="text-end fw-bold {{ $isOverdue ? 'text-danger' : 'text-primary' }} font-monospace fs-8" style="padding: 0.95rem 1rem;">
+                                    Rp {{ number_format($inv->sisa_tagihan, 0, ',', '.') }}
+                                </td>
+                                <td class="text-center" style="padding: 0.95rem 1rem;">
+                                    @if($isOverdue)
+                                        <span class="pill-badge pill-badge-rose" style="font-size: 0.72rem; padding: 0.2rem 0.65rem;">
+                                            <i class="bi bi-fire me-1"></i>Lewat {{ abs($days) }} Hari
+                                        </span>
+                                    @elseif($isDueToday)
+                                        <span class="pill-badge pill-badge-rose" style="font-size: 0.72rem; padding: 0.2rem 0.65rem;">
+                                            <i class="bi bi-exclamation-circle-fill me-1"></i>Hari Ini!
+                                        </span>
+                                    @elseif($isDueSoon)
+                                        <span class="pill-badge pill-badge-amber" style="font-size: 0.72rem; padding: 0.2rem 0.65rem;">
+                                            <i class="bi bi-clock-fill me-1"></i>{{ $days }} Hari Lagi
+                                        </span>
+                                    @else
+                                        <span class="pill-badge pill-badge-emerald" style="font-size: 0.72rem; padding: 0.2rem 0.65rem;">
+                                            <i class="bi bi-shield-check me-1"></i>{{ $days }} Hari
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="text-end" style="padding: 0.95rem 1rem;">
+                                    @can('lihat-pembayaran-utang')
+                                        <a href="{{ route('purchase-payments.index') }}" class="btn btn-outline-success btn-sm rounded-pill py-1 px-3 fs-9 fw-bold d-inline-flex align-items-center gap-1" title="Proses Pembayaran">
+                                            <i class="bi bi-credit-card-2-front"></i>
+                                            <span>Bayar</span>
+                                        </a>
+                                    @else
+                                        <a href="/purchase-invoices" class="btn btn-outline-secondary btn-sm rounded-pill py-1 px-2.5 fs-9" title="Lihat Faktur">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    @endcan
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center py-5 pch-subtext">
+                                    <i class="bi bi-shield-check text-success fs-1 d-block mb-2 opacity-75"></i>
+                                    Kondisi keuangan supplier prima! Tidak ada faktur pembelian yang menunggak atau melewati jatuh tempo.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mt-3 pt-3 border-top" style="border-color: var(--pch-card-border) !important;">
+                <small class="pch-subtext fs-9">Menampilkan hingga 10 faktur prioritas terdekat</small>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fs-9 pch-subtext">Ada tagihan belum tercatat?</span>
+                    <a href="/purchase-invoices" class="pch-link fs-9 fw-bold">Buka Faktur Pembelian &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
 @push('scripts')
 <script>
     $(document).ready(function() {
@@ -637,7 +1059,7 @@
                                 label: function(context) {
                                     let val = context.raw;
                                     if (context.datasetIndex === 0) {
-                                        return ' Total Belanja: Rp ' + val.toLocaleString('id-ID');
+                                        return ' Total Belanja: Rp ' + Math.round(val).toLocaleString('id-ID');
                                     } else {
                                         return ' Volume Dipesan: ' + val + ' Dokumen PO';
                                     }
@@ -650,14 +1072,18 @@
                             type: 'linear',
                             display: true,
                             position: 'left',
+                            beginAtZero: true,
+                            suggestedMax: 10000000,
                             grid: { color: theme.gridColor },
                             ticks: {
                                 color: theme.tickColor,
                                 font: { size: 10.5, weight: '600' },
+                                precision: 0,
                                 callback: function(val) {
                                     if (val >= 1000000000) return 'Rp ' + (val / 1000000000).toFixed(1) + ' M';
                                     if (val >= 1000000) return 'Rp ' + (val / 1000000).toFixed(0) + ' Jt';
-                                    return 'Rp ' + val.toLocaleString('id-ID');
+                                    if (val >= 1000) return 'Rp ' + (val / 1000).toFixed(0) + ' Rb';
+                                    return 'Rp ' + Math.round(val).toLocaleString('id-ID');
                                 }
                             }
                         },
@@ -665,13 +1091,19 @@
                             type: 'linear',
                             display: true,
                             position: 'right',
+                            beginAtZero: true,
+                            suggestedMax: 5,
                             grid: { drawOnChartArea: false },
                             ticks: {
                                 color: theme.tickColor,
                                 font: { size: 10.5, weight: '600' },
+                                precision: 0,
                                 stepSize: 1,
                                 callback: function(val) {
-                                    return val + ' PO';
+                                    if (Number.isInteger(val)) {
+                                        return val + ' PO';
+                                    }
+                                    return null;
                                 }
                             }
                         },

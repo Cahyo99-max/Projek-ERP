@@ -27,14 +27,14 @@ $(document).ready(function () {
         },
         columns: [
             { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center text-nowrap align-middle' },
-            { data: 'nomor_pembayaran', name: 'nomor_pembayaran', className: 'text-nowrap align-middle fw-semibold' },
-            { data: 'tanggal_bayar_fmt', name: 'tanggal_bayar', className: 'text-nowrap align-middle' },
+            { data: 'nomor_pembayaran', name: 'purchase_payments.nomor_pembayaran', className: 'text-nowrap align-middle fw-semibold' },
+            { data: 'tanggal_bayar_fmt', name: 'purchase_payments.tanggal_bayar', className: 'text-nowrap align-middle' },
             { data: 'supplier_name', name: 'supplier.nama_supplier', className: 'text-nowrap align-middle fw-medium' },
             { data: 'kas_bank_name', name: 'kasBank.nama_akun', className: 'text-nowrap align-middle' },
             { data: 'payment_method_name', name: 'paymentMethod.nama_metode', className: 'text-nowrap align-middle' },
-            { data: 'total_bayar_fmt', name: 'total_bayar', className: 'text-end text-nowrap align-middle fw-bold font-monospace' },
-            { data: 'total_potongan_fmt', name: 'total_potongan', className: 'text-end text-nowrap align-middle font-monospace' },
-            { data: 'status_badge', name: 'status', className: 'text-center text-nowrap align-middle' },
+            { data: 'total_bayar_fmt', name: 'purchase_payments.total_bayar', className: 'text-end text-nowrap align-middle fw-bold font-monospace' },
+            { data: 'total_potongan_fmt', name: 'purchase_payments.total_potongan', className: 'text-end text-nowrap align-middle font-monospace' },
+            { data: 'status_badge', name: 'purchase_payments.status', className: 'text-center text-nowrap align-middle' },
             { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center text-nowrap align-middle' },
         ],
         dom: "<'w-100 position-relative'tr><'p-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 border-top pay-dt-footer'<'small text-muted pay-dt-info'i><'d-flex align-items-center gap-3 pay-dt-controls'lp>>",
@@ -140,44 +140,57 @@ $(document).ready(function () {
         tablePayments.draw();
     }
 
-    // ===== REAL-TIME 1-SECOND SMART SYNC (ENTERPRISE HIGH-SPEED) =====
-    let isUserInteracting = false;
+    // ===== REAL-TIME SUB-SECOND SMART SYNC (< 1 DETIK, ENTERPRISE HIGH-SPEED) =====
     let isSilentReloading = false;
     let currentDataFingerprint = null;
+    let syncIntervalTimer = null;
 
-    $(document).on('mouseenter', '#tablePayments, .pay-table-scroll-wrapper', function () {
-        isUserInteracting = true;
-    });
-    $(document).on('mouseleave', '#tablePayments, .pay-table-scroll-wrapper', function () {
-        isUserInteracting = false;
-    });
-    $(document).on('touchstart', '#tablePayments, .pay-table-scroll-wrapper', function () {
-        isUserInteracting = true;
-    });
-    $(document).on('touchend', '#tablePayments, .pay-table-scroll-wrapper', function () {
-        setTimeout(() => { isUserInteracting = false; }, 1200);
-    });
+    function updateKpiCards(kpi) {
+        if (!kpi) return;
+        if (kpi.fmt_monthly_idr) $('#kpiMonthlyIdr').text(kpi.fmt_monthly_idr);
+        if (kpi.fmt_monthly_usd) $('#kpiMonthlyUsd').text(kpi.fmt_monthly_usd);
+        if (kpi.fmt_monthly_equiv) $('#kpiMonthlyEquiv').text(kpi.fmt_monthly_equiv);
 
-    setInterval(function () {
+        if (kpi.fmt_outstanding_idr) $('#kpiOutstandingIdr').text(kpi.fmt_outstanding_idr);
+        if (kpi.fmt_outstanding_usd) $('#kpiOutstandingUsd').text(kpi.fmt_outstanding_usd);
+        if (kpi.fmt_outstanding_equiv) $('#kpiOutstandingEquiv').text(kpi.fmt_outstanding_equiv);
+
+        if (kpi.fmt_overdue_count !== undefined) {
+            $('#kpiOverdueCount').html(kpi.fmt_overdue_count + ' <span class="fs-6 fw-normal text-white text-opacity-75">Faktur</span>');
+        }
+        if (kpi.fmt_overdue_sub) $('#kpiOverdueSub').text(kpi.fmt_overdue_sub);
+
+        if (kpi.fmt_total_count !== undefined) {
+            $('#kpiTotalPaymentCount').html(kpi.fmt_total_count + ' <span class="fs-6 fw-normal text-white text-opacity-75">Voucher</span>');
+        }
+        if (kpi.fmt_total_sub) $('#kpiTotalPaymentSub').text(kpi.fmt_total_sub);
+    }
+
+    function checkRealtimeSync(forceReload = false) {
         const isSearching = $('#filterSearch').is(':focus') || $('input:focus').length > 0;
         const isModalOpen = $('.modal.show').length > 0;
         const isSwalOpen  = $('body').hasClass('swal2-shown');
         const pageHidden  = document.hidden;
 
-        if (!pageHidden && !isModalOpen && !isSwalOpen && !isSearching && !isUserInteracting && !isSilentReloading && $.fn.DataTable.isDataTable('#tablePayments')) {
+        if (forceReload || (!pageHidden && !isModalOpen && !isSwalOpen && !isSearching && !isSilentReloading && $.fn.DataTable.isDataTable('#tablePayments'))) {
             $.ajax({
                 url: "{{ route('purchase-payments.check-sync') }}",
                 type: "GET",
+                data: { fingerprint: forceReload ? '' : (currentDataFingerprint || '') },
                 dataType: "json",
-                timeout: 850,
+                timeout: 550,
                 success: function(res) {
                     if (currentDataFingerprint === null) {
                         currentDataFingerprint = res.fingerprint;
+                        if (res.kpi) updateKpiCards(res.kpi);
                         return;
                     }
-                    // Hanya reload tabel jika ada perubahan data / status baru di database
-                    if (res.fingerprint && res.fingerprint !== currentDataFingerprint) {
+
+                    // Jika ada perubahan data / status baru di database
+                    if (forceReload || (res.changed && res.fingerprint !== currentDataFingerprint)) {
                         currentDataFingerprint = res.fingerprint;
+                        if (res.kpi) updateKpiCards(res.kpi);
+
                         isSilentReloading = true;
                         let settings = tablePayments.settings()[0];
                         if (settings) settings.oFeatures.bProcessing = false;
@@ -186,10 +199,32 @@ $(document).ready(function () {
                             isSilentReloading = false;
                         }, false);
                     }
+                },
+                error: function() {
+                    // Abaikan timeout / glitch jaringan agar tidak mengganggu UI
                 }
             });
         }
-    }, 1000);
+    }
+
+    // Polling sub-detik (600ms = 0.6 detik, di bawah 1 detik)
+    syncIntervalTimer = setInterval(function () {
+        checkRealtimeSync(false);
+    }, 600);
+
+    // Cross-tab broadcast & listener (sinkronisasi seketika antar jendela/tab browser)
+    window.broadcastPaymentUpdated = function() {
+        try {
+            localStorage.setItem('erp_pembayaran_utang_updated', Date.now().toString());
+        } catch(e) {}
+        checkRealtimeSync(true);
+    };
+
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'erp_pembayaran_utang_updated') {
+            checkRealtimeSync(true);
+        }
+    });
 
     function updateActiveFilterBadge() {
         let count = 0;
@@ -278,6 +313,7 @@ $(document).ready(function () {
                             showConfirmButton: false,
                         });
                         tablePayments.ajax.reload(null, false);
+                        window.broadcastPaymentUpdated();
                     },
                     error: function (xhr) {
                         let msg = xhr.responseJSON?.message || 'Terjadi kesalahan saat mengajukan dokumen pembayaran!';
@@ -326,6 +362,7 @@ $(document).ready(function () {
                             showConfirmButton: false,
                         });
                         tablePayments.ajax.reload(null, false);
+                        window.broadcastPaymentUpdated();
                     },
                     error: function (xhr) {
                         let msg = xhr.responseJSON?.message || 'Terjadi kesalahan saat menyetujui pembayaran!';
@@ -341,6 +378,14 @@ $(document).ready(function () {
         let id    = $(this).data('id');
         let nomor = $(this).data('nomor');
 
+        const stopFocusTrap = (e) => {
+            if (e.target && (e.target.closest('.swal2-container') || e.target.classList.contains('swal2-input') || e.target.classList.contains('swal2-textarea'))) {
+                e.stopPropagation();
+            }
+        };
+        document.addEventListener('focusin', stopFocusTrap, true);
+        document.addEventListener('focus', stopFocusTrap, true);
+
         Swal.fire({
             title: 'Penolakan Pengajuan Pembayaran',
             html: `<p class="mb-2 text-secondary text-start">Mohon cantumkan catatan / alasan penolakan untuk dokumen <strong>${nomor}</strong>:</p>
@@ -348,6 +393,7 @@ $(document).ready(function () {
             input: 'textarea',
             inputPlaceholder: 'Tuliskan catatan atau alasan penolakan di sini...',
             inputAttributes: {
+                maxlength: '255',
                 'aria-label': 'Tuliskan alasan penolakan'
             },
             icon: 'warning',
@@ -357,11 +403,20 @@ $(document).ready(function () {
             confirmButtonText: '<i class="bi bi-x-circle me-1"></i> Tolak Pengajuan',
             cancelButtonText: 'Batal',
             reverseButtons: true,
+            didOpen: () => {
+                const textarea = Swal.getInput();
+                if (textarea) textarea.focus();
+            },
+            willClose: () => {
+                document.removeEventListener('focusin', stopFocusTrap, true);
+                document.removeEventListener('focus', stopFocusTrap, true);
+            },
             preConfirm: (alasan) => {
                 if (!alasan || !alasan.trim()) {
                     Swal.showValidationMessage('Catatan alasan penolakan wajib diisi!');
+                    return false;
                 }
-                return alasan;
+                return alasan.trim();
             }
         }).then((result) => {
             if (result.isConfirmed) {
@@ -384,6 +439,7 @@ $(document).ready(function () {
                             showConfirmButton: false,
                         });
                         tablePayments.ajax.reload(null, false);
+                        window.broadcastPaymentUpdated();
                     },
                     error: function (xhr) {
                         let msg = xhr.responseJSON?.message || 'Gagal menolak pengajuan pembayaran!';
@@ -429,6 +485,7 @@ $(document).ready(function () {
                             showConfirmButton: false,
                         });
                         tablePayments.ajax.reload(null, false);
+                        window.broadcastPaymentUpdated();
                     },
                     error: function (xhr) {
                         let msg = xhr.responseJSON?.message || 'Terjadi kesalahan saat memposting pembayaran!';
@@ -440,17 +497,33 @@ $(document).ready(function () {
     });
 
     // ===== CANCEL / VOID PAYMENT ACTION =====
-    $(document).on('click', '.btn-cancel-payment', function () {
+    $(document).on('click', '.btn-cancel-payment, #btnViewCancelPayment', function () {
         let id    = $(this).data('id');
         let nomor = $(this).data('nomor');
 
+        // Mencegah Bootstrap Modal focus trap mencuri fokus dari SweetAlert input
+        const stopFocusTrap = (e) => {
+            if (e.target && (e.target.closest('.swal2-container') || e.target.classList.contains('swal2-input') || e.target.classList.contains('swal2-textarea'))) {
+                e.stopPropagation();
+            }
+        };
+        document.addEventListener('focusin', stopFocusTrap, true);
+        document.addEventListener('focus', stopFocusTrap, true);
+
         Swal.fire({
             title: 'Batalkan Pembayaran Utang (Void)?',
-            html: `Masukkan alasan pembatalan pembayaran <strong>${nomor}</strong>:<br><small class="text-muted">Saldo Kas/Bank akan dikembalikan dan jurnal akuntansi akan dihapus.</small>`,
+            html: `Masukkan alasan pembatalan pembayaran <strong>${nomor}</strong>:<br>` +
+                  `<small class="text-muted d-block mb-2">Saldo Kas/Bank akan dikembalikan, jurnal pembalik diterbitkan, dan faktur terbuka kembali.</small>` +
+                  `<div class="d-flex justify-content-between align-items-center mb-1">` +
+                  `  <span class="small text-muted"><i class="bi bi-shield-check text-primary me-1"></i>Keamanan Alasan (Maks 30 Karakter):</span>` +
+                  `  <span id="swalCancelCharCount" class="small text-muted font-monospace fw-semibold">0/30</span>` +
+                  `</div>`,
             input: 'textarea',
-            inputPlaceholder: 'Tuliskan alasan pembatalan...',
+            inputPlaceholder: 'Tuliskan alasan pembatalan (maks 30 karakter)...',
             inputAttributes: {
-                'aria-label': 'Tuliskan alasan pembatalan'
+                maxlength: '30',
+                'aria-label': 'Tuliskan alasan pembatalan (maks 30 karakter)',
+                style: 'resize: none; height: 80px; font-size: 0.9rem;'
             },
             icon: 'warning',
             showCancelButton: true,
@@ -459,11 +532,38 @@ $(document).ready(function () {
             confirmButtonText: '<i class="bi bi-x-circle me-1"></i> Batalkan Pembayaran',
             cancelButtonText: 'Tutup',
             reverseButtons: true,
-            preConfirm: (alasan) => {
-                if (!alasan || !alasan.trim()) {
-                    Swal.showValidationMessage('Alasan pembatalan wajib diisi!');
+            didOpen: () => {
+                $('#modalViewPayment').removeAttr('tabindex');
+                const textarea = Swal.getInput();
+                if (textarea) {
+                    textarea.focus();
+                    $(textarea).on('input keyup paste', function () {
+                        let len = $(this).val().length;
+                        $('#swalCancelCharCount').text(`${len}/30`);
+                        if (len >= 30) {
+                            $('#swalCancelCharCount').addClass('text-danger fw-bold').removeClass('text-muted');
+                        } else {
+                            $('#swalCancelCharCount').removeClass('text-danger fw-bold').addClass('text-muted');
+                        }
+                    });
                 }
-                return alasan;
+            },
+            willClose: () => {
+                document.removeEventListener('focusin', stopFocusTrap, true);
+                document.removeEventListener('focus', stopFocusTrap, true);
+                $('#modalViewPayment').attr('tabindex', '-1');
+            },
+            preConfirm: (alasan) => {
+                let trimmed = (alasan || '').trim();
+                if (!trimmed) {
+                    Swal.showValidationMessage('Alasan pembatalan wajib diisi!');
+                    return false;
+                }
+                if (trimmed.length > 30) {
+                    Swal.showValidationMessage('Alasan pembatalan maksimal 30 karakter!');
+                    return false;
+                }
+                return trimmed;
             }
         }).then((result) => {
             if (result.isConfirmed) {
@@ -478,6 +578,9 @@ $(document).ready(function () {
                     type: 'POST',
                     data: { alasan_pembatalan: result.value },
                     success: function (res) {
+                        if ($('#modalViewPayment').hasClass('show')) {
+                            $('#modalViewPayment').modal('hide');
+                        }
                         Swal.fire({
                             icon: 'success',
                             title: 'Pembayaran Dibatalkan!',
@@ -486,6 +589,7 @@ $(document).ready(function () {
                             showConfirmButton: false,
                         });
                         tablePayments.ajax.reload(null, false);
+                        window.broadcastPaymentUpdated();
                     },
                     error: function (xhr) {
                         let msg = xhr.responseJSON?.message || 'Gagal membatalkan pembayaran!';
@@ -497,7 +601,7 @@ $(document).ready(function () {
     });
 
     // ===== DELETE DRAFT PAYMENT ACTION =====
-    $(document).on('click', '.btn-delete-payment', function () {
+    $(document).on('click', '.btn-delete-payment, #btnViewDeletePayment', function () {
         let id    = $(this).data('id');
         let nomor = $(this).data('nomor');
 
@@ -517,6 +621,9 @@ $(document).ready(function () {
                     url: `/purchase-payments/${id}/delete`,
                     type: 'DELETE',
                     success: function (res) {
+                        if ($('#modalViewPayment').hasClass('show')) {
+                            $('#modalViewPayment').modal('hide');
+                        }
                         Swal.fire({
                             icon: 'success',
                             title: 'Terhapus!',
@@ -525,6 +632,7 @@ $(document).ready(function () {
                             showConfirmButton: false,
                         });
                         tablePayments.ajax.reload(null, false);
+                        window.broadcastPaymentUpdated();
                     },
                     error: function (xhr) {
                         let msg = xhr.responseJSON?.message || 'Gagal menghapus draft pembayaran!';
@@ -538,6 +646,13 @@ $(document).ready(function () {
     // ===== GLOBAL IMAGE PREVIEW / LIGHTBOX MODAL HANDLER =====
     window.openImagePreviewModal = function (imageUrl, title = 'Bukti Pembayaran', subtitle = '') {
         if (!imageUrl) return;
+
+        // Jika lampiran adalah dokumen PDF, buka langsung di tab baru secara native & lancar
+        if (imageUrl.toLowerCase().endsWith('.pdf') || imageUrl.toLowerCase().indexOf('.pdf?') !== -1) {
+            window.open(imageUrl, '_blank');
+            return;
+        }
+
         $('#previewImageTitle').text(title);
         $('#previewImageSubtitle').text(subtitle || (imageUrl.indexOf('/') !== -1 ? imageUrl.split('/').pop() : 'Dokumen Terlampir'));
         $('#previewImageLoadingSpinner').removeClass('d-none');
@@ -590,13 +705,19 @@ $(document).ready(function () {
         }
     });
 
-    // Edit Modal Image Preview Trigger
-    $(document).on('click', '#editLampiranImgContainer', function (e) {
-        e.preventDefault();
-        let url = $('#editLampiranPreviewImg').attr('src');
-        let filename = $('#editLampiranFileName').text().trim();
-        if (url) {
-            window.openImagePreviewModal(url, 'Pratinjau Dokumen Pembayaran', filename);
+    // ===== STACKED MODALS & SCROLL RESTORATION HANDLER =====
+    // Menjamin modal bertumpuk (lookup faktur, kamera, preview foto) tidak mengunci scroll modal di bawahnya
+    $(document).on('show.bs.modal', '.modal', function () {
+        let zIndex = 1050 + (10 * $('.modal:visible').length);
+        $(this).css('z-index', zIndex);
+        setTimeout(function () {
+            $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
+        }, 0);
+    });
+
+    $(document).on('hidden.bs.modal', '.modal', function () {
+        if ($('.modal.show').length > 0) {
+            $('body').addClass('modal-open');
         }
     });
 });

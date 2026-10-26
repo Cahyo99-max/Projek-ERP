@@ -82,6 +82,7 @@ class BranchController extends Controller
                 'id'              => $b->id,
                 'kode_cabang'     => e($b->kode_cabang),
                 'nama_cabang'     => e($b->nama_cabang),
+                'logo_url'        => $b->logo_url,
                 'company_id'      => $b->company_id,
                 'nama_perusahaan' => $namaPerusahaan ? e($namaPerusahaan) : null,
                 'city'            => $b->city ? e($b->city) : null,
@@ -113,6 +114,7 @@ class BranchController extends Controller
             'company_id'      => 'nullable|exists:companies,id',
             'nama_cabang'     => 'required|string|max:30',
             'nama_perusahaan' => 'nullable|string|max:150',
+            'logo'            => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:2048',
             'phone'           => 'nullable|regex:/^[0-9]+$/|max:13',
             'email'           => 'nullable|email|max:50',
             'address'         => 'nullable|string|max:60',
@@ -139,11 +141,17 @@ class BranchController extends Controller
                 }
             }
 
+            $logoPath = null;
+            if ($request->hasFile('logo')) {
+                $logoPath = $request->file('logo')->store('branch_logos', 'public');
+            }
+
             Branch::create([
                 'kode_cabang'     => strtoupper($kode),
                 'company_id'      => $request->company_id,
                 'nama_cabang'     => $request->nama_cabang,
                 'nama_perusahaan' => $companyName,
+                'logo'            => $logoPath,
                 'phone'           => $request->phone,
                 'email'           => $request->email,
                 'address'         => $request->address,
@@ -168,14 +176,18 @@ class BranchController extends Controller
     {
         $this->authorize('lihat-cabang');
         $branch->load('company');
-        return response()->json(['branch' => $branch]);
+        $branchData = $branch->toArray();
+        $branchData['logo_url'] = $branch->logo_url;
+        return response()->json(['branch' => $branchData]);
     }
 
     public function edit(Branch $branch)
     {
         $this->authorize('edit-cabang');
         $branch->load('company');
-        return response()->json(['branch' => $branch]);
+        $branchData = $branch->toArray();
+        $branchData['logo_url'] = $branch->logo_url;
+        return response()->json(['branch' => $branchData]);
     }
 
     public function update(Request $request, Branch $branch)
@@ -191,6 +203,7 @@ class BranchController extends Controller
             'company_id'      => 'nullable|exists:companies,id',
             'nama_cabang'     => 'required|string|max:30',
             'nama_perusahaan' => 'nullable|string|max:150',
+            'logo'            => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:2048',
             'phone'           => 'nullable|regex:/^[0-9]+$/|max:13',
             'email'           => 'nullable|email|max:50',
             'address'         => 'nullable|string|max:60',
@@ -217,7 +230,7 @@ class BranchController extends Controller
                 }
             }
 
-            $branch->update([
+            $dataUpdate = [
                 'kode_cabang'     => strtoupper($kode),
                 'company_id'      => $request->company_id,
                 'nama_cabang'     => $request->nama_cabang,
@@ -231,7 +244,21 @@ class BranchController extends Controller
                 'manager_name'    => $request->manager_name,
                 'status'          => $request->status,
                 'updated_by'      => auth()->id(),
-            ]);
+            ];
+
+            if ($request->hasFile('logo')) {
+                if ($branch->logo && \Illuminate\Support\Facades\Storage::disk('public')->exists($branch->logo)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($branch->logo);
+                }
+                $dataUpdate['logo'] = $request->file('logo')->store('branch_logos', 'public');
+            } elseif ($request->boolean('remove_logo')) {
+                if ($branch->logo && \Illuminate\Support\Facades\Storage::disk('public')->exists($branch->logo)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($branch->logo);
+                }
+                $dataUpdate['logo'] = null;
+            }
+
+            $branch->update($dataUpdate);
 
             DB::commit();
             return response()->json(['message' => 'Cabang berhasil diperbarui!']);

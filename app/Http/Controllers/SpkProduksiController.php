@@ -6,9 +6,13 @@ use App\Models\Bom;
 use App\Models\MasterBarang;
 use App\Models\MasterSatuan;
 use App\Models\MasterTahapanProduksi;
+use App\Models\MasterGudang;
 use App\Models\SpkProduksi;
 use App\Models\SpkProduksiMaterial;
 use App\Models\SpkProduksiTahapan;
+use App\Models\SpkPengeluaranBahanDetail;
+use App\Models\SpkPenerimaanBarangJadi;
+use App\Models\SpkPenerimaanBarangJadiSerial;
 use App\Models\User;
 use App\Models\Karyawan;
 use App\Models\Company;
@@ -43,7 +47,8 @@ class SpkProduksiController extends Controller
                 ->with([
                     'barangJadi.satuan',
                     'satuan',
-                    'bom',
+                    'bom.tender.customer',
+                    'tender.customer',
                     'penanggungJawab',
                     'creator',
                 ]);
@@ -108,7 +113,12 @@ class SpkProduksiController extends Controller
                     $nama = e($s->barangJadi->nama_barang);
                     $kode = e($s->barangJadi->kode_barang);
                     $bomName = $s->bom ? ('<br><small class="text-muted"><i class="bi bi-box-seam me-1"></i>BOM: ' . e($s->bom->nama_bom) . '</small>') : '';
-                    return '<div><span class="fw-semibold text-body-emphasis">[' . $kode . '] ' . $nama . '</span>' . $bomName . '</div>';
+                    $tender = $s->tender ?? ($s->bom?->tender);
+                    $tenderBadge = '';
+                    if ($tender) {
+                        $tenderBadge = '<div class="mt-1"><span class="badge rounded-pill px-2 py-0.5 fw-semibold" style="background:rgba(139,92,246,0.12);color:#7c3aed;border:1px solid rgba(139,92,246,0.3);font-size:10.5px;" title="Terkait Tender / Proyek"><i class="bi bi-file-earmark-text-fill me-1"></i>Tender: ' . e($tender->nama_tender) . '</span></div>';
+                    }
+                    return '<div><span class="fw-semibold text-body-emphasis">[' . $kode . '] ' . $nama . '</span>' . $bomName . $tenderBadge . '</div>';
                 })
                 ->addColumn('target_qty_fmt', function ($s) {
                     $qty = number_format($s->jumlah_rencana, 0, ',', '.');
@@ -225,6 +235,94 @@ class SpkProduksiController extends Controller
     }
 
     /**
+     * Suggest unique sequential serial numbers for SPK based on product & Lot prefix.
+     */
+    public function suggestSerials(Request $request)
+    {
+        try {
+            $barangJadiId = $request->get('barang_jadi_id');
+            $bomId        = $request->get('bom_id');
+            $qty          = (int)$request->get('qty', 1);
+            $qty          = max(1, min(100000, $qty));
+
+            $barangJadi = null;
+            if ($barangJadiId) {
+                $barangJadi = MasterBarang::find($barangJadiId);
+            } elseif ($bomId) {
+                $bom = Bom::with('barangJadi')->find($bomId);
+                $barangJadi = $bom?->barangJadi;
+            }
+
+            $rawLot = trim((string)($request->get('nomor_batch') ?: ($request->get('lot') ?: ($request->get('prefix') ?: ''))));
+            if (empty($rawLot)) {
+                $bKode = $barangJadi ? preg_replace('/[^A-Za-z0-9\-_]/', '', $barangJadi->kode_barang) : 'PROD';
+                $todayStr = date('Ymd');
+                $rawLot = "LOT-{$bKode}-{$todayStr}";
+            }
+
+            $prefix = preg_replace('/[^A-Za-z0-9\-_]/', '', $rawLot);
+
+            // Cari nomor urut terakhir di database
+            $maxSeq = 0;
+
+            // 1. Dari SpkPenerimaanBarangJadiSerial
+            if ($barangJadi) {
+                $existingPbjSerials = SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $barangJadi->id)
+                    ->where('serial_number', 'like', "{$prefix}-%")
+                    ->pluck('serial_number');
+
+                foreach ($existingPbjSerials as $sn) {
+                    if (preg_match('/-(\d+)$/', $sn, $matches)) {
+                        $seq = (int)$matches[1];
+                        if ($seq > $maxSeq) $maxSeq = $seq;
+                    }
+                }
+            }
+
+            // 2. Dari SpkProduksi yang sudah tersimpan
+            $existingSpkSerials = SpkProduksi::whereNotNull('serial_numbers')
+                ->where('serial_numbers', 'like', "%{$prefix}-%")
+                ->pluck('serial_numbers');
+
+            foreach ($existingSpkSerials as $snText) {
+                $lines = preg_split('/[\r\n,]+/', $snText);
+                foreach ($lines as $sn) {
+                    $sn = trim($sn);
+                    if (str_starts_with($sn, "{$prefix}-") && preg_match('/-(\d+)$/', $sn, $matches)) {
+                        $seq = (int)$matches[1];
+                        if ($seq > $maxSeq) $maxSeq = $seq;
+                    }
+                }
+            }
+
+            $startSeq = $maxSeq + 1;
+            $endSeq = $maxSeq + $qty;
+            $padLen = max(3, strlen((string)$endSeq));
+
+            $serials = [];
+            for ($i = $startSeq; $i <= $endSeq; $i++) {
+                $pad = str_pad($i, $padLen, '0', STR_PAD_LEFT);
+                $serials[] = "{$prefix}-{$pad}";
+            }
+
+            return response()->json([
+                'success'   => true,
+                'prefix'    => $prefix,
+                'lot'       => $prefix,
+                'start_seq' => $startSeq,
+                'end_seq'   => $endSeq,
+                'last_seq'  => $maxSeq,
+                'serials'   => $serials,
+                'raw_text'  => implode("\n", $serials),
+                'total'     => count($serials),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('SPK suggestSerials error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Gagal membuat serial number: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Search Approved BOM list for Lookup Modal.
      */
     public function searchApprovedBom(Request $request)
@@ -279,7 +377,8 @@ class SpkProduksiController extends Controller
                 'barangJadi.satuan',
                 'satuanHasil',
                 'items.barangMentah.satuan',
-                'items.satuan'
+                'items.satuan',
+                'tender.customer',
             ])
             ->findOrFail($bomId);
 
@@ -290,21 +389,37 @@ class SpkProduksiController extends Controller
         $materials = [];
         $totalBiayaBahan = 0;
 
-        // Batch pre-fetch stock values to prevent N+1 DB queries
-        $materialIds = $bom->items->pluck('barang_mentah_id')->filter()->unique();
-        
+        // Batch pre-fetch stock values strictly scoped to the active entity's warehouses
+        $materialIds     = $bom->items->pluck('barang_mentah_id')->filter()->unique();
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
+
+        $activeGudangQuery = MasterGudang::whereNull('deleted_at');
+        if (!empty($activeBranchId)) {
+            $activeGudangQuery->where('cabang_id', $activeBranchId);
+        } else {
+            $activeGudangQuery->whereNull('cabang_id');
+            if (!empty($activeCompanyId)) {
+                $activeGudangQuery->where('company_id', $activeCompanyId);
+            }
+        }
+        $activeGudangIds = $activeGudangQuery->pluck('id');
+
         $stockGudangMap = DB::table('stok_gudangs')
             ->whereIn('barang_id', $materialIds)
+            ->when($activeGudangIds->isNotEmpty(), fn($q) => $q->whereIn('gudang_id', $activeGudangIds))
             ->groupBy('barang_id')
             ->select('barang_id', DB::raw('SUM(stok_aktual) as total_stok'))
             ->pluck('total_stok', 'barang_id');
 
         $latestKartuMap = DB::table('kartu_stoks')
             ->whereIn('barang_id', $materialIds)
-            ->whereIn('id', function($sub) use ($materialIds) {
+            ->when($activeGudangIds->isNotEmpty(), fn($q) => $q->whereIn('gudang_id', $activeGudangIds))
+            ->whereIn('id', function($sub) use ($materialIds, $activeGudangIds) {
                 $sub->select(DB::raw('MAX(id)'))
                     ->from('kartu_stoks')
                     ->whereIn('barang_id', $materialIds)
+                    ->when($activeGudangIds->isNotEmpty(), fn($q) => $q->whereIn('gudang_id', $activeGudangIds))
                     ->groupBy('barang_id');
             })
             ->pluck('stok_akhir', 'barang_id');
@@ -366,8 +481,13 @@ class SpkProduksiController extends Controller
                 'satuan_nama'      => $bom->satuanHasil ? $bom->satuanHasil->nama_satuan : ($bom->barangJadi?->satuan?->nama_satuan ?? 'Pcs'),
                 'biaya_tk_unit'    => (float)$bom->biaya_tenaga_kerja,
                 'biaya_oh_unit'    => (float)$bom->biaya_overhead,
+                'tender_id'        => $bom->tender_id,
+                'nomor_kontrak'    => $bom->tender?->nomor_kontrak,
+                'nama_tender'      => $bom->tender?->nama_tender,
+                'nama_customer'    => $bom->tender?->customer?->nama_customer,
             ],
             'target_qty'        => $targetQty,
+            'suggested_batch_no'=> 'LOT-' . ($bom->barangJadi ? preg_replace('/[^A-Za-z0-9\-_]/', '', $bom->barangJadi->kode_barang) : 'PROD') . '-' . date('Ymd'),
             'materials'         => $materials,
             'estimasi_biaya'    => [
                 'total_bahan'    => $totalBiayaBahan,
@@ -390,6 +510,9 @@ class SpkProduksiController extends Controller
 
         $request->validate([
             'bom_id'              => 'required|exists:boms,id',
+            'tender_id'           => 'nullable|exists:tenders,id',
+            'nomor_spk'           => 'nullable|string|max:50',
+            'auto_number'         => 'nullable|boolean',
             'jumlah_rencana'      => 'required|numeric|min:0.0001',
             'tanggal_spk'         => 'required|date',
             'target_selesai'      => 'nullable|date|after_or_equal:tanggal_spk',
@@ -402,17 +525,44 @@ class SpkProduksiController extends Controller
             'selected_tahapans'            => 'required|array|min:1',
             'selected_tahapans.*.nama_tahapan' => 'required|string|max:150',
             'selected_tahapans.*.urutan'       => 'required|integer|min:1',
+            'nomor_batch'                  => 'nullable|string|max:50',
         ], [
             'penanggung_jawab_id.required' => 'Penanggung Jawab (PIC Produksi) wajib diisi.',
             'selected_tahapans.required'   => 'Tahapan proses produksi wajib dipilih minimal 1 tahapan.',
             'selected_tahapans.min'        => 'Tahapan proses produksi wajib dipilih minimal 1 tahapan.',
+            'nomor_batch.max'              => 'Nomor Batch / Lot maksimal 50 karakter.',
         ]);
+
+        // Keamanan & Integritas: Validasi apakah BOM sudah memiliki tahapan produksi di Master Tahapan
+        $hasMasterTahapan = MasterTahapanProduksi::forActiveCompany()
+            ->where('bom_id', $request->bom_id)
+            ->where('is_active', true)
+            ->exists();
+
+        if (!$hasMasterTahapan) {
+            $bom = Bom::find($request->bom_id);
+            $namaBom = $bom ? $bom->nama_bom : ('BOM #' . $request->bom_id);
+            return response()->json([
+                'message' => "Resep BOM \"{$namaBom}\" belum memiliki konfigurasi tahapan produksi di Master Tahapan! Silakan buat tahapan produksi terlebih dahulu sebelum membuat SPK."
+            ], 422);
+        }
 
         DB::beginTransaction();
         try {
             $bom = Bom::forActiveCompany()->findOrFail($request->bom_id);
 
-            $nomorSpk = $request->boolean('auto_number', true) ? $this->generateRawKodeSpk() : ($request->nomor_spk ?: $this->generateRawKodeSpk());
+            if (!$request->boolean('auto_number', true) && $request->filled('nomor_spk')) {
+                $nomorInput = trim($request->nomor_spk);
+                $isUsed = SpkProduksi::withTrashed()->where('nomor_spk', $nomorInput)->exists();
+                if ($isUsed) {
+                    return response()->json([
+                        'message' => "Nomor SPK \"{$nomorInput}\" sudah pernah digunakan (termasuk pada arsip SPK yang dihapus). Silakan gunakan nomor lain atau centang Nomor Otomatis."
+                    ], 422);
+                }
+                $nomorSpk = $nomorInput;
+            } else {
+                $nomorSpk = $this->generateRawKodeSpk();
+            }
             $initialStatus = $request->input('status', 'Draft');
 
             $targetQty      = (float)$request->jumlah_rencana;
@@ -422,15 +572,103 @@ class SpkProduksiController extends Controller
 
             $totalBahan = 0;
 
+            $activeBranchId  = session('active_branch_id');
+            $activeCompanyId = session('active_company_id') ?: ($user->company_id ?? 1);
+
+            $finalBranchId  = !empty($activeBranchId) ? $activeBranchId : null;
+            $finalCompanyId = !empty($activeBranchId) ? null : $activeCompanyId;
+
+            $nomorBatch    = $request->filled('nomor_batch') ? trim($request->nomor_batch) : null;
+            $serialNumbers = $request->filled('serial_numbers') ? trim($request->serial_numbers) : null;
+
+            // 1. Validasi Keamanan Anti-Tabrakan / Duplikasi Nomor Batch / Lot
+            if (!empty($nomorBatch)) {
+                $existingBatchSpk = SpkProduksi::whereNotIn('status', ['Dibatalkan', 'Cancelled'])
+                    ->where('nomor_batch', $nomorBatch)
+                    ->first();
+
+                if ($existingBatchSpk) {
+                    return response()->json([
+                        'message' => "SPK ditolak! Nomor Batch / Lot \"{$nomorBatch}\" sudah pernah digunakan pada SPK {$existingBatchSpk->nomor_spk}. Setiap SPK harus menggunakan Nomor Batch yang unik!"
+                    ], 422);
+                }
+
+                $existingBatchPbj = SpkPenerimaanBarangJadiSerial::where('nomor_batch', $nomorBatch)->first();
+
+                if ($existingBatchPbj) {
+                    $spkInfo = $existingBatchPbj->spk ? " (SPK {$existingBatchPbj->spk->nomor_spk})" : '';
+                    return response()->json([
+                        'message' => "SPK ditolak! Nomor Batch / Lot \"{$nomorBatch}\" sudah pernah terdaftar pada Penerimaan Barang Jadi{$spkInfo}. Harap gunakan Nomor Batch yang unik!"
+                    ], 422);
+                }
+            }
+
+            // 2. Validasi Keamanan Anti-Tabrakan / Duplikasi Serial Number Antar SPK & Antar Cabang
+            if (!empty($serialNumbers)) {
+                $rawSerials = preg_split('/[\r\n,]+/', $serialNumbers);
+                $cleanSerials = array_values(array_filter(array_map('trim', $rawSerials)));
+
+                if (!empty($cleanSerials)) {
+                    // A. Cek duplikasi internal di dalam input form yang sama
+                    $counts = array_count_values($cleanSerials);
+                    $duplicates = array_keys(array_filter($counts, fn($c) => $c > 1));
+                    if (!empty($duplicates)) {
+                        $dupList = implode(', ', array_slice($duplicates, 0, 5));
+                        return response()->json([
+                            'message' => "SPK ditolak! Terdapat Serial Number ganda di dalam daftar input Anda: {$dupList}. Setiap unit produk harus memiliki Serial Number unik yang berbeda!"
+                        ], 422);
+                    }
+
+                    // B. Cek ke database Penerimaan Barang Jadi yang sudah tercatat (semua produk & SPK)
+                    $existingPbj = [];
+                    foreach (array_chunk($cleanSerials, 1000) as $chunk) {
+                        $found = SpkPenerimaanBarangJadiSerial::whereIn('serial_number', $chunk)
+                            ->pluck('serial_number')
+                            ->toArray();
+                        if (!empty($found)) {
+                            $existingPbj = array_merge($existingPbj, $found);
+                            break;
+                        }
+                    }
+
+                    if (!empty($existingPbj)) {
+                        $dupList = implode(', ', array_slice($existingPbj, 0, 5));
+                        return response()->json([
+                            'message' => "SPK ditolak! Serial Number berikut sudah pernah terdaftar pada Penerimaan Barang Jadi: {$dupList}. Harap gunakan nomor seri yang belum pernah terpakai!"
+                        ], 422);
+                    }
+
+                    // C. Cek ke SPK lain yang masih aktif (belum dibatalkan) di semua entitas/cabang (O(1) Map Lookup)
+                    $cleanSerialsMap = array_flip($cleanSerials);
+                    $otherSpks = SpkProduksi::whereNotIn('status', ['Dibatalkan', 'Cancelled'])
+                        ->whereNotNull('serial_numbers')
+                        ->pluck('serial_numbers', 'nomor_spk');
+
+                    foreach ($otherSpks as $otherNomorSpk => $snBlob) {
+                        $otherLines = preg_split('/[\r\n,]+/', $snBlob);
+                        foreach ($otherLines as $snLine) {
+                            $snTrim = trim($snLine);
+                            if ($snTrim !== '' && isset($cleanSerialsMap[$snTrim])) {
+                                return response()->json([
+                                    'message' => "SPK ditolak! Serial Number \"{$snTrim}\" sudah digunakan pada SPK {$otherNomorSpk}. Nomor seri tidak boleh bertabrakan antar SPK maupun antar cabang!"
+                                ], 422);
+                            }
+                        }
+                    }
+                }
+            }
+
             $spk = SpkProduksi::create([
-                'company_id'             => session('active_company_id') ?? $user->company_id ?? 1,
-                'branch_id'              => session('active_branch_id') ?: null, // NULL jika aktif sebagai PT Pusat
+                'company_id'             => $finalCompanyId,
+                'branch_id'              => $finalBranchId,
                 'nomor_spk'              => $nomorSpk,
+                'nomor_batch'            => $nomorBatch,
+                'serial_numbers'         => $serialNumbers,
                 'tanggal_spk'            => $request->tanggal_spk,
                 'target_selesai'         => $request->target_selesai ?: null,
                 'bom_id'                 => $bom->id,
                 'barang_jadi_id'         => $bom->barang_jadi_id,
-                'tender_id'              => $bom->tender_id,
+                'tender_id'              => $request->filled('tender_id') ? $request->tender_id : ($bom->tender_id ?: null),
                 'satuan_id'              => $bom->satuan_hasil_id,
                 'jumlah_rencana'         => $targetQty,
                 'jumlah_selesai'         => 0,
@@ -447,20 +685,37 @@ class SpkProduksiController extends Controller
                 'created_by'             => $user->id,
             ]);
 
-            // Save material requirements
+            // Save material requirements (recalculated from BOM to guarantee 100% mathematical integrity)
             foreach ($request->materials as $mat) {
-                $subtotal = round((float)($mat['total_kebutuhan'] ?? 0) * (float)($mat['estimasi_harga_satuan'] ?? 0), 4);
+                $bomItem = $bom->items->firstWhere('barang_mentah_id', $mat['barang_mentah_id']);
+
+                if ($bomItem) {
+                    $netPerUnit   = (float)$bomItem->jumlah_kebutuhan;
+                    $wastePct     = (float)$bomItem->waste_percent;
+                    $grossPerUnit = ($netPerUnit / $targetHasilBom) * (1 + ($wastePct / 100));
+                    $totalNeed    = round($grossPerUnit * $targetQty, 4);
+                    $hargaSatuan  = (float)($bomItem->estimasi_harga_satuan ?: ($mat['estimasi_harga_satuan'] ?? 0));
+                    $subtotal     = round($totalNeed * $hargaSatuan, 4);
+                    $kebPerUnit   = round($netPerUnit / $targetHasilBom, 4);
+                } else {
+                    $totalNeed    = round((float)($mat['total_kebutuhan'] ?? 0), 4);
+                    $hargaSatuan  = round((float)($mat['estimasi_harga_satuan'] ?? 0), 4);
+                    $subtotal     = round($totalNeed * $hargaSatuan, 4);
+                    $kebPerUnit   = round((float)($mat['kebutuhan_per_unit'] ?? 0), 4);
+                    $wastePct     = round((float)($mat['waste_percent'] ?? 0), 2);
+                }
+
                 $totalBahan += $subtotal;
 
                 SpkProduksiMaterial::create([
                     'spk_id'                => $spk->id,
                     'barang_mentah_id'      => $mat['barang_mentah_id'],
                     'satuan_id'             => $mat['satuan_id'],
-                    'kebutuhan_per_unit'    => round((float)($mat['kebutuhan_per_unit'] ?? 0), 4),
-                    'waste_percent'         => round((float)($mat['waste_percent'] ?? 0), 2),
-                    'total_kebutuhan'       => round((float)($mat['total_kebutuhan'] ?? 0), 4),
+                    'kebutuhan_per_unit'    => $kebPerUnit,
+                    'waste_percent'         => $wastePct,
+                    'total_kebutuhan'       => $totalNeed,
                     'total_keluar_gudang'   => 0,
-                    'estimasi_harga_satuan' => round((float)($mat['estimasi_harga_satuan'] ?? 0), 4),
+                    'estimasi_harga_satuan' => $hargaSatuan,
                     'estimasi_subtotal'     => $subtotal,
                     'catatan'               => $mat['catatan'] ?? null,
                 ]);
@@ -485,13 +740,34 @@ class SpkProduksiController extends Controller
                 $stagesToCreate = collect($selectedFromUser)->sortBy('urutan')->values();
             } else {
                 $tipeSpk = $request->tipe_spk ?: 'Make to Stock';
-                // Auto: coba ambil dari Master Tahapan company
-                $stagesToCreate = MasterTahapanProduksi::where('company_id', $activeCompanyId)
-                    ->whereIn('tipe_spk', [$tipeSpk, 'Semua'])
+                $spkBranchId = $spk->branch_id;
+                // Auto: coba ambil dari Master Tahapan branch/company terkait
+                $stagesQuery = MasterTahapanProduksi::query();
+                if ($spkBranchId) {
+                    $stagesQuery->where('branch_id', $spkBranchId)->whereNull('company_id');
+                } else {
+                    $stagesQuery->whereNull('branch_id');
+                    if (!empty($activeCompanyId)) {
+                        $stagesQuery->where('company_id', $activeCompanyId);
+                    }
+                }
+                $stagesToCreate = $stagesQuery->whereIn('tipe_spk', [$tipeSpk, 'Semua'])
                     ->where('is_active', true)
                     ->whereNull('deleted_at')
                     ->orderBy('urutan', 'asc')
                     ->get(['urutan', 'nama_tahapan']);
+
+                // Fallback jika cabang belum punya tahapan khusus: ambil template umum PT Pusat
+                if ($stagesToCreate->isEmpty() && $spkBranchId) {
+                    $stagesToCreate = MasterTahapanProduksi::query()
+                        ->whereNull('branch_id')
+                        ->when($activeCompanyId, fn($q) => $q->where('company_id', $activeCompanyId))
+                        ->whereIn('tipe_spk', [$tipeSpk, 'Semua'])
+                        ->where('is_active', true)
+                        ->whereNull('deleted_at')
+                        ->orderBy('urutan', 'asc')
+                        ->get(['urutan', 'nama_tahapan']);
+                }
 
                 if ($stagesToCreate->isEmpty()) {
                     // Fallback: 6 tahapan garmen default
@@ -558,8 +834,8 @@ class SpkProduksiController extends Controller
                 'barangJadi.primaryFoto',
                 'barangJadi.fotos',
                 'satuan',
-                'bom',
-                'tender',
+                'bom.tender.customer',
+                'tender.customer',
                 'penanggungJawab',
                 'creator',
                 'approver',
@@ -577,6 +853,23 @@ class SpkProduksiController extends Controller
             if ($foto && !empty($foto->foto_path)) {
                 $fotoProdukUrl = asset('storage/' . $foto->foto_path);
             }
+        }
+
+        // Map actual monetary value of issued materials from KartuStok
+        $pengeluaranList = $spk->pengeluaranBahans;
+        $pengeluaranIds  = $pengeluaranList->pluck('id');
+        $kartuStoksMap   = [];
+        if ($pengeluaranIds->isNotEmpty()) {
+            $kartuStoksMap = \App\Models\KartuStok::where('referensi_jenis', 'Pengeluaran Bahan SPK')
+                ->whereIn('referensi_id', $pengeluaranIds)
+                ->where('tipe', 'Keluar')
+                ->groupBy('barang_id')
+                ->selectRaw('barang_id, SUM(nilai_total) as total_nilai')
+                ->pluck('total_nilai', 'barang_id');
+        }
+
+        foreach ($spk->materials as $m) {
+            $m->total_nilai_keluar_aktual = (float)($kartuStoksMap[$m->barang_mentah_id] ?? 0);
         }
 
         $isSupervisor     = $user->hasAnyRole(['Super Admin', 'Owner']);
@@ -617,6 +910,7 @@ class SpkProduksiController extends Controller
 
         $request->validate([
             'bom_id'              => 'nullable|exists:boms,id',
+            'tender_id'           => 'nullable|exists:tenders,id',
             'jumlah_rencana'      => 'nullable|numeric|min:0.0001',
             'tanggal_spk'         => 'required|date',
             'target_selesai'      => 'nullable|date|after_or_equal:tanggal_spk',
@@ -629,11 +923,30 @@ class SpkProduksiController extends Controller
             'selected_tahapans'            => 'required|array|min:1',
             'selected_tahapans.*.nama_tahapan' => 'required|string|max:150',
             'selected_tahapans.*.urutan'       => 'required|integer|min:1',
+            'nomor_batch'                  => 'nullable|string|max:50',
         ], [
             'penanggung_jawab_id.required' => 'Penanggung Jawab (PIC Produksi) wajib diisi.',
             'selected_tahapans.required'   => 'Tahapan proses produksi wajib dipilih minimal 1 tahapan.',
             'selected_tahapans.min'        => 'Tahapan proses produksi wajib dipilih minimal 1 tahapan.',
+            'nomor_batch.max'              => 'Nomor Batch / Lot maksimal 50 karakter.',
         ]);
+
+        // Keamanan & Integritas: Validasi apakah BOM sudah memiliki tahapan produksi di Master Tahapan
+        $targetBomId = $request->bom_id ?: $spk->bom_id;
+        if ($targetBomId) {
+            $hasMasterTahapan = MasterTahapanProduksi::forActiveCompany()
+                ->where('bom_id', $targetBomId)
+                ->where('is_active', true)
+                ->exists();
+
+            if (!$hasMasterTahapan) {
+                $bom = Bom::find($targetBomId);
+                $namaBom = $bom ? $bom->nama_bom : ('BOM #' . $targetBomId);
+                return response()->json([
+                    'message' => "Resep BOM \"{$namaBom}\" belum memiliki konfigurasi tahapan produksi di Master Tahapan! Silakan buat tahapan produksi terlebih dahulu sebelum menyimpan SPK."
+                ], 422);
+            }
+        }
 
         DB::beginTransaction();
         try {
@@ -647,7 +960,117 @@ class SpkProduksiController extends Controller
                 'updated_by'          => auth()->id(),
             ];
 
+            if ($request->has('tender_id')) {
+                $updateData['tender_id'] = $request->filled('tender_id') ? $request->tender_id : null;
+            }
+
+            if ($request->has('nomor_batch')) {
+                $batchInput = $request->filled('nomor_batch') ? trim($request->nomor_batch) : null;
+
+                if (!empty($batchInput)) {
+                    $existingBatchSpk = SpkProduksi::where('id', '!=', $spk->id)
+                        ->whereNotIn('status', ['Dibatalkan', 'Cancelled'])
+                        ->where('nomor_batch', $batchInput)
+                        ->first();
+
+                    if ($existingBatchSpk) {
+                        return response()->json([
+                            'message' => "Perubahan SPK ditolak! Nomor Batch / Lot \"{$batchInput}\" sudah digunakan pada SPK {$existingBatchSpk->nomor_spk}. Nomor Batch harus unik!"
+                        ], 422);
+                    }
+
+                    $existingBatchPbj = SpkPenerimaanBarangJadiSerial::where('spk_id', '!=', $spk->id)
+                        ->where('nomor_batch', $batchInput)
+                        ->first();
+
+                    if ($existingBatchPbj) {
+                        $spkInfo = $existingBatchPbj->spk ? " (SPK {$existingBatchPbj->spk->nomor_spk})" : '';
+                        return response()->json([
+                            'message' => "Perubahan SPK ditolak! Nomor Batch / Lot \"{$batchInput}\" sudah terdaftar pada Penerimaan Barang Jadi{$spkInfo}. Harap gunakan Nomor Batch yang unik!"
+                        ], 422);
+                    }
+                }
+
+                $updateData['nomor_batch'] = $batchInput;
+            }
+
+            if ($request->has('serial_numbers')) {
+                $snInput = $request->filled('serial_numbers') ? trim($request->serial_numbers) : null;
+
+                // Validasi Keamanan Anti-Tabrakan / Duplikasi Serial Number pada Update SPK
+                if (!empty($snInput)) {
+                    $rawSerials = preg_split('/[\r\n,]+/', $snInput);
+                    $cleanSerials = array_values(array_filter(array_map('trim', $rawSerials)));
+
+                    if (!empty($cleanSerials)) {
+                        // 1. Cek duplikasi internal
+                        $counts = array_count_values($cleanSerials);
+                        $duplicates = array_keys(array_filter($counts, fn($c) => $c > 1));
+                        if (!empty($duplicates)) {
+                            $dupList = implode(', ', array_slice($duplicates, 0, 5));
+                            return response()->json([
+                                'message' => "Perubahan SPK ditolak! Terdapat Serial Number ganda di dalam daftar input Anda: {$dupList}."
+                            ], 422);
+                        }
+
+                        // 2. Cek ke database PBJ (semua produk, kecuali SPK ini)
+                        $existingPbj = [];
+                        foreach (array_chunk($cleanSerials, 1000) as $chunk) {
+                            $found = SpkPenerimaanBarangJadiSerial::where('spk_id', '!=', $spk->id)
+                                ->whereIn('serial_number', $chunk)
+                                ->pluck('serial_number')
+                                ->toArray();
+                            if (!empty($found)) {
+                                $existingPbj = array_merge($existingPbj, $found);
+                                break;
+                            }
+                        }
+
+                        if (!empty($existingPbj)) {
+                            $dupList = implode(', ', array_slice($existingPbj, 0, 5));
+                            return response()->json([
+                                'message' => "Perubahan SPK ditolak! Serial Number berikut sudah pernah terdaftar pada Penerimaan Barang Jadi: {$dupList}."
+                            ], 422);
+                        }
+
+                        // 3. Cek ke SPK lain yang aktif (O(1) Map Lookup)
+                        $cleanSerialsMap = array_flip($cleanSerials);
+                        $otherSpks = SpkProduksi::where('id', '!=', $spk->id)
+                            ->whereNotIn('status', ['Dibatalkan', 'Cancelled'])
+                            ->whereNotNull('serial_numbers')
+                            ->pluck('serial_numbers', 'nomor_spk');
+
+                        foreach ($otherSpks as $otherNomorSpk => $snBlob) {
+                            $otherLines = preg_split('/[\r\n,]+/', $snBlob);
+                            foreach ($otherLines as $snLine) {
+                                $snTrim = trim($snLine);
+                                if ($snTrim !== '' && isset($cleanSerialsMap[$snTrim])) {
+                                    return response()->json([
+                                        'message' => "Perubahan SPK ditolak! Serial Number \"{$snTrim}\" sudah digunakan pada SPK {$otherNomorSpk}."
+                                    ], 422);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                $updateData['serial_numbers'] = $snInput;
+            }
+
             if ($request->filled('bom_id') && $request->filled('jumlah_rencana')) {
+                // Proteksi ganti BOM jika sudah ada pengeluaran bahan baku
+                if ((int)$request->bom_id !== (int)$spk->bom_id) {
+                    $hasAnyIssued = SpkPengeluaranBahanDetail::whereIn('spk_material_id', SpkProduksiMaterial::where('spk_id', $spk->id)->pluck('id'))
+                        ->whereHas('pengeluaran', fn($q) => $q->whereNull('deleted_at'))
+                        ->exists() || SpkProduksiMaterial::where('spk_id', $spk->id)->where('total_keluar_gudang', '>', 0)->exists();
+
+                    if ($hasAnyIssued) {
+                        return response()->json([
+                            'message' => 'Perubahan Resep BOM ditolak! Resep BOM tidak dapat diganti karena sudah ada bahan baku yang dikeluarkan dari gudang. Batalkan terlebih dahulu seluruh transaksi pengeluaran bahan baku untuk SPK ini jika Anda ingin mengganti resep BOM.'
+                        ], 422);
+                    }
+                }
+
                 $bom = Bom::forActiveCompany()->findOrFail($request->bom_id);
                 $targetQty      = (float)$request->jumlah_rencana;
                 $targetHasilBom = max((float)$bom->jumlah_hasil, 0.0001);
@@ -657,33 +1080,109 @@ class SpkProduksiController extends Controller
 
                 $updateData['bom_id']                  = $bom->id;
                 $updateData['barang_jadi_id']          = $bom->barang_jadi_id;
-                $updateData['tender_id']               = $bom->tender_id;
+                $updateData['tender_id']               = $request->filled('tender_id') ? $request->tender_id : ($bom->tender_id ?: null);
                 $updateData['satuan_id']               = $bom->satuan_hasil_id;
                 $updateData['jumlah_rencana']          = $targetQty;
                 $updateData['estimasi_biaya_tk']       = $biayaTk;
                 $updateData['estimasi_biaya_overhead'] = $biayaOverhead;
 
-                // Re-sync materials if provided
+                // Re-sync materials safely without losing existing issued quantities or breaking foreign keys
                 if ($request->has('materials') && is_array($request->materials)) {
-                    SpkProduksiMaterial::where('spk_id', $spk->id)->delete();
+                    $existingMaterials = SpkProduksiMaterial::where('spk_id', $spk->id)
+                        ->with('barangMentah')
+                        ->get()
+                        ->keyBy('barang_mentah_id');
 
+                    $newMaterialIds = array_column($request->materials, 'barang_mentah_id');
+
+                    // 1. Cek bahan lama yang dihapus dari list edit
+                    foreach ($existingMaterials as $bmId => $existingMat) {
+                        if (!in_array($bmId, $newMaterialIds)) {
+                            $actualIssued = (float) SpkPengeluaranBahanDetail::where('spk_material_id', $existingMat->id)
+                                ->whereHas('pengeluaran', fn($q) => $q->whereNull('deleted_at'))
+                                ->sum('qty_diambil_sekarang');
+
+                            if ($actualIssued <= 0) {
+                                $actualIssued = (float) $existingMat->total_keluar_gudang;
+                            }
+
+                            if ($actualIssued > 0) {
+                                $bmNama = $existingMat->barangMentah?->nama_barang ?? 'Bahan Mentah';
+                                return response()->json([
+                                    'message' => "Perubahan SPK ditolak! Bahan mentah \"{$bmNama}\" tidak dapat dihapus dari SPK karena sudah dikeluarkan dari gudang sebanyak {$actualIssued}. Batalkan terlebih dahulu transaksi Pengeluaran Bahan Baku untuk bahan ini jika ingin menghapusnya dari SPK."
+                                ], 422);
+                            }
+
+                            // Aman dihapus jika belum pernah dikeluarkan dari gudang
+                            $existingMat->delete();
+                        }
+                    }
+
+                    // 2. Loop dan update/create bahan baku
                     $totalBahan = 0;
                     foreach ($request->materials as $mat) {
-                        $subtotal = round((float)($mat['total_kebutuhan'] ?? 0) * (float)($mat['estimasi_harga_satuan'] ?? 0), 4);
+                        $bomItem = $bom->items->firstWhere('barang_mentah_id', $mat['barang_mentah_id']);
+
+                        if ($bomItem) {
+                            $netPerUnit   = (float)$bomItem->jumlah_kebutuhan;
+                            $wastePct     = (float)$bomItem->waste_percent;
+                            $grossPerUnit = ($netPerUnit / $targetHasilBom) * (1 + ($wastePct / 100));
+                            $totalNeed    = round($grossPerUnit * $targetQty, 4);
+                            $hargaSatuan  = (float)($bomItem->estimasi_harga_satuan ?: ($mat['estimasi_harga_satuan'] ?? 0));
+                            $subtotal     = round($totalNeed * $hargaSatuan, 4);
+                            $kebPerUnit   = round($netPerUnit / $targetHasilBom, 4);
+                        } else {
+                            $totalNeed    = round((float)($mat['total_kebutuhan'] ?? 0), 4);
+                            $hargaSatuan  = round((float)($mat['estimasi_harga_satuan'] ?? 0), 4);
+                            $subtotal     = round($totalNeed * $hargaSatuan, 4);
+                            $kebPerUnit   = round((float)($mat['kebutuhan_per_unit'] ?? 0), 4);
+                            $wastePct     = round((float)($mat['waste_percent'] ?? 0), 2);
+                        }
+
                         $totalBahan += $subtotal;
 
-                        SpkProduksiMaterial::create([
-                            'spk_id'                => $spk->id,
-                            'barang_mentah_id'      => $mat['barang_mentah_id'],
-                            'satuan_id'             => $mat['satuan_id'],
-                            'kebutuhan_per_unit'    => round((float)($mat['kebutuhan_per_unit'] ?? 0), 4),
-                            'waste_percent'         => round((float)($mat['waste_percent'] ?? 0), 2),
-                            'total_kebutuhan'       => round((float)($mat['total_kebutuhan'] ?? 0), 4),
-                            'total_keluar_gudang'   => 0,
-                            'estimasi_harga_satuan' => round((float)($mat['estimasi_harga_satuan'] ?? 0), 4),
-                            'estimasi_subtotal'     => $subtotal,
-                            'catatan'               => $mat['catatan'] ?? null,
-                        ]);
+                        $existingMat = $existingMaterials->get($mat['barang_mentah_id']);
+
+                        if ($existingMat) {
+                            $actualIssued = (float) SpkPengeluaranBahanDetail::where('spk_material_id', $existingMat->id)
+                                ->whereHas('pengeluaran', fn($q) => $q->whereNull('deleted_at'))
+                                ->sum('qty_diambil_sekarang');
+
+                            if ($actualIssued <= 0) {
+                                $actualIssued = (float) $existingMat->total_keluar_gudang;
+                            }
+
+                            if ($totalNeed < $actualIssued) {
+                                $bmNama = $existingMat->barangMentah?->nama_barang ?? 'Bahan Mentah';
+                                return response()->json([
+                                    'message' => "Perubahan SPK ditolak! Total kebutuhan bahan \"{$bmNama}\" ({$totalNeed}) tidak boleh lebih kecil dari jumlah yang sudah dikeluarkan dari gudang ({$actualIssued})."
+                                ], 422);
+                            }
+
+                            $existingMat->update([
+                                'satuan_id'             => $mat['satuan_id'],
+                                'kebutuhan_per_unit'    => $kebPerUnit,
+                                'waste_percent'         => $wastePct,
+                                'total_kebutuhan'       => $totalNeed,
+                                'total_keluar_gudang'   => $actualIssued,
+                                'estimasi_harga_satuan' => $hargaSatuan,
+                                'estimasi_subtotal'     => $subtotal,
+                                'catatan'               => $mat['catatan'] ?? null,
+                            ]);
+                        } else {
+                            SpkProduksiMaterial::create([
+                                'spk_id'                => $spk->id,
+                                'barang_mentah_id'      => $mat['barang_mentah_id'],
+                                'satuan_id'             => $mat['satuan_id'],
+                                'kebutuhan_per_unit'    => $kebPerUnit,
+                                'waste_percent'         => $wastePct,
+                                'total_kebutuhan'       => $totalNeed,
+                                'total_keluar_gudang'   => 0,
+                                'estimasi_harga_satuan' => $hargaSatuan,
+                                'estimasi_subtotal'     => $subtotal,
+                                'catatan'               => $mat['catatan'] ?? null,
+                            ]);
+                        }
                     }
 
                     $grandTotal = round($totalBahan + $biayaTk + $biayaOverhead, 4);
@@ -727,6 +1226,25 @@ class SpkProduksiController extends Controller
     }
 
     /**
+     * Check if SPK has any material issued from warehouse.
+     */
+    protected function hasMaterialIssued(SpkProduksi $spk): bool
+    {
+        $materialIds = SpkProduksiMaterial::where('spk_id', $spk->id)->pluck('id');
+        
+        $hasPengeluaranDetail = SpkPengeluaranBahanDetail::whereIn('spk_material_id', $materialIds)
+            ->whereHas('pengeluaran', fn($q) => $q->whereNull('deleted_at'))
+            ->exists();
+
+        if ($hasPengeluaranDetail) {
+            return true;
+        }
+
+        $sumIssued = (float) SpkProduksiMaterial::where('spk_id', $spk->id)->sum('total_keluar_gudang');
+        return $sumIssued > 0;
+    }
+
+    /**
      * Delete SPK (only if Draft or Cancelled).
      */
     public function destroy($id)
@@ -736,6 +1254,12 @@ class SpkProduksiController extends Controller
         $user         = auth()->user();
         $isSupervisor = $user->hasAnyRole(['Super Admin', 'Owner', 'Admin']);
         $spk          = SpkProduksi::forActiveCompany()->findOrFail($id);
+
+        if ($this->hasMaterialIssued($spk)) {
+            return response()->json([
+                'message' => "Hapus SPK ditolak! SPK {$spk->nomor_spk} tidak dapat dihapus karena sudah ada transaksi Pengeluaran Bahan Baku dari gudang. Batalkan terlebih dahulu seluruh transaksi pengeluaran bahan baku untuk SPK ini di Modul Pengeluaran Bahan Baku."
+            ], 422);
+        }
 
         if (!$isSupervisor && !in_array($spk->status, ['Draft', 'Cancelled'])) {
             return response()->json(['message' => 'Hanya SPK berstatus Draft atau Dibatalkan yang dapat dihapus.'], 422);
@@ -928,6 +1452,12 @@ class SpkProduksiController extends Controller
         $spk = SpkProduksi::forActiveCompany()->findOrFail($id);
         $tahap = SpkProduksiTahapan::where('spk_id', $spk->id)->findOrFail($tahapanId);
 
+        if (!in_array($spk->status, ['In Progress', 'Completed'])) {
+            return response()->json([
+                'message' => "Update progress tahapan ditolak! SPK {$spk->nomor_spk} belum dimulai (Status saat ini: {$spk->status}). Harap tekan tombol 'Mulai' / 'Mulai Produksi' pada Modul SPK terlebih dahulu!"
+            ], 422);
+        }
+
         $validated = $request->validate([
             'status'       => 'required|in:Menunggu,Sedang Dikerjakan,Selesai',
             'qty_selesai'  => 'nullable|numeric|min:0',
@@ -960,14 +1490,6 @@ class SpkProduksiController extends Controller
         }
 
         $tahap->update($updateData);
-
-        // Auto update SPK status to In Progress if currently Approved
-        if ($spk->status === 'Approved' && in_array($validated['status'], ['Sedang Dikerjakan', 'Selesai'])) {
-            $spk->update([
-                'status'     => 'In Progress',
-                'updated_by' => auth()->id()
-            ]);
-        }
 
         // Auto activate next tahapan if completed
         if ($validated['status'] === 'Selesai') {
@@ -1105,6 +1627,12 @@ class SpkProduksiController extends Controller
 
         $spk = SpkProduksi::forActiveCompany()->findOrFail($id);
 
+        if ($this->hasMaterialIssued($spk)) {
+            return response()->json([
+                'message' => "Pembatalan SPK ditolak! SPK {$spk->nomor_spk} tidak dapat dibatalkan karena sudah ada transaksi Pengeluaran Bahan Baku dari gudang! Batalkan terlebih dahulu seluruh transaksi pengeluaran bahan baku untuk SPK ini di Modul Pengeluaran Bahan Baku."
+            ], 422);
+        }
+
         if (!in_array($spk->status, ['Approved', 'In Progress'])) {
             return response()->json(['message' => 'Hanya SPK berstatus Approved atau Dalam Proses (In Progress) yang dapat dibatalkan.'], 422);
         }
@@ -1140,9 +1668,11 @@ class SpkProduksiController extends Controller
                 'company',
                 'branch',
                 'barangJadi.satuan',
+                'barangJadi.primaryFoto',
+                'barangJadi.fotos',
                 'satuan',
-                'bom',
-                'tender',
+                'bom.tender.customer',
+                'tender.customer',
                 'penanggungJawab.position',
                 'penanggungJawab.user.activeSignature',
                 'creator.activeSignature',
@@ -1157,7 +1687,28 @@ class SpkProduksiController extends Controller
             ])
             ->findOrFail($id);
 
-        $company = $spk->company ?? Company::find(session('active_company_id')) ?? Company::first();
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
+
+        // Deteksi entitas: Jika sesi aktif Cabang atau dokumen SPK diterbitkan oleh Cabang
+        $isBranch = !empty($activeBranchId) || !empty($spk->branch_id);
+
+        $branch  = ($activeBranchId ? Branch::find($activeBranchId) : null) ?? $spk->branch;
+        $company = ($activeCompanyId ? Company::find($activeCompanyId) : null) ?? $spk->company ?? ($branch ? $branch->company : null) ?? Company::first();
+
+        if ($isBranch && $branch) {
+            $entityName    = $branch->nama_cabang;
+            $entitySub     = $branch->address ?: ($company->address ?? ($company->alamat ?? 'Manufaktur & Produksi Industri Garmen'));
+            $entityPhone   = $branch->phone ?: ($company->phone ?? ($company->telepon ?? null));
+            $entityEmail   = $branch->email ?: ($company->email ?? null);
+            $entityType    = 'Cabang';
+        } else {
+            $entityName    = $company->nama_perusahaan ?? 'PT PERSADA AMAN SENTOSA';
+            $entitySub     = $company->address ?? ($company->alamat ?? 'Manufaktur & Produksi Industri Garmen');
+            $entityPhone   = $company->phone ?? ($company->telepon ?? null);
+            $entityEmail   = $company->email ?? null;
+            $entityType    = 'PT';
+        }
 
         // Cari User / PIC yang memulai produksi (updater saat status In Progress / Completed)
         $isProductionStarted = in_array($spk->status, ['In Progress', 'Completed']);
@@ -1223,6 +1774,12 @@ class SpkProduksiController extends Controller
         return view('modul_produksi.spk.print_pdf', compact(
             'spk',
             'company',
+            'branch',
+            'entityName',
+            'entitySub',
+            'entityPhone',
+            'entityEmail',
+            'entityType',
             'showTtd',
             'namaDibuat',
             'namaDiperiksa',
@@ -1250,7 +1807,8 @@ class SpkProduksiController extends Controller
                 'branch',
                 'barangJadi.satuan',
                 'satuan',
-                'bom',
+                'bom.tender.customer',
+                'tender.customer',
                 'penanggungJawab.position',
                 'penanggungJawab.user.activeSignature',
                 'creator.activeSignature',
@@ -1262,7 +1820,28 @@ class SpkProduksiController extends Controller
             ])
             ->findOrFail($id);
 
-        $company = $spk->company ?? Company::find(session('active_company_id')) ?? Company::first();
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
+
+        // Deteksi entitas: Jika sesi aktif Cabang atau dokumen SPK diterbitkan oleh Cabang
+        $isBranch = !empty($activeBranchId) || !empty($spk->branch_id);
+
+        $branch  = ($activeBranchId ? Branch::find($activeBranchId) : null) ?? $spk->branch;
+        $company = ($activeCompanyId ? Company::find($activeCompanyId) : null) ?? $spk->company ?? ($branch ? $branch->company : null) ?? Company::first();
+
+        if ($isBranch && $branch) {
+            $entityName    = $branch->nama_cabang;
+            $entitySub     = $branch->address ?: ($company->address ?? ($company->alamat ?? 'Manufaktur & Produksi Industri Garmen'));
+            $entityPhone   = $branch->phone ?: ($company->phone ?? ($company->telepon ?? null));
+            $entityEmail   = $branch->email ?: ($company->email ?? null);
+            $entityType    = 'Cabang';
+        } else {
+            $entityName    = $company->nama_perusahaan ?? 'PT PERSADA AMAN SENTOSA';
+            $entitySub     = $company->address ?? ($company->alamat ?? 'Manufaktur & Produksi Industri Garmen');
+            $entityPhone   = $company->phone ?? ($company->telepon ?? null);
+            $entityEmail   = $company->email ?? null;
+            $entityType    = 'PT';
+        }
 
         $getSigUrl = function($model) {
             if (!$model) return null;
@@ -1289,6 +1868,12 @@ class SpkProduksiController extends Controller
         return view('modul_produksi.spk.print_progress_pdf', compact(
             'spk',
             'company',
+            'branch',
+            'entityName',
+            'entitySub',
+            'entityPhone',
+            'entityEmail',
+            'entityType',
             'ttdDibuatUrl',
             'ttdDiperiksaUrl',
             'ttdDisetujuiUrl',
@@ -1299,28 +1884,37 @@ class SpkProduksiController extends Controller
     }
 
     /**
-     * Internal raw code generator.
+     * Internal raw code generator with PT vs Cabang separation & loop-safety.
      */
-    private function generateRawKodeSpk()
+    private function generateRawKodeSpk(): string
     {
-        $yearMonth = now()->format('Y/m');
-        $prefix = 'SPK/' . $yearMonth . '/';
+        $activeBranchId = session('active_branch_id');
+        $yearMonth      = now()->format('Y/m');
+        $prefix         = (!empty($activeBranchId))
+            ? 'SPK-CBG/' . $yearMonth . '/'
+            : 'SPK-PT/' . $yearMonth . '/';
 
-        $last = SpkProduksi::withTrashed()
-            ->where(function($q) use ($prefix) {
-                $q->where('nomor_spk', 'like', $prefix . '%')
-                  ->orWhere('nomor_spk', 'like', 'SPK-' . now()->format('Y-m') . '-%');
-            })
+        $lastSpk = SpkProduksi::withTrashed()
+            ->where('nomor_spk', 'like', $prefix . '%')
             ->orderBy('id', 'desc')
-            ->value('nomor_spk');
+            ->first();
 
-        if ($last) {
-            $lastNum = (int) preg_replace('/[^0-9]/', '', substr($last, -5));
-            $nextNum = str_pad($lastNum + 1, 5, '0', STR_PAD_LEFT);
-        } else {
-            $nextNum = '00001';
+        $nextSeq = 1;
+        if ($lastSpk) {
+            $parts   = explode('/', $lastSpk->nomor_spk);
+            $lastNum = (int) end($parts);
+            $nextSeq = max($lastNum + 1, 1);
         }
 
-        return $prefix . $nextNum;
+        // Loop safety: pastikan nomor_spk 100% unik di seluruh tabel (termasuk soft-deleted)
+        do {
+            $candidateCode = $prefix . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
+            $exists = SpkProduksi::withTrashed()->where('nomor_spk', $candidateCode)->exists();
+            if ($exists) {
+                $nextSeq++;
+            }
+        } while ($exists);
+
+        return $candidateCode;
     }
 }

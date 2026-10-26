@@ -430,6 +430,12 @@ let _bomState = {
     satuanNama     : 'Unit',
 };
 
+function formatCurrencyID2(val) {
+    if (val === null || val === undefined || isNaN(parseFloat(val))) return '0,00';
+    let num = (typeof val === 'number') ? val : (parseFloat(val) || 0);
+    return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // SHOW DETAIL BOM
 // ═══════════════════════════════════════════════════════════════════
@@ -529,11 +535,11 @@ function showDetailBom(id) {
                     totalBahan += subtotal;
 
                     const hppCell = res.can_view_hpp 
-                        ? `<td class="text-end font-monospace" style="white-space:nowrap;">Rp ${numberFormatID(item.estimasi_harga_satuan)}</td>`
+                        ? `<td class="text-end font-monospace" style="white-space:nowrap;">Rp ${formatCurrencyID2(item.estimasi_harga_satuan)}</td>`
                         : `<td class="text-center text-muted" title="HPP Terkunci"><i class="bi bi-lock-fill"></i></td>`;
 
                     const subtotalCell = res.can_view_hpp
-                        ? `<td class="text-end font-monospace fw-bold text-primary" style="white-space:nowrap; min-width:170px;">Rp ${numberFormatID(subtotal)}</td>`
+                        ? `<td class="text-end font-monospace fw-bold text-primary" style="white-space:nowrap; min-width:170px;">Rp ${formatCurrencyID2(subtotal)}</td>`
                         : `<td class="text-center text-muted" title="HPP Terkunci"><i class="bi bi-lock-fill"></i></td>`;
 
                     itemsHtml += `
@@ -562,11 +568,11 @@ function showDetailBom(id) {
             const hppPerUnit = target > 0 ? (totalHpp / target) : totalHpp;
 
             if (res.can_view_hpp) {
-                $('#detSubtotalBahan').text('Rp ' + numberFormatID(totalBahan));
-                $('#detBiayaTk').text('Rp ' + numberFormatID(tk));
-                $('#detBiayaOh').text('Rp ' + numberFormatID(oh));
-                $('#detTotalHpp').text('Rp ' + numberFormatID(totalHpp));
-                $('#detHppPerUnit').text(`Rp ${numberFormatID(hppPerUnit)} / ${satuanNama}`);
+                $('#detSubtotalBahan').text('Rp ' + formatCurrencyID2(totalBahan));
+                $('#detBiayaTk').text('Rp ' + formatCurrencyID2(tk));
+                $('#detBiayaOh').text('Rp ' + formatCurrencyID2(oh));
+                $('#detTotalHpp').text('Rp ' + formatCurrencyID2(totalHpp));
+                $('#detHppPerUnit').text(`Rp ${formatCurrencyID2(hppPerUnit)} / ${satuanNama}`);
                 $('#tab-kalkulator-btn').removeClass('d-none');
             } else {
                 $('#detSubtotalBahan').html('<span class="text-muted" title="HPP Terkunci"><i class="bi bi-lock-fill"></i></span>');
@@ -680,8 +686,8 @@ function hitungSimulasiProduksi() {
                     <td class="text-center fw-bold text-theme-main" style="font-size:12.5px;">
                         ${escapeHtmlBom(satuanNama)}
                     </td>
-                    <td class="text-end font-monospace text-theme-muted" style="font-size:0.85rem;">Rp ${numberFormatID(hpp)}</td>
-                    <td class="text-end font-monospace fw-bold" style="color:#d97706; font-size:13px;">Rp ${numberFormatID(totalBiayaItem)}</td>
+                    <td class="text-end font-monospace text-theme-muted" style="font-size:0.85rem;">Rp ${formatCurrencyID2(hpp)}</td>
+                    <td class="text-end font-monospace fw-bold" style="color:#d97706; font-size:13px;">Rp ${formatCurrencyID2(totalBiayaItem)}</td>
                 </tr>`;
         });
 
@@ -689,7 +695,7 @@ function hitungSimulasiProduksi() {
         previewHtml += `
             <tr style="background: rgba(245,158,11,.07); border-top: 2px solid #d97706;">
                 <td colspan="7" class="text-end fw-bold text-warning pe-3">TOTAL KEBUTUHAN BAHAN (${numberFormatID(qty)} ${_bomState.satuanNama}):</td>
-                <td class="text-end font-monospace fw-bold text-warning pe-3">Rp ${numberFormatID(simSubtotalBahan)}</td>
+                <td class="text-end font-monospace fw-bold text-warning pe-3">Rp ${formatCurrencyID2(simSubtotalBahan)}</td>
             </tr>`;
     } else {
         previewHtml = `<tr><td colspan="8" class="text-center py-4 text-muted">Tidak ada data bahan baku.</td></tr>`;
@@ -711,8 +717,8 @@ function hitungSimulasiProduksi() {
 
     // ── Update KPI header ──
     $('#kpiSimQty').text(numberFormatID(qty));
-    $('#kpiSimHppUnit').text('Rp ' + numberFormatID(hppPerUnit));
-    $('#kpiSimGrandTotal').text('Rp ' + numberFormatID(grandTotal));
+    $('#kpiSimHppUnit').text('Rp ' + formatCurrencyID2(hppPerUnit));
+    $('#kpiSimGrandTotal').text('Rp ' + formatCurrencyID2(grandTotal));
     $('#kpiSimDesc').text(`untuk ${numberFormatID(qty)} ${_bomState.satuanNama} produksi`);
 
     // ── Update badge preview ──
@@ -721,17 +727,17 @@ function hitungSimulasiProduksi() {
 
     // ── Update rincian biaya ──
     const batchFmt = numberFormatID(parseFloat(faktor.toFixed(4)));
-    $('#rincianBahan').text('Rp ' + numberFormatID(simSubtotalBahan));
-    $('#rincianTk').text('Rp ' + numberFormatID(simTk));
-    $('#rincianTkDesc').text(`(${batchFmt} batch × Rp ${numberFormatID(tk)} per batch)`);
-    $('#rincianOh').text('Rp ' + numberFormatID(simOh));
-    $('#rincianOhDesc').text(`(${batchFmt} batch × Rp ${numberFormatID(oh)} per batch)`);
-    $('#rincianTotal').text('Rp ' + numberFormatID(grandTotal));
+    $('#rincianBahan').text('Rp ' + formatCurrencyID2(simSubtotalBahan));
+    $('#rincianTk').text('Rp ' + formatCurrencyID2(simTk));
+    $('#rincianTkDesc').text(`(${batchFmt} batch × Rp ${formatCurrencyID2(tk)} per batch)`);
+    $('#rincianOh').text('Rp ' + formatCurrencyID2(simOh));
+    $('#rincianOhDesc').text(`(${batchFmt} batch × Rp ${formatCurrencyID2(oh)} per batch)`);
+    $('#rincianTotal').text('Rp ' + formatCurrencyID2(grandTotal));
 
     // ── Update summary card ──
-    $('#summaryGrandTotal').text('Rp ' + numberFormatID(grandTotal));
+    $('#summaryGrandTotal').text('Rp ' + formatCurrencyID2(grandTotal));
     $('#summaryDesc').text(`untuk ${numberFormatID(qty)} ${_bomState.satuanNama} produksi`);
-    $('#summaryHppUnit').text('Rp ' + numberFormatID(hppPerUnit) + ' / ' + _bomState.satuanNama);
+    $('#summaryHppUnit').text('Rp ' + formatCurrencyID2(hppPerUnit) + ' / ' + _bomState.satuanNama);
     $('#summaryPorsiBahan').text(porsiBahan.toFixed(1) + '%');
     $('#summaryPorsiTkOh').text(porsiTkOh.toFixed(1) + '%');
 
@@ -757,7 +763,7 @@ function resetKalkulator() {
     $('#previewKebutuhanSection').addClass('d-none');
     $('#previewEmptyState').removeClass('d-none');
     $('#kpiSimQty, #kpiSimHppUnit').text('-');
-    $('#kpiSimGrandTotal').text('Rp 0');
+    $('#kpiSimGrandTotal').text('Rp 0,00');
     $('#kpiSimDesc').text('Masukkan jumlah produksi');
     $('#tbodyPreviewKebutuhan').empty();
     $('#barBahan, #barTk, #barOh').css('width', '0%');

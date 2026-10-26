@@ -795,16 +795,15 @@
         // SHARED HELPERS (dipakai oleh semua partial)
         // =============================================
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            return text
+        window.escapeHtml = window.escapeHtml || function (text) {
+            if (text === null || text === undefined) return '';
+            return String(text)
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
-        }
-        window.escapeHtml = escapeHtml;
+        };
 
         $.ajaxSetup({
             headers: {

@@ -15,11 +15,22 @@
                         <i class="bi bi-diagram-3-fill fs-4 text-white"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title fw-extrabold text-white mb-0" style="letter-spacing: -0.2px;">
-                            Buat & Konfigurasi Alur Tahapan Produksi
-                        </h5>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h5 class="modal-title fw-extrabold text-white mb-0" style="letter-spacing: -0.2px;">
+                                Buat & Konfigurasi Alur Tahapan Produksi
+                            </h5>
+                            @if(!empty($isCabang))
+                                <span class="badge rounded-pill bg-white text-success fw-bold px-2.5 py-1 shadow-xs" style="font-size: 11px;">
+                                    <i class="bi bi-geo-alt-fill me-1"></i>{{ \Illuminate\Support\Str::startsWith($activeBranchName, 'Cabang') ? $activeBranchName : 'Cabang ' . $activeBranchName }}
+                                </span>
+                            @else
+                                <span class="badge rounded-pill bg-white text-primary fw-bold px-2.5 py-1 shadow-xs" style="font-size: 11px;">
+                                    <i class="bi bi-building me-1"></i>PT Pusat
+                                </span>
+                            @endif
+                        </div>
                         <small class="text-white-50 d-block mt-0.5" style="font-size: 12px;">
-                            Definisikan satu atau banyak tahapan proses sekaligus untuk satu resep BOM atau template standar
+                            Konfigurasi alur tahapan kerja & SOP produksi.
                         </small>
                     </div>
                 </div>
@@ -29,34 +40,54 @@
             {{-- FORM --}}
             <form id="formInputTahapan" enctype="multipart/form-data" class="d-flex flex-column flex-grow-1 overflow-hidden" style="min-height: 0;">
                 @csrf
-                <div class="modal-body spk-modal-body p-3 p-md-4 overflow-y-auto" style="min-height: 0;">
+                <div class="modal-body spk-modal-body p-2.5 p-md-4 overflow-y-auto" style="min-height: 0; max-width: 100%; overflow-x: hidden;">
                     
                     {{-- ── SECTION 1: PILIH RESEP BOM TERKAIT ── --}}
-                    <div class="spk-card border-0 rounded-4 shadow-sm mb-3.5 p-3 p-md-3.5" style="border: 1px solid var(--spk-border-color) !important;">
-                        <div class="row g-3 align-items-center">
-                            <div class="col-12 col-md-7">
+                    <div class="spk-card border-0 rounded-4 shadow-sm mb-3.5 p-3 p-md-3.5 w-100" style="border: 1px solid var(--spk-border-color) !important; max-width: 100%; min-width: 0; box-sizing: border-box; overflow: hidden;">
+                        <div class="row g-2 g-md-3 align-items-center" style="min-width: 0; max-width: 100%;">
+                            <div class="col-12 col-md-7" style="min-width: 0; max-width: 100%;">
                                 <label class="form-label fw-bold spk-text-main small mb-1">
-                                    <i class="bi bi-diagram-2-fill text-primary me-1"></i> Resep BOM Terkait <span class="text-danger">*</span>
+                                    <i class="bi bi-diagram-2-fill text-primary me-1"></i> Resep BOM / Kode BOM <span class="text-danger">* (Wajib Diisi)</span>
                                 </label>
-                                <select name="bom_id" id="inp_tah_bom_id" class="form-select spk-input rounded-3 shadow-xs">
-                                    <option value="">-- Template Umum (Berlaku untuk Semua BOM / Standar) --</option>
-                                    @if(isset($boms) && $boms->count() > 0)
-                                        <optgroup label="Khusus Resep BOM Tertentu:">
-                                            @foreach($boms as $b)
-                                                <option value="{{ $b->id }}">{{ $b->nama_bom }} ({{ $b->kode_bom }}) {{ $b->barangJadi ? ' • '.$b->barangJadi->nama_barang : '' }}</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
-                                </select>
+
+                                {{-- Hidden Input Actual Value --}}
+                                <input type="hidden" name="bom_id" id="inp_tah_bom_id" value="" required>
+
+                                {{-- Input Group Picker dengan Icon Cari & Modal --}}
+                                <div class="input-group shadow-xs">
+                                    <div class="form-control spk-input rounded-start-3 d-flex align-items-center justify-content-between cursor-pointer py-2 px-3" 
+                                         id="display_bom_selected" 
+                                         onclick="bukaModalLookupBomTahapan()"
+                                         style="background: var(--spk-input-bg, #ffffff); border: 1px solid var(--spk-border-color, #cbd5e1); border-right: none; min-height: 42px;"
+                                         title="Klik untuk memilih resep BOM dari modal">
+                                        <div class="d-flex align-items-center gap-2 text-truncate" id="lbl_bom_terpilih">
+                                            <span class="spk-text-muted small fw-semibold">
+                                                <i class="bi bi-exclamation-circle text-warning me-1"></i> -- Silakan Pilih Resep BOM (Wajib Diisi) --
+                                            </span>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 d-none" id="btn_reset_bom_terpilih" 
+                                                onclick="event.stopPropagation(); resetBomTahapan();" 
+                                                title="Hapus Pilihan BOM">
+                                            <i class="bi bi-x-circle-fill text-danger fs-6"></i>
+                                        </button>
+                                    </div>
+                                    <button type="button" class="btn btn-primary rounded-end-3 px-3.5 d-flex align-items-center gap-1.5 fw-bold shadow-sm" 
+                                            onclick="bukaModalLookupBomTahapan()" 
+                                            style="background: linear-gradient(135deg, #2563eb, #1d4ed8); border: 1px solid rgba(255,255,255,0.2);"
+                                            title="Cari & Pilih Resep BOM">
+                                        <i class="bi bi-search"></i>
+                                        <span class="d-none d-sm-inline">Pilih BOM</span>
+                                    </button>
+                                </div>
                                 <small class="spk-text-muted d-block mt-1" style="font-size: 11px;">
-                                    Pilih BOM agar alur tahapan ini otomatis dimuat saat membuat SPK untuk produk tersebut.
+                                    Pilih resep BOM yang akan dikonfigurasi alur tahapannya. Kode BOM wajib diisi agar terhubung dengan SPK.
                                 </small>
                             </div>
-                            <div class="col-12 col-md-5">
-                                <div class="p-2.5 rounded-3 d-flex align-items-center gap-2" style="background: rgba(37,99,235,0.08); border: 1px dashed rgba(37,99,235,0.25);">
-                                    <i class="bi bi-lightning-charge-fill text-primary fs-5 flex-shrink-0"></i>
+                            <div class="col-12 col-md-5" style="min-width: 0; max-width: 100%;">
+                                <div class="p-2.5 rounded-3 d-flex align-items-center gap-2 mt-1 mt-md-0" style="background: rgba(37,99,235,0.08); border: 1px dashed rgba(37,99,235,0.25); max-width: 100%;">
+                                    <i class="bi bi-shield-check text-primary fs-5 flex-shrink-0"></i>
                                     <small class="spk-text-muted" style="font-size: 11.5px; line-height: 1.35;">
-                                        Input banyak baris tahapan sekaligus. Tiap tahapan dapat dilengkapi foto SOP / instruksi kerja.
+                                        Dukung multi-baris alur & foto panduan SOP.
                                     </small>
                                 </div>
                             </div>
@@ -64,41 +95,53 @@
                     </div>
 
                     {{-- ── SECTION 2: DAFTAR BARIS TAHAPAN KERJA ── --}}
-                    <div class="spk-card border-0 rounded-4 shadow-sm p-3 p-md-3.5" style="border: 1px solid var(--spk-border-color) !important;">
+                    <div class="spk-card border-0 rounded-4 shadow-sm p-2.5 p-md-3.5 w-100" style="border: 1px solid var(--spk-border-color) !important; max-width: 100%; min-width: 0; box-sizing: border-box; overflow: hidden;">
                         
                         {{-- Action Toolbar --}}
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom" style="border-color: var(--spk-border-color) !important;">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom w-100" style="border-color: var(--spk-border-color) !important; min-width: 0; max-width: 100%;">
                             <div class="d-flex align-items-center gap-2">
                                 <span class="badge rounded-circle p-1.5 d-flex align-items-center justify-content-center text-white" style="width: 26px; height: 26px; background: rgba(37,99,235,0.25); border: 1px solid rgba(37,99,235,0.4);">
                                     <i class="bi bi-list-check" style="font-size: 13px;"></i>
                                 </span>
-                                <span class="fw-bold text-white small text-uppercase" style="letter-spacing: 0.5px;">Daftar Alur Tahapan Proses</span>
+                                <span class="fw-bold spk-text-main small text-uppercase" style="letter-spacing: 0.5px;">Alur Tahapan Proses</span>
                                 <span class="badge rounded-pill px-3 py-1 text-white fw-bold shadow-xs" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); font-size: 11px;" id="badgeTotalBarisTahapan">0 / 50</span>
                             </div>
 
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 shadow-xs" onclick="muatPresetStandarGarmen()" title="Muat 6 alur garmen standar otomatis">
-                                    <i class="bi bi-magic me-1"></i> Muat 6 Alur Standar Garmen
+                            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2.5 shadow-xs" onclick="muatPresetStandarGarmen()" title="Muat 6 alur garmen standar otomatis" style="font-size: 12px;">
+                                    <i class="bi bi-magic me-1"></i> <span class="d-none d-sm-inline">Muat 6 Alur </span>Preset Garmen
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 shadow-xs" onclick="bersihkanSemuaBarisTahapan()" title="Kosongkan semua baris">
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 shadow-xs" onclick="bersihkanSemuaBarisTahapan()" title="Kosongkan semua baris" style="font-size: 12px;">
                                     <i class="bi bi-trash me-1"></i> Reset
                                 </button>
-                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm" onclick="tambahBarisTahapan()" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
-                                    <i class="bi bi-plus-circle-fill me-1"></i> Tambah Baris Tahapan
+                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm" onclick="tambahBarisTahapan()" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); font-size: 12px;">
+                                    <i class="bi bi-plus-circle-fill me-1"></i> Tambah Baris
                                 </button>
                             </div>
                         </div>
 
+                        {{-- Petunjuk Geser di Layar HP --}}
+                        <div class="d-flex d-md-none align-items-center justify-content-between mb-2 px-1 spk-text-muted" style="font-size: 11px;">
+                            <span><i class="bi bi-arrow-left-right text-primary me-1"></i>Geser ke samping untuk detail deskripsi & foto SOP</span>
+                        </div>
+
                         {{-- Dynamic Table / Rows --}}
-                        <div class="table-responsive" style="max-height: 480px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
-                            <table class="table table-hover align-middle mb-0 w-100" id="tabelInputBatchTahapan">
-                                <thead style="position: sticky; top: 0; z-index: 5; background: var(--spk-table-head-bg, #0f172a);">
-                                    <tr class="small text-uppercase fw-bold text-nowrap" style="border-bottom: 2px solid var(--spk-border-color);">
-                                        <th style="width: 48px;" class="text-center">No</th>
-                                        <th style="width: 90px;" class="text-center">Foto SOP</th>
-                                        <th style="min-width: 240px;">Nama Tahapan Proses <span class="text-danger">*</span></th>
-                                        <th style="min-width: 280px;">Deskripsi / Instruksi Kerja <span class="spk-text-muted fw-normal">(Opsional)</span></th>
-                                        <th style="width: 48px;" class="text-center">Aksi</th>
+                        <div class="batch-table-scroll-container w-100">
+                            <table class="table table-hover align-middle mb-0" id="tabelInputBatchTahapan">
+                                <colgroup>
+                                    <col class="batch-col-no">
+                                    <col class="batch-col-foto">
+                                    <col class="batch-col-nama">
+                                    <col class="batch-col-desk">
+                                    <col class="batch-col-aksi">
+                                </colgroup>
+                                <thead>
+                                    <tr class="small text-uppercase fw-bold" style="border-bottom: 2px solid var(--spk-border-color); background: var(--spk-table-head-bg, #f1f5f9);">
+                                        <th class="text-center py-2.5 px-1">No</th>
+                                        <th class="text-center py-2.5 px-2">Foto SOP</th>
+                                        <th class="py-2.5 px-2">Nama Tahapan Proses <span class="text-danger">*</span></th>
+                                        <th class="py-2.5 px-2">Deskripsi / Instruksi Kerja <span class="spk-text-muted fw-normal">(Opsional)</span></th>
+                                        <th class="text-center py-2.5 px-1">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="containerBarisBatchTahapan">
@@ -125,14 +168,14 @@
                 </div>
 
                 {{-- FOOTER RESPONSIF --}}
-                <div class="modal-footer spk-modal-footer d-flex flex-column-reverse flex-sm-row justify-content-sm-between gap-2 p-3 p-md-3.5 border-0" 
+                <div class="modal-footer spk-modal-footer d-flex flex-column-reverse flex-sm-row justify-content-between align-items-center gap-2 p-3 p-md-3.5 border-0 spk-modal-footer-btns" 
                      style="background: var(--spk-card-bg, #1e293b); border-top: 1px solid var(--spk-border-color) !important; flex-shrink: 0;">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill w-100 w-sm-auto px-4" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
                         <i class="bi bi-x me-1"></i> Batal
                     </button>
-                    <button type="button" id="btnSimpanBatchTahapan" class="btn btn-primary rounded-pill w-100 w-sm-auto px-4 fw-bold shadow-lg" onclick="simpanBatchTahapan()"
+                    <button type="button" id="btnSimpanBatchTahapan" class="btn btn-primary rounded-pill px-4 fw-bold shadow-md" onclick="simpanBatchTahapan()"
                             style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #0ea5e9 100%); border: 1px solid rgba(255,255,255,0.25);">
-                        <i class="bi bi-check-circle-fill me-1"></i> Simpan Semua Tahapan (<span id="lblCountSimpan">0</span>)
+                        <i class="bi bi-check-circle-fill me-1"></i> Simpan Tahapan (<span id="lblCountSimpan">0</span>)
                     </button>
                 </div>
             </form>
@@ -193,7 +236,7 @@
             <tr class="row-batch-tahapan" id="row_batch_tahapan_${rowId}" data-row-id="${rowId}">
                 {{-- No Urutan --}}
                 <td class="text-center">
-                    <span class="badge bg-secondary bg-opacity-20 text-white rounded-circle p-2 badge-row-number" style="width: 28px; height: 28px; font-size: 11px;">1</span>
+                    <span class="badge rounded-circle p-2 badge-row-number spk-text-main fw-bold" style="width: 28px; height: 28px; font-size: 11px; background: rgba(100,116,139,0.12); border: 1px solid var(--spk-border-color);">1</span>
                     <input type="hidden" name="tahapans[${rowId}][urutan]" class="inp-row-urutan" value="1">
                 </td>
 
@@ -251,7 +294,7 @@
         $('#containerBarisBatchTahapan').append(rowHtml);
         updateBatchTahapanCounter();
 
-        if (!preset) {
+        if (!preset && window.innerWidth >= 768) {
             setTimeout(() => $(`#inp_nama_row_${rowId}`).focus(), 150);
         }
     }
@@ -273,7 +316,7 @@
         PRESET_ALUR_GARMEN.forEach(p => tambahBarisTahapan(p));
     }
 
-    function compressImageFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.75) {
+    function compressImageFile(file, maxWidth = 1000, maxHeight = 1000, quality = 0.72) {
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = function(event) {
@@ -305,6 +348,7 @@
             reader.readAsDataURL(file);
         });
     }
+    window.compressImageFile = compressImageFile;
 
     // Client-side image compress for batch rows
     async function handleFotoBarisChange(input, rowId) {
@@ -342,6 +386,21 @@
     }
 
     function simpanBatchTahapan() {
+        const bomId = $('#inp_tah_bom_id').val();
+        if (!bomId) {
+            $('#display_bom_selected').addClass('border-danger');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Kode BOM Wajib Diisi!',
+                text: 'Resep BOM / Kode BOM wajib dipilih terlebih dahulu sebelum menyimpan tahapan produksi.',
+                confirmButtonColor: '#2563eb',
+                confirmButtonText: '<i class="bi bi-search me-1"></i> Pilih Resep BOM Sekarang'
+            }).then(() => {
+                bukaModalLookupBomTahapan();
+            });
+            return;
+        }
+
         const rows = $('#containerBarisBatchTahapan tr.row-batch-tahapan');
         if (rows.length === 0) {
             Swal.fire('Form Kosong', 'Silakan tambahkan minimal 1 baris tahapan produksi.', 'warning');
@@ -372,11 +431,7 @@
 
         const formData = new FormData();
         formData.append('_token', '{{ csrf_token() }}');
-        
-        const bomId = $('#inp_tah_bom_id').val();
-        if (bomId) {
-            formData.append('bom_id', bomId);
-        }
+        formData.append('bom_id', bomId);
 
         rows.each(function(idx) {
             const rowId = $(this).data('row-id');
@@ -403,24 +458,100 @@
             contentType: false,
             processData: false,
             success: function(res) {
+                // 1. Langsung reload tabel di background secara instan tanpa jeda!
+                reloadTabelTahapan();
+
+                // 2. Tutup modal & pulihkan tombol seketika
                 $('#modalTambahTahapan').modal('hide');
                 $btn.prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> Simpan Semua Tahapan');
-                Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message, timer: 2000, showConfirmButton: false })
-                    .then(() => reloadTabelTahapan());
+
+                // 3. Notifikasi Toast cepat, modern, dan non-blocking
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1600,
+                    timerProgressBar: true
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: res.message || 'Tahapan produksi berhasil disimpan!'
+                });
             },
             error: function(xhr) {
-                $btn.prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> Simpan Semua Tahapan');
+                const totalRows = $('#containerBarisBatchTahapan tr.row-batch-tahapan').length;
+                $btn.prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> Simpan Tahapan (<span id="lblCountSimpan">' + totalRows + '</span>)');
                 const err = xhr.responseJSON?.errors;
                 const msg = err ? Object.values(err).flat().join('<br>') : (xhr.responseJSON?.message || 'Terjadi kesalahan saat menyimpan.');
-                Swal.fire('Gagal Menyimpan', msg, 'error');
+                
+                if (xhr.status === 422) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Validasi Gagal',
+                        html: msg,
+                        confirmButtonColor: '#2563eb',
+                        confirmButtonText: '<i class="bi bi-check2 me-1"></i> Mengerti'
+                    });
+                } else {
+                    Swal.fire('Gagal Menyimpan', msg, 'error');
+                }
             }
         });
     }
 
-    // Modal open handler: Reset form & siapkan 1 baris awal
+    // ── LOOKUP BOM MODAL HANDLER ──
+    function bukaModalLookupBomTahapan() {
+        $('#inputSearchBomLookupTahapan').val('');
+        filterBomLookupTahapan('');
+        $('#modalLookupBomTahapan').modal('show');
+        setTimeout(() => $('#inputSearchBomLookupTahapan').focus(), 350);
+    }
+
+    function pilihBomTahapan(id, nama, kode, namaBarang) {
+        if (!id) {
+            resetBomTahapan();
+            $('#modalLookupBomTahapan').modal('hide');
+            return;
+        }
+
+        $('#inp_tah_bom_id').val(id);
+        $('#display_bom_selected').removeClass('border-danger');
+
+        // Specific BOM
+        const produkHtml = namaBarang ? `<span class="spk-text-muted small text-truncate">• ${namaBarang}</span>` : '';
+        $('#lbl_bom_terpilih').html(`
+            <span class="badge rounded-pill px-2.5 py-1 fw-bold text-white shadow-xs" style="background: linear-gradient(135deg, #1d4ed8, #2563eb); font-size: 11.5px;">
+                <i class="bi bi-diagram-2-fill me-1"></i>${kode}
+            </span>
+            <strong class="small spk-text-main fw-bold text-truncate">${nama}</strong>
+            ${produkHtml}
+        `);
+        $('#btn_reset_bom_terpilih').removeClass('d-none');
+
+        $('#modalLookupBomTahapan').modal('hide');
+    }
+
+    function resetBomTahapan() {
+        $('#inp_tah_bom_id').val('');
+        $('#lbl_bom_terpilih').html(`
+            <span class="spk-text-muted small fw-semibold">
+                <i class="bi bi-exclamation-circle text-warning me-1"></i> -- Silakan Pilih Resep BOM (Wajib Diisi) --
+            </span>
+        `);
+        $('#btn_reset_bom_terpilih').addClass('d-none');
+    }
+
+    function filterBomLookupTahapan(keyword) {
+        if (typeof cariBomLookupTahapanDebounced === 'function') {
+            cariBomLookupTahapanDebounced(keyword);
+        }
+    }
+
+    // Modal open handler: Reset form & siapkan 3 baris awal
     document.getElementById('modalTambahTahapan').addEventListener('show.bs.modal', function() {
         bersihkanSemuaBarisTahapan();
-        $('#inp_tah_bom_id').val('');
+        resetBomTahapan();
+        $('#display_bom_selected').removeClass('border-danger');
         // Tambah 3 baris default untuk kenyamanan
         tambahBarisTahapan();
         tambahBarisTahapan();

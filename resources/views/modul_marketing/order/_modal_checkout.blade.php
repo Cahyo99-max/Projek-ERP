@@ -24,7 +24,7 @@
                                 </div>
                                 <div class="row g-2.5">
                                     <div class="col-md-6">
-                                        <label class="form-label small fw-bold">Tipe Pelanggan</label>
+                                        <label class="form-label small fw-bold">Tipe / Data Pelanggan <span class="text-danger">*</span></label>
                                         <select class="form-select form-select-sm" id="checkout_customer_select">
                                             <option value="">-- Pelanggan Umum (Walk-in) --</option>
                                             @foreach($customers as $c)
@@ -33,7 +33,7 @@
                                         </select>
                                     </div>
                                     <div class="col-md-6" id="checkout_walkin_wrap">
-                                        <label class="form-label small fw-bold">Nama Pelanggan Walk-In</label>
+                                        <label class="form-label small fw-bold">Nama Pelanggan Walk-In <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control form-control-sm" id="checkout_nama_walkin" placeholder="Contoh: Bpk. Bambang" value="Pelanggan Umum">
                                     </div>
                                     <div class="col-md-6">
@@ -68,10 +68,18 @@
                             </select>
                         </div>
 
-                        {{-- Catatan Pesanan --}}
-                        <div class="col-12">
+                        {{-- Catatan & Syarat Ketentuan Pesanan --}}
+                        <div class="col-md-6">
                             <label class="form-label small fw-bold">Catatan Khusus Pesanan</label>
-                            <textarea class="form-control form-control-sm" id="checkout_catatan" rows="2" placeholder="Instruksi packing, nomor PO langganan, atau keterangan tambahan..."></textarea>
+                            <textarea class="form-control form-control-sm" id="checkout_catatan" rows="3" placeholder="Instruksi packing, nomor PO langganan, atau keterangan tambahan..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold d-flex justify-content-between align-items-center">
+                                <span>Syarat &amp; Ketentuan</span>
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal" style="font-size:0.68rem;">Dapat Disesuaikan</span>
+                            </label>
+                            <textarea class="form-control form-control-sm font-monospace" id="checkout_syarat_ketentuan" rows="3" style="font-size: 0.8rem;" placeholder="1. Barang sesuai spesifikasi...">1. Barang sesuai dengan spesifikasi pesanan.
+2. Pembayaran sah setelah dana efektif masuk ke rekening.</textarea>
                         </div>
 
                         {{-- Ringkasan Nilai Transaksi (readonly, dari keranjang) --}}
@@ -83,32 +91,32 @@
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                     <span class="text-body-secondary small">Subtotal:</span>
-                                    <span class="font-monospace fw-bold" id="checkout_summary_subtotal">Rp 0</span>
+                                    <span class="font-monospace fw-bold" id="checkout_summary_subtotal">Rp 0,00</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="text-body-secondary small">Diskon:</span>
-                                    <span class="font-monospace fw-bold text-danger" id="checkout_summary_diskon">- Rp 0</span>
+                                    <span class="text-body-secondary small">Total Diskon:</span>
+                                    <span class="font-monospace fw-bold text-danger" id="checkout_summary_diskon">- Rp 0,00</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="text-body-secondary small">Pajak (PPN) <span id="checkout_summary_pajak_pct" class="font-monospace" style="font-size:0.75rem;"></span>:</span>
-                                    <span class="font-monospace fw-bold text-info" id="checkout_summary_pajak">+ Rp 0</span>
+                                    <span class="text-body-secondary small">Total PPN:</span>
+                                    <span class="font-monospace fw-bold text-info" id="checkout_summary_pajak">+ Rp 0,00</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="text-body-secondary small">Ongkir / Biaya Lain:</span>
-                                    <span class="font-monospace fw-bold text-primary" id="checkout_summary_ongkir">+ Rp 0</span>
+                                    <span class="font-monospace fw-bold text-primary" id="checkout_summary_ongkir">+ Rp 0,00</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center pt-2 border-top">
                                     <span class="fw-bold fs-6">Grand Total:</span>
-                                    <span class="font-monospace fw-bold fs-4 text-success" id="checkout_summary_grand_total">Rp 0</span>
+                                    <span class="font-monospace fw-bold fs-4 text-success" id="checkout_summary_grand_total">Rp 0,00</span>
                                 </div>
                                 <div id="checkout_summary_dp_wrap" style="display: none;">
                                     <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-1">
                                         <span class="text-body-secondary small">Uang Muka (DP) <span id="checkout_summary_dp_pct" class="font-monospace" style="font-size:0.75rem;"></span>:</span>
-                                        <span class="font-monospace fw-bold text-success" id="checkout_summary_dp_nominal">Rp 0</span>
+                                        <span class="font-monospace fw-bold text-success" id="checkout_summary_dp_nominal">Rp 0,00</span>
                                     </div>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="fw-bold fs-6 text-warning">Sisa Tagihan (Piutang):</span>
-                                        <span class="font-monospace fw-bold fs-5 text-warning" id="checkout_summary_sisa_tagihan">Rp 0</span>
+                                        <span class="font-monospace fw-bold fs-5 text-warning" id="checkout_summary_sisa_tagihan">Rp 0,00</span>
                                     </div>
                                 </div>
                             </div>

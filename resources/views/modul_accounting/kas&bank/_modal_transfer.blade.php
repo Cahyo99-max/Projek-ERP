@@ -31,10 +31,10 @@
                             <label class="form-label small fw-bold text-danger mb-1.5 d-flex align-items-center gap-1.5">
                                 <i class="bi bi-box-arrow-up-right"></i> Rekening Asal (Sumber Dana) <span class="text-danger">*</span>
                             </label>
-                            <select class="form-select kb-form-control fw-semibold" name="from_kas_bank_id" id="transfer_from_select" required>
-                                <option value="">-- Pilih Rekening Asal --</option>
+                            <select class="form-select select2-transfer-from fw-semibold" name="from_kas_bank_id" id="transfer_from_select" style="width: 100%;" required>
+                                <option value="">-- Cari & Pilih Rekening Asal --</option>
                                 @foreach($accounts as $acc)
-                                    <option value="{{ $acc->id }}" data-saldo="{{ (float)$acc->saldo_berjalan }}">[{{ $acc->entitas_label }}] {{ $acc->nama_akun }} (Saldo: Rp {{ number_format($acc->saldo_berjalan, 0, ',', '.') }})</option>
+                                    <option value="{{ $acc->id }}" data-saldo="{{ (float)$acc->saldo_berjalan }}">[{{ $acc->entitas_label }}] {{ $acc->nama_akun }} (Saldo: Rp {{ number_format($acc->saldo_berjalan, 2, ',', '.') }})</option>
                                 @endforeach
                             </select>
                             <div class="small text-muted mt-1.5 d-flex align-items-center gap-1" id="transfer_from_saldo_info" style="font-size: 0.75rem;">
@@ -48,10 +48,10 @@
                             <label class="form-label small fw-bold text-success mb-1.5 d-flex align-items-center gap-1.5">
                                 <i class="bi bi-box-arrow-in-down-left"></i> Rekening Tujuan (Penerima) <span class="text-danger">*</span>
                             </label>
-                            <select class="form-select kb-form-control fw-semibold" name="to_kas_bank_id" id="transfer_to_select" required>
-                                <option value="">-- Pilih Rekening Tujuan --</option>
+                            <select class="form-select select2-transfer-to fw-semibold" name="to_kas_bank_id" id="transfer_to_select" style="width: 100%;" required>
+                                <option value="">-- Cari & Pilih Rekening Tujuan --</option>
                                 @foreach($accounts as $acc)
-                                    <option value="{{ $acc->id }}">[{{ $acc->entitas_label }}] {{ $acc->nama_akun }} (Saldo: Rp {{ number_format($acc->saldo_berjalan, 0, ',', '.') }})</option>
+                                    <option value="{{ $acc->id }}" data-saldo="{{ (float)$acc->saldo_berjalan }}">[{{ $acc->entitas_label }}] {{ $acc->nama_akun }} (Saldo: Rp {{ number_format($acc->saldo_berjalan, 2, ',', '.') }})</option>
                                 @endforeach
                             </select>
                             <div class="small text-muted mt-1.5 d-flex align-items-center gap-1" style="font-size: 0.75rem;">
@@ -69,10 +69,13 @@
                     </div>
 
                     <div class="col-12 col-md-6">
-                        <label class="form-label small fw-bold text-body-emphasis mb-1">Nominal Jumlah Transfer (Rp) <span class="text-danger">*</span></label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-body-emphasis mb-0">Nominal Jumlah Transfer (Rp) <span class="text-danger">*</span></label>
+                            <span class="small text-muted font-monospace" id="transfer_nominal_counter" style="font-size: 0.72rem;">0/20 kar</span>
+                        </div>
                         <div class="input-group">
                             <span class="input-group-text kb-input-icon font-monospace fw-bold text-primary">Rp</span>
-                            <input type="text" inputmode="numeric" class="form-control kb-form-control font-monospace fw-bold text-primary fs-5 input-currency" name="jumlah" id="transfer_nominal_input" placeholder="0" autocomplete="off" required>
+                            <input type="text" inputmode="numeric" class="form-control kb-form-control font-monospace fw-bold text-primary fs-5 input-currency" name="jumlah" id="transfer_nominal_input" placeholder="0" maxlength="20" autocomplete="off" required>
                         </div>
                         <div class="small fw-semibold mt-1.5 text-danger" id="transfer_saldo_warning" style="display: none;">
                             <i class="bi bi-exclamation-triangle-fill me-1"></i>
@@ -81,8 +84,11 @@
                     </div>
 
                     <div class="col-12">
-                        <label class="form-label small fw-semibold text-muted mb-1">Keterangan / Alasan Transfer</label>
-                        <textarea class="form-control kb-form-control" name="keterangan" rows="2" placeholder="Contoh: Pengisian kas operasional / Setor tunai penjualan ke rekening bank..."></textarea>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-semibold text-muted mb-0">Keterangan / Alasan Transfer</label>
+                            <span class="small text-muted font-monospace" id="transfer_keterangan_counter" style="font-size: 0.72rem;">0/40 karakter</span>
+                        </div>
+                        <textarea class="form-control kb-form-control" name="keterangan" id="transfer_keterangan_input" rows="2" maxlength="40" placeholder="Contoh: Pengisian kas operasional / Setor tunai penjualan ke rekening bank..."></textarea>
                     </div>
 
                 </div>

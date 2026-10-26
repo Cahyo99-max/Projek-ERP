@@ -464,14 +464,14 @@
                                         </td>
                                         <td class="text-end font-monospace text-theme-muted" style="white-space:nowrap;">
                                             @if($canViewHpp)
-                                                Rp {{ number_format($item->estimasi_harga_satuan, 0, ',', '.') }}
+                                                Rp {{ number_format($item->estimasi_harga_satuan, 2, ',', '.') }}
                                             @else
                                                 <span class="text-muted" title="HPP Terkunci"><i class="bi bi-lock-fill"></i></span>
                                             @endif
                                         </td>
                                         <td class="text-end font-monospace fw-bold text-primary" style="white-space:nowrap; min-width:180px;">
                                             @if($canViewHpp)
-                                                Rp {{ number_format($itemSubtotal, 0, ',', '.') }}
+                                                Rp {{ number_format($itemSubtotal, 2, ',', '.') }}
                                             @else
                                                 <span class="text-muted" title="HPP Terkunci"><i class="bi bi-lock-fill"></i></span>
                                             @endif
@@ -491,7 +491,7 @@
                                     <td colspan="9" class="text-end text-theme-muted pe-3" style="white-space:nowrap;">Subtotal Bahan Baku:</td>
                                     <td class="text-end font-monospace text-primary fw-bold pe-3" style="white-space:nowrap; min-width:180px;">
                                         @if($canViewHpp)
-                                            Rp {{ number_format($subtotalBahan, 0, ',', '.') }}
+                                            Rp {{ number_format($subtotalBahan, 2, ',', '.') }}
                                         @else
                                             <span class="text-muted" title="HPP Terkunci"><i class="bi bi-lock-fill"></i></span>
                                         @endif
@@ -501,7 +501,7 @@
                                     <td colspan="9" class="text-end text-theme-muted pe-3" style="white-space:nowrap;">Biaya Tenaga Kerja / CMT:</td>
                                     <td class="text-end font-monospace text-theme-main fw-bold pe-3" style="white-space:nowrap; min-width:180px;">
                                         @if($canViewHpp)
-                                            Rp {{ number_format($bom->biaya_tenaga_kerja, 0, ',', '.') }}
+                                            Rp {{ number_format($bom->biaya_tenaga_kerja, 2, ',', '.') }}
                                         @else
                                             <span class="text-muted" title="HPP Terkunci"><i class="bi bi-lock-fill"></i></span>
                                         @endif
@@ -511,7 +511,7 @@
                                     <td colspan="9" class="text-end text-theme-muted pe-3" style="white-space:nowrap;">Biaya Overhead Produksi:</td>
                                     <td class="text-end font-monospace text-theme-main fw-bold pe-3" style="white-space:nowrap; min-width:180px;">
                                         @if($canViewHpp)
-                                            Rp {{ number_format($bom->biaya_overhead, 0, ',', '.') }}
+                                            Rp {{ number_format($bom->biaya_overhead, 2, ',', '.') }}
                                         @else
                                             <span class="text-muted" title="HPP Terkunci"><i class="bi bi-lock-fill"></i></span>
                                         @endif
@@ -521,7 +521,7 @@
                                     <td colspan="9" class="text-end text-success fs-6 fw-bold pe-3" style="white-space:nowrap;">TOTAL HPP PER RESEP:</td>
                                     <td class="text-end font-monospace text-success fw-bold fs-5 pe-3" style="white-space:nowrap; min-width:180px;">
                                         @if($canViewHpp)
-                                            Rp {{ number_format($totalHpp, 0, ',', '.') }}
+                                            Rp {{ number_format($totalHpp, 2, ',', '.') }}
                                         @else
                                             <span class="text-muted" title="HPP Terkunci"><i class="bi bi-lock-fill"></i></span>
                                         @endif
@@ -543,7 +543,7 @@
                             </div>
                             <div class="text-end">
                                 <div class="fw-bold text-success font-monospace" style="font-size:1.5rem;">
-                                    Rp {{ number_format($hppPerUnit, 0, ',', '.') }}
+                                    Rp {{ number_format($hppPerUnit, 2, ',', '.') }}
                                 </div>
                                 <small class="text-theme-muted">per {{ $bom->satuanHasil ? $bom->satuanHasil->nama_satuan : 'Unit' }}</small>
                             </div>
@@ -768,11 +768,11 @@
                                     <i class="bi bi-cash-stack text-success"></i> Ringkasan Biaya
                                 </div>
                                 <div class="sidebar-card-body">
-                                    <div class="sidebar-info-row"><span class="sidebar-info-label">Subtotal Bahan</span><span class="sidebar-info-value font-monospace text-primary">Rp {{ number_format($subtotalBahan, 0, ',', '.') }}</span></div>
-                                    <div class="sidebar-info-row"><span class="sidebar-info-label">Biaya TK/CMT</span><span class="sidebar-info-value font-monospace">Rp {{ number_format($bom->biaya_tenaga_kerja, 0, ',', '.') }}</span></div>
-                                    <div class="sidebar-info-row"><span class="sidebar-info-label">Biaya Overhead</span><span class="sidebar-info-value font-monospace">Rp {{ number_format($bom->biaya_overhead, 0, ',', '.') }}</span></div>
-                                    <div class="sidebar-info-row"><span class="sidebar-info-label">Total HPP Resep</span><span class="sidebar-info-value font-monospace text-success fw-bold">Rp {{ number_format($totalHpp, 0, ',', '.') }}</span></div>
-                                    <div class="sidebar-info-row"><span class="sidebar-info-label">HPP Per Unit</span><span class="sidebar-info-value font-monospace text-success fw-bold" style="font-size:15px;">Rp {{ number_format($hppPerUnit, 0, ',', '.') }}</span></div>
+                                    <div class="sidebar-info-row"><span class="sidebar-info-label">Subtotal Bahan</span><span class="sidebar-info-value font-monospace text-primary">Rp {{ number_format($subtotalBahan, 2, ',', '.') }}</span></div>
+                                    <div class="sidebar-info-row"><span class="sidebar-info-label">Biaya TK/CMT</span><span class="sidebar-info-value font-monospace">Rp {{ number_format($bom->biaya_tenaga_kerja, 2, ',', '.') }}</span></div>
+                                    <div class="sidebar-info-row"><span class="sidebar-info-label">Biaya Overhead</span><span class="sidebar-info-value font-monospace">Rp {{ number_format($bom->biaya_overhead, 2, ',', '.') }}</span></div>
+                                    <div class="sidebar-info-row"><span class="sidebar-info-label">Total HPP Resep</span><span class="sidebar-info-value font-monospace text-success fw-bold">Rp {{ number_format($totalHpp, 2, ',', '.') }}</span></div>
+                                    <div class="sidebar-info-row"><span class="sidebar-info-label">HPP Per Unit</span><span class="sidebar-info-value font-monospace text-success fw-bold" style="font-size:15px;">Rp {{ number_format($hppPerUnit, 2, ',', '.') }}</span></div>
                                 </div>
                             </div>
                         </div>
@@ -942,7 +942,7 @@
                     <hr style="border-color:var(--border-color);margin:8px 0;">
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="sidebar-info-label">HPP Per Unit</span>
-                        <span class="fw-bold text-success font-monospace" style="font-size:15px;">Rp {{ number_format($hppPerUnit, 0, ',', '.') }}</span>
+                        <span class="fw-bold text-success font-monospace" style="font-size:15px;">Rp {{ number_format($hppPerUnit, 2, ',', '.') }}</span>
                     </div>
                 </div>
             </div>
@@ -1008,8 +1008,8 @@
                 <div class="sidebar-card-body">
                     <div class="sidebar-info-row"><span class="sidebar-info-label">Lot Produksi</span><span class="sidebar-info-value">{{ rtrim(rtrim(number_format($bom->jumlah_hasil, 4, ',', '.'), '0'), ',') }} {{ $bom->satuanHasil ? $bom->satuanHasil->nama_satuan : '' }}</span></div>
                     <div class="sidebar-info-row"><span class="sidebar-info-label">Proyek / Tender</span><span class="sidebar-info-value text-warning fw-semibold">{{ $bom->tender ? $bom->tender->nama_tender : '-' }}</span></div>
-                    <div class="sidebar-info-row"><span class="sidebar-info-label">Biaya TK/CMT</span><span class="sidebar-info-value font-monospace">Rp {{ number_format($bom->biaya_tenaga_kerja, 0, ',', '.') }}</span></div>
-                    <div class="sidebar-info-row"><span class="sidebar-info-label">Biaya Overhead</span><span class="sidebar-info-value font-monospace">Rp {{ number_format($bom->biaya_overhead, 0, ',', '.') }}</span></div>
+                    <div class="sidebar-info-row"><span class="sidebar-info-label">Biaya TK/CMT</span><span class="sidebar-info-value font-monospace">Rp {{ number_format($bom->biaya_tenaga_kerja, 2, ',', '.') }}</span></div>
+                    <div class="sidebar-info-row"><span class="sidebar-info-label">Biaya Overhead</span><span class="sidebar-info-value font-monospace">Rp {{ number_format($bom->biaya_overhead, 2, ',', '.') }}</span></div>
                     <div class="sidebar-info-row"><span class="sidebar-info-label">Metode Costing</span><span class="sidebar-info-value">Standard Cost</span></div>
                 </div>
             </div>
@@ -1055,6 +1055,7 @@
 {{-- Edit modal (re-use existing) --}}
 @include('modul_produksi.bom._modal_edit')
 @include('modul_produksi.bom._modal_lookup_barang')
+@include('modul_produksi.bom._modal_lookup_tender')
 
 @push('scripts')
 <script>
@@ -1150,7 +1151,13 @@ function cleanNumberInputValue(val) {
 // KALKULATOR HELPERS
 // ═══════════════════════════════════════════════════════════════════
 function fmtRp(val) {
-    return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(val));
+    if (val === null || val === undefined || isNaN(parseFloat(val))) return 'Rp 0,00';
+    return 'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(val));
+}
+function fmtRpHpp(val, maxDec = 2) {
+    if (val === null || val === undefined || isNaN(parseFloat(val))) return 'Rp 0,00';
+    let n = parseFloat(val);
+    return 'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 function fmtNum(val, dec = 4) {
     if (val === null || val === undefined || isNaN(parseFloat(val))) return '0';
@@ -1170,7 +1177,7 @@ function hitungKalkulator() {
     if (qty <= 0) {
         document.getElementById('kpiKalQty').textContent = '-';
         document.getElementById('kpiKalHppUnit').textContent = '-';
-        document.getElementById('kpiKalGrandTotal').textContent = 'Rp 0';
+        document.getElementById('kpiKalGrandTotal').textContent = 'Rp 0,00';
         document.getElementById('previewSection').classList.add('d-none');
         document.getElementById('kalEmptyState').classList.remove('d-none');
         return;
@@ -1228,21 +1235,21 @@ function hitungKalkulator() {
 
     // KPI header
     document.getElementById('kpiKalQty').textContent = fmtNum(qty, 0);
-    document.getElementById('kpiKalHppUnit').textContent = fmtRp(hppUnit);
+    document.getElementById('kpiKalHppUnit').textContent = fmtRpHpp(hppUnit);
     document.getElementById('kpiKalGrandTotal').textContent = fmtRp(grand);
 
     // Rincian biaya
     document.getElementById('rincianBahan').textContent = fmtRp(totalBahan);
     document.getElementById('rincianTk').textContent    = fmtRp(simTk);
-    document.getElementById('rincianTkDesc').textContent = `(${batchFmt} batch × Rp ${new Intl.NumberFormat('id-ID').format(Math.round(_bomData.biaya_tk))} per batch)`;
+    document.getElementById('rincianTkDesc').textContent = `(${batchFmt} batch × ${fmtRp(_bomData.biaya_tk)} per batch)`;
     document.getElementById('rincianOh').textContent    = fmtRp(simOh);
-    document.getElementById('rincianOhDesc').textContent = `(${batchFmt} batch × Rp ${new Intl.NumberFormat('id-ID').format(Math.round(_bomData.biaya_oh))} per batch)`;
+    document.getElementById('rincianOhDesc').textContent = `(${batchFmt} batch × ${fmtRp(_bomData.biaya_oh)} per batch)`;
     document.getElementById('rincianTotal').textContent  = fmtRp(grand);
 
     // Summary card
     document.getElementById('summaryTotal').textContent    = fmtRp(grand);
     document.getElementById('summaryDesc').textContent     = `untuk ${fmtNum(qty,0)} ${_bomData.satuan}`;
-    document.getElementById('summaryHppUnit').textContent  = fmtRp(hppUnit) + ' / ' + _bomData.satuan;
+    document.getElementById('summaryHppUnit').textContent  = fmtRpHpp(hppUnit) + ' / ' + _bomData.satuan;
     document.getElementById('summaryPorsiBahan').textContent = pBahan.toFixed(1) + '%';
     document.getElementById('summaryPorsiTkOh').textContent  = (pTk + pOh).toFixed(1) + '%';
 

@@ -132,6 +132,26 @@
             .replace(/'/g, '&#039;');
     }
 
+    function previewImage(input, target) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            if (file.size > 2 * 1024 * 1024) {
+                Swal.fire('Ukuran Terlalu Besar', 'Maksimal ukuran logo adalah 2MB', 'warning');
+                input.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $(target).html(`<img src="${e.target.result}" class="w-100 h-100" style="object-fit:cover;">`);
+                if (target === '#previewLogoEditCabang') {
+                    $('#btnHapusLogoCabang').removeClass('d-none');
+                    $('#edit_remove_logo_cabang').val('0');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
     // ===== HELPER: Popup peringatan saat mencapai batas karakter =====
     let _charPopupCooldown = {};
 
@@ -227,10 +247,17 @@
                 {
                     targets: 2,
                     render: function (data, type, row) {
-                        let res = '<div class="cab-nama">' + escapeHtml(data) + '</div>';
-                        if (row.nama_perusahaan) {
-                            res += '<small class="cab-sub">' + escapeHtml(row.nama_perusahaan) + '</small>';
-                        }
+                        let logoHtml = row.logo_url
+                            ? `<img src="${row.logo_url}" class="rounded-3 border shadow-sm flex-shrink-0" style="width:38px;height:38px;object-fit:cover;">`
+                            : `<div class="rounded-3 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold flex-shrink-0 border" style="width:38px;height:38px;font-size:0.85rem;"><i class="bi bi-buildings"></i></div>`;
+
+                        let res = `<div class="d-flex align-items-center gap-2">
+                            ${logoHtml}
+                            <div>
+                                <div class="cab-nama">${escapeHtml(data)}</div>
+                                ${row.nama_perusahaan ? `<small class="cab-sub">${escapeHtml(row.nama_perusahaan)}</small>` : ''}
+                            </div>
+                        </div>`;
                         return res;
                     }
                 },
@@ -316,13 +343,14 @@
                     ? '<span class="badge bg-success rounded-pill px-3 py-2">Aktif</span>'
                     : '<span class="badge bg-secondary rounded-pill px-3 py-2">Nonaktif</span>';
 
+                let avatarHtml = b.logo_url
+                    ? `<img src="${b.logo_url}" class="rounded-3 border shadow-sm" style="width:60px;height:60px;object-fit:cover;">`
+                    : `<div class="rounded-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;background:linear-gradient(135deg,#dbeafe,#eff6ff);"><i class="bi bi-buildings-fill text-primary fs-2"></i></div>`;
+
                 $('#detailCabangBody').html(`
                     <div class="row g-3">
                         <div class="col-12 d-flex align-items-center gap-3 mb-2">
-                            <div class="rounded-3 d-flex align-items-center justify-content-center"
-                                style="width:60px;height:60px;background:linear-gradient(135deg,#dbeafe,#eff6ff);">
-                                <i class="bi bi-buildings-fill text-primary fs-2"></i>
-                            </div>
+                            ${avatarHtml}
                             <div>
                                 <h5 class="mb-1 fw-bold text-body">${escapeHtml(b.nama_cabang)}</h5>
                                 <span class="badge bg-primary bg-opacity-10 text-primary fw-semibold px-3 py-2 rounded-pill me-2">${escapeHtml(b.kode_cabang)}</span>

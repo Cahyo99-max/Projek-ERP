@@ -1,250 +1,5 @@
 {{-- ===== MODAL TAMBAH TENDER (ULTRA-CINEMATIC DUAL-THEME DARK & LIGHT) ===== --}}
-<style>
-    /* ==========================================================
-       DUAL THEME COMPATIBILITY (DARK & LIGHT MODE)
-       ========================================================== */
-    
-    /* Default / Light Theme */
-    .tender-modal-content {
-        border-radius: 24px !important;
-        background: #ffffff !important;
-        border: 1px solid rgba(0, 0, 0, 0.08) !important;
-        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25) !important;
-        transition: all 0.3s ease;
-    }
-    .tender-modal-title {
-        color: #0f172a !important;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-    }
-    .tender-modal-subtitle {
-        color: #64748b !important;
-    }
-    .tender-tabs-container {
-        background: #f1f5f9 !important;
-        padding: 6px;
-        border-radius: 16px;
-        border: 1px solid #e2e8f0;
-    }
-    .tender-nav-pills .tender-tab-btn {
-        border-radius: 12px;
-        font-weight: 700;
-        font-size: 0.82rem;
-        color: #64748b !important;
-        padding: 9px 16px;
-        border: none;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .tender-nav-pills .tender-tab-btn:hover {
-        color: #0f172a !important;
-        background: rgba(255, 255, 255, 0.6);
-    }
-    .tender-nav-pills .tender-tab-btn.active {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-        color: #ffffff !important;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35) !important;
-    }
-    
-    /* Section Cards Light */
-    .tender-form-card {
-        background: #f8fafc !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 18px !important;
-        padding: 18px 20px;
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    }
-    .tender-form-card:hover {
-        border-color: #cbd5e1 !important;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
-    }
-    .tender-card-label {
-        font-size: 0.72rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .tender-form-label {
-        color: #334155 !important;
-        font-weight: 600;
-        font-size: 0.82rem;
-        margin-bottom: 5px;
-    }
-    .tender-input {
-        background: #ffffff !important;
-        color: #0f172a !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 10px !important;
-        font-size: 0.85rem;
-        padding: 7px 12px;
-        transition: all 0.2s ease;
-    }
-    .tender-input:focus {
-        background: #ffffff !important;
-        color: #0f172a !important;
-        border-color: #10b981 !important;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
-    }
-    .tender-input-addon {
-        background: #f1f5f9 !important;
-        color: #10b981 !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 10px 0 0 10px !important;
-        font-size: 0.82rem;
-    }
-    .tender-modal-footer {
-        border-top: 1px solid #e2e8f0 !important;
-        background: transparent;
-    }
 
-    /* Product Photo Frame */
-    .tender-product-img-frame {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        background: rgba(100, 116, 139, 0.08);
-        border: 1px solid rgba(100, 116, 139, 0.2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        flex-shrink: 0;
-    }
-
-    /* ==========================================================
-       DARK THEME OVERRIDES (Cinematic Glow & Ultra-Readable)
-       ========================================================== */
-    [data-bs-theme="dark"] .tender-modal-content,
-    .dark .tender-modal-content,
-    body.dark-mode .tender-modal-content {
-        background: radial-gradient(130% 120% at 50% 0%, #1e293b 0%, #0f172a 100%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(16, 185, 129, 0.08) !important;
-    }
-    [data-bs-theme="dark"] .tender-modal-title,
-    .dark .tender-modal-title,
-    body.dark-mode .tender-modal-title {
-        color: #f8fafc !important;
-    }
-    [data-bs-theme="dark"] .tender-modal-subtitle,
-    .dark .tender-modal-subtitle,
-    body.dark-mode .tender-modal-subtitle {
-        color: #94a3b8 !important;
-    }
-    [data-bs-theme="dark"] .tender-tabs-container,
-    .dark .tender-tabs-container,
-    body.dark-mode .tender-tabs-container {
-        background: rgba(15, 23, 42, 0.85) !important;
-        border-color: rgba(255, 255, 255, 0.08) !important;
-    }
-    [data-bs-theme="dark"] .tender-nav-pills .tender-tab-btn,
-    .dark .tender-nav-pills .tender-tab-btn,
-    body.dark-mode .tender-nav-pills .tender-tab-btn {
-        color: #94a3b8 !important;
-    }
-    [data-bs-theme="dark"] .tender-nav-pills .tender-tab-btn:hover,
-    .dark .tender-nav-pills .tender-tab-btn:hover,
-    body.dark-mode .tender-nav-pills .tender-tab-btn:hover {
-        color: #f8fafc !important;
-        background: rgba(255, 255, 255, 0.06) !important;
-    }
-    [data-bs-theme="dark"] .tender-nav-pills .tender-tab-btn.active,
-    .dark .tender-nav-pills .tender-tab-btn.active,
-    body.dark-mode .tender-nav-pills .tender-tab-btn.active {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-        color: #ffffff !important;
-        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.45) !important;
-    }
-
-    /* Section Cards Dark */
-    [data-bs-theme="dark"] .tender-form-card,
-    .dark .tender-form-card,
-    body.dark-mode .tender-form-card {
-        background: rgba(30, 41, 59, 0.6) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        backdrop-filter: blur(14px);
-    }
-    [data-bs-theme="dark"] .tender-form-card:hover,
-    .dark .tender-form-card:hover,
-    body.dark-mode .tender-form-card:hover {
-        border-color: rgba(255, 255, 255, 0.16) !important;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
-    }
-    [data-bs-theme="dark"] .tender-form-label,
-    .dark .tender-form-label,
-    body.dark-mode .tender-form-label {
-        color: #e2e8f0 !important;
-    }
-    [data-bs-theme="dark"] .tender-input,
-    .dark .tender-input,
-    body.dark-mode .tender-input {
-        background: #0f172a !important;
-        color: #f8fafc !important;
-        border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    }
-    [data-bs-theme="dark"] .tender-input:focus,
-    .dark .tender-input:focus,
-    body.dark-mode .tender-input:focus {
-        background: #0f172a !important;
-        color: #f8fafc !important;
-        border-color: #10b981 !important;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3) !important;
-    }
-    [data-bs-theme="dark"] .tender-input-addon,
-    .dark .tender-input-addon,
-    body.dark-mode .tender-input-addon {
-        background: #1e293b !important;
-        color: #34d399 !important;
-        border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    }
-    [data-bs-theme="dark"] .tender-product-img-frame,
-    .dark .tender-product-img-frame,
-    body.dark-mode .tender-product-img-frame {
-        background: rgba(15, 23, 42, 0.6) !important;
-        border-color: rgba(255, 255, 255, 0.12) !important;
-    }
-    [data-bs-theme="dark"] .btn-tender-cancel,
-    .dark .btn-tender-cancel,
-    body.dark-mode .btn-tender-cancel {
-        background: rgba(255, 255, 255, 0.05) !important;
-        color: #cbd5e1 !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    }
-
-    /* Glow Accents */
-    .glow-tag-indigo {
-        color: #818cf8 !important;
-        background: rgba(99, 102, 241, 0.12);
-        padding: 4px 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(99, 102, 241, 0.25);
-    }
-    .glow-tag-emerald {
-        color: #34d399 !important;
-        background: rgba(16, 185, 129, 0.12);
-        padding: 4px 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(16, 185, 129, 0.25);
-    }
-    .glow-tag-amber {
-        color: #fbbf24 !important;
-        background: rgba(245, 158, 11, 0.12);
-        padding: 4px 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(245, 158, 11, 0.25);
-    }
-    .glow-tag-purple {
-        color: #c084fc !important;
-        background: rgba(168, 85, 247, 0.12);
-        padding: 4px 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(168, 85, 247, 0.25);
-    }
-</style>
 
 <div class="modal modal-blur fade" id="modalTambahTender" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
@@ -278,12 +33,12 @@
                             </li>
                             <li class="nav-item flex-fill text-center" role="presentation">
                                 <button class="nav-link tender-tab-btn w-100" id="tambah-barang-tab" data-bs-toggle="tab" data-bs-target="#tambah-barang" type="button" role="tab">
-                                    <i class="bi bi-cart-check-fill me-1.5"></i> 2. Kebutuhan Barang / Jasa <span class="badge bg-white text-dark rounded-pill ms-1 font-monospace" id="badge_tambah_item_count">0</span>
+                                    <i class="bi bi-cart-check-fill me-1.5"></i> 2. Kebutuhan Barang / Jasa <span class="text-danger fw-bold">*</span> <span class="badge bg-white text-dark rounded-pill ms-1 font-monospace" id="badge_tambah_item_count">0</span>
                                 </button>
                             </li>
                             <li class="nav-item flex-fill text-center" role="presentation">
                                 <button class="nav-link tender-tab-btn w-100" id="tambah-dokumen-tab" data-bs-toggle="tab" data-bs-target="#tambah-dokumen" type="button" role="tab">
-                                    <i class="bi bi-folder-fill me-1.5"></i> 3. Berkas Dokumen Lelang (RKS)
+                                    <i class="bi bi-folder-fill me-1.5"></i> 3. Berkas Dokumen Lelang (RKS) <span class="badge bg-secondary-subtle text-secondary rounded-pill ms-1 font-monospace" id="badge_tambah_doc_count">0/30</span>
                                 </button>
                             </li>
                         </ul>
@@ -340,7 +95,10 @@
                                         <select name="sales_id" id="tambah_sales_id" class="form-select tender-input" required>
                                             <option value="">-- Pilih Sales PIC --</option>
                                             @foreach($salesList as $sales)
-                                                <option value="{{ $sales->id }}">{{ $sales->nama_lengkap }} {{ $sales->department ? '(' . $sales->department->nama_departemen . ')' : '' }}</option>
+                                                @php
+                                                    $deptOrPos = $sales->department?->department_name ?: $sales->position?->position_name;
+                                                @endphp
+                                                <option value="{{ $sales->id }}">{{ $sales->nama_lengkap }}{{ !empty($deptOrPos) ? ' (' . $deptOrPos . ')' : '' }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -451,29 +209,37 @@
                         <div class="tab-pane fade" id="tambah-barang" role="tabpanel">
                             
                             <div class="tender-form-card p-3 p-md-4 mb-3.5">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="p-1.5 rounded-2 bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
                                             <i class="bi bi-list-task fs-6"></i>
                                         </span>
-                                        <h6 class="fw-bold mb-0 text-body fs-6">Daftar Barang yang Diajukan</h6>
+                                        <div>
+                                            <h6 class="fw-bold mb-0 text-body fs-6">Daftar Barang yang Diajukan</h6>
+                                            <div class="text-muted small d-none d-md-block" style="font-size: 0.72rem;">Kebutuhan item barang, jasa, atau aset yang akan diajukan dalam lelang.</div>
+                                        </div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_tambah_tender_item_row">
-                                        <i class="bi bi-plus-circle-fill"></i> <span>Tambah Barang</span>
-                                    </button>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-body-tertiary text-muted border d-md-none" style="font-size: 0.7rem;">
+                                            <i class="bi bi-arrow-left-right me-1"></i>Geser tabel
+                                        </span>
+                                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_tambah_tender_item_row">
+                                            <i class="bi bi-plus-circle-fill"></i> <span>Tambah Barang</span>
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-borderless align-middle mb-0 w-100" id="table_tambah_items">
+                                <div class="table-responsive tender-table-responsive">
+                                    <table class="table table-sm table-borderless align-middle mb-0 w-100 tender-modal-table" id="table_tambah_items">
                                         <thead>
                                             <tr class="border-bottom text-muted small" style="font-size: 0.75rem; font-weight: 600;">
-                                                <th width="4%" class="text-center py-2">No</th>
-                                                <th width="12%">Tipe</th>
-                                                <th width="44%">Nama Barang</th>
-                                                <th width="10%" class="text-center">Satuan</th>
-                                                <th width="12%">Jumlah</th>
-                                                <th width="14%">Catatan</th>
-                                                <th width="4%" class="text-center">Aksi</th>
+                                                <th style="width: 45px;" class="text-center py-2">No</th>
+                                                <th style="width: 110px;">Tipe</th>
+                                                <th style="min-width: 280px;">Nama Barang <span class="text-danger">*</span></th>
+                                                <th style="width: 90px;" class="text-center">Satuan</th>
+                                                <th style="width: 100px;">Jumlah <span class="text-danger">*</span></th>
+                                                <th style="width: 150px;">Catatan</th>
+                                                <th style="width: 45px;" class="text-center">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbody_tambah_items">
@@ -491,7 +257,7 @@
                         <div class="tab-pane fade" id="tambah-dokumen" role="tabpanel">
                             
                             <div class="tender-form-card p-3 p-md-4 mb-3.5">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="p-1.5 rounded-2 bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
                                             <i class="bi bi-paperclip fs-6"></i>
@@ -501,19 +267,24 @@
                                             <div class="text-muted small" style="font-size: 0.72rem;">Maksimal 30 berkas (PDF, Word, Excel, ZIP).</div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_tambah_dokumen_row">
-                                        <i class="bi bi-plus-circle-fill"></i> <span>Tambah Lampiran</span>
-                                    </button>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-body-tertiary text-muted border d-md-none" style="font-size: 0.7rem;">
+                                            <i class="bi bi-arrow-left-right me-1"></i>Geser tabel
+                                        </span>
+                                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btn_tambah_dokumen_row">
+                                            <i class="bi bi-plus-circle-fill"></i> <span>Tambah Lampiran</span>
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-borderless align-middle mb-0 w-100" id="table_tambah_dokumen">
+                                <div class="table-responsive tender-table-responsive">
+                                    <table class="table table-sm table-borderless align-middle mb-0 w-100 tender-modal-doc-table" id="table_tambah_dokumen">
                                         <thead>
                                             <tr class="border-bottom text-muted small" style="font-size: 0.75rem; font-weight: 600;">
-                                                <th width="5%" class="text-center py-2">No</th>
-                                                <th width="42%">Nama Dokumen <span class="text-danger">*</span></th>
-                                                <th width="48%">Pilih Berkas (PDF / Word / Excel / ZIP) <span class="text-danger">*</span></th>
-                                                <th width="5%" class="text-center">Aksi</th>
+                                                <th style="width: 45px;" class="text-center py-2">No</th>
+                                                <th style="min-width: 200px;">Nama Dokumen <span class="text-danger">*</span></th>
+                                                <th style="min-width: 240px;">Pilih Berkas (PDF / Word / Excel / ZIP) <span class="text-danger">*</span></th>
+                                                <th style="width: 45px;" class="text-center">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbody_tambah_dokumen">
@@ -530,8 +301,8 @@
                 </div>
 
                 <!-- MODAL FOOTER ACTION BAR -->
-                <div class="modal-footer tender-modal-footer pt-3 pb-4 px-4 d-flex justify-content-between align-items-center">
-                    <button type="button" class="btn btn-tender-cancel rounded-pill px-4 py-2" data-bs-dismiss="modal">
+                <div class="modal-footer tender-modal-footer d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-tender-cancel rounded-pill px-4 py-2.5" data-bs-dismiss="modal">
                         Batal
                     </button>
                     <div class="d-flex align-items-center gap-2">
@@ -571,6 +342,13 @@
     }
 
     function renumberDocRows(prefix) {
+        let count = $(`#tbody_${prefix}_dokumen tr`).length;
+        $(`#badge_${prefix}_doc_count`).text(`${count}/30`);
+        if (count >= 30) {
+            $(`#badge_${prefix}_doc_count`).removeClass('bg-secondary-subtle text-secondary').addClass('bg-danger text-white');
+        } else {
+            $(`#badge_${prefix}_doc_count`).removeClass('bg-danger text-white').addClass('bg-secondary-subtle text-secondary');
+        }
         $(`#tbody_${prefix}_dokumen tr`).each(function(idx) {
             $(this).find('.doc-row-number').text(idx + 1);
         });
@@ -711,6 +489,17 @@
     // Add Document Row
     $(document).on('click', '#btn_tambah_dokumen_row', function(e) {
         e.preventDefault();
+        let currentCount = $('#tbody_tambah_dokumen tr').length;
+        if (currentCount >= 30) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Batas Maksimal Berkas',
+                text: 'Maksimal 30 berkas dokumen yang dapat dilampirkan!',
+                confirmButtonColor: '#0d6efd'
+            });
+            return;
+        }
+
         docIndexTambah++;
         let rowHtml = `
             <tr id="doc_row_tambah_${docIndexTambah}">
@@ -744,11 +533,6 @@
         let id = $(this).data('id');
         $(`#doc_row_tambah_${id}`).remove();
         renumberDocRows('tambah');
-    });
-
-    // Customer Lookup
-    $(document).on('click', '.btn-lookup-customer', function() {
-        $('#modalLookupCustomer').modal('show');
     });
 
     // Initial default row on modal show if empty
@@ -804,6 +588,62 @@
             Swal.fire('Peringatan Karakter', 'Catatan Tender maksimal 50 karakter!', 'warning');
             $('#tambah-umum-tab').tab('show');
             $('#tambah_catatan').focus();
+            return;
+        }
+
+        // Mandatory Item Checks
+        let itemRows = $('#tbody_tambah_items tr.item-row');
+        if (itemRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Daftar Barang Wajib Diisi',
+                text: 'Silakan tambahkan minimal 1 barang / jasa kebutuhan lelang!',
+                confirmButtonColor: '#0d6efd'
+            });
+            $('#tambah-barang-tab').tab('show');
+            return;
+        }
+
+        let hasEmptyBarang = false;
+        let hasEmptyQty = false;
+        itemRows.each(function() {
+            let bId = $(this).find('.item-barang-id').val();
+            let bName = $(this).find('.item-barang-name').val();
+            let qty = parseFloat($(this).find('.item-qty-input').val()) || 0;
+            if (!bId && !bName) {
+                hasEmptyBarang = true;
+            }
+            if (qty <= 0) {
+                hasEmptyQty = true;
+            }
+        });
+
+        if (hasEmptyBarang) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Pilih Barang Katalog',
+                text: 'Ada baris barang yang belum dipilih produknya. Silakan pilih barang dari katalog!',
+                confirmButtonColor: '#0d6efd'
+            });
+            $('#tambah-barang-tab').tab('show');
+            return;
+        }
+
+        if (hasEmptyQty) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Jumlah Barang Tidak Valid',
+                text: 'Jumlah / Kuantitas barang pada setiap baris harus lebih dari 0!',
+                confirmButtonColor: '#0d6efd'
+            });
+            $('#tambah-barang-tab').tab('show');
+            return;
+        }
+
+        let docCount = $('#tbody_tambah_dokumen tr').length;
+        if (docCount > 30) {
+            Swal.fire('Peringatan Berkas', 'Jumlah lampiran berkas dokumen maksimal 30 berkas!', 'warning');
+            $('#tambah-dokumen-tab').tab('show');
             return;
         }
 

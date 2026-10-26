@@ -323,9 +323,9 @@
                     @php
                         if (!function_exists('formatMoneyCleanBom')) {
                             function formatMoneyCleanBom($val): string {
-                                if ($val === null || $val === '') return '0';
+                                if ($val === null || $val === '') return '0,00';
                                 $num = (float)$val;
-                                return number_format($num, 0, ',', '.');
+                                return number_format($num, 2, ',', '.');
                             }
                         }
 

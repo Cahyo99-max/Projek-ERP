@@ -25,29 +25,31 @@ class PurchaseRequisitionController extends Controller
             // ── Pre-compute auth flags once (not per row) ────────────────────
             $user          = auth()->user();
             $isSuperAdmin  = $user->hasRole('Super Admin');
-            $isPrivileged  = $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) || $user->can('approve-pr');
             $isAdmin       = $user->hasAnyRole(['Super Admin', 'Admin']);
+            $canLihat      = $user->can('lihat-pr');
             $canEdit       = $user->can('edit-pr');
             $canApprove    = $user->can('approve-pr');
             $canDelete     = $user->can('hapus-pr');
             $canPrint      = $user->can('cetak-pr') || $user->can('print-pr') || $isAdmin || $user->hasRole('Owner');
+            $isPrivileged  = $isAdmin || $user->hasAnyRole(['Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) 
+                             || $canApprove 
+                             || $canLihat;
             $karyawanId    = $user->karyawan_id;
 
             $where = ['pr.deleted_at IS NULL'];
             $bindings = [];
 
             // ── Strict Pusat vs Cabang Isolation ─────────────────────────────
-            if ($activeCompanyId) {
-                $where[]    = 'pr.company_id = ?';
-                $bindings[] = intval($activeCompanyId);
-            }
-
             if (!empty($activeBranchId)) {
                 $where[]    = 'pr.branch_id = ?';
                 $bindings[] = intval($activeBranchId);
             } else {
                 // When Pusat is active (active_branch_id is NULL), ONLY show Pusat PRs
                 $where[]    = 'pr.branch_id IS NULL';
+                if ($activeCompanyId) {
+                    $where[]    = 'pr.company_id = ?';
+                    $bindings[] = intval($activeCompanyId);
+                }
             }
 
             // Strict Draft privacy: Draft is ONLY visible to the creator ($user->id)
@@ -87,14 +89,15 @@ class PurchaseRequisitionController extends Controller
 
             if (!empty($search)) {
                 // nomor_pr prefix uses unique index, karyawan/dept resolved to IDs
-                $deptIds     = Department::forActiveCompany()->where('department_name', 'like', "{$search}%")->pluck('id')->toArray();
-                $karyawanIds = \App\Models\Karyawan::forActiveCompany()->where(function($q2) use ($search) {
-                    $q2->where('nama_lengkap', 'like', "{$search}%")
-                       ->orWhere('kode_karyawan', 'like', "{$search}%");
+                $escapedSearch = addcslashes($search, '%_');
+                $deptIds     = Department::forActiveCompany()->where('department_name', 'like', "{$escapedSearch}%")->pluck('id')->toArray();
+                $karyawanIds = \App\Models\Karyawan::forActiveCompany()->where(function($q2) use ($escapedSearch) {
+                    $q2->where('nama_lengkap', 'like', "{$escapedSearch}%")
+                       ->orWhere('kode_karyawan', 'like', "{$escapedSearch}%");
                 })->pluck('id')->toArray();
 
                 $searchClauses = ['pr.nomor_pr LIKE ?'];
-                $bindings[]    = "{$search}%";
+                $bindings[]    = "{$escapedSearch}%";
 
                 if (!empty($deptIds)) {
                     $placeholders  = implode(',', array_fill(0, count($deptIds), '?'));
@@ -112,7 +115,8 @@ class PurchaseRequisitionController extends Controller
             $whereSQL = implode(' AND ', $where);
 
             // ── Count: real COUNT with cache ──────────────────────────────────
-            $cacheKey = 'pr_cnt_' . md5($whereSQL . serialize($bindings));
+            $prVersion = \Illuminate\Support\Facades\Cache::get('pr_cache_version', 1);
+            $cacheKey = 'pr_cnt_v' . $prVersion . '_' . md5($whereSQL . serialize($bindings));
             $cacheTtl = !empty($search) ? 120 : 300;
             $total = \Illuminate\Support\Facades\Cache::remember($cacheKey, $cacheTtl, function() use ($whereSQL, $bindings) {
                 return (int) DB::scalar("SELECT COUNT(*) FROM purchase_requisitions pr WHERE {$whereSQL}", $bindings);
@@ -183,8 +187,13 @@ class PurchaseRequisitionController extends Controller
                 $isCreator = ($pr->diminta_oleh == $karyawanId) || ($pr->dibuat_oleh == $user->id);
 
                 if ($canEdit) {
-                    // Super Admin can edit any PR (including Approved/Closed), other users can only edit Draft/Pending/Rejected
-                    if ($isSuperAdmin || (($isPrivileged || $isCreator) && in_array($pr->status, ['Draft', 'Pending', 'Rejected']))) {
+                    // Super Admin can edit any PR; for Draft, only creator or admin can edit; for Pending/Rejected, creator or users with edit permission can edit
+                    $canEditRow = $isSuperAdmin || (
+                        in_array($pr->status, ['Pending', 'Rejected']) && ($isPrivileged || $isCreator || $canEdit)
+                    ) || (
+                        $pr->status === 'Draft' && ($isCreator || $isAdmin)
+                    );
+                    if ($canEditRow) {
                         $actionsHtml .= '<button type="button" class="btn btn-light btn-sm text-primary rounded-circle btn-edit" data-id="'.$pr->id.'" title="Edit" style="width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;"><i class="bi bi-pencil"></i></button>';
                     }
                 }
@@ -270,22 +279,29 @@ class PurchaseRequisitionController extends Controller
                 'nomor_pr'            => 'nullable|string|max:15|unique:purchase_requisitions,nomor_pr',
                 'tanggal_pr'          => 'required|date',
                 'tanggal_dibutuhkan'  => 'required|date|after_or_equal:tanggal_pr',
-                'departemen_id'       => 'required|exists:departments,id',
+                'departemen_id'       => 'nullable|exists:departments,id',
                 'diminta_oleh'        => 'required|exists:karyawans,id',
                 'keterangan'          => 'nullable|string|max:40',
                 'status'              => 'required|in:Draft,Pending',
                 'items'               => 'required|array|min:1|max:20',
                 'items.*.barang_id'   => 'required|exists:master_barang,id',
-                'items.*.jumlah'      => 'required|numeric|min:0.01',
-                'items.*.harga_estimasi' => 'required|numeric|min:0',
+                'items.*.satuan_id'   => 'nullable|exists:master_satuan,id',
+                'items.*.faktor_pengali' => 'nullable|numeric|min:0.0001',
+                'items.*.jumlah'      => 'required|numeric|min:0.01|max:9999999999.99',
+                'items.*.harga_estimasi' => 'required|numeric|min:0|max:9999999999999.99',
                 'items.*.keterangan'  => 'nullable|string|max:40',
             ], [
-                'nomor_pr.max'           => 'Nomor PR manual tidak boleh melebihi 15 karakter.',
-                'nomor_pr.unique'        => 'Nomor PR sudah digunakan oleh pengajuan lain!',
-                'keterangan.max'         => 'Keterangan pengajuan tidak boleh melebihi 40 karakter.',
-                'items.min'              => 'Mohon ajukan minimal 1 barang.',
-                'items.max'              => 'Pengajuan PR dibatasi maksimal 20 item barang.',
-                'items.*.keterangan.max' => 'Catatan/keterangan item tidak boleh melebihi 40 karakter.',
+                'diminta_oleh.required'       => 'Harap isikan peminta barang.',
+                'diminta_oleh.exists'         => 'Karyawan peminta barang tidak valid.',
+                'tanggal_pr.required'         => 'Tanggal PR wajib diisi.',
+                'tanggal_dibutuhkan.required' => 'Tanggal dibutuhkan wajib diisi.',
+                'tanggal_dibutuhkan.after_or_equal' => 'Tanggal dibutuhkan tidak boleh lebih awal dari Tanggal PR.',
+                'nomor_pr.max'                => 'Nomor PR manual tidak boleh melebihi 15 karakter.',
+                'nomor_pr.unique'             => 'Nomor PR sudah digunakan oleh pengajuan lain!',
+                'keterangan.max'              => 'Keterangan pengajuan tidak boleh melebihi 40 karakter.',
+                'items.min'                   => 'Mohon ajukan minimal 1 barang.',
+                'items.max'                   => 'Pengajuan PR dibatasi maksimal 20 item barang.',
+                'items.*.keterangan.max'      => 'Catatan/keterangan item tidak boleh melebihi 40 karakter.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('PR Store Validation Errors: ', $e->errors());
@@ -295,10 +311,26 @@ class PurchaseRequisitionController extends Controller
             ], 422);
         }
 
-        // Prevent duplicates
+        // Entity boundary check: Verify requester employee and department belong to active entity scope
+        $karyawan = \App\Models\Karyawan::forActiveCompany()->find($request->diminta_oleh);
+        if (!$karyawan) {
+            return response()->json(['message' => 'Karyawan pemohon yang dipilih tidak valid untuk entitas perusahaan/cabang aktif.'], 422);
+        }
+
+        $departemenId = $request->departemen_id ?: $karyawan->departemen_id;
+        if (!$departemenId || !Department::forActiveCompany()->where('id', $departemenId)->exists()) {
+            return response()->json(['message' => 'Departemen yang dipilih tidak valid atau belum diatur untuk pemohon ini.'], 422);
+        }
+
+        // Prevent duplicate items
         $barangIds = collect($request->items)->pluck('barang_id')->filter()->toArray();
         if (count($barangIds) !== count(array_unique($barangIds))) {
             return response()->json(['message' => 'Barang yang diajukan tidak boleh duplikat!'], 422);
+        }
+
+        $validBarangCount = MasterBarang::forActiveCompany()->whereIn('id', $barangIds)->count();
+        if ($validBarangCount !== count($barangIds)) {
+            return response()->json(['message' => 'Satu atau lebih barang tidak valid untuk perusahaan aktif.'], 422);
         }
 
         $attempts = 0;
@@ -313,13 +345,14 @@ class PurchaseRequisitionController extends Controller
                 if (!empty($request->nomor_pr)) {
                     $nomorPr = trim($request->nomor_pr);
                 } else {
-                    // Auto-generate number PR with pessimistic lock
+                    // Auto-generate number PR with pessimistic lock (including soft-deleted to avoid MySQL 23000 collision)
                     $year = date('Y', strtotime($request->tanggal_pr));
                     $month = date('m', strtotime($request->tanggal_pr));
                     $prefix = "PR/{$year}/{$month}/";
                     
                     $prefixLen = strlen($prefix);
-                    $latestNomor = PurchaseRequisition::where('nomor_pr', 'like', $prefix . '%')
+                    $latestNomor = PurchaseRequisition::withTrashed()
+                        ->where('nomor_pr', 'like', $prefix . '%')
                         ->orderByRaw("LENGTH(nomor_pr) DESC, nomor_pr DESC")
                         ->lockForUpdate()
                         ->value('nomor_pr');
@@ -335,7 +368,7 @@ class PurchaseRequisitionController extends Controller
                     $num = $maxNum + 1;
                     $nomorPr = $prefix . str_pad($num, 4, '0', STR_PAD_LEFT);
 
-                    while (PurchaseRequisition::where('nomor_pr', $nomorPr)->exists()) {
+                    while (PurchaseRequisition::withTrashed()->where('nomor_pr', $nomorPr)->exists()) {
                         $num++;
                         $nomorPr = $prefix . str_pad($num, 4, '0', STR_PAD_LEFT);
                     }
@@ -344,20 +377,16 @@ class PurchaseRequisitionController extends Controller
                 $activeBranchId  = session('active_branch_id'); // NULL for Pusat, integer for Cabang
                 $activeCompanyId = session('active_company_id');
 
-                if (!$activeCompanyId && $activeBranchId) {
-                    $activeCompanyId = \App\Models\Branch::where('id', $activeBranchId)->value('company_id');
-                }
-                if (!$activeCompanyId) {
-                    $activeCompanyId = auth()->user()->companies()->first()?->id ?? 1;
-                }
+                $targetBranchId  = !empty($activeBranchId) ? $activeBranchId : null;
+                $targetCompanyId = !empty($targetBranchId) ? null : ($activeCompanyId ?: auth()->user()->companies()->first()?->id ?? 1);
 
                 $pr = PurchaseRequisition::create([
-                    'company_id'         => $activeCompanyId,
+                    'company_id'         => $targetCompanyId,
                     'nomor_pr'           => $nomorPr,
-                    'branch_id'          => $activeBranchId,
+                    'branch_id'          => $targetBranchId,
                     'tanggal_pr'         => $request->tanggal_pr,
                     'tanggal_dibutuhkan' => $request->tanggal_dibutuhkan,
-                    'departemen_id'      => $request->departemen_id,
+                    'departemen_id'      => $departemenId,
                     'diminta_oleh'       => $request->diminta_oleh,
                     'keterangan'         => $request->keterangan,
                     'status'             => $request->status,
@@ -365,15 +394,19 @@ class PurchaseRequisitionController extends Controller
                 ]);
 
                 $requestItems = $request->items;
-                $barangModels = MasterBarang::whereIn('id', collect($requestItems)->pluck('barang_id'))->get()->keyBy('id');
+                $barangModels = MasterBarang::with('konversiSatuan')->whereIn('id', collect($requestItems)->pluck('barang_id'))->get()->keyBy('id');
 
                 foreach ($requestItems as $item) {
                     $barangId = $item['barang_id'];
                     $bModel = $barangModels->get($barangId);
-                    $satuanId = !empty($item['satuan_id']) ? $item['satuan_id'] : ($bModel->satuan_id ?? null);
-                    $faktorPengali = isset($item['faktor_pengali']) && (float)$item['faktor_pengali'] > 0 ? (float)$item['faktor_pengali'] : 1;
-                    $jumlah = (float)$item['jumlah'];
-                    $jumlahDasar = $jumlah * $faktorPengali;
+                    $resolved = $this->resolveSatuanFaktor($bModel, $item['satuan_id'] ?? null);
+                    if (!$resolved) {
+                        DB::rollBack();
+                        return response()->json(['message' => 'Satuan yang dipilih untuk barang ' . ($bModel->nama_barang ?? '') . ' tidak valid.'], 422);
+                    }
+                    [$satuanId, $faktorPengali] = $resolved;
+                    $jumlah = round((float)$item['jumlah'], 2);           // decimal(12,2)
+                    $jumlahDasar = round($jumlah * $faktorPengali, 4);    // decimal(18,4)
 
                     $pr->details()->create([
                         'barang_id'      => $barangId,
@@ -381,7 +414,7 @@ class PurchaseRequisitionController extends Controller
                         'jumlah'         => $jumlah,
                         'faktor_pengali' => $faktorPengali,
                         'jumlah_dasar'   => $jumlahDasar,
-                        'harga_estimasi' => $item['harga_estimasi'],
+                        'harga_estimasi' => round((float)$item['harga_estimasi'], 2),
                         'keterangan'     => $item['keterangan'] ?? null,
                     ]);
                 }
@@ -417,29 +450,30 @@ class PurchaseRequisitionController extends Controller
     {
         $this->authorize('edit-pr');
 
-        $activeBranchId  = session('active_branch_id');
-        $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId && $purchaseRequisition->company_id != $activeCompanyId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
-        }
-        if ($activeBranchId != $purchaseRequisition->branch_id) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
-        }
-
         $user         = auth()->user();
-        $isPrivileged = $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) || $user->can('approve-pr');
+        $isSuperAdmin = $user->hasRole('Super Admin');
+        $isAdmin      = $user->hasAnyRole(['Super Admin', 'Admin']);
+        $isPrivileged = $isAdmin || $user->hasAnyRole(['Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) 
+                        || $user->can('approve-pr') 
+                        || $user->can('edit-pr');
 
-        if ($purchaseRequisition->status === 'Draft' && $purchaseRequisition->dibuat_oleh !== $user->id) {
+        // Isolation Check: Cabang vs PT Pusat & Perusahaan
+        if ($errorResponse = $this->validateEntityAccess($purchaseRequisition)) {
+            return $errorResponse;
+        }
+
+        $isOwner      = (intval($purchaseRequisition->dibuat_oleh) === intval($user->id)) || 
+                        (!empty($user->karyawan_id) && intval($purchaseRequisition->diminta_oleh) === intval($user->karyawan_id));
+
+        if ($purchaseRequisition->status === 'Draft' && intval($purchaseRequisition->dibuat_oleh) !== intval($user->id) && !$isAdmin) {
             return response()->json(['message' => 'Draft pengajuan ini bersifat privat dan hanya dapat diakses oleh akun pembuatnya.'], 403);
         }
 
-        if (!$isPrivileged && 
-            $purchaseRequisition->diminta_oleh !== $user->karyawan_id &&
-            $purchaseRequisition->dibuat_oleh !== $user->id) {
+        if (!$isPrivileged && !$isOwner) {
             return response()->json(['message' => 'Anda tidak memiliki hak akses untuk mengubah pengajuan ini.'], 403);
         }
 
-        if (!in_array($purchaseRequisition->status, ['Draft', 'Pending', 'Rejected']) && !$user->hasRole('Super Admin')) {
+        if (!in_array($purchaseRequisition->status, ['Draft', 'Pending', 'Rejected']) && !$isSuperAdmin) {
             return response()->json(['message' => 'Pengajuan yang sudah disetujui/selesai tidak dapat diedit!'], 403);
         }
 
@@ -468,23 +502,24 @@ class PurchaseRequisitionController extends Controller
         }
 
         $user         = auth()->user();
-        $isPrivileged = $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) || $user->can('approve-pr');
-        $activeBranchId  = session('active_branch_id');
-        $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId && $purchaseRequisition->company_id != $activeCompanyId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
-        }
-        if (!$isPrivileged && strval($activeBranchId) !== strval($purchaseRequisition->branch_id)) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
+        $isAdmin      = $user->hasAnyRole(['Super Admin', 'Admin']);
+        $isPrivileged = $isAdmin || $user->hasAnyRole(['Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) 
+                        || $user->can('approve-pr') 
+                        || $user->can('lihat-pr');
+
+        // Isolation Check: Cabang vs PT Pusat & Perusahaan
+        if ($errorResponse = $this->validateEntityAccess($purchaseRequisition)) {
+            return $errorResponse;
         }
 
-        if ($purchaseRequisition->status === 'Draft' && $purchaseRequisition->dibuat_oleh !== $user->id) {
+        $isOwner = (intval($purchaseRequisition->dibuat_oleh) === intval($user->id)) || 
+                   (!empty($user->karyawan_id) && intval($purchaseRequisition->diminta_oleh) === intval($user->karyawan_id));
+
+        if ($purchaseRequisition->status === 'Draft' && intval($purchaseRequisition->dibuat_oleh) !== intval($user->id) && !$isAdmin) {
             return response()->json(['message' => 'Draft pengajuan ini bersifat privat dan hanya dapat dilihat oleh akun pembuatnya.'], 403);
         }
 
-        if (!$isPrivileged && 
-            $purchaseRequisition->diminta_oleh !== $user->karyawan_id &&
-            $purchaseRequisition->dibuat_oleh !== $user->id) {
+        if (!$isPrivileged && !$isOwner) {
             return response()->json(['message' => 'Anda tidak memiliki hak akses untuk melihat pengajuan ini.'], 403);
         }
 
@@ -530,28 +565,35 @@ class PurchaseRequisitionController extends Controller
         }
 
         $user         = auth()->user();
-        $isPrivileged = $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) || $user->can('approve-pr');
-        $activeBranchId  = session('active_branch_id');
-        $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId && $purchaseRequisition->company_id != $activeCompanyId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
-        }
-        if (!$isPrivileged && strval($activeBranchId) !== strval($purchaseRequisition->branch_id)) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
+        $isSuperAdmin = $user->hasRole('Super Admin');
+        $isAdmin      = $user->hasAnyRole(['Super Admin', 'Admin']);
+        $isPrivileged = $isAdmin || $user->hasAnyRole(['Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) 
+                        || $user->can('approve-pr') 
+                        || $user->can('edit-pr');
+
+        // Isolation Check: Cabang vs PT Pusat & Perusahaan
+        if ($errorResponse = $this->validateEntityAccess($purchaseRequisition)) {
+            return $errorResponse;
         }
 
-        if ($purchaseRequisition->status === 'Draft' && $purchaseRequisition->dibuat_oleh !== $user->id) {
+        $isOwner = (intval($purchaseRequisition->dibuat_oleh) === intval($user->id)) || 
+                   (!empty($user->karyawan_id) && intval($purchaseRequisition->diminta_oleh) === intval($user->karyawan_id));
+
+        if ($purchaseRequisition->status === 'Draft' && intval($purchaseRequisition->dibuat_oleh) !== intval($user->id) && !$isAdmin) {
             return response()->json(['message' => 'Draft pengajuan ini bersifat privat dan hanya dapat diubah oleh akun pembuatnya.'], 403);
         }
 
-        if (!$isPrivileged && 
-            $purchaseRequisition->diminta_oleh !== $user->karyawan_id &&
-            $purchaseRequisition->dibuat_oleh !== $user->id) {
+        if (!$isPrivileged && !$isOwner) {
             return response()->json(['message' => 'Anda tidak memiliki hak akses untuk mengubah pengajuan ini.'], 403);
         }
 
-        if (!in_array($purchaseRequisition->status, ['Draft', 'Pending', 'Rejected']) && !$user->hasRole('Super Admin')) {
+        if (!in_array($purchaseRequisition->status, ['Draft', 'Pending', 'Rejected']) && !$isSuperAdmin) {
             return response()->json(['message' => 'Pengajuan yang sudah disetujui/selesai tidak dapat diedit!'], 403);
+        }
+
+        // Status escalation security: Non-Super Admin can ONLY transition to Draft or Pending
+        if (!$isSuperAdmin && !in_array($request->status, ['Draft', 'Pending'])) {
+            return response()->json(['message' => 'Anda tidak memiliki wewenang untuk mengubah status menjadi ' . $request->status], 403);
         }
 
         // Log request payload for debugging
@@ -561,20 +603,27 @@ class PurchaseRequisitionController extends Controller
             $request->validate([
                 'tanggal_pr'          => 'required|date',
                 'tanggal_dibutuhkan'  => 'required|date|after_or_equal:tanggal_pr',
-                'departemen_id'       => 'required|exists:departments,id',
+                'departemen_id'       => 'nullable|exists:departments,id',
                 'diminta_oleh'        => 'required|exists:karyawans,id',
                 'keterangan'          => 'nullable|string|max:40',
                 'status'              => 'required|in:Draft,Pending,Approved,Rejected,Closed',
                 'items'               => 'required|array|min:1|max:20',
                 'items.*.barang_id'   => 'required|exists:master_barang,id',
-                'items.*.jumlah'      => 'required|numeric|min:0.01',
-                'items.*.harga_estimasi' => 'required|numeric|min:0',
+                'items.*.satuan_id'   => 'nullable|exists:master_satuan,id',
+                'items.*.faktor_pengali' => 'nullable|numeric|min:0.0001',
+                'items.*.jumlah'      => 'required|numeric|min:0.01|max:9999999999.99',
+                'items.*.harga_estimasi' => 'required|numeric|min:0|max:9999999999999.99',
                 'items.*.keterangan'  => 'nullable|string|max:40',
             ], [
-                'keterangan.max'         => 'Keterangan pengajuan tidak boleh melebihi 40 karakter.',
-                'items.min'              => 'Mohon ajukan minimal 1 barang.',
-                'items.max'              => 'Pengajuan PR dibatasi maksimal 20 item barang.',
-                'items.*.keterangan.max' => 'Catatan/keterangan item tidak boleh melebihi 40 karakter.',
+                'diminta_oleh.required'       => 'Harap isikan peminta barang.',
+                'diminta_oleh.exists'         => 'Karyawan peminta barang tidak valid.',
+                'tanggal_pr.required'         => 'Tanggal PR wajib diisi.',
+                'tanggal_dibutuhkan.required' => 'Tanggal dibutuhkan wajib diisi.',
+                'tanggal_dibutuhkan.after_or_equal' => 'Tanggal dibutuhkan tidak boleh lebih awal dari Tanggal PR.',
+                'keterangan.max'              => 'Keterangan pengajuan tidak boleh melebihi 40 karakter.',
+                'items.min'                   => 'Mohon ajukan minimal 1 barang.',
+                'items.max'                   => 'Pengajuan PR dibatasi maksimal 20 item barang.',
+                'items.*.keterangan.max'      => 'Catatan/keterangan item tidak boleh melebihi 40 karakter.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('PR Update Validation Errors: ', $e->errors());
@@ -584,62 +633,99 @@ class PurchaseRequisitionController extends Controller
             ], 422);
         }
 
+        // Entity boundary check: Verify requester employee and department belong to active entity scope
+        $karyawan = \App\Models\Karyawan::forActiveCompany()->find($request->diminta_oleh);
+        if (!$karyawan) {
+            return response()->json(['message' => 'Karyawan pemohon yang dipilih tidak valid untuk entitas perusahaan/cabang aktif.'], 422);
+        }
+
+        $departemenId = $request->departemen_id ?: $karyawan->departemen_id;
+        if (!$departemenId || !Department::forActiveCompany()->where('id', $departemenId)->exists()) {
+            return response()->json(['message' => 'Departemen yang dipilih tidak valid atau belum diatur untuk pemohon ini.'], 422);
+        }
+
         // Prevent duplicate items
         $barangIds = collect($request->items)->pluck('barang_id')->filter()->toArray();
         if (count($barangIds) !== count(array_unique($barangIds))) {
             return response()->json(['message' => 'Barang yang diajukan tidak boleh duplikat!'], 422);
         }
 
+        $validBarangCount = MasterBarang::forActiveCompany()->whereIn('id', $barangIds)->count();
+        if ($validBarangCount !== count($barangIds)) {
+            return response()->json(['message' => 'Satu atau lebih barang tidak valid untuk perusahaan aktif.'], 422);
+        }
+
         try {
             DB::beginTransaction();
+
+            $existingDetails = $purchaseRequisition->details->keyBy('barang_id');
+            $requestItems = collect($request->items)->keyBy('barang_id');
+
+            // Delete items that are not in request, but verify they are not already ordered in a PO
+            $toDelete = $existingDetails->keys()->diff($requestItems->keys());
+            if ($toDelete->isNotEmpty()) {
+                $deletedDetailIds = $existingDetails->whereIn('barang_id', $toDelete)->pluck('id');
+                $orderedInPo = \App\Models\PurchaseOrderDetail::whereIn('pr_detail_id', $deletedDetailIds)->whereHas('po')->exists();
+                if ($orderedInPo) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Tidak dapat menghapus item barang yang sudah diproses ke dalam Purchase Order (PO)!'], 422);
+                }
+                $purchaseRequisition->details()->whereIn('barang_id', $toDelete)->delete();
+            }
 
             $updateData = [
                 'tanggal_pr'         => $request->tanggal_pr,
                 'tanggal_dibutuhkan' => $request->tanggal_dibutuhkan,
-                'departemen_id'      => $request->departemen_id,
+                'departemen_id'      => $departemenId,
                 'diminta_oleh'       => $request->diminta_oleh,
                 'keterangan'         => $request->keterangan,
                 'status'             => $request->status,
             ];
 
-            // If updating a Rejected / Pending / Draft PR, reset previous approval timestamp/approver
+            // If updating a Rejected / Pending / Draft PR, reset previous approval timestamp/approver and rejection reason
             if (in_array($request->status, ['Draft', 'Pending'])) {
                 $updateData['disetujui_oleh']    = null;
                 $updateData['tanggal_disetujui'] = null;
-            } elseif ($request->status === 'Approved' && auth()->user()->hasRole('Super Admin')) {
+                $updateData['alasan_penolakan']  = null; // Reset rejection reason on resubmit
+            } elseif ($request->status === 'Approved' && $isSuperAdmin) {
                 $updateData['disetujui_oleh']    = $purchaseRequisition->disetujui_oleh ?? auth()->id();
                 $updateData['tanggal_disetujui'] = $purchaseRequisition->tanggal_disetujui ?? now();
             }
 
             $purchaseRequisition->update($updateData);
 
-            // Sync details: Update existing, create new, delete removed
-            $existingDetails = $purchaseRequisition->details->keyBy('barang_id');
-            $requestItems = collect($request->items)->keyBy('barang_id');
+            $barangModels = MasterBarang::with('konversiSatuan')->whereIn('id', $requestItems->keys())->get()->keyBy('id');
 
-            // Delete items that are not in request
-            $toDelete = $existingDetails->keys()->diff($requestItems->keys());
-            if ($toDelete->isNotEmpty()) {
-                $purchaseRequisition->details()->whereIn('barang_id', $toDelete)->delete();
-            }
-
-            $barangModels = MasterBarang::whereIn('id', $requestItems->keys())->get()->keyBy('id');
-
-            // Update or Create
+            // Update or Create details
             foreach ($request->items as $item) {
                 $barangId = $item['barang_id'];
                 $bModel = $barangModels->get($barangId);
-                $satuanId = !empty($item['satuan_id']) ? $item['satuan_id'] : ($bModel->satuan_id ?? null);
-                $faktorPengali = isset($item['faktor_pengali']) && (float)$item['faktor_pengali'] > 0 ? (float)$item['faktor_pengali'] : 1;
-                $jumlah = (float)$item['jumlah'];
-                $jumlahDasar = $jumlah * $faktorPengali;
+                $resolved = $this->resolveSatuanFaktor($bModel, $item['satuan_id'] ?? null);
+                if (!$resolved) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Satuan yang dipilih untuk barang ' . ($bModel->nama_barang ?? '') . ' tidak valid.'], 422);
+                }
+                [$satuanId, $faktorPengali] = $resolved;
+                $jumlah = round((float)$item['jumlah'], 2);           // decimal(12,2)
+                $jumlahDasar = round($jumlah * $faktorPengali, 4);    // decimal(18,4)
+
+                // Validate that quantity is not reduced below already ordered PO quantity
+                if ($existingDetails->has($barangId)) {
+                    $existingItem = $existingDetails->get($barangId);
+                    $orderedQty = (float) \App\Models\PurchaseOrderDetail::where('pr_detail_id', $existingItem->id)->whereHas('po')->sum('jumlah');
+                    if ($jumlah < $orderedQty) {
+                        DB::rollBack();
+                        $bName = $bModel?->nama_barang ?? 'Barang';
+                        return response()->json(['message' => "Jumlah item {$bName} ({$jumlah}) tidak boleh lebih kecil dari jumlah yang sudah dipesan di PO ({$orderedQty})!"], 422);
+                    }
+                }
 
                 $detailPayload = [
                     'satuan_id'      => $satuanId,
                     'jumlah'         => $jumlah,
                     'faktor_pengali' => $faktorPengali,
                     'jumlah_dasar'   => $jumlahDasar,
-                    'harga_estimasi' => $item['harga_estimasi'],
+                    'harga_estimasi' => round((float)$item['harga_estimasi'], 2),
                     'keterangan'     => $item['keterangan'] ?? null,
                 ];
 
@@ -677,28 +763,37 @@ class PurchaseRequisitionController extends Controller
         }
 
         $user         = auth()->user();
-        $isPrivileged = $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) || $user->can('approve-pr');
-        $activeBranchId  = session('active_branch_id');
-        $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId && $purchaseRequisition->company_id != $activeCompanyId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
-        }
-        if (!$isPrivileged && strval($activeBranchId) !== strval($purchaseRequisition->branch_id)) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
+        $isSuperAdmin = $user->hasRole('Super Admin');
+        $isAdmin      = $user->hasAnyRole(['Super Admin', 'Admin']);
+        $isPrivileged = $isAdmin || $user->hasAnyRole(['Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) 
+                        || $user->can('approve-pr') 
+                        || $user->can('hapus-pr');
+
+        // Isolation Check: Cabang vs PT Pusat & Perusahaan
+        if ($errorResponse = $this->validateEntityAccess($purchaseRequisition)) {
+            return $errorResponse;
         }
 
-        if ($purchaseRequisition->status === 'Draft' && $purchaseRequisition->dibuat_oleh !== $user->id) {
+        $isOwner = (intval($purchaseRequisition->dibuat_oleh) === intval($user->id)) || 
+                   (!empty($user->karyawan_id) && intval($purchaseRequisition->diminta_oleh) === intval($user->karyawan_id));
+
+        if ($purchaseRequisition->status === 'Draft' && intval($purchaseRequisition->dibuat_oleh) !== intval($user->id) && !$isAdmin) {
             return response()->json(['message' => 'Draft pengajuan ini bersifat privat dan hanya dapat dihapus oleh akun pembuatnya.'], 403);
         }
 
-        if (!$isPrivileged && 
-            $purchaseRequisition->diminta_oleh !== $user->karyawan_id &&
-            $purchaseRequisition->dibuat_oleh !== $user->id) {
+        if (!$isPrivileged && !$isOwner) {
             return response()->json(['message' => 'Anda tidak memiliki hak akses untuk menghapus pengajuan ini.'], 403);
         }
 
-        if ($purchaseRequisition->status !== 'Draft' && !$user->hasRole('Super Admin')) {
+        if ($purchaseRequisition->status !== 'Draft' && !$isSuperAdmin) {
             return response()->json(['message' => 'Hanya pengajuan berstatus Draft yang dapat dihapus! Pengajuan berstatus ' . $purchaseRequisition->status . ' tidak dapat dihapus.'], 403);
+        }
+
+        // Integrity check: Prevent deleting PR if already processed into a Purchase Order
+        $detailIds = $purchaseRequisition->details()->pluck('id');
+        if (\App\Models\PurchaseOrder::where('pr_id', $purchaseRequisition->id)->exists() || 
+            \App\Models\PurchaseOrderDetail::whereIn('pr_detail_id', $detailIds)->whereHas('po')->exists()) {
+            return response()->json(['message' => 'Pengajuan pembelian ini tidak dapat dihapus karena sudah diproses ke dalam Purchase Order (PO)!'], 422);
         }
 
         try {
@@ -719,34 +814,42 @@ class PurchaseRequisitionController extends Controller
     {
         $this->authorize('approve-pr');
 
-        $pr = PurchaseRequisition::find($id);
-        if (!$pr) {
-            return response()->json(['message' => 'Pengajuan pembelian tidak ditemukan.'], 404);
-        }
-
-        $user         = auth()->user();
-        $isPrivileged = $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) || $user->can('approve-pr');
-        $activeBranchId  = session('active_branch_id');
-        $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId && $pr->company_id != $activeCompanyId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
-        }
-        if (!$isPrivileged && strval($activeBranchId) !== strval($pr->branch_id)) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
-        }
-
-        if ($pr->status !== 'Pending') {
-            return response()->json(['message' => 'Hanya pengajuan dengan status Pending yang dapat disetujui!'], 422);
-        }
+        $user = auth()->user();
 
         try {
             DB::beginTransaction();
+
+            $pr = PurchaseRequisition::where('id', $id)->lockForUpdate()->first();
+            if (!$pr) {
+                DB::rollBack();
+                return response()->json(['message' => 'Pengajuan pembelian tidak ditemukan.'], 404);
+            }
+
+            if ($errorResponse = $this->validateEntityAccess($pr)) {
+                DB::rollBack();
+                return $errorResponse;
+            }
+
+            if ($pr->status !== 'Pending') {
+                DB::rollBack();
+                return response()->json(['message' => 'Hanya pengajuan dengan status Pending yang dapat disetujui! Status saat ini: ' . $pr->status], 422);
+            }
+
+            // Segregation of Duties (SOD): Creator or requester cannot self-approve their own PR unless Super Admin, Owner, or Director
+            $isCreator = (intval($pr->dibuat_oleh) === intval($user->id)) || 
+                         (!empty($user->karyawan_id) && intval($pr->diminta_oleh) === intval($user->karyawan_id));
+            if ($isCreator && !$user->hasAnyRole(['Super Admin', 'Owner', 'Director'])) {
+                DB::rollBack();
+                return response()->json(['message' => 'Anda tidak dapat menyetujui pengajuan yang Anda buat sendiri demi kepatuhan pemisahan tugas (Segregation of Duties).'], 403);
+            }
+
             $pr->update([
                 'status'            => 'Approved',
                 'alasan_penolakan'  => null,
                 'disetujui_oleh'    => auth()->id(),
                 'tanggal_disetujui' => now(),
             ]);
+
             DB::commit();
             $this->clearPrCache();
 
@@ -767,36 +870,42 @@ class PurchaseRequisitionController extends Controller
     {
         $this->authorize('approve-pr');
 
-        $pr = PurchaseRequisition::find($id);
-        if (!$pr) {
-            return response()->json(['message' => 'Pengajuan pembelian tidak ditemukan.'], 404);
-        }
+        $request->validate([
+            'alasan' => 'nullable|string|max:255',
+        ], [
+            'alasan.max' => 'Alasan penolakan maksimal 255 karakter.',
+        ]);
 
-        $user         = auth()->user();
-        $isPrivileged = $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) || $user->can('approve-pr');
-        $activeBranchId  = session('active_branch_id');
-        $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId && $pr->company_id != $activeCompanyId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
-        }
-        if (!$isPrivileged && strval($activeBranchId) !== strval($pr->branch_id)) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
-        }
-
-        if ($pr->status !== 'Pending') {
-            return response()->json(['message' => 'Hanya pengajuan dengan status Pending yang dapat ditolak!'], 422);
-        }
-
-        $alasan = $request->input('alasan');
+        $user = auth()->user();
 
         try {
             DB::beginTransaction();
+
+            $pr = PurchaseRequisition::where('id', $id)->lockForUpdate()->first();
+            if (!$pr) {
+                DB::rollBack();
+                return response()->json(['message' => 'Pengajuan pembelian tidak ditemukan.'], 404);
+            }
+
+            if ($errorResponse = $this->validateEntityAccess($pr)) {
+                DB::rollBack();
+                return $errorResponse;
+            }
+
+            if ($pr->status !== 'Pending') {
+                DB::rollBack();
+                return response()->json(['message' => 'Hanya pengajuan dengan status Pending yang dapat ditolak! Status saat ini: ' . $pr->status], 422);
+            }
+
+            $alasan = $request->input('alasan');
+
             $pr->update([
                 'status'            => 'Rejected',
                 'alasan_penolakan'  => $alasan,
                 'disetujui_oleh'    => auth()->id(),
                 'tanggal_disetujui' => now(),
             ]);
+
             DB::commit();
             $this->clearPrCache();
 
@@ -816,7 +925,12 @@ class PurchaseRequisitionController extends Controller
     public function print($id)
     {
         $user = auth()->user();
-        $isPrivileged = $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) || $user->can('approve-pr');
+        $isAdmin = $user->hasAnyRole(['Super Admin', 'Admin']);
+        $isPrivileged = $isAdmin || $user->hasAnyRole(['Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) 
+                        || $user->can('approve-pr')
+                        || $user->can('cetak-pr')
+                        || $user->can('print-pr')
+                        || $user->can('lihat-pr');
 
         if (!$user->can('cetak-pr') && !$user->can('print-pr') && !$isPrivileged) {
             $this->authorize('cetak-pr');
@@ -827,22 +941,16 @@ class PurchaseRequisitionController extends Controller
             abort(404, 'Pengajuan pembelian tidak ditemukan.');
         }
 
-        $activeBranchId  = session('active_branch_id');
-        $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId && $purchaseRequisition->company_id != $activeCompanyId) {
-            abort(403, 'Anda tidak memiliki akses ke data perusahaan lain.');
-        }
-        if (!$isPrivileged && strval($activeBranchId) !== strval($purchaseRequisition->branch_id)) {
-            abort(403, 'Anda tidak memiliki akses ke data cabang lain / pusat.');
-        }
+        $this->checkEntityAccessAbort($purchaseRequisition);
 
-        if ($purchaseRequisition->status === 'Draft' && $purchaseRequisition->dibuat_oleh !== $user->id) {
+        $isOwner = (intval($purchaseRequisition->dibuat_oleh) === intval($user->id)) || 
+                   (!empty($user->karyawan_id) && intval($purchaseRequisition->diminta_oleh) === intval($user->karyawan_id));
+
+        if ($purchaseRequisition->status === 'Draft' && intval($purchaseRequisition->dibuat_oleh) !== intval($user->id) && !$isAdmin) {
             abort(403, 'Draft pengajuan ini bersifat privat dan hanya dapat dicetak oleh akun pembuatnya.');
         }
 
-        if (!$isPrivileged && 
-            $purchaseRequisition->diminta_oleh !== $user->karyawan_id &&
-            $purchaseRequisition->dibuat_oleh !== $user->id) {
+        if (!$isPrivileged && !$isOwner) {
             abort(403, 'Anda tidak memiliki hak akses untuk mencetak pengajuan ini.');
         }
 
@@ -912,17 +1020,19 @@ class PurchaseRequisitionController extends Controller
         }
 
         if (!empty($search)) {
-            $query->where(function($q) use ($search) {
+            $escapedSearch = addcslashes($search, '%_');
+            $query->where(function($q) use ($escapedSearch) {
                 // Prefer prefix match (uses index); wildcard fallback only for mid-word searches
-                $q->where('nama_barang', 'like', "{$search}%")
-                  ->orWhere('kode_barang', 'like', "{$search}%");
+                $q->where('nama_barang', 'like', "{$escapedSearch}%")
+                  ->orWhere('kode_barang', 'like', "{$escapedSearch}%");
             });
         }
 
         // ── Count strategy ─────────────────────────────────────────────────────
         // Accurate cached COUNT per company, tipe, and search term
         $activeCompanyId = session('active_company_id');
-        $cacheKey = 'srch_brg_cnt_' . md5(($activeCompanyId ?? 0) . '|' . ($tipe ?? '') . '|' . ($search ?? ''));
+        $prVersion = \Illuminate\Support\Facades\Cache::get('pr_cache_version', 1);
+        $cacheKey = 'srch_brg_cnt_v' . $prVersion . '_' . md5(($activeCompanyId ?? 0) . '|' . ($tipe ?? '') . '|' . ($search ?? ''));
         $total = \Illuminate\Support\Facades\Cache::remember($cacheKey, 120, function() use ($query) {
             return (clone $query)->count();
         });
@@ -987,9 +1097,110 @@ class PurchaseRequisitionController extends Controller
     private function clearPrCache()
     {
         try {
-            \Illuminate\Support\Facades\Cache::flush();
+            \Illuminate\Support\Facades\Cache::increment('pr_cache_version');
         } catch (\Throwable $e) {
-            Log::warning('Failed to clear PR cache: ' . $e->getMessage());
+            try {
+                \Illuminate\Support\Facades\Cache::put('pr_cache_version', time(), 86400);
+            } catch (\Throwable $e2) {
+                Log::warning('Failed to increment PR cache version: ' . $e2->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Resolve valid satuan_id and faktor_pengali for a barang.
+     * Returns [$satuanId, $faktorPengali] or null if invalid.
+     *
+     * @param MasterBarang|null $barang
+     * @param int|string|null $satuanId
+     * @return array|null
+     */
+    private function resolveSatuanFaktor(?MasterBarang $barang, $satuanId): ?array
+    {
+        if (!$barang) {
+            return null;
+        }
+
+        // If no satuan specified, fallback to barang base unit
+        if (empty($satuanId)) {
+            if (!empty($barang->satuan_id)) {
+                return [(int)$barang->satuan_id, 1.0];
+            }
+            return null;
+        }
+
+        // If selected unit is base unit
+        if ((int)$satuanId === (int)$barang->satuan_id) {
+            return [(int)$barang->satuan_id, 1.0];
+        }
+
+        // Check if selected unit is in konversiSatuan
+        $konversi = null;
+        if ($barang->relationLoaded('konversiSatuan')) {
+            $konversi = $barang->konversiSatuan->first(function ($ks) use ($satuanId) {
+                return (int)$ks->satuan_id === (int)$satuanId;
+            });
+        } else {
+            $konversi = $barang->konversiSatuan()->where('satuan_id', $satuanId)->first();
+        }
+
+        if ($konversi && (float)$konversi->faktor_pengali > 0) {
+            return [(int)$satuanId, (float)$konversi->faktor_pengali];
+        }
+
+        return null;
+    }
+
+    /**
+     * Memeriksa validasi isolasi data Cabang vs PT Pusat & Perusahaan.
+     * Mengembalikan Response 403 Json jika tidak valid, atau null jika valid.
+     */
+    private function validateEntityAccess(PurchaseRequisition $purchaseRequisition): ?\Illuminate\Http\JsonResponse
+    {
+        $user            = auth()->user();
+        $canCrossEntity  = $user && $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director']);
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
+
+        if (!empty($activeBranchId)) {
+            // Sesi Cabang Aktif: Data harus milik cabang yang sedang aktif
+            if (!$canCrossEntity && strval($activeBranchId) !== strval($purchaseRequisition->branch_id)) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
+            }
+        } else {
+            // Sesi PT Pusat Aktif: Data harus milik Pusat (branch_id IS NULL) dan company_id sesuai PT aktif
+            if (!$canCrossEntity && !empty($purchaseRequisition->branch_id)) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain / pusat.'], 403);
+            }
+            if ($activeCompanyId && $purchaseRequisition->company_id && $purchaseRequisition->company_id != $activeCompanyId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Helper abort untuk print
+     */
+    private function checkEntityAccessAbort(PurchaseRequisition $purchaseRequisition): void
+    {
+        $user            = auth()->user();
+        $canCrossEntity  = $user && $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director']);
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
+
+        if (!empty($activeBranchId)) {
+            if (!$canCrossEntity && strval($activeBranchId) !== strval($purchaseRequisition->branch_id)) {
+                abort(403, 'Anda tidak memiliki akses ke data cabang lain / pusat.');
+            }
+        } else {
+            if (!$canCrossEntity && !empty($purchaseRequisition->branch_id)) {
+                abort(403, 'Anda tidak memiliki akses ke data cabang lain / pusat.');
+            }
+            if ($activeCompanyId && $purchaseRequisition->company_id && $purchaseRequisition->company_id != $activeCompanyId) {
+                abort(403, 'Anda tidak memiliki akses ke data perusahaan lain.');
+            }
         }
     }
 
@@ -1029,13 +1240,20 @@ class PurchaseRequisitionController extends Controller
             }
 
             $user            = auth()->user();
-            $isPrivileged    = $user->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) || $user->can('approve-pr');
+            $isAdmin         = $user->hasAnyRole(['Super Admin', 'Admin']);
+            $isPrivileged    = $isAdmin || $user->hasAnyRole(['Owner', 'Director', 'Purchasing', 'Manager Produksi', 'Manager Finance', 'Manager']) 
+                               || $user->can('approve-pr') 
+                               || $user->can('lihat-pr');
             $activeBranchId  = session('active_branch_id');
             $activeCompanyId = session('active_company_id');
 
             $query = PurchaseRequisition::with(['department', 'requester', 'details.satuan', 'details.barang.satuan'])
-                ->when($activeCompanyId, fn($q) => $q->where('company_id', $activeCompanyId))
-                ->when(!empty($activeBranchId), fn($q) => $q->where('branch_id', intval($activeBranchId)), fn($q) => $q->whereNull('branch_id'))
+                ->when(!empty($activeBranchId), fn($q) => $q->where('branch_id', intval($activeBranchId)), function($q) use ($activeCompanyId) {
+                    $q->whereNull('branch_id');
+                    if ($activeCompanyId) {
+                        $q->where('company_id', $activeCompanyId);
+                    }
+                })
                 ->whereBetween('tanggal_pr', [$start->toDateString(), $end->toDateString()]);
 
             if ($isPrivileged) {
@@ -1067,7 +1285,7 @@ class PurchaseRequisitionController extends Controller
             }
 
             if (!empty($departemen)) {
-                $deptId = Department::where('department_name', $departemen)->value('id');
+                $deptId = Department::forActiveCompany()->where('department_name', $departemen)->value('id');
                 if ($deptId) {
                     $query->where('departemen_id', $deptId);
                 }

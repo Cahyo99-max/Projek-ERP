@@ -199,21 +199,10 @@
                         <span class="p-2 rounded-3 bg-primary-subtle text-primary d-inline-flex align-items-center">
                             <i class="bi bi-bag-check-fill fs-5"></i>
                         </span>
-                        Order Penjualan & Kasir Sales
+                        Order Penjualan 
                     </h4>
-                    @if($activeCompany)
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5 rounded-pill fs-7 d-inline-flex align-items-center gap-1.5 shadow-sm">
-                        <i class="bi bi-building"></i>
-                        <span>PT: <strong>{{ $activeCompany->nama_perusahaan }}</strong></span>
-                        @if($activeBranch)
-                            <span class="mx-1 text-muted">|</span>
-                            <i class="bi bi-geo-alt"></i>
-                            <span>{{ $activeBranch->nama_cabang }}</span>
-                        @endif
-                    </span>
-                    @endif
                 </div>
-                <div class="text-muted small">Katalog produk, persediaan stok, dan transaksi penjualan khusus entitas <strong>{{ $activeCompany->nama_perusahaan ?? 'Perusahaan Aktif' }}</strong>.</div>
+
             </div>
 
             <!-- Right Header Actions -->
@@ -263,16 +252,23 @@
                                     </div>
                                 </div>
 
-                                <!-- Category Pills -->
+                                <!-- Category Pills (Tokopedia Style Interactive Buttons) -->
                                 <div class="col-12 pt-1">
                                     <div class="tkpd-category-pills">
-                                        <div class="tkpd-cat-pill active" data-cat-id="all">
+                                        <button type="button" class="tkpd-cat-pill active" data-cat-id="all">
                                             <i class="bi bi-grid-fill me-1"></i> Semua Kategori
-                                        </div>
+                                            <span class="badge bg-white text-dark ms-1 px-1.5 py-0.5 rounded-pill font-monospace small" style="font-size: 0.72rem;">{{ $barangList->count() }}</span>
+                                        </button>
                                         @foreach($categories as $cat)
-                                             <div class="tkpd-cat-pill" data-cat-id="{{ $cat->id }}">
+                                            @php
+                                                $catCount = $barangList->where('kategori_barang_id', $cat->id)->count();
+                                            @endphp
+                                            <button type="button" class="tkpd-cat-pill" data-cat-id="{{ $cat->id }}">
                                                 {{ $cat->nama_kategori }}
-                                            </div>
+                                                @if($catCount > 0)
+                                                    <span class="badge bg-primary-subtle text-primary ms-1 px-1.5 py-0.5 rounded-pill font-monospace small" style="font-size: 0.72rem;">{{ $catCount }}</span>
+                                                @endif
+                                            </button>
                                         @endforeach
                                     </div>
                                 </div>
@@ -280,9 +276,80 @@
                             </div>
                         </div>
 
-                        <!-- Product Grid Container -->
+                        <!-- Product Grid Container (Instant Server-Side Render + Dynamic AJAX Support) -->
                         <div id="product_grid_container">
-                            <!-- Dynamic Content Rendered by JS -->
+                            @if($barangList->isEmpty())
+                                <div class="col-12 text-center py-5">
+                                    <div class="mb-3 text-muted" style="font-size: 3rem;"><i class="bi bi-search"></i></div>
+                                    <h6 class="fw-bold text-secondary">Produk Tidak Ditemukan</h6>
+                                    <p class="text-muted small">Belum ada katalog produk yang tersedia untuk entitas ini.</p>
+                                </div>
+                            @else
+                                <div class="tkpd-product-grid">
+                                    @foreach($barangList as $p)
+                                        @php
+                                            $isJasa = ($p->tipe_item === 'Jasa');
+                                            $isBundle = ($p->tipe_item === 'Bundle');
+                                            $isOutOfStock = (!$isJasa && $p->total_stok <= 0);
+                                            $photoSrc = $p->resolved_photo_url ?: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300' fill='%23f1f5f9'><rect width='300' height='300' fill='%23f1f5f9'/><g transform='translate(110, 100)'><rect x='0' y='0' width='80' height='80' rx='16' fill='%23e2e8f0'/><path d='M25 50 L38 35 L48 45 L58 32 L68 46 L68 56 L25 56 Z' fill='%2394a3b8'/><circle cx='34' cy='28' r='6' fill='%23cbd5e1'/></g><text x='150' y='210' font-family='sans-serif' font-size='13' font-weight='600' fill='%2394a3b8' text-anchor='middle'>Tidak Ada Foto</text></svg>";
+                                            $hRetail = (float)($p->harga_jual_retail ?? $p->harga_retail ?? 0);
+                                            $hGrosir = (float)($p->harga_jual_grosir ?? $p->harga_grosir ?? $hRetail);
+                                            $hTender = (float)($p->harga_jual_tender ?? $p->harga_tender ?? $hRetail);
+                                            $activePrice = $hRetail;
+                                        @endphp
+                                        <div class="tkpd-card {{ $isOutOfStock ? 'out-of-stock' : '' }}" data-retail="{{ $hRetail }}" data-grosir="{{ $hGrosir }}" data-tender="{{ $hTender }}">
+                                            <div class="tkpd-card-img-wrap btn-show-prod-detail cursor-pointer" data-id="{{ $p->id }}" title="Klik untuk lihat detail & foto">
+                                                @if($isJasa)
+                                                    <span class="tkpd-badge-stock bg-info text-white">Layanan / Jasa</span>
+                                                @elseif(!$isOutOfStock)
+                                                    <span class="tkpd-badge-stock bg-success text-white">Stok: {{ (float)$p->total_stok }}</span>
+                                                @else
+                                                    <span class="tkpd-badge-stock bg-danger text-white">Stok Habis</span>
+                                                @endif
+
+                                                @if($p->tipe_item === 'Bundle')
+                                                    <span class="tkpd-badge-type bg-primary text-white">Bundle</span>
+                                                @endif
+
+                                                <img src="{{ $photoSrc }}" class="tkpd-card-img" alt="{{ $p->nama_barang }}" onerror="window.handleImgError(this)">
+                                            </div>
+                                            <div class="tkpd-card-body">
+                                                <div>
+                                                    <div class="tkpd-card-meta d-flex justify-content-between">
+                                                        <span class="text-truncate">{{ $p->kategori ? $p->kategori->nama_kategori : '-' }}</span>
+                                                        <span class="fw-bold">{{ $p->kode_barang }}</span>
+                                                    </div>
+                                                    <div class="tkpd-card-title btn-show-prod-detail cursor-pointer" data-id="{{ $p->id }}" title="{{ $p->nama_barang }}">{{ $p->nama_barang }}</div>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <div class="tkpd-card-price tkpd-price-retail">
+                                                        Rp {{ number_format($activePrice, 2, ',', '.') }}
+                                                    </div>
+                                                    @if($isOutOfStock)
+                                                        <button class="tkpd-btn-add disabled" disabled title="Stok barang sedang kosong">
+                                                            <i class="bi bi-slash-circle"></i> Stok Habis
+                                                        </button>
+                                                    @else
+                                                        <button class="tkpd-btn-add btn-add-cart" 
+                                                                data-id="{{ $p->id }}" 
+                                                                data-kode="{{ $p->kode_barang }}" 
+                                                                data-nama="{{ $p->nama_barang }}" 
+                                                                data-satuan="{{ $p->satuan ? $p->satuan->nama_satuan : 'Pcs' }}" 
+                                                                data-tipe="{{ $p->tipe_item }}"
+                                                                data-photo="{{ $photoSrc }}" 
+                                                                data-retail="{{ $hRetail }}" 
+                                                                data-grosir="{{ $hGrosir }}" 
+                                                                data-tender="{{ $hTender }}" 
+                                                                data-stock="{{ $p->total_stok }}">
+                                                            <i class="bi bi-cart-plus-fill"></i> + Keranjang
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
 
                         <!-- Simple Pagination -->
@@ -303,21 +370,21 @@
                         <div>
                             <h5 class="fw-bold mb-1 d-flex align-items-center gap-2">
                                 <i class="bi bi-journal-text text-primary"></i>
-                                Daftar Surat Pesanan (Sales Orders)
+                                Daftar Pesanan 
                             </h5>
-                            <div class="text-muted small">Kelola, tinjau faktur pesanan, dan perbarui status pesanan pelanggan.</div>
+                            
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-body-tertiary border-end-0 rounded-start-3"><i class="bi bi-funnel"></i></span>
                                 <select class="form-select form-select-sm border-start-0 rounded-end-3" id="history_status_filter" style="min-width: 170px;">
                                     <option value="all">Semua Status</option>
+                                    <option value="Confirmed">Menunggu Kirim</option>
                                     <option value="Draft">Draft</option>
-                                    <option value="Confirmed">Terkonfirmasi</option>
                                     <option value="Processing">Diproses</option>
-                                    <option value="Delivered">Dikirim</option>
+                                    <option value="Delivered">Terkirim</option>
                                     <option value="Completed">Selesai</option>
-                                    <option value="Cancelled">Dibatalkan</option>
+                                    <option value="Cancelled">Batal</option>
                                 </select>
                             </div>
                         </div>
@@ -351,12 +418,14 @@
 
     </div>
 
+    @push('modals')
     {{-- Modals & Offcanvas Drawer --}}
     @include('modul_marketing.order._drawer_cart')
     @include('modul_marketing.order._modal_product_detail')
     @include('modul_marketing.order._modal_checkout')
     @include('modul_marketing.order._modal_order_detail')
     @include('modul_marketing.order._modal_edit_order')
+    @endpush
 
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

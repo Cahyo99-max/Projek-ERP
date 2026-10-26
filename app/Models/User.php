@@ -27,6 +27,7 @@ class User extends Authenticatable
         'no_hp',
         'jenis_kelamin',
         'foto',
+        'login_terakhir',
         'deleted_by',
     ];
 

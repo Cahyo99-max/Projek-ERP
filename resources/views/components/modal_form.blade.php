@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{{ asset('css/modal_form.css') }}">
 @endpush
 
-<div class="modal fade" id="{{ $id }}" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="{{ $id }}" tabindex="-1" aria-hidden="true" data-bs-focus="false" data-focus="false">
     <div class="modal-dialog {{ $size }} modal-dialog-centered my-4" @if($size === 'modal-xl') style="max-width: 1120px; width: 95vw;" @endif>
         <div class="modal-content modal-content-custom bg-body">
             <div class="modal-header header-cinematic">

@@ -779,7 +779,12 @@
                     <div class="sig-role editable-text">Dibuat Oleh,</div>
                     <div class="sig-box">
                         @if($purchaseRequisition->creator?->activeSignature)
-                            <img src="{{ asset($purchaseRequisition->creator->activeSignature->signature_path) }}" alt="TTD">
+                            @php
+                                $creatorSig = $purchaseRequisition->creator->activeSignature->signature_base64 ?: $purchaseRequisition->creator->activeSignature->signature_url;
+                            @endphp
+                            @if($creatorSig)
+                                <img src="{{ $creatorSig }}" alt="TTD">
+                            @endif
                         @endif
                     </div>
                     <hr class="sig-line">
@@ -793,7 +798,14 @@
                     <div class="sig-box">
                         @if(in_array($purchaseRequisition->status, ['Approved', 'Closed']))
                             @if($purchaseRequisition->approver?->activeSignature)
-                                <img src="{{ asset($purchaseRequisition->approver->activeSignature->signature_path) }}" alt="TTD Approver">
+                                @php
+                                    $approverSig = $purchaseRequisition->approver->activeSignature->signature_base64 ?: $purchaseRequisition->approver->activeSignature->signature_url;
+                                @endphp
+                                @if($approverSig)
+                                    <img src="{{ $approverSig }}" alt="TTD Approver">
+                                @else
+                                    <span class="stamp stamp-approved">DISETUJUI</span>
+                                @endif
                             @else
                                 <span class="stamp stamp-approved">DISETUJUI</span>
                             @endif
@@ -876,7 +888,7 @@
                 backgroundColor: '#ffffff'
             }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'PR-' + '{{ $purchaseRequisition->nomor_pr }}'.replace(/\//g, '-') + '.png';
+                link.download = 'PR-' + '{{ addslashes($purchaseRequisition->nomor_pr) }}'.replace(/\//g, '-') + '.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
 

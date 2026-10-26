@@ -533,29 +533,50 @@
                 }, false);
             };
 
-            // ===== REAL-TIME PR STATUS AUTO-SYNC (ULTRA-FAST SILENT POLL WITH INTERACTION GUARDS) =====
+            // ===== REAL-TIME PR STATUS AUTO-SYNC (SUB-SECOND SILENT POLL < 1 DETIK) =====
             let isSilentReloading = false;
-            let isUserInteracting = false;
+            let pollTimer = null;
+            const POLL_INTERVAL = 800; // < 1 detik (800ms) untuk sinkronisasi real-time instan
 
-            $(document).on('mouseenter', '#tablePR', function() { isUserInteracting = true; });
-            $(document).on('mouseleave', '#tablePR', function() { isUserInteracting = false; });
-            $(document).on('touchstart', '#tablePR', function() { isUserInteracting = true; });
-            $(document).on('touchend', '#tablePR', function() { setTimeout(() => { isUserInteracting = false; }, 1500); });
+            dtPR.on('error.dt', function() {
+                isSilentReloading = false;
+                scheduleNextPoll(POLL_INTERVAL * 2); // Mundur sedikit jika ada error jaringan sementara
+            });
 
-            setInterval(function () {
+            function scheduleNextPoll(delay = POLL_INTERVAL) {
+                if (pollTimer) clearTimeout(pollTimer);
+                pollTimer = setTimeout(runSilentPoll, delay);
+            }
+
+            function runSilentPoll() {
                 const isSearching = $('div.dataTables_filter input').is(':focus');
                 const isModalOpen = $('.modal.show').length > 0;
                 const pageHidden  = document.hidden;
-                if (!pageHidden && !isModalOpen && !isSearching && !isUserInteracting && !isSilentReloading && $.fn.DataTable.isDataTable('#tablePR')) {
+
+                if (!pageHidden && !isModalOpen && !isSearching && !isSilentReloading && $.fn.DataTable.isDataTable('#tablePR')) {
                     isSilentReloading = true;
                     let settings = dtPR.settings()[0];
                     if (settings) settings.oFeatures.bProcessing = false;
+
                     dtPR.ajax.reload(function() {
                         if (settings) settings.oFeatures.bProcessing = true;
                         isSilentReloading = false;
+                        scheduleNextPoll(POLL_INTERVAL);
                     }, false);
+                } else {
+                    scheduleNextPoll(POLL_INTERVAL);
                 }
-            }, 1500);
+            }
+
+            // Jalankan polling real-time < 1 detik
+            scheduleNextPoll(POLL_INTERVAL);
+
+            // Instant sync saat user kembali membuka tab browser
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    runSilentPoll();
+                }
+            });
 
             // ===== INJECT TAB FILTER PILLS =====
             const tabHtml = `

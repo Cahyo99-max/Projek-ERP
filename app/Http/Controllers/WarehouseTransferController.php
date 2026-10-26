@@ -1035,7 +1035,8 @@ class WarehouseTransferController extends Controller
         foreach ($warehouseTransfer->details as $detail) {
             $barangNama = $detail->barang ? $detail->barang->nama_barang : 'Barang';
             $satuanNama = ($detail->barang && $detail->barang->satuan) ? $detail->barang->satuan->nama_satuan : '';
-            $qtyFmt     = number_format((float)$detail->jumlah, 0, ',', '.');
+            $rawQty     = (float)$detail->jumlah;
+            $qtyFmt     = (floor($rawQty) == $rawQty) ? number_format($rawQty, 0, ',', '.') : rtrim(rtrim(number_format($rawQty, 4, ',', '.'), '0'), ',');
             $itemsList[] = "{$barangNama} ({$qtyFmt} {$satuanNama})";
         }
         $itemSummaryStr = count($itemsList) > 0 ? implode(', ', $itemsList) : '-';

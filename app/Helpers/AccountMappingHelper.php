@@ -66,9 +66,9 @@ class AccountMappingHelper
     /**
      * Set atau update Account Mapping & bersihkan cache per PT.
      */
-    public static function setMapping(string $group, string $key, int $coaId, ?string $description = null): AccountMapping
+    public static function setMapping(string $group, string $key, int $coaId, ?string $description = null, ?int $companyId = null): AccountMapping
     {
-        $companyId = session('active_company_id') ?: 1;
+        $companyId = $companyId ?: (session('active_company_id') ?: (auth()->user()?->company_id ?? 1));
 
         $mapping = AccountMapping::updateOrCreate(
             [

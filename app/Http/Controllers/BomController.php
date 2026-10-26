@@ -6,6 +6,7 @@ use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\MasterBarang;
 use App\Models\MasterSatuan;
+use App\Models\MasterGudang;
 use App\Models\Tender;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Http\Request;
@@ -21,25 +22,29 @@ class BomController extends Controller
     private function resolveBom(Bom $bom): bool
     {
         $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId && $bom->company_id != $activeCompanyId) {
-            return false;
-        }
+        $activeBranchId  = session('active_branch_id');
 
-        $activeBranchId = session('active_branch_id');
         if (!empty($activeBranchId)) {
-            if ($bom->branch_id != $activeBranchId) {
+            // Aktif sebagai Cabang: BOM harus milik cabang tersebut dan company_id IS NULL
+            if ($bom->branch_id != $activeBranchId || !is_null($bom->company_id)) {
                 return false;
             }
         } else {
-            // Aktif sebagai PT Pusat: hanya boleh mengakses BOM milik PT Pusat (branch_id IS NULL)
+            // Aktif sebagai PT Pusat: BOM harus branch_id IS NULL dan company_id sesuai PT aktif
             if (!is_null($bom->branch_id)) {
+                return false;
+            }
+            if ($activeCompanyId && $bom->company_id != $activeCompanyId) {
                 return false;
             }
         }
 
+        // Rule: Status Draft HANYA bisa dilihat & diakses oleh user yang membuatnya
         $user = auth()->user();
-        if ($user && $bom->status === 'Draft' && !$user->hasAnyRole(['Super Admin', 'Owner']) && $bom->created_by != $user->id) {
-            return false;
+        if ($bom->status === 'Draft') {
+            if (!$user || $bom->created_by != $user->id) {
+                return false;
+            }
         }
 
         return true;
@@ -48,11 +53,9 @@ class BomController extends Controller
     private function generateKodeBom(): string
     {
         $prefix = 'BOM/' . date('Y/m/');
-        $companyId = session('active_company_id') ?: (auth()->user()->company_id ?? null);
 
         $lastBom = Bom::withTrashed()
             ->forActiveCompany()
-            ->forActiveBranch()
             ->where('kode_bom', 'like', $prefix . '%')
             ->orderBy('id', 'desc')
             ->first();
@@ -64,14 +67,10 @@ class BomController extends Controller
             $nextSeq = max($lastNum + 1, 1);
         }
 
-        // Loop safety: pastikan kode_bom 100% belum pernah ada di database (termasuk withTrashed)
+        // Loop safety: pastikan kode_bom 100% unik di seluruh tabel (termasuk withTrashed)
         do {
             $candidateCode = $prefix . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
-            $existsQuery = Bom::withTrashed()->where('kode_bom', $candidateCode);
-            if ($companyId) {
-                $existsQuery->where('company_id', $companyId);
-            }
-            $exists = $existsQuery->exists();
+            $exists = Bom::withTrashed()->where('kode_bom', $candidateCode)->exists();
             if ($exists) {
                 $nextSeq++;
             }
@@ -92,26 +91,18 @@ class BomController extends Controller
     // ══════════════════════════════════════════════════════════════
     public function index(Request $request)
     {
-        $user = auth()->user();
-        if (!$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('lihat-bom') && !$user->can('akses-produksi')) {
-            abort(403, 'Anda tidak memiliki hak akses untuk melihat Modul BOM Produksi.');
-        }
+        $this->authorize('lihat-bom');
 
+        $user            = auth()->user();
         $activeBranchId  = session('active_branch_id');
-        $isSupervisor    = $user->hasAnyRole(['Super Admin', 'Owner']);
+        $isSupervisor    = $user ? $user->hasAnyRole(['Super Admin', 'Owner']) : false;
 
         if ($request->ajax()) {
             // 1. Base Query for KPI Aggregates (Strict Group By Safe)
+            // Rule: status Draft HANYA bisa dilihat oleh user pembuatnya (created_by)
             $kpiQuery = Bom::forActiveCompany()
-                ->forActiveBranch();
-
-            // Rule: status Draft hanya bisa dilihat oleh pembuatnya (created_by), kecuali Super Admin/Owner
-            if (!$isSupervisor) {
-                $kpiQuery->where(function($q) use ($user) {
-                    $q->where('boms.status', '!=', 'Draft')
-                      ->orWhere('boms.created_by', $user->id);
-                });
-            }
+                ->forActiveBranch()
+                ->visibleToUser($user ? $user->id : 0);
 
             if ($request->filled('status')) {
                 $kpiQuery->where('status', $request->status);
@@ -165,16 +156,10 @@ class BomController extends Controller
             ];
 
             // 2. DataTables Query
+            // Rule: status Draft HANYA bisa dilihat oleh user pembuatnya (created_by)
             $query = Bom::forActiveCompany()
-                ->forActiveBranch();
-
-            // Rule: status Draft hanya bisa dilihat oleh pembuatnya (created_by), kecuali Super Admin/Owner
-            if (!$isSupervisor) {
-                $query->where(function($q) use ($user) {
-                    $q->where('boms.status', '!=', 'Draft')
-                      ->orWhere('boms.created_by', $user->id);
-                });
-            }
+                ->forActiveBranch()
+                ->visibleToUser($user ? $user->id : 0);
 
             $query->with([
                 'barangJadi:id,kode_barang,nama_barang,satuan_id',
@@ -256,19 +241,23 @@ class BomController extends Controller
                 ->addColumn('action', function ($b) use ($isSupervisor, $user) {
                     $isCompleted           = in_array($b->status, ['Completed', 'Selesai']);
                     $isApprovedOrCompleted = in_array($b->status, ['Approved', 'Active', 'Completed', 'Selesai']);
+                    $isPending             = ($b->status === 'Pending');
+                    $isCreator             = ($b->created_by == $user->id);
 
-                    // Tombol Edit: Jika status Selesai, hanya Super Admin/Owner yang bisa edit
-                    $canEdit = $isSupervisor || ($user->can('edit-bom') && !$isCompleted);
+                    // Hak Akses Tombol Edit & Hapus
+                    // Khusus Draft: HANYA pembuatnya ($isCreator) yang boleh mengedit atau menghapus
+                    if ($b->status === 'Draft') {
+                        $canEdit   = $isCreator;
+                        $canDelete = $isCreator;
+                    } else {
+                        $canEdit   = $isSupervisor || ($user->can('edit-bom') && !$isCompleted);
+                        $canDelete = !$isPending && ($isSupervisor || ($user->can('hapus-bom') && !$isApprovedOrCompleted));
+                    }
 
-                    // Tombol Hapus: Jika status Pending / Approved / Selesai, tombol hapus tidak ditampilkan
-                    $isPending = ($b->status === 'Pending');
-                    $canDelete = !$isPending && ($isSupervisor || ($user->can('hapus-bom') && !$isApprovedOrCompleted));
+                    $btn = '<div class="d-flex align-items-center justify-content-center gap-1.5 flex-nowrap">';
 
-                    $isCreator  = ($b->created_by == $user->id);
-                    $btn        = '<div class="d-flex align-items-center justify-content-center gap-1.5 flex-nowrap">';
-
-                    // Tombol Kirim / Ajukan ke Pending jika status Draft atau Rejected (Ditolak)
-                    if (in_array($b->status, ['Draft', 'Rejected']) && ($isCreator || $isSupervisor)) {
+                    // Tombol Kirim / Ajukan ke Pending jika status Draft (HANYA pembuat) atau Rejected
+                    if (($b->status === 'Draft' && $isCreator) || ($b->status === 'Rejected' && ($isCreator || $isSupervisor))) {
                         $btn .= '<button type="button" class="btn btn-sm btn-outline-primary rounded-circle" onclick="sendPendingBom(' . $b->id . ')" title="Ajukan ke Pending Approval"><i class="bi bi-send-fill"></i></button>';
                     }
 
@@ -324,17 +313,19 @@ class BomController extends Controller
             'items.min' => 'Silakan masukkan minimal 1 bahan baku.',
         ]);
 
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id') ?: (auth()->user()->company_id ?? 1);
+
+        $finalBranchId  = !empty($activeBranchId) ? $activeBranchId : null;
+        $finalCompanyId = !empty($activeBranchId) ? null : $activeCompanyId;
+
         $isAuto = $request->boolean('auto_number', true);
         if ($isAuto || empty($request->kode_bom)) {
             $kodeBom = $this->generateKodeBom();
         } else {
             $kodeBom = trim($request->kode_bom);
-            $companyId = session('active_company_id') ?: (auth()->user()->company_id ?? null);
-            $existsQuery = Bom::withTrashed()->where('kode_bom', $kodeBom);
-            if ($companyId) {
-                $existsQuery->where('company_id', $companyId);
-            }
-            if ($existsQuery->exists()) {
+            $exists = Bom::where('kode_bom', $kodeBom)->exists();
+            if ($exists) {
                 return response()->json([
                     'message' => "Kode BOM '{$kodeBom}' sudah pernah digunakan atau terdaftar di sistem. Silakan gunakan kode unik lain atau centang penomoran Otomatis."
                 ], 422);
@@ -348,8 +339,8 @@ class BomController extends Controller
             $initialStatus    = $request->status ?: 'Draft';
 
             $bom = Bom::create([
-                'company_id'         => session('active_company_id') ?: (auth()->user()->company_id ?: null),
-                'branch_id'          => session('active_branch_id') ?: (auth()->user()->branch_id ?: null),
+                'company_id'         => $finalCompanyId,
+                'branch_id'          => $finalBranchId,
                 'kode_bom'           => $kodeBom,
                 'nama_bom'           => $request->nama_bom,
                 'barang_jadi_id'     => $request->barang_jadi_id,
@@ -454,9 +445,14 @@ class BomController extends Controller
         $isPending             = ($bom->status === 'Pending');
         $isCompleted           = in_array($bom->status, ['Completed', 'Selesai']);
         $isApprovedOrCompleted = in_array($bom->status, ['Approved', 'Active', 'Completed', 'Selesai']);
-        $canEdit               = $isSupervisor || ($user->can('edit-bom') && !$isCompleted);
-        $canDelete             = !$isPending && ($isSupervisor || ($user->can('hapus-bom') && !$isApprovedOrCompleted));
         $isCreator             = ($bom->created_by == $user->id);
+        if ($bom->status === 'Draft') {
+            $canEdit   = $isCreator;
+            $canDelete = $isCreator;
+        } else {
+            $canEdit   = $isSupervisor || ($user->can('edit-bom') && !$isCompleted);
+            $canDelete = !$isPending && ($isSupervisor || ($user->can('hapus-bom') && !$isApprovedOrCompleted));
+        }
 
         return view('modul_produksi.bom.show', compact(
             'bom', 'subtotalBahan', 'totalHpp', 'hppPerUnit', 'satuans', 'tenders', 'canViewHpp',
@@ -599,6 +595,10 @@ class BomController extends Controller
             return response()->json(['message' => 'Anda tidak memiliki izin untuk menyetujui (Approve) BOM ini.'], 403);
         }
 
+        if ($bom->status === 'Draft') {
+            return response()->json(['message' => 'Resep BOM berstatus Draft harus diajukan ke status Pending terlebih dahulu sebelum dapat disetujui.'], 422);
+        }
+
         if ($bom->status === 'Approved' || $bom->status === 'Active') {
             return response()->json(['message' => 'Resep BOM ini sudah disetujui sebelumnya.'], 422);
         }
@@ -626,6 +626,10 @@ class BomController extends Controller
         $user = auth()->user();
         if (!$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('approve-bom')) {
             return response()->json(['message' => 'Anda tidak memiliki izin untuk menolak BOM ini.'], 403);
+        }
+
+        if ($bom->status === 'Draft') {
+            return response()->json(['message' => 'Resep BOM berstatus Draft tidak dapat ditolak karena belum diajukan ke status Pending.'], 422);
         }
 
         $alasan = $request->input('alasan', 'Ditolak oleh ' . ($user->nama_lengkap ?: $user->name));
@@ -834,7 +838,10 @@ class BomController extends Controller
             ], 422);
         }
 
-        $bom->update(['deleted_by' => $user->id]);
+        $bom->update([
+            'deleted_by' => $user->id,
+            'kode_bom'   => $bom->kode_bom . '_DEL_' . time(),
+        ]);
         $bom->delete();
 
         return response()->json(['message' => 'BOM berhasil dihapus!'], 200);
@@ -905,13 +912,26 @@ class BomController extends Controller
         $items = $query->orderBy('nama_barang', 'asc')->limit(50)->get();
 
         $bomHpps = Bom::forActiveCompany()
+            ->visibleToUser()
             ->whereIn('barang_jadi_id', $items->pluck('id'))
             ->whereIn('status', ['Approved', 'Active', 'Pending', 'Draft'])
             ->orderBy('id', 'desc')
             ->get()
             ->keyBy('barang_jadi_id');
 
-        $result = $items->map(function($b) use ($bomHpps) {
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id') ?: (auth()->user()->company_id ?? 1);
+
+        // Gudang untuk entitas aktif (PT Pusat jika branch_id null, atau Cabang aktif)
+        $activeGudangQuery = MasterGudang::where('company_id', $activeCompanyId)->where('status', 'Active');
+        if (!empty($activeBranchId)) {
+            $activeGudangQuery->where('cabang_id', $activeBranchId);
+        } else {
+            $activeGudangQuery->whereNull('cabang_id');
+        }
+        $activeEntityGudangIds = $activeGudangQuery->pluck('id')->toArray();
+
+        $result = $items->map(function($b) use ($bomHpps, $activeEntityGudangIds, $type) {
             $fotoPath = $b->primaryFoto ? $b->primaryFoto->foto_path : null;
             $primaryUrl = $fotoPath ? asset('storage/' . $fotoPath) : null;
 
@@ -928,28 +948,46 @@ class BomController extends Controller
                 }
             }
 
-            // 1. Stok Total & HPP dari stok_gudangs
-            $stokTotal = (float)($b->stokGudangs ? $b->stokGudangs->sum('stok_aktual') : 0);
-            
-            // Prioritas HPP dari stok_gudangs (harga_pokok_rata_rata atau harga_beli_terakhir)
-            $stokGudangHpp = 0;
-            if ($b->stokGudangs && $b->stokGudangs->count() > 0) {
-                $sgValid = $b->stokGudangs->first(fn($sg) => (float)$sg->harga_pokok_rata_rata > 0);
-                if ($sgValid) {
-                    $stokGudangHpp = (float)$sgValid->harga_pokok_rata_rata;
-                } else {
-                    $sgBeli = $b->stokGudangs->first(fn($sg) => (float)$sg->harga_beli_terakhir > 0);
-                    if ($sgBeli) $stokGudangHpp = (float)$sgBeli->harga_beli_terakhir;
+            $stokGudangs = $b->stokGudangs ?? collect();
+            $stokTotal = 0;
+            $hppVal = 0;
+
+            // Strict Isolation per Entitas Aktif (HANYA gudang milik Cabang Aktif atau PT Pusat Aktif)
+            // Jika tidak ada stok di entitas aktif, maka stok = 0 dan HPP = 0 (kosong, tanpa cross-branch fallback)
+            if (!empty($activeEntityGudangIds)) {
+                $activeSgs = $stokGudangs->filter(fn($sg) => in_array($sg->gudang_id, $activeEntityGudangIds));
+                if ($activeSgs->isNotEmpty()) {
+                    $actStok  = (float)$activeSgs->sum('stok_aktual');
+                    $actNilai = (float)$activeSgs->sum('nilai_persediaan');
+
+                    // Stok fisik aktual
+                    $stokTotal = $actStok;
+
+                    if ($actStok > 0 && $actNilai > 0) {
+                        // 1. Moving Average Cost = Nilai Persediaan ÷ Stok Aktual
+                        $hppVal = $actNilai / $actStok;
+                    } else {
+                        // 2. Stok 0 atau nilai 0 — tetap ambil HPP dari harga referensi terakhir
+                        $sgValid = $activeSgs->first(fn($sg) => (float)$sg->harga_pokok_rata_rata > 0);
+                        if ($sgValid) {
+                            $hppVal = (float)$sgValid->harga_pokok_rata_rata;
+                        } else {
+                            $sgBeli = $activeSgs->first(fn($sg) => (float)$sg->harga_beli_terakhir > 0);
+                            if ($sgBeli) {
+                                $hppVal = (float)$sgBeli->harga_beli_terakhir;
+                            }
+                        }
+                    }
                 }
             }
 
-            // 2. Fallback: Resep BOM HPP atau master_barang.harga_pokok_rata_rata
-            $bomObj = $bomHpps->get($b->id);
-            $bomHpp = ($bomObj && (float)$bomObj->total_estimasi_hpp > 0) ? (float)$bomObj->total_estimasi_hpp : 0;
-
-            $hppVal = ($stokGudangHpp > 0)
-                ? $stokGudangHpp
-                : (($bomHpp > 0) ? $bomHpp : (float)($b->harga_pokok_rata_rata ?? 0));
+            // Jika barang jadi dan ada resep BOM yang sudah pernah dibuat
+            if ($type === 'jadi' && $hppVal <= 0) {
+                $bomObj = $bomHpps->get($b->id);
+                if ($bomObj && (float)$bomObj->total_estimasi_hpp > 0) {
+                    $hppVal = (float)$bomObj->total_estimasi_hpp;
+                }
+            }
 
             return [
                 'id'          => $b->id,
@@ -961,6 +999,54 @@ class BomController extends Controller
                 'hpp_satuan'  => $hppVal,
                 'foto_url'    => $primaryUrl,
                 'fotos_url'   => $allFotos,
+            ];
+        });
+
+        return response()->json($result);
+    }
+
+    /**
+     * AJAX search endpoint for Tender / Project lookup in BOM.
+     */
+    public function searchTender(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('lihat-bom') && !$user->can('tambah-bom') && !$user->can('edit-bom') && !$user->can('akses-produksi')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $search = trim($request->get('q', ''));
+
+        $query = Tender::forActiveCompany()
+            ->forActiveBranch()
+            ->with(['customer:id,nama_customer,kode_customer'])
+            ->whereNull('deleted_at');
+
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('nama_tender', 'like', "%{$search}%")
+                  ->orWhere('nomor_kontrak', 'like', "%{$search}%")
+                  ->orWhere('kategori_instansi', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function($qc) use ($search) {
+                      $qc->where('nama_customer', 'like', "%{$search}%")
+                         ->orWhere('kode_customer', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $items = $query->orderBy('id', 'desc')->limit(50)->get();
+
+        $result = $items->map(function($t) {
+            $custName = $t->customer ? $t->customer->nama_customer : ($t->kategori_instansi ?: '-');
+            return [
+                'id'             => $t->id,
+                'nomor_kontrak'  => $t->nomor_kontrak ?: 'TENDER #' . $t->id,
+                'nama_tender'    => $t->nama_tender,
+                'customer_name'  => $custName,
+                'nilai_estimasi' => (float)($t->nilai_estimasi ?: 0),
+                'nilai_fmt'      => 'Rp ' . number_format((float)($t->nilai_estimasi ?: 0), 0, ',', '.'),
+                'deadline'       => $t->deadline ? \Carbon\Carbon::parse($t->deadline)->format('d/m/Y') : '-',
+                'status'         => $t->status ?: 'Draft',
             ];
         });
 

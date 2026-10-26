@@ -1,7 +1,7 @@
 {{-- MODAL TAMBAH / BUAT SPK PRODUKSI BARU --}}
 <div class="modal fade spk-modal-primary" id="modalTambahSpk" tabindex="-1" aria-labelledby="modalTambahSpkLabel" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
-        <div class="modal-content spk-modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+    <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
+        <div class="modal-content spk-modal-content border-0 overflow-hidden">
             {{-- HEADER MODAL --}}
             <div class="modal-header spk-modal-header-blue py-2.5 py-sm-3 px-3 px-sm-4">
                 <div class="d-flex align-items-center gap-2 gap-sm-3 me-auto" style="min-width: 0;">
@@ -17,7 +17,7 @@
             </div>
 
             {{-- FORM INPUT --}}
-            <form id="formInputSpk">
+            <form id="formInputSpk" onsubmit="return false;">
                 @csrf
                 <div class="modal-body spk-modal-body p-3 p-sm-4">
 
@@ -36,7 +36,7 @@
                         <div class="card-body p-3 p-sm-4">
                             <div class="row g-3">
                                 {{-- Nomor SPK --}}
-                                <div class="col-12 col-md-4">
+                                <div class="col-12 col-md-4 col-xl-3">
                                     <label class="form-label fw-semibold spk-text-muted small">
                                         <i class="bi bi-hash text-primary me-1"></i>Nomor SPK <span class="text-danger">*</span>
                                     </label>
@@ -55,12 +55,13 @@
                                 </div>
 
                                 {{-- Pilih Resep BOM --}}
-                                <div class="col-12 col-md-8">
+                                <div class="col-12 col-md-8 col-xl-9">
                                     <label class="form-label fw-semibold spk-text-muted small">
                                         <i class="bi bi-box-seam text-primary me-1"></i>Acuan Resep BOM (Approved) <span class="text-danger">*</span>
                                     </label>
                                     <div class="input-group shadow-xs">
                                         <input type="hidden" name="bom_id" id="inp_bom_id" required>
+                                        <input type="hidden" name="tender_id" id="inp_tender_id">
                                         <input type="hidden" name="barang_jadi_id" id="inp_barang_jadi_id">
                                         <input type="hidden" name="satuan_id" id="inp_satuan_id">
                                         <input type="text" id="inp_bom_name_display"
@@ -79,32 +80,32 @@
                                 </div>
 
                                 {{-- Barang Jadi + Target Qty --}}
-                                <div class="col-12 col-md-5">
+                                <div class="col-12 col-md-5 col-xl-4">
                                     <label class="form-label fw-semibold spk-text-muted small">
                                         <i class="bi bi-box2 text-primary me-1"></i>Produk Barang Jadi (Hasil)
                                     </label>
                                     <input type="text" id="inp_barang_jadi_display"
                                            class="form-control spk-input spk-readonly fw-bold text-primary" readonly placeholder="-- Otomatis terisi dari Resep BOM --">
                                 </div>
-                                <div class="col-12 col-md-3">
+                                <div class="col-12 col-md-3 col-xl-2">
                                     <label class="form-label fw-semibold spk-text-muted small">
                                         <i class="bi bi-calculator text-primary me-1"></i>Target Qty Produksi <span class="text-danger">*</span>
                                     </label>
                                     <div class="input-group shadow-xs">
                                         <input type="number" step="1" min="1" name="jumlah_rencana" id="inp_jumlah_rencana"
                                                class="form-control spk-input fw-extrabold text-center text-primary fs-5"
-                                               value="" placeholder="0" required disabled oninput="hitungUlangBahanSpk()">
+                                               value="" placeholder="0" required disabled oninput="onInputSpkTargetQty()">
                                         <span class="input-group-text spk-input-group-text fw-semibold" id="label_satuan_spk">Satuan</span>
                                     </div>
                                 </div>
-                                <div class="col-12 col-md-2">
+                                <div class="col-12 col-md-2 col-xl-3">
                                     <label class="form-label fw-semibold spk-text-muted small">
                                         <i class="bi bi-calendar-event text-primary me-1"></i>Tanggal Terbit <span class="text-danger">*</span>
                                     </label>
                                     <input type="date" name="tanggal_spk" id="inp_tanggal_spk"
                                            class="form-control spk-input" value="{{ date('Y-m-d') }}" required disabled>
                                 </div>
-                                <div class="col-12 col-md-2">
+                                <div class="col-12 col-md-2 col-xl-3">
                                     <label class="form-label fw-semibold spk-text-muted small">
                                         <i class="bi bi-calendar-check text-primary me-1"></i>Target Selesai
                                     </label>
@@ -113,7 +114,7 @@
                                 </div>
 
                                 {{-- Tipe, Prioritas, Mandor --}}
-                                <div class="col-12 col-md-4">
+                                <div class="col-12 col-md-4 col-xl-4">
                                     <label class="form-label fw-semibold spk-text-muted small">
                                         <i class="bi bi-diagram-2 text-primary me-1"></i>Tipe SPK
                                     </label>
@@ -123,7 +124,7 @@
                                         <option value="Custom/Sampel">Custom / Sampel (Prototype)</option>
                                     </select>
                                 </div>
-                                <div class="col-12 col-md-4">
+                                <div class="col-12 col-md-4 col-xl-4">
                                     <label class="form-label fw-semibold spk-text-muted small">
                                         <i class="bi bi-flag text-primary me-1"></i>Prioritas Produksi
                                     </label>
@@ -133,7 +134,7 @@
                                         <option value="Rendah">Rendah (Fleksibel)</option>
                                     </select>
                                 </div>
-                                <div class="col-12 col-md-4">
+                                <div class="col-12 col-md-4 col-xl-4">
                                     <label class="form-label fw-semibold spk-text-muted small">
                                         <i class="bi bi-person-badge text-primary me-1"></i>PIC / Penanggung Jawab <span class="text-danger">*</span>
                                     </label>
@@ -151,6 +152,56 @@
                                     <textarea name="keterangan" id="inp_keterangan_spk" rows="2"
                                               class="form-control spk-input" disabled
                                               placeholder="Catatan khusus pemotongan, warna benang, bordir, kemasan..."></textarea>
+                                </div>
+
+                                {{-- Nomor Batch / Lot & Serial Numbers (SN) --}}
+                                <div class="col-12 col-lg-5">
+                                    <div class="p-3 p-md-3.5 rounded-3 border h-100 d-flex flex-column justify-content-between" style="background: rgba(59, 130, 246, 0.03); border-color: rgba(59, 130, 246, 0.2) !important;">
+                                        <div>
+                                            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                                <label class="form-label fw-bold spk-text-main mb-0 small text-truncate">
+                                                    <i class="bi bi-upc-scan text-primary me-1.5"></i>Nomor Batch / Lot
+                                                </label>
+                                                <button type="button" id="btnAutoLotSpk" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-1 text-nowrap flex-shrink-0" style="font-size:11.5px;" onclick="generateSpkBatchNo()" title="Generate Nomor Batch Otomatis" disabled>
+                                                    <i class="bi bi-magic me-1"></i>Auto Lot
+                                                </button>
+                                            </div>
+                                            <input type="text" name="nomor_batch" id="inp_nomor_batch"
+                                                   class="form-control spk-input fw-bold font-monospace mb-2"
+                                                   placeholder="Ketik manual atau klik Auto Lot (Maks. 50 Karakter)" maxlength="50" oninput="handleSpkBatchNoInput(this)" style="font-size: 13px; min-height: 38px;" disabled>
+                                        </div>
+                                        <div class="form-text small spk-text-muted mt-auto" style="font-size:11px; line-height: 1.4;">
+                                            <i class="bi bi-info-circle me-1 text-primary"></i>Nomor Lot dicetak di SPK & otomatis diteruskan ke Penerimaan Barang Jadi (Maks. 50 Karakter).
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-lg-7">
+                                    <div class="p-3 p-md-3.5 rounded-3 border h-100" style="background: rgba(16, 185, 129, 0.03); border-color: rgba(16, 185, 129, 0.2) !important;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
+                                            <label class="form-label fw-bold spk-text-main mb-0 small">
+                                                <i class="bi bi-qr-code text-success me-1.5"></i>Serial Number (SN) / Barcode Produk
+                                            </label>
+                                            <div class="d-flex align-items-center gap-1.5 ms-auto">
+                                                <button type="button" id="btnGenerateSnSpk" class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-1 text-nowrap d-inline-flex align-items-center gap-1" style="font-size:11.5px;" onclick="generateSpkSerials(true)" title="Generate Serial Numbers sesuai Target Qty" disabled>
+                                                    <i class="bi bi-lightning-charge-fill text-warning"></i>
+                                                    <span>Generate SN</span>
+                                                </button>
+                                                <button type="button" id="btnClearSnSpk" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1" style="font-size:11.5px;" onclick="clearSpkSerials()" title="Kosongkan" disabled>
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <textarea name="serial_numbers" id="inp_serial_numbers" rows="5"
+                                                  class="form-control spk-input font-monospace small mb-2 custom-scrollbar" disabled
+                                                  placeholder="Scan barcode atau isi daftar SN (1 nomor per baris/koma)&#10;Contoh:&#10;LOT-BRG-20260914-001&#10;LOT-BRG-20260914-002&#10;LOT-BRG-20260914-003..." style="font-size: 12px; line-height: 1.6; min-height: 140px; resize: vertical;" oninput="updateSpkSnCount()"></textarea>
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                            <span class="small spk-text-muted" style="font-size:11px;">
+                                                <i class="bi bi-tag me-1 text-success"></i>Dibuat untuk penempelan barcode label saat proses pengerjaan.
+                                            </span>
+                                            <span class="badge rounded-pill bg-secondary-subtle text-secondary border font-monospace px-2.5 py-1" id="disp_sn_count" style="font-size:11px;">0 SN terdaftar</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -467,10 +518,28 @@
     let selectedTahapans = [];
     let allMasterTahapans = [];
 
+    let isSubmittingSpkInput = false;
+
+    function resetBtnSpkInputState() {
+        isSubmittingSpkInput = false;
+        const isDisabled = !$('#inp_bom_id').val() || (!allMasterTahapans || allMasterTahapans.length === 0);
+        $('#btnSimpanDraftSpk')
+            .prop('disabled', isDisabled)
+            .html('<i class="bi bi-file-earmark-text-fill me-1 text-warning"></i> Simpan Draft');
+        $('#btnSimpanPendingSpk')
+            .prop('disabled', isDisabled)
+            .html('<i class="bi bi-send-fill me-1"></i> Simpan & Kirim<span class="d-none d-sm-inline"> (Pending)</span>');
+    }
+
+    $('#modalTambahSpk').on('hidden.bs.modal', function () {
+        resetBtnSpkInputState();
+    });
+
     // ── Function Pengunci State Form SPK ─────────────────────────
     function setFormSpkDisabledState(isDisabled) {
         // 1. Lock/Unlock Form Fields
-        $('#inp_jumlah_rencana, #inp_tanggal_spk, #inp_target_selesai, #inp_tipe_spk, #inp_prioritas, #inp_penanggung_jawab_id, #inp_keterangan_spk').prop('disabled', isDisabled);
+        $('#inp_jumlah_rencana, #inp_tanggal_spk, #inp_target_selesai, #inp_tipe_spk, #inp_prioritas, #inp_penanggung_jawab_id, #inp_keterangan_spk, #inp_nomor_batch, #inp_serial_numbers').prop('disabled', isDisabled);
+        $('#btnAutoLotSpk, #btnGenerateSnSpk, #btnClearSnSpk').prop('disabled', isDisabled);
 
         // 2. Lock/Unlock Tahapan Section
         $('#btnPilihSemuaTahapan, #btnHapusSemuaTahapan').prop('disabled', isDisabled);
@@ -488,16 +557,24 @@
 
     // ── Buka Modal & Init ────────────────────────────────────────
     function bukaModalTambahSpk() {
+        resetBtnSpkInputState();
         $('#formInputSpk')[0].reset();
         $('#inp_bom_id').val('');
+        $('#inp_tender_id').val('');
+        $('#disp_tender_info').addClass('d-none');
+        $('#lbl_tender_name').text('');
         $('#inp_barang_jadi_id').val('');
         $('#inp_satuan_id').val('');
         $('#inp_bom_name_display').val('');
         $('#inp_barang_jadi_display').val('');
         $('#inp_jumlah_rencana').val('');
+        $('#inp_nomor_batch').val('');
+        $('#inp_serial_numbers').val('');
         $('#label_satuan_spk').text('Satuan');
+        updateSpkSnCount();
         currentLoadedBomMaterials = [];
         selectedTahapans = [];
+        allMasterTahapans = [];
 
         renderMaterialEmpty();
         $('#badgeStatusStokKeseluruhan').addClass('d-none');
@@ -507,54 +584,164 @@
         // Kunci form di awal sampai BOM dipilih
         setFormSpkDisabledState(true);
 
-        // Load tahapan dari master
-        loadMasterTahapansForSpk();
+        // Render placeholder tahapan (harus pilih BOM terlebih dahulu)
+        renderTahapanBelumPilihBom();
 
         $('#modalTambahSpk').modal('show');
     }
 
-    // ── Load Tahapan dari Master ─────────────────────────────────
-    function loadMasterTahapansForSpk() {
+    // ── Tampilan Belum Ada BOM yang Dipilih ────────────────────────
+    function renderTahapanBelumPilihBom() {
+        allMasterTahapans = [];
+        selectedTahapans = [];
+        $('#btnPilihSemuaTahapan, #btnHapusSemuaTahapan').prop('disabled', true);
+        $('#previewTahapanDipilih').addClass('d-none');
+        $('#gridTahapanSpk').html(`
+            <div class="col-12 text-center py-5 spk-text-muted">
+                <i class="bi bi-diagram-3 fs-1 d-block text-secondary opacity-50 mb-2"></i>
+                <div class="fw-semibold">Belum Ada Resep BOM yang Dipilih</div>
+                <small class="text-muted">Silakan pilih Resep BOM terlebih dahulu untuk memuat alur tahapan produksi yang sesuai.</small>
+            </div>
+        `);
+    }
+
+    // ── Load Tahapan dari Master Sesuai BOM yang Dipilih ──────────
+    function loadMasterTahapansForSpk(bomId, bomNama = '', bomKode = '') {
+        if (!bomId) {
+            renderTahapanBelumPilihBom();
+            return;
+        }
+
+        $('#btnPilihSemuaTahapan, #btnHapusSemuaTahapan').prop('disabled', true);
+        $('#btnSimpanDraftSpk, #btnSimpanPendingSpk').prop('disabled', true);
+        $('#previewTahapanDipilih').addClass('d-none');
+
         $('#gridTahapanSpk').html(`
             <div class="col-12 text-center py-4 spk-text-muted">
                 <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                Memuat daftar tahapan...
+                Memuat tahapan produksi untuk resep BOM...
             </div>
         `);
 
         $.ajax({
             url: '{{ route("produksi.master-tahapan.all-active") }}',
             method: 'GET',
+            data: { bom_id: bomId },
             success: function(res) {
-                allMasterTahapans = res.tahapans || [];
+                const bName = res.nama_bom || bomNama || ('BOM #' + bomId);
+                const bKode = res.kode_bom || bomKode || '';
+                const bLabel = bKode ? `[${bKode}] ${bName}` : bName;
+
+                if (!res.has_tahapan || !res.tahapans || res.tahapans.length === 0) {
+                    allMasterTahapans = [];
+                    selectedTahapans = [];
+
+                    // Render banner peringatan di area tahapan
+                    $('#gridTahapanSpk').html(`
+                        <div class="col-12">
+                            <div class="alert alert-warning border-0 rounded-4 p-3.5 p-sm-4 mb-0 shadow-xs" style="background: rgba(245,158,11,0.09); border: 1.5px dashed rgba(245,158,11,0.4) !important;">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="rounded-circle p-2.5 flex-shrink-0 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: rgba(245,158,11,0.2);">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="fw-bold text-warning mb-1" style="font-size: 15px;">
+                                            Tahapan Produksi Belum Dibuat!
+                                        </h6>
+                                        <p class="spk-text-muted small mb-3 leading-relaxed">
+                                            Resep BOM <strong class="text-dark">${bLabel}</strong> belum memiliki konfigurasi tahapan produksi di Master Tahapan. SPK tidak dapat dibuat atau diproses tanpa alur tahapan produksi.
+                                        </p>
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            <a href="{{ route('produksi.master-tahapan.index') }}" target="_blank" class="btn btn-warning btn-sm rounded-pill px-3 py-1.5 fw-bold text-dark shadow-xs">
+                                                <i class="bi bi-plus-circle-fill me-1"></i> Buat Tahapan di Master Tahapan
+                                            </a>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1.5 fw-semibold" onclick="bukaModalLookupBomSpk()">
+                                                <i class="bi bi-arrow-repeat me-1"></i> Ganti Resep BOM Lain
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+
+                    // Lock tombol submit & tahapan
+                    $('#btnPilihSemuaTahapan, #btnHapusSemuaTahapan').prop('disabled', true);
+                    $('#btnSimpanDraftSpk, #btnSimpanPendingSpk').prop('disabled', true);
+
+                    // Munculkan popup SweetAlert peringatan
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Tahapan Produksi Belum Dibuat!',
+                        html: `Resep BOM <strong>${bLabel}</strong> belum dibuatkan tahapan produksi.<br><br><span class="text-muted small">Silakan buat tahapan produksi terlebih dahulu di menu <strong>Master Tahapan Produksi</strong> agar SPK dapat diproses.</span>`,
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="bi bi-plus-circle me-1"></i> Buat Tahapan Sekarang',
+                        cancelButtonText: 'Pilih BOM Lain',
+                        confirmButtonColor: '#f59e0b',
+                        cancelButtonColor: '#6b7280'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.open('{{ route("produksi.master-tahapan.index") }}', '_blank');
+                        } else if (result.dismiss === Swal.DismissReason.cancel) {
+                            bukaModalLookupBomSpk();
+                        }
+                    });
+                    return;
+                }
+
+                // Jika tahapan ada untuk BOM ini
+                allMasterTahapans = res.tahapans;
                 renderTahapanGrid(allMasterTahapans);
+
+                // Aktifkan kembali tombol
+                $('#btnPilihSemuaTahapan, #btnHapusSemuaTahapan').prop('disabled', false);
+                $('#btnSimpanDraftSpk, #btnSimpanPendingSpk').prop('disabled', false);
+
+                // Otomatis pilih semua tahapan sesuai urutan BOM secara default
+                pilihSemuaTahapanOtomatis();
             },
             error: function() {
                 $('#gridTahapanSpk').html(`
                     <div class="col-12 text-center py-3 text-danger small">
-                        <i class="bi bi-exclamation-triangle me-1"></i> Gagal memuat tahapan.
+                        <i class="bi bi-exclamation-triangle me-1"></i> Gagal memuat tahapan dari server.
                     </div>
                 `);
             }
         });
     }
 
+    // ── Otomatis Pilih Semua Tahapan Saat BOM Dimuat ─────────────
+    function pilihSemuaTahapanOtomatis() {
+        selectedTahapans = [];
+        allMasterTahapans.forEach(function(t, idx) {
+            selectedTahapans.push({
+                nama_tahapan: t.nama_tahapan,
+                urutan: idx + 1,
+                cardIndex: idx
+            });
+        });
+        refreshAllBadges();
+        updatePreviewChips();
+    }
+
     // ── Render Grid Cards Tahapan ────────────────────────────────
     function renderTahapanGrid(tahapans) {
         if (!tahapans || tahapans.length === 0) {
-            $('#gridTahapanSpk').html(`<div class="col-12 text-center py-3 spk-text-muted small">Belum ada master tahapan. Silakan konfigurasi di menu Master Tahapan.</div>`);
+            $('#gridTahapanSpk').html(`<div class="col-12 text-center py-3 spk-text-muted small">Belum ada tahapan produksi untuk resep BOM ini.</div>`);
             return;
         }
 
         let html = '';
         tahapans.forEach(function(t, idx) {
-            const tipeLabel = t.tipe_spk ? `<span class="badge bg-secondary bg-opacity-10 text-secondary border rounded-pill px-2" style="font-size:10px;border-color:var(--spk-border-color)!important;">${t.tipe_spk}</span>` : '';
+            const tipeLabel = t.tipe_spk 
+                ? `<span class="badge bg-secondary bg-opacity-10 text-secondary border rounded-pill px-2" style="font-size:10px;border-color:var(--spk-border-color)!important;">${t.tipe_spk}</span>` 
+                : `<span class="badge bg-secondary bg-opacity-10 text-secondary border rounded-pill px-2" style="font-size:10px;border-color:var(--spk-border-color)!important;">Semua</span>`;
             const fotoThumb = t.foto_url 
                 ? `<img src="${t.foto_url}" class="rounded-2 me-2 border shadow-xs flex-shrink-0" style="width:38px;height:38px;object-fit:cover;">` 
                 : `<div class="rounded-2 me-2 d-flex align-items-center justify-content-center border flex-shrink-0" style="width:38px;height:38px;background:rgba(255,255,255,0.04);"><i class="bi bi-diagram-3 text-primary opacity-50"></i></div>`;
 
             html += `
-                <div class="col-12 col-sm-6 col-md-4">
+                <div class="col-12 col-sm-6 col-md-4 col-xl-3 col-xxl-2">
                     <div class="tahapan-card-item" id="tahapanCard_${idx}" onclick="toggleTahapan(${idx})">
                         <div class="urutan-badge" id="urtBadge_${idx}">?</div>
                         <div class="check-icon" id="chkIcon_${idx}">
@@ -666,6 +853,18 @@
             return;
         }
 
+        if (!allMasterTahapans || allMasterTahapans.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tahapan Produksi Belum Ada',
+                text: 'Resep BOM ini belum memiliki tahapan produksi di Master Tahapan. Silakan buat tahapan produksi terlebih dahulu.',
+                confirmButtonText: 'Buka Master Tahapan'
+            }).then(() => {
+                window.open('{{ route("produksi.master-tahapan.index") }}', '_blank');
+            });
+            return;
+        }
+
         selectedTahapans = [];
         allMasterTahapans.forEach(function(t, idx) {
             selectedTahapans.push({
@@ -709,14 +908,15 @@
         $('#label_satuan_spk').text(satNama || 'Pcs');
 
         // 2. Auto-sync Tender & Tipe SPK jika BOM terhubung ke Tender
-        if (tenderObj && (tenderObj.nama_tender || tenderObj.nomor_kontrak)) {
-            const tenderTxt = (tenderObj.nomor_kontrak ? `[${tenderObj.nomor_kontrak}] ` : '') + tenderObj.nama_tender + (tenderObj.nama_customer ? ` (${tenderObj.nama_customer})` : '');
-            $('#lbl_tender_name').text(tenderTxt);
+        if (tenderObj && (tenderObj.id || tenderObj.nama_tender)) {
+            $('#inp_tender_id').val(tenderObj.id || '');
+            $('#lbl_tender_name').text(tenderObj.nama_tender || '');
             $('#disp_tender_info').removeClass('d-none');
             
             // Auto-select Tipe SPK ke Make to Order jika ada Tender
             $('#inp_tipe_spk').val('Make to Order');
         } else {
+            $('#inp_tender_id').val('');
             $('#disp_tender_info').addClass('d-none');
             $('#lbl_tender_name').text('');
             
@@ -729,8 +929,11 @@
             }
         }
 
-        // BUKA KUNCI FORM & TAHAPAN KARENA BOM SUDAH DIPILIH
+        // BUKA KUNCI FORM KARENA BOM SUDAH DIPILIH
         setFormSpkDisabledState(false);
+
+        // MUAT TAHAPAN SESUAI BOM YANG DIPILIH
+        loadMasterTahapansForSpk(id, nama, kode);
 
         hitungUlangBahanSpk();
     }
@@ -748,6 +951,11 @@
 
     function resetBiayaDisplay() {
         ['disp_total_bahan','disp_total_tk','disp_total_oh','disp_grand_total'].forEach(id => $(`#${id}`).text('Rp 0'));
+    }
+
+    function onInputSpkTargetQty() {
+        syncSpkSerialsInstantly();
+        hitungUlangBahanSpk();
     }
 
     function hitungUlangBahanSpk() {
@@ -769,6 +977,16 @@
                 success: function(res) {
                     currentLoadedBomMaterials = res.materials || [];
                     renderMaterialChecklist(res);
+
+                    // Auto-sync Tender info from BOM response jika ada
+                    if (res.bom && (res.bom.tender_id || res.bom.nama_tender)) {
+                        $('#inp_tender_id').val(res.bom.tender_id || '');
+                        $('#lbl_tender_name').text(res.bom.nama_tender || '');
+                        $('#disp_tender_info').removeClass('d-none');
+                        if ($('#inp_tipe_spk').val() === 'Make to Stock' || !$('#inp_tipe_spk').val()) {
+                            $('#inp_tipe_spk').val('Make to Order');
+                        }
+                    }
                 },
                 error: function() {
                     $('#tbodySpkMaterials').html(`<tr><td colspan="8" class="text-center py-4 text-danger"><i class="bi bi-exclamation-triangle me-1"></i> Gagal memuat bahan.</td></tr>`);
@@ -825,27 +1043,45 @@
 
     // ── Submit SPK ───────────────────────────────────────────────
     function submitFormInputSpk(statusTarget) {
+        if (isSubmittingSpkInput) return;
+
         const bomId = $('#inp_bom_id').val();
         const qty   = parseFloat($('#inp_jumlah_rencana').val()) || 0;
 
         if (!bomId)   { Swal.fire('Validasi', 'Pilih Resep BOM terlebih dahulu!', 'warning'); return; }
         if (qty <= 0) { Swal.fire('Validasi', 'Target Qty harus lebih dari 0!', 'warning'); return; }
         if (!currentLoadedBomMaterials.length) { Swal.fire('Validasi', 'Rincian bahan baku tidak boleh kosong!', 'warning'); return; }
+
+        if (!allMasterTahapans || allMasterTahapans.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tahapan Produksi Belum Dibuat!',
+                text: 'Resep BOM ini belum memiliki konfigurasi tahapan produksi di Master Tahapan. SPK tidak dapat diproses tanpa alur tahapan produksi.',
+                confirmButtonText: '<i class="bi bi-plus-circle me-1"></i> Buat Tahapan Sekarang',
+                showCancelButton: true,
+                cancelButtonText: 'Tutup'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.open('{{ route("produksi.master-tahapan.index") }}', '_blank');
+                }
+            });
+            return;
+        }
+
         if (!selectedTahapans.length) {
             Swal.fire({
+                icon: 'warning',
                 title: 'Tahapan Belum Dipilih',
-                html: 'Kamu belum memilih tahapan produksi.<br><small class="text-muted">Sistem akan menggunakan tahapan default jika kamu lanjutkan.</small>',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Lanjut Tanpa Pilih',
-                cancelButtonText: 'Kembali Pilih Tahapan'
-            }).then(r => { if (r.isConfirmed) doSubmitSpk(statusTarget); });
+                text: 'Tahapan proses produksi wajib dipilih minimal 1 tahapan untuk SPK ini!'
+            });
             return;
         }
         doSubmitSpk(statusTarget);
     }
 
     function doSubmitSpk(statusTarget) {
+        if (isSubmittingSpkInput) return;
+
         const bomId = $('#inp_bom_id').val();
         const targetQty = parseFloat($('#inp_jumlah_rencana').val()) || 0;
         const pjId = $('#inp_penanggung_jawab_id').val();
@@ -866,11 +1102,33 @@
             Swal.fire({ icon: 'warning', title: 'Peringatan!', text: 'Tahapan proses produksi wajib dipilih minimal 1 tahapan!' });
             return;
         }
+        if (!$('#chk_auto_number_spk').is(':checked') && !$('#inp_nomor_spk').val().trim()) {
+            Swal.fire({ icon: 'warning', title: 'Peringatan!', text: 'Nomor SPK manual wajib diisi jika penomoran otomatis dimatikan!' });
+            return;
+        }
 
+        const batchVal = ($('#inp_nomor_batch').val() || '').trim();
+        if (batchVal.length > 50) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Nomor Batch / Lot Terlalu Panjang!',
+                text: `Nomor Batch / Lot maksimal 50 karakter! (Saat ini: ${batchVal.length} karakter). Silakan perpendek nomor lot.`
+            });
+            return;
+        }
+
+        // Kunci tombol & aktifkan spinner pada tombol target untuk mencegah double submit
+        isSubmittingSpkInput = true;
         const $btnD = $('#btnSimpanDraftSpk');
         const $btnP = $('#btnSimpanPendingSpk');
         $btnD.prop('disabled', true);
         $btnP.prop('disabled', true);
+
+        if (statusTarget === 'Draft') {
+            $btnD.html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Menyimpan Draft...');
+        } else {
+            $btnP.html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Mengajukan...');
+        }
 
         const payload = {
             _token:             '{{ csrf_token() }}',
@@ -878,7 +1136,10 @@
             auto_number:        $('#chk_auto_number_spk').is(':checked'),
             nomor_spk:          $('#inp_nomor_spk').val(),
             bom_id:             $('#inp_bom_id').val(),
+            tender_id:          $('#inp_tender_id').val() || null,
             jumlah_rencana:     parseFloat($('#inp_jumlah_rencana').val()),
+            nomor_batch:        $('#inp_nomor_batch').val() || null,
+            serial_numbers:     $('#inp_serial_numbers').val() || null,
             tanggal_spk:        $('#inp_tanggal_spk').val(),
             target_selesai:     $('#inp_target_selesai').val(),
             tipe_spk:           $('#inp_tipe_spk').val(),
@@ -909,23 +1170,179 @@
             contentType: 'application/json',
             success: function(res) {
                 $('#modalTambahSpk').modal('hide');
-                $btnD.prop('disabled', false);
-                $btnP.prop('disabled', false);
                 Swal.fire({
                     icon: 'success',
                     title: statusTarget === 'Draft' ? 'Draft SPK Tersimpan!' : 'SPK Berhasil Diajukan!',
                     text: res.message || 'SPK berhasil dibuat.',
                     timer: 2200,
                     showConfirmButton: false
-                }).then(() => reloadTableSpk());
+                }).then(() => {
+                    if (typeof reloadTableSpk === 'function') {
+                        reloadTableSpk();
+                    } else {
+                        location.reload();
+                    }
+                });
             },
             error: function(xhr) {
-                $btnD.prop('disabled', false);
-                $btnP.prop('disabled', false);
                 const res = xhr.responseJSON ?? {};
                 Swal.fire('Gagal', res.message || 'Terjadi kesalahan.', 'error');
+            },
+            complete: function() {
+                resetBtnSpkInputState();
             }
         });
+    }
+
+    // ── Batch & Serial Number Generator Helpers ──────────────────
+    function validateSpkBatchNo(el) {
+        if (el && el.value && el.value.length > 50) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan Karakter Lot!',
+                text: `Nomor Batch / Lot maksimal 50 karakter! (Saat ini: ${el.value.length} karakter). Karakter selebihnya akan dipotong otomatis.`,
+                confirmButtonColor: '#3085d6'
+            });
+            el.value = el.value.substring(0, 50);
+        }
+    }
+
+    function syncSpkSerialsInstantly() {
+        const bjId = $('#inp_barang_jadi_id').val();
+        if (!bjId) return;
+
+        const qty = parseInt($('#inp_jumlah_rencana').val()) || 0;
+        if (qty <= 0) {
+            $('#inp_serial_numbers').val('');
+            updateSpkSnCount();
+            return;
+        }
+
+        let batchNo = ($('#inp_nomor_batch').val() || '').trim();
+        if (!batchNo) {
+            let bjDisplay = $('#inp_barang_jadi_display').val();
+            let cleanCode = 'PRD';
+            if (bjDisplay && bjDisplay.includes('[')) {
+                cleanCode = bjDisplay.split('[')[1].split(']')[0];
+            }
+            const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            batchNo = `LOT-${cleanCode}-${today}`;
+        }
+
+        const cleanPrefix = batchNo.replace(/[^A-Za-z0-9\-_]/g, '');
+        const padLen = Math.max(3, String(qty).length);
+
+        let serials = [];
+        for (let i = 1; i <= qty; i++) {
+            serials.push(cleanPrefix + '-' + String(i).padStart(padLen, '0'));
+        }
+        $('#inp_serial_numbers').val(serials.join('\n'));
+        updateSpkSnCount();
+    }
+
+    function handleSpkBatchNoInput(el) {
+        validateSpkBatchNo(el);
+        syncSpkSerialsInstantly();
+    }
+
+    function generateSpkBatchNo() {
+        const bjDisplay = $('#inp_barang_jadi_display').val();
+        let code = 'PRD';
+        if (bjDisplay && bjDisplay.includes('[')) {
+            code = bjDisplay.split('[')[1].split(']')[0];
+        }
+        const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const lotVal = `LOT-${code}-${today}`.substring(0, 50);
+        $('#inp_nomor_batch').val(lotVal);
+        syncSpkSerialsInstantly();
+    }
+
+    function generateSpkSerials(isManual = false) {
+        const bjId = $('#inp_barang_jadi_id').val();
+        const qty = parseInt($('#inp_jumlah_rencana').val()) || 0;
+        const batchNo = ($('#inp_nomor_batch').val() || '').trim();
+
+        if (!bjId) {
+            if (isManual) Swal.fire('Info', 'Pilih Resep BOM terlebih dahulu.', 'info');
+            return;
+        }
+        if (qty <= 0) {
+            if (isManual) Swal.fire('Info', 'Masukkan Target Qty Produksi terlebih dahulu.', 'info');
+            return;
+        }
+
+        $('#btnGenerateSnSpk').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>...');
+
+        $.ajax({
+            url: '{{ route("produksi.spk.suggest-serials") }}',
+            method: 'GET',
+            data: {
+                barang_jadi_id: bjId,
+                qty: qty,
+                nomor_batch: batchNo,
+                lot: batchNo,
+                prefix: batchNo
+            },
+            success: function(res) {
+                $('#btnGenerateSnSpk').prop('disabled', false).html('<i class="bi bi-lightning-charge-fill text-warning"></i><span>Generate SN</span>');
+                if (res.serials && res.serials.length > 0) {
+                    $('#inp_serial_numbers').val(res.serials.join('\n'));
+                    updateSpkSnCount();
+                }
+            },
+            error: function() {
+                $('#btnGenerateSnSpk').prop('disabled', false).html('<i class="bi bi-lightning-charge-fill text-warning"></i><span>Generate SN</span>');
+                let serials = [];
+                let bjDisplay = $('#inp_barang_jadi_display').val();
+                let cleanCode = 'PRD';
+                if (bjDisplay && bjDisplay.includes('[')) {
+                    cleanCode = bjDisplay.split('[')[1].split(']')[0];
+                }
+                let cleanPrefix = batchNo ? batchNo : 'LOT-' + cleanCode;
+                const padLen = Math.max(3, String(qty).length);
+                for (let i = 1; i <= qty; i++) {
+                    serials.push(cleanPrefix + '-' + String(i).padStart(padLen, '0'));
+                }
+                $('#inp_serial_numbers').val(serials.join('\n'));
+                updateSpkSnCount();
+            }
+        });
+    }
+
+    function updateSpkSnCount() {
+        const val = $('#inp_serial_numbers').val() ? $('#inp_serial_numbers').val().trim() : '';
+        $('#sn_duplicate_warning').remove();
+        if (!val) {
+            $('#disp_sn_count').text('0 SN terdaftar').removeClass('bg-success-subtle text-success bg-danger-subtle text-danger').addClass('bg-secondary-subtle text-secondary');
+            return;
+        }
+        const items = val.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+        const count = items.length;
+
+        // Cek duplikasi internal di dalam textarea
+        const counts = {};
+        const duplicates = [];
+        items.forEach(item => {
+            counts[item] = (counts[item] || 0) + 1;
+            if (counts[item] === 2) duplicates.push(item);
+        });
+
+        if (duplicates.length > 0) {
+            $('#disp_sn_count').text(`${count} SN (${duplicates.length} Ganda!)`).removeClass('bg-secondary-subtle text-secondary bg-success-subtle text-success').addClass('bg-danger-subtle text-danger');
+            $('#inp_serial_numbers').after(`
+                <div id="sn_duplicate_warning" class="alert alert-danger py-1.5 px-2.5 mt-1.5 mb-0 rounded-3 font-monospace small d-flex align-items-center gap-1.5" style="font-size: 11px;">
+                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0 text-danger"></i>
+                    <span>Terdapat Serial Number ganda: <strong>${duplicates.slice(0, 3).join(', ')}${duplicates.length > 3 ? '...' : ''}</strong></span>
+                </div>
+            `);
+        } else {
+            $('#disp_sn_count').text(`${count} SN terdaftar`).removeClass('bg-secondary-subtle text-secondary bg-danger-subtle text-danger').addClass('bg-success-subtle text-success');
+        }
+    }
+
+    function clearSpkSerials() {
+        $('#inp_serial_numbers').val('');
+        updateSpkSnCount();
     }
 </script>
 @endpush

@@ -22,10 +22,10 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold text-muted small">Alokasi Akun COA Pengeluaran / Beban <span class="text-danger">*</span></label>
-                        <select name="coa_id" class="form-select rounded-3" required>
+                        <select name="coa_id" id="tambah_tipe_coa_id" class="form-select rounded-3 select2-tambah-tipe-coa" required>
                             <option value="">-- Pilih Akun COA Beban (Wajib) --</option>
                             @foreach($detailCoas as $coa)
-                                <option value="{{ $coa->id }}">{{ $coa->code }} - {{ $coa->name }}</option>
+                                <option value="{{ $coa->id }}">[{{ $coa->code }}] {{ $coa->name }} ({{ $coa->type_label }})</option>
                             @endforeach
                         </select>
                         <small class="text-muted d-block mt-1">Akun beban/biaya pengeluaran yang dihubungkan dengan tipe ini.</small>
@@ -79,10 +79,10 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold text-muted small">Alokasi Akun COA Pengeluaran / Beban <span class="text-danger">*</span></label>
-                        <select name="coa_id" id="edit_tipe_coa_id" class="form-select rounded-3" required>
+                        <select name="coa_id" id="edit_tipe_coa_id" class="form-select rounded-3 select2-edit-tipe-coa" required>
                             <option value="">-- Pilih Akun COA Beban (Wajib) --</option>
                             @foreach($detailCoas as $coa)
-                                <option value="{{ $coa->id }}">{{ $coa->code }} - {{ $coa->name }}</option>
+                                <option value="{{ $coa->id }}">[{{ $coa->code }}] {{ $coa->name }} ({{ $coa->type_label }})</option>
                             @endforeach
                         </select>
                     </div>
@@ -112,7 +112,7 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
-    $(document).on('input paste keyup', 'input[name="nama_tipe"]', function() {
+    $(document).on('input paste keyup', '#formTambahTipePengeluaran input[name="nama_tipe"], #formEditTipePengeluaran input[name="nama_tipe"]', function() {
         if (this.value.length > 40) {
             this.value = this.value.substring(0, 40);
             Swal.fire({
@@ -124,7 +124,7 @@ $(document).ready(function() {
         }
     });
 
-    $(document).on('input paste keyup', 'input[name="kode_tipe"]', function() {
+    $(document).on('input paste keyup', '#formTambahTipePengeluaran input[name="kode_tipe"], #formEditTipePengeluaran input[name="kode_tipe"]', function() {
         if (this.value.length > 10) {
             this.value = this.value.substring(0, 10);
             Swal.fire({
@@ -136,7 +136,7 @@ $(document).ready(function() {
         }
     });
 
-    $(document).on('input paste keyup', 'textarea[name="deskripsi"]', function() {
+    $(document).on('input paste keyup', '#formTambahTipePengeluaran textarea[name="deskripsi"], #formEditTipePengeluaran textarea[name="deskripsi"]', function() {
         if (this.value.length > 40) {
             this.value = this.value.substring(0, 40);
             Swal.fire({

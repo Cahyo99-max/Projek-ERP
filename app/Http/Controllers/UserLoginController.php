@@ -32,7 +32,7 @@ class UserLoginController extends Controller
             'password.max' => 'Password terlalu panjang!',
         ]);
 
-        // Rate limiting: max 3 attempts per login+IP, decay in 3 minutes (180 seconds)
+        // Rate limiting: max 3 attempts per login+IP, decay in 7 minutes (420 seconds)
         $rateKey = 'login-attempts|'.Str::lower($request->input('login')).'|'.$request->ip();
         if (RateLimiter::tooManyAttempts($rateKey, 3)) {
             $seconds = RateLimiter::availableIn($rateKey);
@@ -78,13 +78,26 @@ class UserLoginController extends Controller
                 }
 
                 // ===== AUTO-SET PT & CABANG AKTIF =====
+                // 1. Ambil PT Default yang dipilih user
+                $defaultCompany = $user->companies()
+                                       ->where('companies.status', 'Active')
+                                       ->orderByRaw('user_companies.is_default DESC')
+                                       ->first();
+
+                if (!$defaultCompany && $user->hasRole('Super Admin')) {
+                    $defaultCompany = \App\Models\Company::where('status', 'Active')->first();
+                }
+
+                // 2. Cek apakah ada Cabang yang EKSPLISIT dijadikan default (is_default = 1)
                 $activeBranch = $user->branches()
                                      ->with('company')
                                      ->where('branches.status', 'Active')
-                                     ->orderByRaw('user_branches.is_default DESC')
+                                     ->wherePivot('is_default', 1)
                                      ->first();
 
+                // 3. Pasang sesi sesuai preferensi default user
                 if ($activeBranch) {
+                    // Masuk ke Cabang Default
                     session([
                         'active_branch_id'    => $activeBranch->id,
                         'active_branch_name'  => $activeBranch->nama_cabang,
@@ -92,20 +105,15 @@ class UserLoginController extends Controller
                         'active_company_id'   => $activeBranch->company_id,
                         'active_company_name' => $activeBranch->company?->nama_perusahaan ?? $activeBranch->nama_perusahaan,
                     ]);
-                } else {
-                    $activeCompany = $user->companies()->orderByRaw('user_companies.is_default DESC')->first();
-                    if (!$activeCompany && $user->hasRole('Super Admin')) {
-                        $activeCompany = \App\Models\Company::where('status', 'Active')->first();
-                    }
-                    if ($activeCompany) {
-                        session([
-                            'active_branch_id'    => null,
-                            'active_branch_name'  => null,
-                            'active_branch_kode'  => null,
-                            'active_company_id'   => $activeCompany->id,
-                            'active_company_name' => $activeCompany->nama_perusahaan,
-                        ]);
-                    }
+                } elseif ($defaultCompany) {
+                    // Masuk ke Tingkat Pusat / PT Induk Default (tanpa cabang)
+                    session([
+                        'active_branch_id'    => null,
+                        'active_branch_name'  => null,
+                        'active_branch_kode'  => null,
+                        'active_company_id'   => $defaultCompany->id,
+                        'active_company_name' => $defaultCompany->nama_perusahaan,
+                    ]);
                 }
                 // =======================================
 
@@ -133,8 +141,8 @@ class UserLoginController extends Controller
                 return redirect()->intended('/dashbord');
             }
 
-            // Increment rate limiter on failure
-            RateLimiter::hit($rateKey, 180);
+            // Increment rate limiter on failure (decay in 7 minutes = 420 seconds)
+            RateLimiter::hit($rateKey, 420);
             $remaining = RateLimiter::retriesLeft($rateKey, 3);
 
             // Fetch user to classify specific failure reason

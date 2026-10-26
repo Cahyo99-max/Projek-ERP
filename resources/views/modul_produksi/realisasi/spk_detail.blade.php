@@ -566,21 +566,6 @@ html:not([data-bs-theme="dark"]) div[style*="background:rgba(15,23,42"] {
 <div class="container-fluid px-2 px-sm-3 px-md-4 py-3 py-md-4">
 
     {{-- ── ACTION BAR ── --}}
-    {{-- Breadcrumb row --}}
-    <nav aria-label="breadcrumb" class="mb-2">
-        <ol class="breadcrumb mb-0 small" style="flex-wrap:nowrap; overflow:hidden; white-space:nowrap;">
-            <li class="breadcrumb-item" style="flex-shrink:0;">
-                <a href="{{ url('/dashbord') }}" class="text-decoration-none text-white-50">
-                    <i class="bi bi-house-door-fill me-1"></i><span class="d-none d-sm-inline">Dashboard</span>
-                </a>
-            </li>
-            <li class="breadcrumb-item d-none d-sm-inline-flex" style="flex-shrink:0;">
-                <a href="{{ route('produksi.realisasi.index') }}" class="text-decoration-none text-white-50">Realisasi Produksi</a>
-            </li>
-            <li class="breadcrumb-item active fw-bold text-truncate" style="color:#38bdf8; max-width:180px;" aria-current="page">{{ $spk->nomor_spk }}</li>
-        </ol>
-    </nav>
-
     {{-- Title + Buttons in one row --}}
     <div class="d-flex align-items-center justify-content-between gap-2 mb-4">
         <h4 class="fw-bold text-white mb-0 d-flex align-items-center gap-2 text-truncate" style="font-size: clamp(13px, 3.5vw, 17px); min-width:0;">
@@ -737,7 +722,25 @@ html:not([data-bs-theme="dark"]) div[style*="background:rgba(15,23,42"] {
                      style="border-bottom:1px solid rgba(255,255,255,0.06);">
                     <div class="d-flex align-items-center gap-3">
                         <div class="step-bubble {{ $bubbleClass }}">#{{ $t->urutan }}</div>
-                        <h5 class="fw-bold text-white mb-0" style="font-size:15px; letter-spacing:-0.2px;">{{ $t->nama_tahapan }}</h5>
+                        @php
+                            $fotoTahapan = $t->foto_url;
+                        @endphp
+                        @if($fotoTahapan)
+                            <div class="position-relative flex-shrink-0" style="cursor: pointer;" onclick="previewMasterTahapanFoto('{{ $fotoTahapan }}', '{{ e($t->nama_tahapan) }}')" title="Klik untuk memperbesar foto referensi / SOP">
+                                <img src="{{ $fotoTahapan }}" alt="{{ $t->nama_tahapan }}" class="rounded-3 shadow-sm" style="width: 48px; height: 48px; object-fit: cover; border: 1.5px solid rgba(56, 189, 248, 0.4); background: #0f172a; transition: transform 0.2s ease, border-color 0.2s ease;" onmouseenter="this.style.transform='scale(1.08)'; this.style.borderColor='#38bdf8';" onmouseleave="this.style.transform='scale(1)'; this.style.borderColor='rgba(56, 189, 248, 0.4)';">
+                                <span class="position-absolute bottom-0 end-0 bg-dark bg-opacity-75 rounded-circle d-flex align-items-center justify-content-center" style="width: 15px; height: 15px; font-size: 8.5px; color: #38bdf8;">
+                                    <i class="bi bi-zoom-in"></i>
+                                </span>
+                            </div>
+                        @endif
+                        <div>
+                            <h5 class="fw-bold text-white mb-0" style="font-size:15px; letter-spacing:-0.2px;">{{ $t->nama_tahapan }}</h5>
+                            @if($fotoTahapan)
+                                <span class="d-inline-flex align-items-center gap-1 mt-0.5" style="font-size: 11px; color: #38bdf8; cursor: pointer;" onclick="previewMasterTahapanFoto('{{ $fotoTahapan }}', '{{ e($t->nama_tahapan) }}')">
+                                    <i class="bi bi-image-fill" style="font-size: 10px;"></i> Foto Acuan SOP
+                                </span>
+                            @endif
+                        </div>
                     </div>
                     <div>{!! $statusBadge !!}</div>
                 </div>
@@ -770,7 +773,7 @@ html:not([data-bs-theme="dark"]) div[style*="background:rgba(15,23,42"] {
                         <span class="chip-val" style="color:{{ $reject > 0 ? '#f87171' : '#475569' }};">{{ number_format($reject,0,',','.') }} {{ $satuan }}</span>
                     </div>
                     <div class="stat-chip chip-operator">
-                        <span class="chip-label"><i class="bi bi-person me-1"></i>Operator / PIC</span>
+                        <span class="chip-label"><i class="bi bi-person me-1"></i>PIC</span>
                         <span class="chip-val" style="font-family:inherit; font-size:13px; color:#c7d2fe;">{{ $t->pic_operator ?: ($spk->penanggungJawab->nama_lengkap ?? '-') }}</span>
                     </div>
                 </div>
@@ -783,17 +786,12 @@ html:not([data-bs-theme="dark"]) div[style*="background:rgba(15,23,42"] {
                                 <i class="bi bi-play-fill"></i> Mulai Pengerjaan
                             </button>
                         @endif
-                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('input-hasil-harian-produksi') || auth()->user()->can('input-realisasi-produksi'))
-                            <button type="button" class="btn-tahapan input opacity-50" onclick="alertPengerjaanBelumDimulai('{{ e($t->nama_tahapan) }}')" title="Mulai pengerjaan tahapan ini terlebih dahulu">
-                                <i class="bi bi-lock-fill me-1"></i> Catat Hasil Harian
-                            </button>
-                        @endif
-                    @else
-                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('input-hasil-harian-produksi') || auth()->user()->can('input-realisasi-produksi'))
-                            <button type="button" class="btn-tahapan input" onclick="openInputDailyLogModal({{ $spk->id }}, {{ $t->id }})">
-                                <i class="bi bi-plus-circle-fill me-1"></i> Catat Hasil Harian
-                            </button>
-                        @endif
+                    @endif
+
+                    @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('input-hasil-harian-produksi') || auth()->user()->can('input-realisasi-produksi'))
+                        <button type="button" class="btn-tahapan input" onclick="openInputDailyLogModal({{ $spk->id }}, {{ $t->id }})">
+                            <i class="bi bi-plus-circle-fill me-1"></i> Catat Hasil Harian
+                        </button>
                     @endif
 
                     @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-riwayat-input-produksi') || auth()->user()->can('lihat-realisasi-produksi') || auth()->user()->can('kontrol-tahapan-realisasi') || auth()->user()->can('input-hasil-harian-produksi') || auth()->user()->can('input-realisasi-produksi'))
@@ -945,20 +943,22 @@ html:not([data-bs-theme="dark"]) div[style*="background:rgba(15,23,42"] {
         });
     }
 
-    function alertPengerjaanBelumDimulai(namaTahapan) {
+    function previewMasterTahapanFoto(url, title) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
-                icon: 'info',
-                title: 'Pengerjaan Belum Dimulai!',
-                html: 'Pengerjaan untuk tahapan <b>' + namaTahapan + '</b> belum dimulai.<br><br><span class="text-body-secondary small">Harap klik tombol <b class="text-success">"Mulai Pengerjaan"</b> terlebih dahulu untuk mengaktifkan penginputan hasil harian divisi ini.</span>',
-                confirmButtonText: 'Saya Mengerti',
-                confirmButtonColor: '#2563eb',
+                title: `<div class="d-flex align-items-center justify-content-center gap-2 text-info fs-6 fw-bold"><i class="bi bi-image-fill"></i> Foto Referensi / SOP: ${title}</div>`,
+                html: `<div class="p-2 text-center">
+                        <img src="${url}" class="img-fluid rounded-3 shadow-lg border border-info border-opacity-25" style="max-height: 480px; object-fit: contain; width: 100%;">
+                       </div>`,
+                showCloseButton: true,
+                confirmButtonText: '<i class="bi bi-x-lg me-1"></i> Tutup',
+                confirmButtonColor: '#334155',
                 customClass: {
-                    popup: 'rounded-4 shadow-lg'
+                    popup: 'rounded-4 shadow-2xl border border-secondary border-opacity-25'
                 }
             });
         } else {
-            alert('PERINGATAN: Pengerjaan tahapan ' + namaTahapan + ' belum dimulai! Klik "Mulai Pengerjaan" terlebih dahulu.');
+            window.open(url, '_blank');
         }
     }
 </script>

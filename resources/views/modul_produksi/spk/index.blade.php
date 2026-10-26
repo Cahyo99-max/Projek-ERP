@@ -10,16 +10,9 @@
 </style>
 @endpush
 <div class="container-fluid px-2 px-sm-4 py-3">
-    {{-- BREADCRUMB & HEADER --}}
+    {{-- HEADER --}}
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 gap-sm-3 mb-3 mb-sm-4">
         <div>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1 small text-nowrap flex-nowrap overflow-hidden">
-                    <li class="breadcrumb-item"><a href="{{ url('/dashbord') }}" class="text-decoration-none text-theme-muted"><i class="bi bi-house-door-fill me-1"></i>Dashboard</a></li>
-                    <li class="breadcrumb-item text-theme-muted d-none d-sm-inline">Modul Produksi</li>
-                    <li class="breadcrumb-item active fw-bold text-primary" aria-current="page">SPK Produksi</li>
-                </ol>
-            </nav>
             <div class="d-flex align-items-center gap-2">
                 <h4 class="fw-bold page-title mb-0 fs-5 fs-sm-3">Surat Perintah Kerja (SPK)</h4>
                 <div id="spkLiveIndicator"></div>

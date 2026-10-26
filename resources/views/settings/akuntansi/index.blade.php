@@ -23,9 +23,36 @@
             border-color: #cbd5e1;
             transition: all 0.2s ease;
         }
+        .mapping-box .select2-container--bootstrap-5 .select2-selection {
+            border-radius: 10px !important;
+            min-height: 38px !important;
+            font-size: 0.82rem !important;
+        }
+        .table-akuntansi .select2-container--bootstrap-5 .select2-selection {
+            border-radius: 8px !important;
+            min-height: 34px !important;
+            font-size: 0.8rem !important;
+        }
+        .modal .select2-container--bootstrap-5 .select2-selection {
+            border-radius: 8px !important;
+            min-height: 38px !important;
+            font-size: 0.82rem !important;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
+            font-size: 1.15rem !important;
+            line-height: 1 !important;
+            margin-right: 22px !important;
+            color: #94a3b8 !important;
+            position: absolute !important;
+            right: 0 !important;
+            cursor: pointer !important;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear:hover {
+            color: #ef4444 !important;
+        }
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
             padding-left: 4px !important;
-            padding-right: 18px !important;
+            padding-right: 24px !important;
             color: inherit;
             font-family: var(--bs-font-monospace);
         }
@@ -421,6 +448,61 @@
             border-color: rgba(203, 213, 225, 0.3) !important;
         }
 
+        /* ===== BADGE TIPE AKUN & FALLBACK BG-LIGHT ===== */
+        .badge-account-type {
+            background-color: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            font-weight: 500;
+            padding: 4px 12px;
+        }
+
+        [data-bs-theme="dark"] .badge-account-type,
+        html[data-theme="dark"] .badge-account-type,
+        .dark-mode .badge-account-type,
+        [data-bs-theme="dark"] .table-akuntansi .badge.bg-light,
+        html[data-theme="dark"] .table-akuntansi .badge.bg-light,
+        .dark-mode .table-akuntansi .badge.bg-light,
+        [data-bs-theme="dark"] .badge.bg-light,
+        html[data-theme="dark"] .badge.bg-light,
+        .dark-mode .badge.bg-light {
+            background-color: rgba(148, 163, 184, 0.18) !important;
+            color: #f1f5f9 !important;
+            border-color: rgba(148, 163, 184, 0.35) !important;
+        }
+
+        /* Warna Teks Kode Akun Header agar kontras terang di Dark Mode */
+        [data-bs-theme="dark"] .table-akuntansi .text-primary,
+        html[data-theme="dark"] .table-akuntansi .text-primary,
+        .dark-mode .table-akuntansi .text-primary {
+            color: #60a5fa !important;
+        }
+
+        /* Baris Akun Header di COA */
+        .coa-header-row {
+            background-color: rgba(37, 99, 235, 0.04);
+            font-weight: 600;
+        }
+
+        [data-bs-theme="dark"] .coa-header-row,
+        html[data-theme="dark"] .coa-header-row,
+        .dark-mode .coa-header-row {
+            background-color: rgba(30, 58, 138, 0.22) !important;
+        }
+
+        [data-bs-theme="dark"] .coa-header-row td,
+        html[data-theme="dark"] .coa-header-row td,
+        .dark-mode .coa-header-row td {
+            color: #f8fafc !important;
+        }
+
+        /* Judul Section Header */
+        [data-bs-theme="dark"] h5.text-dark,
+        html[data-theme="dark"] h5.text-dark,
+        .dark-mode h5.text-dark {
+            color: #f8fafc !important;
+        }
+
         [data-bs-theme="dark"] .badge-debit,
         html[data-theme="dark"] .badge-debit,
         .dark-mode .badge-debit {
@@ -452,6 +534,19 @@
         html[data-theme="dark"] .dataTables_wrapper .dataTables_length,
         html[data-theme="dark"] .dataTables_wrapper .dataTables_filter {
             color: #94a3b8 !important;
+        }
+
+        [data-bs-theme="dark"] .dataTables_wrapper .dataTables_length select,
+        html[data-theme="dark"] .dataTables_wrapper .dataTables_length select,
+        .dark-mode .dataTables_wrapper .dataTables_length select,
+        [data-bs-theme="dark"] .dataTables_wrapper .dataTables_filter input,
+        html[data-theme="dark"] .dataTables_wrapper .dataTables_filter input,
+        .dark-mode .dataTables_wrapper .dataTables_filter input {
+            background-color: #1e293b !important;
+            border: 1px solid #334155 !important;
+            color: #f8fafc !important;
+            border-radius: 6px !important;
+            padding: 3px 8px !important;
         }
 
         [data-bs-theme="dark"] .page-link,
@@ -592,6 +687,8 @@
                         @elseif($activeTab == 'account_type') Master Tipe Akun
                         @elseif($activeTab == 'system_mapping') Account Mapping System
                         @elseif($activeTab == 'category_mapping') Mapping Kategori Barang
+                        @elseif($activeTab == 'kas_bank_mapping') Mapping Kategori Kas & Bank
+                        @elseif($activeTab == 'tipe_pengeluaran') Master & Mapping Tipe Pengeluaran
                         @else Master & Mapping Jenis Biaya @endif
                     </h4>
                     <span class="text-muted small">Pengaturan &gt; Akuntansi Terpadu</span>
@@ -609,7 +706,7 @@
             </div>
         </div>
 
-        <!-- 5 Sub-Tabs Header Navigation Bar -->
+        <!-- Sub-Tabs Header Navigation Bar -->
         <div class="card card-pr-container shadow-sm mb-4">
             <div class="card-header border-bottom px-4 pt-2 pb-0 bg-transparent">
                 <ul class="nav nav-tabs-akuntansi gap-2" id="akuntansiTab" role="tablist">
@@ -634,6 +731,16 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ $activeTab == 'kas_bank_mapping' ? 'active' : '' }}" href="{{ route('akuntansi.index', ['tab' => 'kas_bank_mapping']) }}">
+                            <i class="bi bi-wallet2 me-1"></i> Mapping Kategori Kas & Bank
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ $activeTab == 'petty_cash_mapping' ? 'active' : '' }}" href="{{ route('akuntansi.index', ['tab' => 'petty_cash_mapping']) }}">
+                            <i class="bi bi-cash-coin me-1"></i> Mapping Kategori Kas Kecil
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ in_array($activeTab, ['expense_type', 'expense_mapping']) ? 'active' : '' }}" href="{{ route('akuntansi.index', ['tab' => 'expense_type']) }}">
                             <i class="bi bi-tags me-1"></i> Master & Mapping Jenis Biaya
                         </a>
@@ -655,6 +762,10 @@
                     @include('settings.akuntansi.tab_system_mapping')
                 @elseif($activeTab == 'category_mapping')
                     @include('settings.akuntansi.tab_category_mapping')
+                @elseif($activeTab == 'kas_bank_mapping')
+                    @include('settings.akuntansi.tab_kas_bank_mapping')
+                @elseif($activeTab == 'petty_cash_mapping')
+                    @include('settings.akuntansi.tab_petty_cash_mapping')
                 @elseif($activeTab == 'tipe_pengeluaran')
                     @include('settings.akuntansi.tab_tipe_pengeluaran')
                 @else
@@ -667,8 +778,11 @@
     <!-- Modular Modals -->
     @include('settings.akuntansi.modal_coa')
     @include('settings.akuntansi.modal_tipe_akun')
+    @include('settings.akuntansi.modal_import_tipe_akun')
     @include('settings.akuntansi.modal_jenis_biaya')
     @include('settings.akuntansi.modal_tipe_pengeluaran')
+    @include('settings.akuntansi.modal_kas_bank_mapping')
+    @include('settings.akuntansi.modal_petty_cash_mapping')
 
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -699,6 +813,58 @@
                 }
             }
             initCategorySelect2();
+
+            // Initialize Select2 for System Mapping
+            function initSystemMappingSelect2() {
+                if ($.fn.select2) {
+                    $('.select-system-coa').each(function() {
+                        if (!$(this).hasClass('select2-hidden-accessible')) {
+                            const placeholder = $(this).find('option[value=""]').first().text().trim() || '-- Pilih Akun COA --';
+                            $(this).select2({
+                                theme: 'bootstrap-5',
+                                width: '100%',
+                                placeholder: placeholder,
+                                allowClear: true,
+                                dropdownParent: $(document.body)
+                            });
+                        }
+                    });
+                }
+            }
+            initSystemMappingSelect2();
+
+            // Initialize Select2 for Modal Tambah/Edit Jenis Biaya
+            if ($.fn.select2 && $('#exp_coa_id').length) {
+                $('#exp_coa_id').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    placeholder: '-- Pilih Akun COA (Wajib) --',
+                    allowClear: true,
+                    dropdownParent: $('#modalTambahJenisBiaya')
+                });
+            }
+
+            // Initialize Select2 for Modal Tambah/Edit Tipe Pengeluaran
+            if ($.fn.select2) {
+                if ($('#tambah_tipe_coa_id').length) {
+                    $('#tambah_tipe_coa_id').select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        placeholder: '-- Pilih Akun COA Beban (Wajib) --',
+                        allowClear: true,
+                        dropdownParent: $('#modalTambahTipePengeluaran')
+                    });
+                }
+                if ($('#edit_tipe_coa_id').length) {
+                    $('#edit_tipe_coa_id').select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        placeholder: '-- Pilih Akun COA Beban (Wajib) --',
+                        allowClear: true,
+                        dropdownParent: $('#modalEditTipePengeluaran')
+                    });
+                }
+            }
 
             const dtLang = {
                 search: "Search:",
@@ -862,11 +1028,48 @@
             }
 
             // Reset Modal Master Tipe Akun on Hide
+            let codeManuallyEdited = false;
             $('#modalTambahMasterTipeAkun').on('hidden.bs.modal', function() {
                 $('#formMasterTipeAkun')[0].reset();
                 $('#type_id').val('');
                 $('#modalTypeTitle').text('Tambah Master Tipe Akun');
                 $('#btnSubmitType').prop('disabled', false).html('Simpan');
+                codeManuallyEdited = false;
+            });
+
+            // Auto-Generate Kode Tipe Akun
+            function fetchAutoTypeCode() {
+                const nama = ($('#type_nama').val() || '').trim();
+                const icon = $('#btnRefreshCodeType i');
+                icon.addClass('spin-animation');
+                $.get('/settings/master-tipe-akuns/generate-code', { nama: nama }, function(res) {
+                    if (res && res.code) {
+                        $('#type_kode').val(res.code);
+                    }
+                }).always(function() {
+                    icon.removeClass('spin-animation');
+                });
+            }
+
+            $(document).on('click', '#btnAutoCodeType, #btnRefreshCodeType', function(e) {
+                e.preventDefault();
+                fetchAutoTypeCode();
+            });
+
+            $('#type_kode').on('input', function() {
+                codeManuallyEdited = true;
+            });
+
+            $('#modalTambahMasterTipeAkun').on('shown.bs.modal', function() {
+                if (!$('#type_id').val() && !$('#type_kode').val()) {
+                    fetchAutoTypeCode();
+                }
+            });
+
+            $('#type_nama').on('blur', function() {
+                if (!$('#type_id').val() && (!codeManuallyEdited || !$('#type_kode').val())) {
+                    fetchAutoTypeCode();
+                }
             });
 
             // Master Tipe Akun Submit
@@ -920,6 +1123,286 @@
                         });
                     }
                 });
+            });
+
+            // Dropzone & File Input Handler untuk Import Tipe Akun
+            function resetImportDropzone() {
+                $('#import_type_excel_file').val('');
+                $('#dropzoneEmptyState').removeClass('d-none');
+                $('#dropzoneSelectedState').addClass('d-none');
+                $('#selectedFileName').text('');
+                $('#selectedFileSize').text('');
+            }
+
+            $('#import_type_excel_file').on('change', function() {
+                const file = this.files && this.files[0];
+                if (file) {
+                    $('#selectedFileName').text(file.name);
+                    const sizeFormatted = file.size > 1048576 
+                        ? (file.size / 1048576).toFixed(2) + ' MB' 
+                        : (file.size / 1024).toFixed(1) + ' KB';
+                    $('#selectedFileSize').text(sizeFormatted);
+                    $('#dropzoneEmptyState').addClass('d-none');
+                    $('#dropzoneSelectedState').removeClass('d-none');
+                } else {
+                    resetImportDropzone();
+                }
+            });
+
+            $('#btnResetSelectedFile').on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                resetImportDropzone();
+            });
+
+            $('#importTypeDropzone').on('dragover dragenter', function() {
+                $(this).addClass('border-primary shadow-sm').css('background', 'rgba(var(--bs-primary-rgb, 37, 99, 235), 0.08)');
+            }).on('dragleave dragend drop', function() {
+                $(this).removeClass('border-primary shadow-sm').css('background', 'rgba(var(--bs-primary-rgb, 37, 99, 235), 0.02)');
+            });
+
+            $('#modalImportMasterTipeAkun').on('hidden.bs.modal', function() {
+                $('#formImportMasterTipeAkun')[0].reset();
+                resetImportDropzone();
+                $('#btnSubmitImportType').prop('disabled', false).html('<i class="bi bi-cloud-arrow-up-fill me-1.5"></i> Mulai Import');
+                $('#importTypeProgress').addClass('d-none');
+            });
+
+            // Import Master Tipe Akun Submit
+            $('#formImportMasterTipeAkun').on('submit', function(e) {
+                e.preventDefault();
+                const form = this;
+                const fileInput = $('#import_type_excel_file')[0];
+                if (!fileInput.files || !fileInput.files[0]) {
+                    Swal.fire('Peringatan', 'Harap pilih file Excel (.xlsx / .csv) terlebih dahulu.', 'warning');
+                    return false;
+                }
+
+                const formData = new FormData(form);
+                const btn = $('#btnSubmitImportType');
+                const progress = $('#importTypeProgress');
+
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1.5" role="status" aria-hidden="true"></span> Mengimpor...');
+                progress.removeClass('d-none');
+
+                $.ajax({
+                    url: '/settings/master-tipe-akuns/import',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(res) {
+                        $('#modalImportMasterTipeAkun').modal('hide');
+                        form.reset();
+                        resetImportDropzone();
+
+                        if (res.status === 'warning') {
+                            let warningListHtml = '';
+                            if (res.errors && Array.isArray(res.errors) && res.errors.length > 0) {
+                                warningListHtml = `
+                                    <div class="text-start mt-3">
+                                        <div class="small fw-semibold text-warning-emphasis mb-1.5">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i> Rincian Baris yang Dilewati (${res.errors.length}):
+                                        </div>
+                                        <div class="p-2.5 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25" style="max-height: 200px; overflow-y: auto;">
+                                            <ul class="small text-warning-emphasis mb-0 ps-3 text-start" style="font-size: 12px; line-height: 1.6;">
+                                                ${res.errors.map(err => `<li>${$('<div>').text(err).html()}</li>`).join('')}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Import Selesai dengan Catatan',
+                                html: `<div class="text-start small text-muted mb-2">${$('<div>').text(res.message).html()}</div>${warningListHtml}`,
+                                confirmButtonText: '<i class="bi bi-check-lg me-1"></i> OK, Muat Ulang Data'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Import Berhasil!',
+                                html: `<div class="text-start text-body mb-2">${$('<div>').text(res.message || 'Semua data Master Tipe Akun berhasil diimpor ke sistem.').html()}</div>
+                                       <div class="small text-muted text-start"><i class="bi bi-check-circle-fill text-success me-1"></i> Halaman akan dimuat ulang untuk menampilkan data terbaru.</div>`,
+                                confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Selesai',
+                                customClass: {
+                                    confirmButton: 'btn btn-primary px-4'
+                                },
+                                buttonsStyling: false
+                            }).then(() => {
+                                location.reload();
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        btn.prop('disabled', false).html('<i class="bi bi-cloud-arrow-up-fill me-1.5"></i> Mulai Import');
+                        progress.addClass('d-none');
+
+                        const res = xhr.responseJSON;
+                        const errorMsg = res?.message || 'Terjadi kesalahan saat memproses file Excel.';
+                        
+                        let rawErrors = [];
+                        if (Array.isArray(res?.errors)) {
+                            rawErrors = res.errors;
+                        } else if (res?.errors && typeof res.errors === 'object') {
+                            Object.values(res.errors).forEach(errArr => {
+                                if (Array.isArray(errArr)) rawErrors.push(...errArr);
+                                else rawErrors.push(errArr);
+                            });
+                        }
+
+                        let errorHtml = `<div class="text-start text-muted small mb-2">${$('<div>').text(errorMsg).html()}</div>`;
+                        if (rawErrors.length > 0) {
+                            errorHtml += `
+                                <div class="text-start mt-3">
+                                    <div class="small fw-semibold text-danger mb-1.5">
+                                        <i class="bi bi-x-octagon-fill me-1"></i> Rincian Kesalahan Ditemukan (${rawErrors.length}):
+                                    </div>
+                                    <div class="p-2.5 rounded-3 bg-danger bg-opacity-10 border border-danger border-opacity-25" style="max-height: 220px; overflow-y: auto;">
+                                        <ul class="small text-danger-emphasis mb-0 ps-3 text-start" style="font-size: 12px; line-height: 1.6;">
+                                            ${rawErrors.map(err => `<li>${$('<div>').text(err).html()}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                    <div class="small text-muted mt-2 fst-italic" style="font-size: 11px;">
+                                        * Silakan periksa kolom pada nomor baris di atas, perbaiki file Excel, lalu coba import kembali.
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Import Gagal!',
+                            html: errorHtml,
+                            confirmButtonText: '<i class="bi bi-arrow-repeat me-1"></i> Tutup & Perbaiki',
+                            customClass: {
+                                confirmButton: 'btn btn-primary px-4'
+                            },
+                            buttonsStyling: false
+                        });
+                    }
+                });
+            });
+
+            // Export Excel Master Tipe Akun Handler
+            $(document).on('click', '#btnExportMasterTipeAkun', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof window.hideLoader === 'function') window.hideLoader();
+
+                const btn = $(this);
+                const originalHtml = btn.html();
+                const exportUrl = btn.attr('href');
+
+                btn.addClass('disabled').html('<span class="spinner-border spinner-border-sm me-1.5" role="status"></span> Menyiapkan...');
+
+                fetch(exportUrl)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Gagal mengekspor data Excel');
+                        
+                        const disposition = response.headers.get('Content-Disposition');
+                        let filename = 'master_tipe_akun.xlsx';
+                        if (disposition && disposition.indexOf('filename=') !== -1) {
+                            const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                            if (matches != null && matches[1]) { 
+                                filename = matches[1].replace(/['"]/g, '');
+                            }
+                        }
+                        return response.blob().then(blob => ({ blob, filename }));
+                    })
+                    .then(({ blob, filename }) => {
+                        btn.removeClass('disabled').html(originalHtml);
+                        if (typeof window.hideLoader === 'function') window.hideLoader();
+
+                        // Trigger download file
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(downloadUrl);
+
+                        // Alert Sukses Export
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Export Berhasil!',
+                            html: `<div class="text-body small text-start mb-1">Data Master Tipe Akun berhasil diekspor.</div>
+                                   <div class="small text-muted text-start">File <strong>${$('<div>').text(filename).html()}</strong> telah berhasil diunduh ke perangkat Anda.</div>`,
+                            confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Selesai',
+                            customClass: {
+                                confirmButton: 'btn btn-success px-4'
+                            },
+                            buttonsStyling: false
+                        });
+                    })
+                    .catch(err => {
+                        btn.removeClass('disabled').html(originalHtml);
+                        if (typeof window.hideLoader === 'function') window.hideLoader();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal Export',
+                            text: 'Terjadi kesalahan sistem saat mengekspor file Excel. Silakan coba beberapa saat lagi.'
+                        });
+                    });
+            });
+
+            // Download Template Excel Master Tipe Akun Handler
+            $(document).on('click', '#btnDownloadTemplateTipeAkun', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof window.hideLoader === 'function') window.hideLoader();
+
+                const btn = $(this);
+                const originalHtml = btn.html();
+                const templateUrl = btn.attr('href');
+
+                btn.addClass('disabled').html('<span class="spinner-border spinner-border-sm me-1.5" role="status"></span> Mengunduh...');
+
+                fetch(templateUrl)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Gagal mengunduh template Excel');
+                        return response.blob().then(blob => ({ blob, filename: 'template_import_master_tipe_akun.xlsx' }));
+                    })
+                    .then(({ blob, filename }) => {
+                        btn.removeClass('disabled').html(originalHtml);
+                        if (typeof window.hideLoader === 'function') window.hideLoader();
+
+                        // Trigger download template
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(downloadUrl);
+
+                        // Toast Notifikasi Sukses Download Template
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3500,
+                            timerProgressBar: true
+                        });
+                        Toast.fire({
+                            icon: 'success',
+                            title: 'Template Excel berhasil diunduh!'
+                        });
+                    })
+                    .catch(err => {
+                        btn.removeClass('disabled').html(originalHtml);
+                        if (typeof window.hideLoader === 'function') window.hideLoader();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal Download Template',
+                            text: 'Terjadi kendala saat mengunduh format template Excel.'
+                        });
+                    });
             });
 
             // COA Submit Form
@@ -995,14 +1478,39 @@
                 });
             });
 
+            // Reset Modal Jenis Biaya saat ditutup
+            $('#modalTambahJenisBiaya').on('hidden.bs.modal', function() {
+                $('#formJenisBiaya')[0].reset();
+                $('#exp_id').val('');
+                $('#exp_coa_id').val('').trigger('change');
+                $('#modalExpTitle').text('Tambah Jenis Biaya');
+            });
+
             // Master Jenis Biaya Submit
             $('#formJenisBiaya').on('submit', function(e) {
                 e.preventDefault();
+
+                // Validasi Client-side Akun COA wajib dipilih
+                const coaId = $('#exp_coa_id').val();
+                if (!coaId) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan',
+                        text: 'Akun COA (Mapping) wajib dipilih!',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#2563eb'
+                    });
+                    if ($.fn.select2) {
+                        $('#exp_coa_id').select2('open');
+                    }
+                    return false;
+                }
+
                 const id = $('#exp_id').val();
                 const url = id ? `/settings/master-jenis-biayas/${id}` : '/settings/master-jenis-biayas';
                 let formData = $(this).serializeArray();
                 if (id) formData.push({ name: '_method', value: 'PUT' });
-                $('#btnSubmitExp').prop('disabled', true).html('Menyimpan...');
+                $('#btnSubmitExp').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
                 $.ajax({
                     url: url,
                     type: 'POST',
@@ -1024,7 +1532,7 @@
                     $('#nama_jenis_biaya').val(exp.nama_jenis_biaya);
                     $('#kode_biaya').val(exp.kode_biaya);
                     $('#alokasi_biaya').val(exp.alokasi_biaya);
-                    $('#exp_coa_id').val(exp.coa_id || '');
+                    $('#exp_coa_id').val(exp.coa_id || '').trigger('change');
                     $('#masuk_hpp').prop('checked', exp.masuk_hpp);
                     $('#exp_status').val(exp.status);
                     $('#modalExpTitle').text('Edit Jenis Biaya');
@@ -1039,9 +1547,32 @@
                 });
             }
 
+            // Reset Modal Tambah Tipe Pengeluaran saat ditutup
+            $('#modalTambahTipePengeluaran').on('hidden.bs.modal', function() {
+                $('#formTambahTipePengeluaran')[0].reset();
+                $('#tambah_tipe_coa_id').val('').trigger('change');
+            });
+
             // Submit Tambah Tipe Pengeluaran
             $('#formTambahTipePengeluaran').on('submit', function(e) {
                 e.preventDefault();
+
+                // Validasi Client-side Akun COA wajib dipilih
+                const coaId = $('#tambah_tipe_coa_id').val();
+                if (!coaId) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan',
+                        text: 'Alokasi Akun COA Pengeluaran / Beban wajib dipilih!',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#2563eb'
+                    });
+                    if ($.fn.select2) {
+                        $('#tambah_tipe_coa_id').select2('open');
+                    }
+                    return false;
+                }
+
                 $.ajax({
                     url: '{{ route("master-tipe-pengeluarans.store") }}',
                     type: 'POST',
@@ -1064,7 +1595,7 @@
                     $('#edit_tipe_pengeluaran_id').val(item.id);
                     $('#edit_tipe_nama_tipe').val(item.nama_tipe);
                     $('#edit_tipe_kode_tipe').val(item.kode_tipe);
-                    $('#edit_tipe_coa_id').val(item.coa_id || '');
+                    $('#edit_tipe_coa_id').val(item.coa_id || '').trigger('change');
                     $('#edit_tipe_coa_kredit_id').val(item.coa_kredit_id || '');
                     $('#edit_tipe_status').val(item.status);
                     $('#edit_tipe_deskripsi').val(item.deskripsi);
@@ -1075,6 +1606,23 @@
             // Submit Edit Tipe Pengeluaran
             $('#formEditTipePengeluaran').on('submit', function(e) {
                 e.preventDefault();
+
+                // Validasi Client-side Akun COA wajib dipilih
+                const coaId = $('#edit_tipe_coa_id').val();
+                if (!coaId) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan',
+                        text: 'Alokasi Akun COA Pengeluaran / Beban wajib dipilih!',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#2563eb'
+                    });
+                    if ($.fn.select2) {
+                        $('#edit_tipe_coa_id').select2('open');
+                    }
+                    return false;
+                }
+
                 const id = $('#edit_tipe_pengeluaran_id').val();
                 $.ajax({
                     url: `/settings/master-tipe-pengeluarans/${id}`,
@@ -1109,6 +1657,377 @@
                             success: function(res) { Swal.fire('Berhasil', res.message, 'success').then(() => location.reload()); },
                             error: function(xhr) { Swal.fire('Error', xhr.responseJSON?.message || 'Gagal menghapus.', 'error'); }
                         });
+                    }
+                });
+            });
+
+            // ===== KAS & BANK KATEGORI MAPPINGS =====
+            if ($.fn.select2) {
+                $('#modalTambahKasKategori').on('shown.bs.modal', function () {
+                    if (!$('#tambah_kas_coa_id').hasClass('select2-hidden-accessible')) {
+                        $('#tambah_kas_coa_id').select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            placeholder: '-- Pilih Akun COA Lawan (Wajib) --',
+                            dropdownParent: $('#modalTambahKasKategori')
+                        });
+                    }
+                });
+                $('#modalEditKasKategori').on('shown.bs.modal', function () {
+                    if (!$('#edit_kas_coa_id').hasClass('select2-hidden-accessible')) {
+                        $('#edit_kas_coa_id').select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            placeholder: '-- Pilih Akun COA Lawan (Wajib) --',
+                            dropdownParent: $('#modalEditKasKategori')
+                        });
+                    }
+                });
+            }
+
+            if ($('#tableKasKategoriMapping').length) {
+                const tableKasKategori = $('#tableKasKategoriMapping').DataTable({
+                    pageLength: 10,
+                    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Semua"]],
+                    language: dtLang,
+                    ordering: false,
+                    dom: dtDom
+                });
+
+                // Filter pills event
+                $('#kasKategoriFilterPills .kas-pill').on('click', function() {
+                    $('#kasKategoriFilterPills .kas-pill').removeClass('active');
+                    $(this).addClass('active');
+
+                    const filter = $(this).data('filter');
+                    if (filter === 'all') {
+                        tableKasKategori.column(1).search('').draw();
+                    } else {
+                        tableKasKategori.column(1).search(filter).draw();
+                    }
+                });
+            }
+
+            // Realtime Character Limit & Counter - Kategori Kas & Bank
+            function setupKasKategoriLimit(inputSelector, counterSelector, maxLimit, fieldLabel) {
+                $(document).on('input keyup paste', inputSelector, function() {
+                    let val = $(this).val() || '';
+                    if (val.length > maxLimit) {
+                        $(this).val(val.substring(0, maxLimit));
+                        $(counterSelector).text(`${maxLimit}/${maxLimit}`);
+                        if (!Swal.isVisible()) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Batas Karakter Tercapai',
+                                text: `${fieldLabel} tidak boleh lebih dari ${maxLimit} karakter!`,
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#2563eb'
+                            });
+                        }
+                    } else {
+                        $(counterSelector).text(`${val.length}/${maxLimit}`);
+                    }
+                });
+            }
+
+            setupKasKategoriLimit('#tambah_kas_nama_kategori', '#tambah_kas_nama_count', 40, 'Nama Kategori');
+            setupKasKategoriLimit('#tambah_kas_deskripsi', '#tambah_kas_deskripsi_count', 60, 'Deskripsi');
+            setupKasKategoriLimit('#edit_kas_nama_kategori', '#edit_kas_nama_count', 40, 'Nama Kategori');
+            setupKasKategoriLimit('#edit_kas_deskripsi', '#edit_kas_deskripsi_count', 60, 'Deskripsi');
+
+            $('#modalTambahKasKategori').on('show.bs.modal', function() {
+                $('#tambah_kas_nama_count').text('0/40');
+                $('#tambah_kas_deskripsi_count').text('0/60');
+            });
+
+            // Submit Tambah Kas Kategori
+            $('#formTambahKasKategori').on('submit', function(e) {
+                e.preventDefault();
+                const btn = $('#btnSubmitTambahKasKategori');
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
+                $.ajax({
+                    url: '{{ route("akuntansi.kas-kategori-mappings.store") }}',
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(res) {
+                        $('#modalTambahKasKategori').modal('hide');
+                        Swal.fire('Berhasil', res.message, 'success').then(() => location.reload());
+                    },
+                    error: function(xhr) {
+                        btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Simpan');
+                        Swal.fire('Gagal', xhr.responseJSON?.message || 'Terjadi kesalahan saat menyimpan.', 'error');
+                    }
+                });
+            });
+
+            // Edit Kas Kategori
+            $(document).on('click', '.btn-edit-kas-kategori', function() {
+                const id = $(this).data('id');
+                $.get(`/settings/akuntansi/kas-kategori-mappings/${id}/edit`, function(res) {
+                    const item = res.mapping;
+                    $('#edit_kas_kategori_id').val(item.id);
+                    $('#edit_kas_nama_kategori').val(item.nama_kategori);
+                    $('#edit_kas_nama_count').text(`${(item.nama_kategori || '').length}/40`);
+                    if (item.tipe === 'Masuk') {
+                        $('#edit_tipe_masuk').prop('checked', true);
+                    } else {
+                        $('#edit_tipe_keluar').prop('checked', true);
+                    }
+                    $('#edit_kas_coa_id').val(item.coa_id || '').trigger('change');
+                    $('#edit_kas_deskripsi').val(item.deskripsi || '');
+                    $('#edit_kas_deskripsi_count').text(`${(item.deskripsi || '').length}/60`);
+                    $('#modalEditKasKategori').modal('show');
+                }).fail(function(xhr) {
+                    Swal.fire('Error', xhr.responseJSON?.message || 'Gagal memuat data kategori.', 'error');
+                });
+            });
+
+            // Submit Edit Kas Kategori
+            $('#formEditKasKategori').on('submit', function(e) {
+                e.preventDefault();
+                const id = $('#edit_kas_kategori_id').val();
+                const btn = $('#btnSubmitEditKasKategori');
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
+                $.ajax({
+                    url: `/settings/akuntansi/kas-kategori-mappings/${id}`,
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(res) {
+                        $('#modalEditKasKategori').modal('hide');
+                        Swal.fire('Berhasil', res.message, 'success').then(() => location.reload());
+                    },
+                    error: function(xhr) {
+                        btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Simpan Perubahan');
+                        Swal.fire('Gagal', xhr.responseJSON?.message || 'Terjadi kesalahan saat memperbarui.', 'error');
+                    }
+                });
+            });
+
+            // Delete Kas Kategori
+            $(document).on('click', '.btn-delete-kas-kategori', function() {
+                const id = $(this).data('id');
+                const nama = $(this).attr('data-nama') || 'Kategori ini';
+                Swal.fire({
+                    title: 'Konfirmasi Hapus Kategori',
+                    text: `Apakah Anda yakin ingin menghapus kategori "${nama}"? Kategori ini tidak akan muncul lagi di formulir kas masuk & kas keluar.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, Hapus',
+                    cancelButtonText: 'Batal'
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        $.ajax({
+                            url: `/settings/akuntansi/kas-kategori-mappings/${id}`,
+                            type: 'POST',
+                            data: { _token: '{{ csrf_token() }}', _method: 'DELETE' },
+                            success: function(res) {
+                                Swal.fire('Berhasil', res.message, 'success').then(() => location.reload());
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Error', xhr.responseJSON?.message || 'Gagal menghapus.', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Toggle Status Switch Kas Kategori
+            $(document).on('change', '.btn-toggle-kas-kategori', function() {
+                const id = $(this).data('id');
+                const isChecked = $(this).is(':checked');
+                const self = $(this);
+                $.ajax({
+                    url: `/settings/akuntansi/kas-kategori-mappings/${id}/toggle`,
+                    type: 'POST',
+                    data: { _token: '{{ csrf_token() }}', _method: 'PATCH' },
+                    success: function(res) {
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                        Toast.fire({ icon: 'success', title: res.message });
+                        self.closest('td').find('.text-xxs').text(res.is_active ? 'Aktif' : 'Non-Aktif')
+                            .toggleClass('text-success fw-semibold', res.is_active)
+                            .toggleClass('text-danger', !res.is_active);
+                    },
+                    error: function(xhr) {
+                        self.prop('checked', !isChecked);
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Gagal mengubah status.', 'error');
+                    }
+                });
+            });
+
+            // ===== PETTY CASH (KAS KECIL) KATEGORI MAPPINGS =====
+            if ($.fn.select2) {
+                $('#modalTambahPettyCashMapping').on('shown.bs.modal', function () {
+                    if (!$('#tambah_petty_coa_id').hasClass('select2-hidden-accessible')) {
+                        $('#tambah_petty_coa_id').select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            placeholder: '-- Pilih Akun COA Beban (Wajib) --',
+                            dropdownParent: $('#modalTambahPettyCashMapping')
+                        });
+                    }
+                });
+                $('#modalEditPettyCashMapping').on('shown.bs.modal', function () {
+                    if (!$('#edit_petty_coa_id').hasClass('select2-hidden-accessible')) {
+                        $('#edit_petty_coa_id').select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            placeholder: '-- Pilih Akun COA Beban (Wajib) --',
+                            dropdownParent: $('#modalEditPettyCashMapping')
+                        });
+                    }
+                });
+            }
+
+            if ($('#tablePettyCashMapping').length) {
+                $('#tablePettyCashMapping').DataTable({
+                    pageLength: 10,
+                    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Semua"]],
+                    language: dtLang,
+                    ordering: false,
+                    dom: dtDom
+                });
+            }
+
+            // Realtime Character Limit & Counter - Kategori Kas Kecil
+            setupKasKategoriLimit('#tambah_petty_nama_kategori', '#tambah_petty_nama_count', 40, 'Nama Kategori Kas Kecil');
+            setupKasKategoriLimit('#tambah_petty_deskripsi', '#tambah_petty_deskripsi_count', 60, 'Deskripsi');
+            setupKasKategoriLimit('#edit_petty_nama_kategori', '#edit_petty_nama_count', 40, 'Nama Kategori Kas Kecil');
+            setupKasKategoriLimit('#edit_petty_deskripsi', '#edit_petty_deskripsi_count', 60, 'Deskripsi');
+
+            $('#modalTambahPettyCashMapping').on('show.bs.modal', function() {
+                $('#tambah_petty_nama_count').text('0/40');
+                $('#tambah_petty_deskripsi_count').text('0/60');
+            });
+
+            // Submit Tambah Petty Cash Mapping
+            $('#formTambahPettyCashMapping').on('submit', function(e) {
+                e.preventDefault();
+                const btn = $('#btnSubmitTambahPettyCashMapping');
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
+                $.ajax({
+                    url: '{{ route("akuntansi.petty-cash-mappings.store") }}',
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(res) {
+                        $('#modalTambahPettyCashMapping').modal('hide');
+                        Swal.fire('Berhasil', res.message, 'success').then(() => {
+                            window.location.href = '{{ route("akuntansi.index", ["tab" => "petty_cash_mapping"]) }}';
+                        });
+                    },
+                    error: function(xhr) {
+                        btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Simpan');
+                        Swal.fire('Gagal', xhr.responseJSON?.message || 'Terjadi kesalahan saat menyimpan.', 'error');
+                    }
+                });
+            });
+
+            // Edit Petty Cash Mapping
+            $(document).on('click', '.btn-edit-petty-cash-mapping', function() {
+                const id = $(this).data('id');
+                $.get(`/settings/akuntansi/petty-cash-mappings/${id}/edit`, function(res) {
+                    const item = res.mapping;
+                    $('#edit_petty_mapping_id').val(item.id);
+                    $('#edit_petty_nama_kategori').val(item.nama_kategori);
+                    $('#edit_petty_nama_count').text(`${(item.nama_kategori || '').length}/40`);
+                    $('#edit_petty_coa_id').val(item.coa_id || '').trigger('change');
+                    $('#edit_petty_warna_badge').val(item.warna_badge || 'primary');
+                    $('#edit_petty_icon').val(item.icon || 'bi-tag');
+                    $('#edit_petty_deskripsi').val(item.deskripsi || '');
+                    $('#edit_petty_deskripsi_count').text(`${(item.deskripsi || '').length}/60`);
+                    $('#modalEditPettyCashMapping').modal('show');
+                }).fail(function(xhr) {
+                    Swal.fire('Error', xhr.responseJSON?.message || 'Gagal memuat data kategori kas kecil.', 'error');
+                });
+            });
+
+            // Submit Edit Petty Cash Mapping
+            $('#formEditPettyCashMapping').on('submit', function(e) {
+                e.preventDefault();
+                const id = $('#edit_petty_mapping_id').val();
+                const btn = $('#btnSubmitEditPettyCashMapping');
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
+                $.ajax({
+                    url: `/settings/akuntansi/petty-cash-mappings/${id}`,
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(res) {
+                        $('#modalEditPettyCashMapping').modal('hide');
+                        Swal.fire('Berhasil', res.message, 'success').then(() => {
+                            window.location.href = '{{ route("akuntansi.index", ["tab" => "petty_cash_mapping"]) }}';
+                        });
+                    },
+                    error: function(xhr) {
+                        btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Simpan Perubahan');
+                        Swal.fire('Gagal', xhr.responseJSON?.message || 'Terjadi kesalahan saat memperbarui.', 'error');
+                    }
+                });
+            });
+
+            // Delete Petty Cash Mapping
+            $(document).on('click', '.btn-delete-petty-cash-mapping', function() {
+                const id = $(this).data('id');
+                const nama = $(this).attr('data-nama') || 'Kategori ini';
+                Swal.fire({
+                    title: 'Konfirmasi Hapus Kategori Kas Kecil',
+                    text: `Apakah Anda yakin ingin menghapus kategori "${nama}"? Kategori ini tidak akan muncul lagi sebagai shortcut di formulir kas kecil.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, Hapus',
+                    cancelButtonText: 'Batal'
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        $.ajax({
+                            url: `/settings/akuntansi/petty-cash-mappings/${id}`,
+                            type: 'POST',
+                            data: { _token: '{{ csrf_token() }}', _method: 'DELETE' },
+                            success: function(res) {
+                                Swal.fire('Berhasil', res.message, 'success').then(() => {
+                                    window.location.href = '{{ route("akuntansi.index", ["tab" => "petty_cash_mapping"]) }}';
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Error', xhr.responseJSON?.message || 'Gagal menghapus.', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Toggle Status Switch Petty Cash Mapping
+            $(document).on('change', '.btn-toggle-petty-cash-mapping', function() {
+                const id = $(this).data('id');
+                const isChecked = $(this).is(':checked');
+                const self = $(this);
+                $.ajax({
+                    url: `/settings/akuntansi/petty-cash-mappings/${id}/toggle`,
+                    type: 'POST',
+                    data: { _token: '{{ csrf_token() }}', _method: 'PATCH' },
+                    success: function(res) {
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                        Toast.fire({ icon: 'success', title: res.message });
+                        self.closest('td').find('.text-xxs').text(res.is_active ? 'Aktif' : 'Non-Aktif')
+                            .toggleClass('text-success fw-semibold', res.is_active)
+                            .toggleClass('text-danger', !res.is_active);
+                    },
+                    error: function(xhr) {
+                        self.prop('checked', !isChecked);
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Gagal mengubah status.', 'error');
                     }
                 });
             });

@@ -11,15 +11,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Panggil seeder role & user yang udah kita buat kemarin di sini cuy
+        // Seeder Master Sistem, Hak Akses, Akuntansi & Master Data Pokok
         $this->call([
-            UserDummySeeder::class,
             UrutanUserRoleSeeder::class,
             PermissionDetailSeeder::class,
+            KasBankPermissionSeeder::class,
+            PettyCashPermissionSeeder::class,
+            PengaturanAkuntansiPermissionSeeder::class,
+            LogAktivitasPermissionSeeder::class,
+            PengaturanAplikasiPermissionSeeder::class,
             MasterDataSeeder::class,
-            GarmentProductSeeder::class,
-            MasterCustomerSeeder::class,
-            TenderSeeder::class,
             ChartOfAccountSeeder::class,
             MasterTipeAkunSeeder::class,
             AccountMappingSeeder::class,

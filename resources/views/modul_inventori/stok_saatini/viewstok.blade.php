@@ -56,69 +56,8 @@
                 <button type="button" class="btn btn-outline-info rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalRumusPerhitungan">
                     <i class="bi bi-calculator me-1"></i> Rumus Perhitungan
                 </button>
-                <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalCetakStok">
-                    <i class="bi bi-printer me-1"></i> Cetak PDF
-                </button>
-                <button onclick="exportToExcel()" class="btn btn-outline-success rounded-pill px-3">
-                    <i class="bi bi-file-earmark-excel me-1"></i> Excel
-                </button>
             </div>
         </div>
-
-        <!-- ENTITAS SELECTOR / SCOPE BANNER -->
-        @if($isBranchSession)
-            <div class="card border-0 shadow-sm rounded-3 mb-3 p-3" style="background-color: var(--card-bg); border-left: 4px solid #0284c7 !important;">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <div class="d-flex align-items-center gap-2.5">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white shadow-sm" style="width: 36px; height: 36px; background: linear-gradient(135deg, #0284c7, #0ea5e9);">
-                            <i class="bi bi-shop fs-6"></i>
-                        </div>
-                        <div>
-                            <div class="d-flex align-items-center gap-2">
-                                <h6 class="fw-bold mb-0 text-dark">Stok Khusus Cabang: {{ session('active_branch_name') }}</h6>
-                                <span class="badge bg-info bg-opacity-15 text-info border border-info border-opacity-25 rounded-pill px-2.5 py-0.5 small fw-semibold">Mode Cabang</span>
-                            </div>
-                            <small class="text-muted">Menampilkan khusus persediaan gudang milik <strong>{{ session('active_branch_name') }}</strong> &bull; Terpisah mutlak dari stok gudang PT Pusat.</small>
-                        </div>
-                    </div>
-                    <div class="text-secondary small">
-                        <i class="bi bi-info-circle me-1 text-info"></i>Untuk melihat stok PT Pusat, silakan ganti ke <strong>Pusat</strong> di menu navigasi atas.
-                    </div>
-                </div>
-            </div>
-        @else
-            <div class="card border-0 shadow-sm rounded-3 mb-3 p-2.5" style="background-color: var(--card-bg); border-top: 3px solid #2563eb !important;">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <span class="text-secondary small fw-bold text-uppercase me-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
-                            <i class="bi bi-building me-1 text-primary"></i>Pilih Kepemilikan Stok:
-                        </span>
-                        <ul class="nav nav-pills gap-1.5" id="tabEntitasStok" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link btn-tab-entitas rounded-pill px-3.5 py-1.5 fw-semibold small {{ $entitas === 'pt' ? 'active' : '' }}"
-                                        data-entitas="pt" data-cabang-id="" type="button" id="tabStokPT">
-                                    <i class="bi bi-building-fill-check me-1.5 text-primary"></i>Stok PT Pusat (Head Quarter)
-                                </button>
-                            </li>
-                            @foreach($branches as $branch)
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link btn-tab-entitas rounded-pill px-3.5 py-1.5 fw-semibold small {{ ($entitas === 'cabang' && $cabangId == $branch->id) ? 'active' : '' }}"
-                                        data-entitas="cabang" data-cabang-id="{{ $branch->id }}" type="button">
-                                    <i class="bi bi-shop me-1.5 text-info"></i>Stok {{ $branch->nama_cabang }}
-                                </button>
-                            </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                    <div id="entitasBadgeIndicator">
-                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1.5 fw-semibold small d-inline-flex align-items-center gap-1.5">
-                            <span class="pulse-dot-primary"></span>
-                            <span id="textActiveEntity">Menampilkan: {{ $activeEntityLabel }}</span>
-                        </span>
-                    </div>
-                </div>
-            </div>
-        @endif
 
         <!-- FILTER SEARCH BAR -->
         <div class="row g-2 mb-4 align-items-center filter-section">
@@ -161,7 +100,13 @@
                         </div>
                         <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill small" style="font-size:0.68rem;">Total Qty</span>
                     </div>
-                    <div id="kpiTotalQty" class="kpi-value fs-4 text-body fw-bold">{{ number_format($totalQty, 0, ',', '.') }}</div>
+                    @php
+                        $rInitTotalQty = round($totalQty ?? 0, 2);
+                        $fmtInitTotalQty = (floor($rInitTotalQty) == $rInitTotalQty)
+                            ? number_format($rInitTotalQty, 0, ',', '.')
+                            : rtrim(rtrim(number_format($rInitTotalQty, 2, ',', '.'), '0'), ',');
+                    @endphp
+                    <div id="kpiTotalQty" class="kpi-value fs-4 text-body fw-bold">{{ $fmtInitTotalQty }}</div>
                     <div class="kpi-label text-muted small mt-1">Stok Fisik</div>
                 </div>
             </div>
@@ -174,7 +119,7 @@
                         </div>
                         <span class="badge bg-primary text-white rounded-pill small" style="font-size:0.68rem;">Total Nilai</span>
                     </div>
-                    <div id="kpiTotalNilaiPersediaan" class="kpi-value fs-5 text-primary fw-bold" style="font-size: 1.15rem !important; line-height: 1.4; padding-top: 2px;">{{ !empty($canSeeHpp) ? 'Rp ' . number_format($totalNilaiPersediaan, 0, ',', '.') : '***' }}</div>
+                    <div id="kpiTotalNilaiPersediaan" class="kpi-value fs-5 text-primary fw-bold" style="font-size: 1.15rem !important; line-height: 1.4; padding-top: 2px;">{{ !empty($canSeeHpp) ? 'Rp ' . number_format($totalNilaiPersediaan, 2, ',', '.') : '***' }}</div>
                     <div class="kpi-label text-primary-emphasis small mt-1">Aset Inventaris</div>
                 </div>
             </div>
@@ -234,17 +179,15 @@
                     <table class="table table-hover table-modern mb-0 w-100" id="tableOverview" style="width:100% !important;">
                         <thead>
                             <tr>
-                                <th width="3%" class="text-center text-nowrap">No</th>
-                                <th width="10%" class="text-start text-nowrap">Kode Barang</th>
-                                <th width="18%" class="text-start text-nowrap">Nama Barang</th>
-                                <th width="12%" class="text-start text-nowrap">Lokasi Gudang</th>
-                                <th width="6%" class="text-center text-nowrap">Min. Stok</th>
-                                <th width="9%" class="text-center text-nowrap">Stok Aktual</th>
-                                <th width="11%" class="text-end text-nowrap">Harga Saat Ini</th>
-                                <th width="12%" class="text-end text-nowrap">HPP (Avg Cost)</th>
+                                <th width="4%" class="text-center text-nowrap">No</th>
+                                <th width="14%" class="text-start text-nowrap">Kode Barang</th>
+                                <th width="24%" class="text-start text-nowrap">Nama Barang</th>
+                                <th width="8%" class="text-center text-nowrap">Min. Stok</th>
+                                <th width="12%" class="text-center text-nowrap">Stok Aktual</th>
+                                <th width="14%" class="text-end text-nowrap">HPP (Avg Cost)</th>
                                 <th width="14%" class="text-end text-nowrap">Nilai Persediaan</th>
-                                <th width="5%" class="text-center text-nowrap">Status</th>
-                                <th width="3%" class="text-center text-nowrap">Aksi</th>
+                                <th width="6%" class="text-center text-nowrap">Status</th>
+                                <th width="4%" class="text-center text-nowrap">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -257,11 +200,11 @@
 
     <!-- MODAL FILTER STOK -->
     <div class="modal fade" id="modalFilterStok" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-3" style="background-color: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color) !important;">
-                <div class="modal-header border-0 py-3" style="background-color: var(--bg-color); border-bottom: 1px solid var(--border-color) !important;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4" style="background-color: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color) !important;">
+                <div class="modal-header border-0 py-3 px-4" style="background-color: var(--bg-color); border-bottom: 1px solid var(--border-color) !important;">
                     <h5 class="modal-title fw-bold text-body-emphasis d-flex align-items-center" style="color: var(--text-main) !important;">
-                        <i class="bi bi-funnel text-primary me-2"></i>Filter Stok Barang
+                        <i class="bi bi-funnel text-primary me-2"></i>Filter & Cetak Stok Barang
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: var(--bs-theme-dark-close-button-filter);"></button>
                 </div>
@@ -273,8 +216,8 @@
                     
                     <div class="modal-body p-4">
                         <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label small fw-bold mb-1" style="color: var(--text-muted);">Gudang</label>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold mb-1" style="color: var(--text-muted);"><i class="bi bi-shop me-1 text-primary"></i>Gudang</label>
                                 <select name="gudang_id" id="filterGudang" class="form-select select2-filter">
                                     <option value="">-- Semua Gudang --</option>
                                     @foreach($gudangs as $g)
@@ -282,8 +225,8 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-12">
-                                <label class="form-label small fw-bold mb-1" style="color: var(--text-muted);">Kategori</label>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold mb-1" style="color: var(--text-muted);"><i class="bi bi-tag me-1 text-primary"></i>Kategori</label>
                                 <select name="kategori_id" id="filterKategori" class="form-select select2-filter">
                                     <option value="">-- Semua Kategori --</option>
                                     @foreach($kategoris as $k)
@@ -291,8 +234,8 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-12">
-                                <label class="form-label small fw-bold mb-1" style="color: var(--text-muted);">Status Keamanan Stok</label>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold mb-1" style="color: var(--text-muted);"><i class="bi bi-shield-check me-1 text-primary"></i>Status Keamanan Stok</label>
                                 <select name="status" id="filterStatus" class="form-select select2-filter">
                                     <option value="">-- Semua Status --</option>
                                     <option value="Aman" {{ $status == 'Aman' ? 'selected' : '' }}>Aman</option>
@@ -300,72 +243,48 @@
                                     <option value="Kosong" {{ $status == 'Kosong' ? 'selected' : '' }}>Kosong</option>
                                 </select>
                             </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer border-0 py-2" style="background-color: var(--bg-color); border-top: 1px solid var(--border-color) !important;">
-                        <button type="button" id="btnResetFilter" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">Reset</button>
-                        <button type="submit" class="btn btn-primary btn-sm px-3 rounded-pill">Terapkan Filter</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL CETAK STOK -->
-    <div class="modal fade" id="modalCetakStok" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-3" style="background-color: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color) !important;">
-                <div class="modal-header border-0 py-3" style="background-color: var(--bg-color); border-bottom: 1px solid var(--border-color) !important;">
-                    <h5 class="modal-title fw-bold text-body-emphasis d-flex align-items-center" style="color: var(--text-main) !important;">
-                        <i class="bi bi-printer text-primary me-2"></i>Cetak Laporan Stok (PDF)
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: var(--bs-theme-dark-close-button-filter);"></button>
-                </div>
-                <form action="{{ route('stock-overview.print') }}" method="GET" target="_blank" id="cetakForm">
-                    <input type="hidden" name="entitas" id="printEntitas" value="{{ $entitas }}">
-                    <input type="hidden" name="cabang_id" id="printCabangId" value="{{ $cabangId }}">
-                    <div class="modal-body p-4">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label small fw-bold mb-1" style="color: var(--text-muted);">Gudang</label>
-                                <select name="gudang_id" id="printGudang" class="form-select select2-print">
-                                    <option value="">-- Semua Gudang --</option>
-                                    @foreach($gudangs as $g)
-                                        <option value="{{ $g->id }}">{{ $g->nama_gudang }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label small fw-bold mb-1" style="color: var(--text-muted);">Kategori</label>
-                                <select name="kategori_id" id="printKategori" class="form-select select2-print">
-                                    <option value="">-- Semua Kategori --</option>
-                                    @foreach($kategoris as $k)
-                                        <option value="{{ $k->id }}">{{ $k->nama_kategori }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label small fw-bold mb-1" style="color: var(--text-muted);">Barang</label>
-                                <select name="barang_id" id="printBarang" class="form-select select2-print">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold mb-1" style="color: var(--text-muted);"><i class="bi bi-box-seam me-1 text-primary"></i>Barang Spesifik (Opsional)</label>
+                                <select name="barang_id" id="filterBarang" class="form-select select2-filter">
                                     <option value="">-- Semua Barang --</option>
                                     @foreach($barangs as $b)
-                                        <option value="{{ $b->id }}">{{ $b->kode_barang }} - {{ $b->nama_barang }}</option>
+                                        <option value="{{ $b->id }}" {{ $barangId == $b->id ? 'selected' : '' }}>[{{ $b->kode_barang }}] {{ $b->nama_barang }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-12 mt-3 pt-2 border-top">
-                                <div class="form-check form-switch d-flex align-items-center gap-2 ps-0">
-                                    <input class="form-check-input ms-0 me-2" type="checkbox" name="tampilkan_foto" value="1" id="printTampilkanFoto" checked style="width: 2.5em; height: 1.25em; cursor: pointer;">
-                                    <label class="form-check-label small fw-bold text-body mb-0" for="printTampilkanFoto" style="cursor: pointer;">
-                                        <i class="bi bi-image text-primary me-1"></i> Sertakan Foto Produk pada Cetakan PDF
-                                    </label>
+                            <div class="col-12 mt-2 pt-2 border-top">
+                                <div class="d-flex align-items-center justify-content-between p-2.5 rounded-3" style="background-color: var(--bg-color); border: 1px solid var(--border-color);">
+                                    <div class="form-check form-switch d-flex align-items-center gap-2 ps-0 mb-0">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" name="tampilkan_foto" value="1" id="filterTampilkanFoto" checked style="width: 2.5em; height: 1.25em; cursor: pointer;">
+                                        <label class="form-check-label small fw-semibold text-body mb-0" for="filterTampilkanFoto" style="cursor: pointer;">
+                                            <i class="bi bi-image text-primary me-1"></i> Sertakan Foto Produk pada Cetakan PDF
+                                        </label>
+                                    </div>
+                                    <small class="text-muted fst-italic d-none d-sm-inline">Digunakan saat mencetak PDF</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer border-0 py-2" style="background-color: var(--bg-color); border-top: 1px solid var(--border-color) !important;">
-                        <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary btn-sm px-3 rounded-pill">Cetak Sekarang</button>
+                    <div class="modal-footer d-flex flex-wrap align-items-center justify-content-between gap-2 border-0 py-3 px-4" style="background-color: var(--bg-color); border-top: 1px solid var(--border-color) !important;">
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" id="btnResetFilter" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">
+                                Batal
+                            </button>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <button type="button" id="btnFilterPrintPdf" class="btn btn-outline-danger btn-sm px-3 rounded-pill fw-semibold">
+                                <i class="bi bi-printer me-1"></i> Cetak PDF
+                            </button>
+                            <button type="button" id="btnFilterExportExcel" class="btn btn-outline-success btn-sm px-3 rounded-pill fw-semibold">
+                                <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill fw-semibold shadow-sm">
+                                <i class="bi bi-funnel-fill me-1"></i> Terapkan Filter
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -380,12 +299,7 @@
                     <h5 class="modal-title fw-bold text-body-emphasis d-flex align-items-center mb-0" style="color: var(--text-main) !important;">
                         <i class="bi bi-info-circle-fill text-primary me-2"></i>Detail Posisi Stok
                     </h5>
-                    <div class="d-flex align-items-center gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalRumusPerhitungan">
-                            <i class="bi bi-calculator me-1"></i>Rumus HPP & Stok
-                        </button>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: var(--bs-theme-dark-close-button-filter);"></button>
-                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: var(--bs-theme-dark-close-button-filter);"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="row g-4">
@@ -422,76 +336,131 @@
                             <hr class="my-3" style="border-top: 1px solid var(--border-color); opacity: 0.8;">
                             
                             <div class="row g-3">
-                                <div class="col-6">
+                                <div class="col-6 col-md-3">
                                     <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">Gudang Penyimpanan</label>
                                     <span id="detailGudang" class="fw-bold text-body-emphasis" style="color: var(--text-main) !important;">-</span>
                                 </div>
-                                <div class="col-6">
+                                <div class="col-6 col-md-3">
                                     <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">Kategori Barang</label>
                                     <span id="detailKategori" class="fw-bold text-body-emphasis" style="color: var(--text-main) !important;">-</span>
                                 </div>
-                                <div class="col-6">
+                                <div class="col-6 col-md-3">
                                     <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">Warna Barang</label>
                                     <span id="detailWarna" class="fw-bold text-body-emphasis" style="color: var(--text-main) !important;">-</span>
                                 </div>
-                                <div class="col-6">
+                                <div class="col-6 col-md-3">
                                     <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">Minimum Stok</label>
                                     <span id="detailMinStok" class="fw-semibold" style="color: var(--text-muted);">-</span>
                                 </div>
                         
                                 <div class="col-6">
-                                    <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">Stok Saatini</label>
-                                    <span id="detailStokAktual" class="fw-bold text-body-emphasis" style="color: var(--text-main) !important;">-</span>
+                                    <label class="small fw-semibold d-block mb-1 text-primary" style="font-size: 0.78rem;">
+                                        <i class="bi bi-box-seam me-1"></i>Stok Saat Ini (Fisik)
+                                    </label>
+                                    <span id="detailStokAktual" class="fs-5 fw-bold text-body-emphasis" style="color: var(--text-main) !important;">-</span>
                                 </div>
 
-                                
                                 <div class="col-6">
-                                    <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">Stok sebelumnya</label>
-                                    <span id="detailStokSebelumnya" class="fw-bold text-body-emphasis" style="color: var(--text-main) !important;">-</span>
+                                    <label class="small fw-semibold d-block mb-1 text-muted" style="font-size: 0.78rem;">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Stok Sebelum Mutasi Terakhir
+                                    </label>
+                                    <span id="detailStokSebelumnya" class="fs-5 fw-bold text-secondary">-</span>
                                 </div>
+
                                 <div class="col-12">
-                                    <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);"><i class="bi bi-clock-history me-1 text-info"></i>Sumber Transaksi Terakhir</label>
-                                    <span id="detailSumberTransaksiTerakhir" class="fw-bold text-body-emphasis" style="color: var(--text-main) !important;">-</span>
+                                    <div class="p-2.5 rounded-3 d-flex align-items-center justify-content-between" style="background-color: rgba(14, 165, 233, 0.08); border: 1px dashed rgba(14, 165, 233, 0.35);">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-clock-history text-info fs-5"></i>
+                                            <div>
+                                                <small class="d-block fw-semibold text-muted" style="font-size: 0.7rem; letter-spacing: 0.5px;">MUTASI TERAKHIR YANG MEMPENGARUHI STOK / HPP</small>
+                                                <span id="detailSumberTransaksiTerakhir" class="fw-bold text-body-emphasis" style="font-size: 0.88rem; color: var(--text-main) !important;">-</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 @if(!empty($canSeeHpp))
                                 <div class="col-12 mt-1">
-                                    <div class="p-3 rounded-3 d-flex flex-wrap align-items-center justify-content-between gap-3" style="background-color: var(--bg-color); border: 1.5px solid var(--border-color);">
-                                        <div>
-                                            <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">Harga Pokok Rata-Rata (HPP Saat Ini)</label>
-                                            <div class="d-flex align-items-center flex-wrap gap-2">
-                                                <span id="detailHPP" class="fs-5 fw-bold text-success">-</span>
-                                                <span id="detailHPPStatusBadge"></span>
+                                    <div class="p-3 rounded-3" style="background-color: var(--bg-color); border: 1.5px solid var(--border-color);">
+                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                            <div>
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <label class="small fw-bold text-uppercase text-primary mb-0" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                                        <i class="bi bi-tag-fill me-1"></i>HPP Rata-Rata Saat Ini (Moving Average)
+                                                    </label>
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill" style="font-size: 0.65rem;">Harga Pokok</span>
+                                                </div>
+                                                <div class="d-flex align-items-center flex-wrap gap-2">
+                                                    <span id="detailHPP" class="fs-4 fw-bold text-success">-</span>
+                                                    <span id="detailHPPStatusBadge"></span>
+                                                </div>
+                                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">Metode rata-rata bergerak: Total Nilai Persediaan ÷ Stok Aktual</small>
+                                            </div>
+                                            <div class="text-start text-md-end">
+                                                <label class="small fw-semibold d-block mb-1 text-muted" style="font-size: 0.78rem;">HPP Sebelum Mutasi Terakhir</label>
+                                                <span id="detailHPPSebelumnya" class="fw-bold text-body-emphasis" style="font-size: 1.05rem; color: var(--text-main) !important;">-</span>
+                                                <small class="text-muted d-block" style="font-size: 0.7rem;">Nilai patokan sebelum transaksi terakhir</small>
                                             </div>
                                         </div>
-                                        <div class="text-end">
-                                            <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">HPP Sebelumnya</label>
-                                            <span id="detailHPPSebelumnya" class="fw-bold text-body-emphasis" style="font-size: 0.95rem; color: var(--text-main) !important;">-</span>
+
+                                        <!-- Detail Alokasi Biaya Ekspedisi (Landed Cost) jika aktif -->
+                                        <div id="wrapDetailAlokasiBiaya" class="mt-2.5 pt-2 border-top d-none">
+                                            <div class="d-flex align-items-center justify-content-between p-2 rounded-2" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25);">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="bi bi-truck text-warning fs-5"></i>
+                                                    <div>
+                                                        <span class="fw-bold d-block" style="font-size: 0.8rem; color: var(--text-main) !important;">
+                                                            Termasuk Alokasi Biaya Ekspedisi (Landed Cost):
+                                                        </span>
+                                                        <small class="text-muted" style="font-size: 0.72rem;" id="detailNomorAlokasi">-</small>
+                                                    </div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="badge bg-warning text-dark fw-bold px-2.5 py-1" style="font-size: 0.8rem;" id="detailBiayaAlokasiUnit">+Rp 0,00 / unit</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-6">
-                                    <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">Harga Beli Terakhir</label>
-                                    <span id="detailBeliTerakhir" class="fw-bold text-body-emphasis" style="color: var(--text-main) !important;">-</span>
+
+                                <!-- KARTU RIWAYAT PEMBELIAN (PO / GOODS RECEIPT) -->
+                                <div class="col-12 mt-2">
+                                    <div class="p-3 rounded-3" style="background-color: var(--bg-color); border: 1px solid var(--border-color);">
+                                        <div class="small fw-bold text-uppercase text-muted mb-2 pb-1 border-bottom" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                                            <i class="bi bi-receipt me-1 text-primary"></i>Riwayat Pembelian Barang (PO / Goods Receipt)
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-6 col-md-3">
+                                                <label class="small fw-semibold d-block mb-1 text-muted" style="font-size: 0.75rem;">Harga Beli Terakhir (PO)</label>
+                                                <span id="detailBeliTerakhir" class="fw-bold text-body-emphasis fs-6" style="color: var(--text-main) !important;">-</span>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <label class="small fw-semibold d-block mb-1 text-muted" style="font-size: 0.75rem;">Tanggal Penerimaan Terakhir</label>
+                                                <span id="detailTanggalBeliTerakhir" class="fw-bold text-body-emphasis small" style="color: var(--text-main) !important;">-</span>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <label class="small fw-semibold d-block mb-1 text-muted" style="font-size: 0.75rem;">Harga Beli Sebelumnya (PO)</label>
+                                                <span id="detailBeliSebelumnya" class="fw-bold text-body-emphasis fs-6" style="color: var(--text-main) !important;">-</span>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <label class="small fw-semibold d-block mb-1 text-muted" style="font-size: 0.75rem;">Tanggal Penerimaan Sebelumnya</label>
+                                                <span id="detailTanggalBeliSebelumnya" class="fw-bold text-body-emphasis small" style="color: var(--text-main) !important;">-</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-6">
-                                    <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">Harga Beli Sebelumnya</label>
-                                    <span id="detailBeliSebelumnya" class="fw-bold text-body-emphasis" style="color: var(--text-main) !important;">-</span>
-                                </div>
-                                <div class="col-6">
-                                    <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">Tanggal Beli Terakhir</label>
-                                    <span id="detailTanggalBeliTerakhir" class="fw-bold text-body-emphasis" style="color: var(--text-main) !important;">-</span>
-                                </div>
-                                <div class="col-6">
-                                    <label class="small fw-semibold d-block mb-1" style="color: var(--text-muted);">Tanggal Beli Sebelumnya</label>
-                                    <span id="detailTanggalBeliSebelumnya" class="fw-bold text-body-emphasis" style="color: var(--text-main) !important;">-</span>
-                                </div>
+
                                 <div class="col-12 mt-2">
                                     <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background-color: var(--bg-color); border: 1px solid var(--border-color);">
                                         <div>
-                                            <label class="small fw-semibold d-block mb-0" style="color: var(--text-muted);">Total Nilai Persediaan (Source of Truth)</label>
+                                            <label class="small fw-bold text-uppercase mb-0 text-muted" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                                                <i class="bi bi-currency-dollar me-1 text-primary"></i>Total Nilai Persediaan (Aset Stok)
+                                            </label>
+                                            <small class="text-muted d-block mt-0.5" style="font-size: 0.72rem;">Kalkulasi: <span id="detailKalkulasiNilai" class="fw-semibold text-primary">Stok Saat Ini × HPP Rata-Rata</span></small>
                                         </div>
-                                        <span id="detailNilaiPersediaan" class="fs-4 fw-bold text-primary" style="color: var(--primary) !important;">-</span>
+                                        <div class="text-end">
+                                            <span id="detailNilaiPersediaan" class="fs-4 fw-bold text-primary" style="color: var(--primary) !important;">-</span>
+                                        </div>
                                     </div>
                                 </div>
                                 @else
@@ -788,39 +757,35 @@
                 dropdownParent: $('#modalFilterStok')
             });
 
-            // Initialize Select2 print elements with modal parent to ensure search box functions
-            $('#printGudang, #printKategori').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                allowClear: true,
-                placeholder: '-- Pilih --',
-                dropdownParent: $('#modalCetakStok')
+
+            // Handle Print PDF directly from Filter Modal
+            $('#btnFilterPrintPdf').on('click', function () {
+                let params = new URLSearchParams();
+                params.append('entitas', currentEntitas);
+                if (currentCabangId) params.append('cabang_id', currentCabangId);
+                
+                let gudang = $('#filterGudang').val();
+                let kategori = $('#filterKategori').val();
+                let barang = $('#filterBarang').val();
+                let status = $('#filterStatus').val();
+                let search = $('#inputSearch').val();
+                let foto = $('#filterTampilkanFoto').is(':checked') ? 1 : 0;
+
+                if (gudang) params.append('gudang_id', gudang);
+                if (kategori) params.append('kategori_id', kategori);
+                if (barang) params.append('barang_id', barang);
+                if (status) params.append('status', status);
+                if (search) params.append('search', search);
+                params.append('tampilkan_foto', foto);
+
+                let printUrl = "{{ route('stock-overview.print') }}?" + params.toString();
+                window.open(printUrl, '_blank');
             });
 
-            $('#printBarang').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                allowClear: true,
-                placeholder: '-- Ketik nama atau kode barang --',
-                dropdownParent: $('#modalCetakStok'),
-                ajax: {
-                    url: "{{ route('stock-overview.search-barang') }}",
-                    dataType: 'json',
-                    delay: 250,
-                    data: function (params) {
-                        return { q: params.term };
-                    },
-                    processResults: function (data) {
-                        return { results: data };
-                    },
-                    cache: true
-                },
-                minimumInputLength: 1
-            });
-
-            // Close print modal after submit
-            $('#cetakForm').on('submit', function () {
-                $('#modalCetakStok').modal('hide');
+            // Handle Export Excel directly from Filter Modal
+            $('#btnFilterExportExcel').on('click', function () {
+                $('#modalFilterStok').modal('hide');
+                exportToExcel();
             });
 
             // Global flag for silent background reloads
@@ -856,7 +821,9 @@
             $('#btnResetFilter').on('click', function () {
                 $('#filterGudang').val(null).trigger('change');
                 $('#filterKategori').val(null).trigger('change');
+                $('#filterStatusBarang').val(null).trigger('change');
                 $('#filterStatus').val(null).trigger('change');
+                $('#filterBarang').val(null).trigger('change');
                 $('#inputSearch').val('');
                 $('#hiddenSearch').val('');
                 reloadTableStok(true);
@@ -868,7 +835,8 @@
                 let gudang = $('#filterGudang').val();
                 let kategori = $('#filterKategori').val();
                 let status = $('#filterStatus').val();
-                if (gudang || kategori || status) {
+                let barang = $('#filterBarang').val();
+                if (gudang || kategori || status || barang) {
                     $('#filterBadge').removeClass('d-none');
                 } else {
                     $('#filterBadge').addClass('d-none');
@@ -893,18 +861,19 @@
                 $('#detailHPP').text(btn.data('hpp'));
                 $('#detailHPPSebelumnya').text(btn.data('hpp-sebelumnya'));
                 
-                let initialBeliTerakhir = btn.data('harga-beli-terakhir') || btn.data('beli-terakhir') || '-';
-                let initialBeliSebelumnya = btn.data('harga-beli-sebelumnya') || btn.data('beli-sebelumnya') || '-';
-                $('#detailBeliTerakhir').text(initialBeliTerakhir);
-                $('#detailBeliSebelumnya').text(initialBeliSebelumnya);
+                $('#detailBeliTerakhir').text('...');
+                $('#detailBeliSebelumnya').text('...');
 
                 $('#detailTanggalBeliTerakhir').text('...');
                 $('#detailTanggalBeliSebelumnya').text('...');
+                $('#wrapDetailAlokasiBiaya').addClass('d-none');
+
                 let totalNilaiStr = btn.data('total-nilai') || btn.data('nilai-persediaan');
                 if (!totalNilaiStr || totalNilaiStr === 'undefined') {
                     totalNilaiStr = 'Rp 0,00';
                 }
                 $('#detailNilaiPersediaan').text(totalNilaiStr);
+                $('#detailKalkulasiNilai').text((btn.data('stok-aktual') || '0') + ' × ' + (btn.data('hpp') || 'Rp 0'));
 
                 // Calculate HPP change indicator (Handling Indonesian number formatting cleanly)
                 function parseIndoCurrency(val) {
@@ -951,12 +920,20 @@
                             if (res.harga_beli_sebelumnya) {
                                 $('#detailBeliSebelumnya').text(res.harga_beli_sebelumnya);
                             }
+                            if (res.has_alokasi) {
+                                $('#wrapDetailAlokasiBiaya').removeClass('d-none');
+                                $('#detailNomorAlokasi').text('No. Alokasi: ' + (res.nomor_alokasi || '-'));
+                                $('#detailBiayaAlokasiUnit').text('+' + (res.alokasi_biaya_unit || '-') + ' / unit');
+                            } else {
+                                $('#wrapDetailAlokasiBiaya').addClass('d-none');
+                            }
                         },
                         error: function () {
                             $('#detailStokSebelumnya').text('-');
                             $('#detailSumberTransaksiTerakhir').text('-');
                             $('#detailTanggalBeliTerakhir').text('-');
                             $('#detailTanggalBeliSebelumnya').text('-');
+                            $('#wrapDetailAlokasiBiaya').addClass('d-none');
                         }
                     });
                 }
@@ -1318,6 +1295,7 @@
                         d.search = $('#inputSearch').val();
                         d.gudang_id = $('#filterGudang').val();
                         d.kategori_id = $('#filterKategori').val();
+                        d.barang_id = $('#filterBarang').val();
                         d.status = $('#filterStatus').val();
                         d.entitas = currentEntitas;
                         d.cabang_id = currentCabangId;
@@ -1327,10 +1305,8 @@
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, class: 'text-muted small text-center text-nowrap align-middle' },
                     { data: 'kode_barang', name: 'master_barang.kode_barang', class: 'fw-semibold text-nowrap align-middle' },
                     { data: 'nama_barang', name: 'master_barang.nama_barang', class: 'fw-medium align-middle' },
-                    { data: 'nama_gudang', name: 'master_gudang.nama_gudang', class: 'text-start text-nowrap align-middle' },
                     { data: 'min_stok', name: 'master_barang.minimum_stok', class: 'text-center text-muted text-nowrap align-middle' },
                     { data: 'stok_aktual_fmt', name: 'stok_gudangs.stok_aktual', class: 'text-center fw-bold text-body text-nowrap align-middle' },
-                    { data: 'harga_beli_terakhir_fmt', name: 'stok_gudangs.harga_beli_terakhir', class: 'text-end fw-semibold text-body text-nowrap align-middle font-monospace' },
                     { data: 'harga_pokok_rata_rata_fmt', name: 'stok_gudangs.harga_pokok_rata_rata', class: 'text-end fw-semibold text-success text-nowrap align-middle font-monospace' },
                     { data: 'nilai_persediaan_fmt', name: 'nilai_persediaan', orderable: false, searchable: false, class: 'text-end fw-bold text-body text-nowrap align-middle font-monospace' },
                     { data: 'safety_status_badge', name: 'safety_status', orderable: false, searchable: false, class: 'text-center text-nowrap align-middle' },
@@ -1340,7 +1316,7 @@
                 pageLength: 15,
                 lengthMenu: [[10, 15, 25, 50, 100], [10, 15, 25, 50, 100]],
                 columnDefs: [
-                    { targets: [0, 9, 10], searchable: false, orderable: false }
+                    { targets: [0, 7, 8], searchable: false, orderable: false }
                 ],
                 language: {
                     lengthMenu: 'Tampilkan _MENU_ data',
@@ -1392,126 +1368,27 @@
             });
         });
 
-        // Client-side Excel export function (exports current page only for stability on large datasets)
+        // Excel export function matching exact PDF view layout and complete dataset
         function exportToExcel() {
-            let table = document.getElementById("tableOverview");
-            if (!table) return;
+            let entitas    = $('#filterEntitas').val();
+            let cabangId   = $('#filterCabang').val();
+            let gudangId   = $('#filterGudang').val();
+            let kategoriId = $('#filterKategori').val();
+            let barangId   = $('#filterBarang').val();
+            let status     = $('#filterStatus').val();
+            let search     = $('#inputSearch').val();
 
-            let userCanSeeHpp = @json(!empty($canSeeHpp));
+            let params = new URLSearchParams();
+            if (entitas) params.append('entitas', entitas);
+            if (cabangId) params.append('cabang_id', cabangId);
+            if (gudangId) params.append('gudang_id', gudangId);
+            if (kategoriId) params.append('kategori_id', kategoriId);
+            if (barangId) params.append('barang_id', barangId);
+            if (status) params.append('status', status);
+            if (search) params.append('search', search);
 
-            // Clone table to manipulate columns
-            let clone = table.cloneNode(true);
-            
-            // Remove column indexes: Aksi (10), Status (9), Min. Stok (4)
-            // Working backwards to keep original index references intact
-            $(clone).find('tr').each(function() {
-                $(this).find('th:eq(10), td:eq(10)').remove();
-                $(this).find('th:eq(9), td:eq(9)').remove();
-                $(this).find('th:eq(4), td:eq(4)').remove();
-            });
-
-            // Styling for professional excel view
-            $(clone).find('th').css({
-                'background-color': '#f1f5f9',
-                'color': '#0f172a',
-                'font-weight': 'bold',
-                'border': '1px solid #cbd5e1',
-                'padding': '10px 8px',
-                'text-align': 'center',
-                'font-size': '11px',
-                'text-transform': 'uppercase',
-                'white-space': 'nowrap'
-            });
-            $(clone).find('td').css({
-                'border': '1px solid #e2e8f0',
-                'padding': '8px 6px',
-                'font-size': '11px',
-                'vertical-align': 'middle',
-                'white-space': 'nowrap'
-            });
-
-            // Calculate totals for Excel footer
-            let api = $('#tableOverview').DataTable();
-            let data = api.rows({ search: 'applied' }).data();
-            let totalQty = 0;
-            let totalNilai = 0;
-
-            data.each(function (row) {
-                let qty = parseFloat(row.stok_aktual) || 0;
-                let hpp = parseFloat(row.harga_pokok_rata_rata) || 0;
-                totalQty += qty;
-                totalNilai += (qty * hpp);
-            });
-
-            let formattedTotalQty = (Math.floor(totalQty) === totalQty) ? totalQty.toLocaleString('id-ID') : totalQty.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
-
-            let nilaiAssetCell = userCanSeeHpp 
-                ? `Rp ${totalNilai.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-                : '*** Dibatasi ***';
-
-            // Append footer to clone (8 columns: No, Kode, Nama, Gudang, Stok Aktual, Harga Beli, HPP, Nilai)
-            let footerHtml = `
-                <tr style="background-color: #f8fafc; font-weight: bold; border-top: 2px solid #64748b;">
-                    <td colspan="4" style="text-align: right; font-weight: bold; padding: 10px 8px;">TOTAL RINGKASAN:</td>
-                    <td style="text-align: center; font-weight: bold; padding: 10px 8px; color: #0284c7;">
-                        ${formattedTotalQty}
-                    </td>
-                    <td colspan="2" style="text-align: right; font-weight: bold; padding: 10px 8px;">Total Nilai Asset:</td>
-                    <td style="text-align: right; font-weight: bold; padding: 10px 8px; color: #0284c7;">
-                        ${nilaiAssetCell}
-                    </td>
-                </tr>
-            `;
-            $(clone).find('tbody').append(footerHtml);
-
-            let companyName = @json(session('active_company_name') ?: 'SATRIA ERP');
-            let isBranchSession = @json(session('is_branch_session', false));
-            let activeLabel = $('#textActiveEntity').text().replace('Menampilkan: ', '').trim() || (isBranchSession ? @json(session('active_branch_name')) : 'PT Pusat');
-            let gudangName = $('#filterGudang option:selected').text() ? $('#filterGudang option:selected').text().trim() : 'Semua Gudang';
-            let kategoriName = $('#filterKategori option:selected').text() ? $('#filterKategori option:selected').text().trim() : 'Semua Kategori';
-            let today = new Date().toLocaleDateString('id-ID');
-
-            let headerHtml = `
-                <table style="margin-bottom: 20px;">
-                    <tr>
-                        <td colspan="8" style="font-size: 16px; font-weight: bold; text-align: center; color: #0f172a;">${companyName} - LAPORAN POSISI INVENTARIS STOK (${activeLabel.toUpperCase()})</td>
-                    </tr>
-                    <tr>
-                        <td colspan="8" style="font-size: 10.5px; text-align: center; color: #64748b; font-weight: 500;">
-                            Entitas: <strong>${activeLabel}</strong> | Gudang: <strong>${gudangName}</strong> | Kategori: <strong>${kategoriName}</strong> | Tanggal Ekspor: <strong>${today}</strong> ${userCanSeeHpp ? '' : '| (Akses HPP Dibatasi)'}
-                        </td>
-                    </tr>
-                    <tr><td colspan="8"></td></tr>
-                </table>
-            `;
-
-            let finalHtml = headerHtml + clone.outerHTML;
-
-            // Convert raw HTML table to downloadable Excel file format
-            let blob = new Blob(['\ufeff' + finalHtml], {
-                type: 'application/vnd.ms-excel;charset=utf-8'
-            });
-
-            let safeLabel = activeLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
-            let filename = 'Stok_Saat_Ini_' + safeLabel + '_' + new Date().toISOString().slice(0, 10) + '.xlsx';
-
-            let url = URL.createObjectURL(blob);
-            let a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: 'Laporan Stok Saat Ini berhasil diexport ke Excel.',
-                timer: 2000,
-                showConfirmButton: false,
-                position: 'center'
-            });
+            let exportUrl = "{{ route('stock-overview.export-excel') }}?" + params.toString();
+            window.location.href = exportUrl;
         }
     </script>
     @endpush

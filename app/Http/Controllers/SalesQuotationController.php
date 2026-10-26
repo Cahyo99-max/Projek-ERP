@@ -10,6 +10,7 @@ use App\Models\MasterBarang;
 use App\Models\MasterKategoriBarang;
 use App\Models\MasterCurrency;
 use App\Models\MasterPajak;
+use App\Models\MasterGudang;
 use App\Models\PaymentTerm;
 use App\Models\Company;
 use App\Models\Branch;
@@ -55,7 +56,7 @@ class SalesQuotationController extends Controller
             $this->authorize('lihat-penawaran');
         }
 
-        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-penawaran') || $user->can('lihat-hpp-tender') || $user->can('akses-accounting')) : false;
+        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-penawaran') || $user->can('akses-accounting')) : false;
 
         $query = SalesQuotation::forActiveCompany()
             ->with([
@@ -77,11 +78,20 @@ class SalesQuotationController extends Controller
                 'sales_quotations.berlaku_hingga',
                 'sales_quotations.status',
                 'sales_quotations.grand_total',
-                'sales_quotations.total_hpp',
-                'sales_quotations.margin_persen',
+                $canSeeHpp ? 'sales_quotations.total_hpp' : DB::raw('0 as total_hpp'),
+                $canSeeHpp ? 'sales_quotations.margin_persen' : DB::raw('0 as margin_persen'),
                 'sales_quotations.sales_order_id',
+                'sales_quotations.created_by',
                 'sales_quotations.created_at'
             ]);
+
+        // Filter Draft: Dokumen status Draft hanya dapat dilihat oleh pembuatnya (created_by) atau Super Admin / Owner
+        if (!$user->hasAnyRole(['Super Admin', 'Owner'])) {
+            $query->where(function ($q) use ($user) {
+                $q->where('sales_quotations.status', '!=', 'Draft')
+                  ->orWhere('sales_quotations.created_by', $user->id);
+            });
+        }
 
         // Status Filtering
         if ($request->filled('status')) {
@@ -186,24 +196,31 @@ class SalesQuotationController extends Controller
                     $btn .= '<a href="' . route('penawaran.print', $q->id) . '" target="_blank" class="btn btn-sm btn-outline-secondary shadow-xs" title="Cetak Surat Penawaran PDF"><i class="bi bi-printer"></i></a>';
                 }
 
-                // Edit (Draft / Sent)
-                if (in_array($q->status, ['Draft', 'Sent']) && ($user->can('edit-penawaran') || $user->hasAnyRole(['Super Admin', 'Owner']))) {
-                    $btn .= '<a href="' . route('penawaran.edit', $q->id) . '" class="btn btn-sm btn-outline-primary shadow-xs" title="Edit Penawaran"><i class="bi bi-pencil-square"></i></a>';
+                // Ajukan (Khusus Draft oleh pembuat / Super Admin / Owner)
+                if ($q->status === 'Draft' && ($q->created_by == $user->id || $user->hasAnyRole(['Super Admin', 'Owner']))) {
+                    $btn .= '<button type="button" class="btn btn-sm btn-outline-success shadow-xs btn-ajukan-sq" data-id="' . $q->id . '" data-nomor="' . e($q->nomor_quotation) . '" title="Ajukan Penawaran untuk Persetujuan"><i class="bi bi-send-fill text-success"></i></button>';
                 }
 
-                // Buat Revisi (Draft / Sent / Approved / Rejected)
-                if (in_array($q->status, ['Draft', 'Sent', 'Approved', 'Rejected']) && ($user->can('revisi-penawaran') || $user->hasAnyRole(['Super Admin', 'Owner']))) {
+                // Edit (Draft / Sent)
+                if (in_array($q->status, ['Draft', 'Sent']) && ($user->can('edit-penawaran') || $user->hasAnyRole(['Super Admin', 'Owner']))) {
+                    if ($q->status !== 'Draft' || $q->created_by == $user->id || $user->hasAnyRole(['Super Admin', 'Owner'])) {
+                        $btn .= '<a href="' . route('penawaran.edit', $q->id) . '" class="btn btn-sm btn-outline-primary shadow-xs" title="Edit Penawaran"><i class="bi bi-pencil-square"></i></a>';
+                    }
+                }
+
+                // Buat Revisi (Draft / Sent / Rejected) - Sembunyikan jika sudah Disetujui (Approved)
+                if (in_array($q->status, ['Draft', 'Sent', 'Rejected']) && ($user->can('revisi-penawaran') || $user->hasAnyRole(['Super Admin', 'Owner']))) {
                     $btn .= '<button type="button" class="btn btn-sm btn-outline-warning shadow-xs btn-revisi" data-id="' . $q->id . '" data-nomor="' . e($q->nomor_quotation) . '" title="Buat Revisi Penawaran"><i class="bi bi-arrow-repeat"></i></button>';
                 }
 
                 // Convert to SO (Approved)
-                if ($q->status === 'Approved' && !$q->sales_order_id && ($user->can('tambah-sales-order') || $user->hasRole('Super Admin'))) {
+                if ($q->status === 'Approved' && !$q->sales_order_id && ($user->can('konversi-so-penawaran') || $user->can('tambah-sales-order') || $user->hasAnyRole(['Super Admin', 'Owner']))) {
                     $btn .= '<button type="button" class="btn btn-sm btn-success text-white shadow-xs btn-convert-so" data-id="' . $q->id . '" data-nomor="' . e($q->nomor_quotation) . '" title="Terbitkan Sales Order (SO)"><i class="bi bi-cart-plus me-1"></i> SO</button>';
                 }
 
-                // Delete (Draft / Rejected)
-                if (in_array($q->status, ['Draft', 'Rejected']) && ($user->can('hapus-penawaran') || $user->hasRole('Super Admin'))) {
-                    $btn .= '<button type="button" class="btn btn-sm btn-outline-danger shadow-xs btn-delete" data-id="' . $q->id . '" data-nomor="' . e($q->nomor_quotation) . '" title="Hapus Penawaran"><i class="bi bi-trash"></i></button>';
+                // Delete (Draft / Sent / Rejected)
+                if (in_array($q->status, ['Draft', 'Sent', 'Rejected']) && ($user->can('hapus-penawaran') || $user->hasAnyRole(['Super Admin', 'Owner']))) {
+                    $btn .= '<button type="button" class="btn btn-sm btn-outline-danger shadow-xs btn-delete-sq" data-id="' . $q->id . '" data-nomor="' . e($q->nomor_quotation) . '" title="Hapus Penawaran"><i class="bi bi-trash"></i></button>';
                 }
 
                 $btn .= '</div>';
@@ -218,10 +235,18 @@ class SalesQuotationController extends Controller
         $this->authorize('tambah-penawaran');
 
         $activeCompanyId = session('active_company_id') ?: (Auth::user()->company_id ?? 1);
+        $activeBranchId  = session('active_branch_id');
         $user = Auth::user();
-        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-penawaran') || $user->can('lihat-hpp-tender') || $user->can('akses-accounting')) : false;
+        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-penawaran') || $user->can('akses-accounting')) : false;
 
         $customers = MasterCustomer::forActiveCompany()->where('status', 'Active')->orderBy('nama_perusahaan', 'asc')->orderBy('nama_customer', 'asc')->get();
+        
+        $usedTenderIds = SalesQuotation::whereNotNull('tender_id')
+            ->pluck('tender_id')
+            ->filter()
+            ->unique()
+            ->toArray();
+
         $tenders = Tender::forActiveCompany()
             ->with([
                 'customer',
@@ -230,6 +255,7 @@ class SalesQuotationController extends Controller
                 'items.barang.primaryFoto'
             ])
             ->whereNotIn('status', ['Lost', 'Cancelled'])
+            ->whereNotIn('id', $usedTenderIds)
             ->orderBy('id', 'desc')
             ->get();
         $salesList = Karyawan::forActiveCompany()->where('status', 'Aktif')->get();
@@ -242,6 +268,9 @@ class SalesQuotationController extends Controller
         if ($pajakPpnList->isEmpty()) {
             $pajakPpnList = $masterPajaks;
         }
+        $pajakPphList = $masterPajaks->filter(function ($p) {
+            return stripos($p->nama_pajak, 'pph') !== false || stripos($p->kode_pajak, 'pph') !== false;
+        });
 
         // Active Categories and Items
         $kategoriList = MasterKategoriBarang::forActiveCompany()
@@ -264,7 +293,7 @@ class SalesQuotationController extends Controller
             ->get();
 
         $barangIds = $barangList->pluck('id')->toArray();
-        $hppMap = $this->resolveBarangHppMap($barangIds, $canSeeHpp);
+        $hppMap = $this->resolveBarangHppMap($barangIds, $canSeeHpp, $activeCompanyId, $activeBranchId);
 
         $barangList->transform(function ($b) use ($hppMap, $canSeeHpp) {
             $b->hpp_referensi = $canSeeHpp ? ($hppMap[$b->id] ?? 0) : 0;
@@ -320,11 +349,21 @@ class SalesQuotationController extends Controller
         // Preselected Tender / Customer if passed via Query
         $selectedTender = null;
         if ($request->filled('tender_id')) {
-            $selectedTender = Tender::with('items.barang')->find($request->tender_id);
+            if (in_array((int)$request->tender_id, array_map('intval', $usedTenderIds))) {
+                return redirect()->route('penawaran.create')->with('error', 'Tender ini sudah pernah dibuatkan Penawaran Harga sebelumnya.');
+            }
+            $selectedTender = Tender::with(['items.barang.satuan', 'items.barang.kategori', 'items.barang.primaryFoto'])->find($request->tender_id);
+            if ($selectedTender) {
+                foreach ($selectedTender->items as $tItem) {
+                    if ($tItem->barang) {
+                        $tItem->barang->hpp_referensi = $canSeeHpp ? ($hppMap[$tItem->barang_id] ?? 0) : 0;
+                    }
+                }
+            }
         }
 
         $selectedCustomerId = $request->query('customer_id', $selectedTender?->customer_id);
-        $nomorQuotation = SalesQuotation::generateNomor($activeCompanyId);
+        $nomorQuotation = SalesQuotation::generateNomor($activeCompanyId, $activeBranchId);
 
         return view('modul_marketing.penawaran.tambah', compact(
             'customers',
@@ -335,6 +374,7 @@ class SalesQuotationController extends Controller
             'paymentTerms',
             'masterPajaks',
             'pajakPpnList',
+            'pajakPphList',
             'kategoriList',
             'barangList',
             'canSeeHpp',
@@ -352,10 +392,19 @@ class SalesQuotationController extends Controller
         $request->validate([
             'customer_id'       => 'required|exists:master_customers,id',
             'tanggal_quotation' => 'required|date',
+            'perihal'           => 'required|string|max:40',
+            'catatan'           => 'nullable|string|max:60',
+            'syarat_ketentuan'  => 'nullable|string|max:400',
+            'biaya_pengiriman'  => 'nullable|numeric|max:9999999999',
             'items'             => 'required|array|min:1',
             'items.*.qty'       => 'required|numeric|min:0.0001',
             'items.*.harga'     => 'required|numeric|min:0',
         ], [
+            'perihal.required'           => 'Perihal / Judul Penawaran wajib diisi!',
+            'perihal.max'                => 'Perihal / Judul Penawaran maksimal 40 karakter!',
+            'catatan.max'                => 'Catatan maksimal 60 karakter!',
+            'syarat_ketentuan.max'       => 'Syarat & Ketentuan maksimal 400 karakter!',
+            'biaya_pengiriman.max'       => 'Biaya Pengiriman maksimal 10 digit angka!',
             'customer_id.required'       => 'Customer wajib dipilih!',
             'tanggal_quotation.required' => 'Tanggal penawaran wajib diisi!',
             'items.required'             => 'Minimal tambahkan 1 item barang dalam penawaran!',
@@ -365,29 +414,75 @@ class SalesQuotationController extends Controller
         $activeCompanyId = session('active_company_id') ?: (Auth::user()->company_id ?? 1);
         $activeBranchId = session('active_branch_id');
 
+        if ($request->filled('tender_id')) {
+            $tenderAlreadyUsed = SalesQuotation::where('tender_id', $request->tender_id)->exists();
+            if ($tenderAlreadyUsed) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Tender yang dipilih sudah digunakan pada Penawaran Harga lain!');
+            }
+        }
+
+        $prefixCode = !empty($activeBranchId) ? 'CBG_' . $activeBranchId : 'CP_' . $activeCompanyId;
+        $lockKey = 'sq_store_lock_' . md5($prefixCode);
+        $gotLock = false;
+
         try {
+            $lockRes = DB::select("SELECT GET_LOCK(?, 10) as lk", [$lockKey]);
+            $gotLock = !empty($lockRes) && $lockRes[0]->lk == 1;
+
             DB::beginTransaction();
 
-            $nomorQuotation = $request->nomor_quotation ?: SalesQuotation::generateNomor($activeCompanyId);
+            $proposedNomor = trim($request->nomor_quotation ?? '');
+            if (!empty($proposedNomor) && !SalesQuotation::withTrashed()->where('nomor_quotation', $proposedNomor)->exists()) {
+                $nomorQuotation = $proposedNomor;
+            } else {
+                $nomorQuotation = SalesQuotation::generateNomor($activeCompanyId, $activeBranchId);
+            }
 
             // Calculation
             $subtotal = 0;
             $totalHpp = 0;
+            $totalNilaiPpn = 0;
             $itemsData = [];
+
+            // Authoritative HPP Resolution from Database (Mencegah manipulasi client-side)
+            $targetBarangIds = collect($request->items)->pluck('barang_id')->filter()->unique()->toArray();
+            $serverHppMap = !empty($targetBarangIds) ? $this->resolveBarangHppMap($targetBarangIds, true, $activeCompanyId, $activeBranchId) : [];
 
             foreach ($request->items as $idx => $item) {
                 $qty = (float)($item['qty'] ?? 1);
                 $harga = (float)($item['harga'] ?? 0);
                 $diskonPersen = (float)($item['diskon_persen'] ?? 0);
                 $diskonNominal = (float)($item['diskon_nominal'] ?? 0);
+                $gross = $harga * $qty;
 
-                if ($diskonPersen > 0) {
-                    $diskonNominal = ($harga * $qty) * ($diskonPersen / 100);
+                if ($diskonNominal > 0) {
+                    if ($diskonNominal > $gross) $diskonNominal = $gross;
+                    if ($diskonPersen <= 0 && $gross > 0) {
+                        $diskonPersen = ($diskonNominal / $gross) * 100;
+                    }
+                } elseif ($diskonPersen > 0) {
+                    if ($diskonPersen > 100) $diskonPersen = 100;
+                    $diskonNominal = $gross * ($diskonPersen / 100);
                 }
-                $itemSubtotal = max(0, ($harga * $qty) - $diskonNominal);
+                $itemSubtotal = max(0, $gross - $diskonNominal);
                 $subtotal += $itemSubtotal;
 
-                $hppSatuan = (float)($item['hpp_satuan'] ?? 0);
+                // Item PPN
+                $ppnPajakId = !empty($item['ppn_pajak_id']) ? $item['ppn_pajak_id'] : null;
+                $tarifPpn = (float)($item['tarif_ppn'] ?? 0);
+                if ($ppnPajakId && $tarifPpn == 0) {
+                    $pajakObj = MasterPajak::find($ppnPajakId);
+                    if ($pajakObj) {
+                        $tarifPpn = (float)$pajakObj->tarif;
+                    }
+                }
+                $itemNilaiPpn = $itemSubtotal * ($tarifPpn / 100);
+                $totalNilaiPpn += $itemNilaiPpn;
+
+                $bId = !empty($item['barang_id']) ? $item['barang_id'] : null;
+                $hppSatuan = ($bId && isset($serverHppMap[$bId])) ? (float)$serverHppMap[$bId] : (float)($item['hpp_satuan'] ?? 0);
                 $itemTotalHpp = $hppSatuan * $qty;
                 $totalHpp += $itemTotalHpp;
 
@@ -405,6 +500,9 @@ class SalesQuotationController extends Controller
                     'harga_satuan'       => $harga,
                     'diskon_persen'      => $diskonPersen,
                     'diskon_nominal'     => $diskonNominal,
+                    'ppn_pajak_id'       => $ppnPajakId,
+                    'tarif_ppn'          => $tarifPpn,
+                    'nilai_ppn'          => $itemNilaiPpn,
                     'subtotal'           => $itemSubtotal,
                     'hpp_satuan'         => $hppSatuan,
                     'total_hpp'          => $itemTotalHpp,
@@ -417,54 +515,54 @@ class SalesQuotationController extends Controller
                 ];
             }
 
-            // Global Discount
-            $diskonTipe = $request->diskon_tipe ?: 'Nominal';
-            $diskonPersen = (float)($request->diskon_persen ?: 0);
-            $diskonNominal = (float)($request->diskon_nominal ?: 0);
-            if ($diskonTipe === 'Persen' && $diskonPersen > 0) {
-                $diskonNominal = $subtotal * ($diskonPersen / 100);
-            }
-            $dpp = max(0, $subtotal - $diskonNominal);
+            // Global Discount (removed / defaulted to 0)
+            $diskonTipe = 'Nominal';
+            $diskonPersen = 0;
+            $diskonNominal = 0;
+            $dpp = $subtotal;
 
-            // PPN & PPh
-            $tipePpn = $request->tipe_ppn ?: 'None';
-            $tarifPpn = (float)($request->tarif_ppn ?: 0);
-            if ($tipePpn === 'Include' && $tarifPpn > 0) {
-                $nilaiPpn = $dpp - ($dpp / (1 + ($tarifPpn / 100)));
-            } elseif ($tipePpn === 'Exclude' && $tarifPpn > 0) {
-                $nilaiPpn = $dpp * ($tarifPpn / 100);
-            } else {
-                $nilaiPpn = 0;
-            }
+            // Total PPN & PPh
+            $nilaiPpn = $totalNilaiPpn;
+            $tipePpn = $totalNilaiPpn > 0 ? 'Exclude' : 'None';
+            $tarifPpn = $subtotal > 0 ? ($totalNilaiPpn / $subtotal) * 100 : 0;
 
             $tipePph = $request->tipe_pph ?: 'None';
             $tarifPph = (float)($request->tarif_pph ?: 0);
             $nilaiPph = ($tipePph === 'Exclude' && $tarifPph > 0) ? ($dpp * ($tarifPph / 100)) : 0;
 
             $biayaPengiriman = (float)($request->biaya_pengiriman ?: 0);
-            $grandTotal = ($tipePpn === 'Include') ? ($dpp + $biayaPengiriman) : ($dpp + $nilaiPpn + $biayaPengiriman);
+            $grandTotal = $subtotal + $nilaiPpn + $biayaPengiriman;
 
-            $estimasiLabaKotor = $grandTotal - $totalHpp;
-            $marginPersen = $grandTotal > 0 ? ($estimasiLabaKotor / $grandTotal) * 100 : 0;
+            // Net Revenue Produk (DPP Murni barang sebelum PPN & Biaya Pengiriman)
+            $netRevenue = $subtotal;
+            $estimasiLabaKotor = $netRevenue - $totalHpp;
+            $marginPersen = $netRevenue > 0 ? ($estimasiLabaKotor / $netRevenue) * 100 : 0;
 
-            if ($totalHpp > 0 && ($estimasiLabaKotor < 0 || $grandTotal < $totalHpp)) {
+            if ($totalHpp > 0 && $estimasiLabaKotor < 0) {
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', 'Penawaran tidak dapat disimpan karena menghasilkan Margin Negatif (Estimasi Rugi Rp ' . number_format(abs($estimasiLabaKotor), 0, ',', '.') . '). Total penawaran harga jual tidak boleh lebih rendah dari total HPP modal pokok.');
+                    ->with('error', 'Penawaran tidak dapat disimpan karena menghasilkan Margin Negatif (Estimasi Rugi Rp ' . number_format(abs($estimasiLabaKotor), 0, ',', '.') . '). Total harga jual produk (DPP Rp ' . number_format($netRevenue, 0, ',', '.') . ') tidak boleh lebih rendah dari total HPP modal pokok (Rp ' . number_format($totalHpp, 0, ',', '.') . ').');
             }
 
             // DP & Sisa
             $tipeDp = $request->tipe_dp ?: 'None';
             $dpPersen = (float)($request->dp_persen ?: 0);
             $dpNominal = (float)($request->dp_nominal ?: 0);
+            $roundedGrandTotal = round($grandTotal);
             if ($tipeDp === 'Persen' && $dpPersen > 0) {
-                $dpNominal = $grandTotal * ($dpPersen / 100);
+                $dpNominal = round($roundedGrandTotal * ($dpPersen / 100));
+            } elseif ($tipeDp === 'Nominal' && $dpNominal > 0) {
+                $dpNominal = round($dpNominal);
+                $dpPersen = $roundedGrandTotal > 0 ? round(($dpNominal / $roundedGrandTotal) * 100, 2) : 0;
+            } else {
+                $dpNominal = 0;
+                $dpPersen = 0;
             }
-            $sisaTagihan = max(0, $grandTotal - $dpNominal);
+            $sisaTagihan = max(0, $roundedGrandTotal - $dpNominal);
 
             $quotation = SalesQuotation::create([
-                'company_id'               => $activeCompanyId,
-                'branch_id'                => $activeBranchId,
+                'company_id'               => !empty($activeBranchId) ? null : $activeCompanyId,
+                'branch_id'                => !empty($activeBranchId) ? $activeBranchId : null,
                 'nomor_quotation'          => $nomorQuotation,
                 'revisi'                   => 0,
                 'customer_id'              => $request->customer_id,
@@ -519,7 +617,7 @@ class SalesQuotationController extends Controller
             DB::commit();
 
             // Send WhatsApp Notification to Approvers if status is Sent
-            if ($status === 'Sent') {
+            if ($quotation->status === 'Sent') {
                 WhatsAppGatewayController::runAsync(fn() =>
                     WhatsAppGatewayController::sendQuotationSubmissionNotification($quotation)
                 );
@@ -530,6 +628,10 @@ class SalesQuotationController extends Controller
             DB::rollBack();
             Log::error('Error store SalesQuotation: ' . $e->getMessage());
             return back()->withInput()->with('error', 'Gagal menyimpan penawaran: ' . $e->getMessage());
+        } finally {
+            if ($gotLock) {
+                DB::select("SELECT RELEASE_LOCK(?)", [$lockKey]);
+            }
         }
     }
 
@@ -540,6 +642,14 @@ class SalesQuotationController extends Controller
             $this->authorize('lihat-penawaran');
         }
         $this->authorizeCompanyAccess($quotation);
+
+        // Validasi Draf: Hanya pembuat atau Super Admin/Owner yang boleh melihat draf
+        if ($quotation->status === 'Draft' && !$user->hasAnyRole(['Super Admin', 'Owner']) && $quotation->created_by != $user->id) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Anda tidak memiliki hak akses untuk melihat draf penawaran milik pengguna lain.'
+            ], 403);
+        }
 
         $quotation->load([
             'customer.defaultAddress',
@@ -559,6 +669,12 @@ class SalesQuotationController extends Controller
             'approver'
         ]);
 
+        // Attach resolved photo URL to each item
+        foreach ($quotation->items as $it) {
+            $pPath = $it->barang?->primaryFoto ? $it->barang->primaryFoto->foto_path : null;
+            $it->photo_url = $this->resolvePhotoUrl($pPath);
+        }
+
         // Get full revision timeline
         $rootId = $quotation->parent_quotation_id ?: $quotation->id;
         $allRevisions = SalesQuotation::where('id', $rootId)
@@ -567,10 +683,18 @@ class SalesQuotationController extends Controller
             ->get(['id', 'nomor_quotation', 'revisi', 'status', 'tanggal_quotation', 'grand_total', 'created_at']);
 
         $user = Auth::user();
-        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-penawaran') || $user->can('lihat-hpp-tender') || $user->can('akses-accounting')) : false;
+        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-penawaran') || $user->can('akses-accounting')) : false;
         $canApprove = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('approve-penawaran')) : false;
-        $canConvertSo = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('tambah-sales-order')) : false;
+        $canConvertSo = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('konversi-so-penawaran') || $user->can('tambah-sales-order')) : false;
         $canPrint = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('cetak-penawaran')) : false;
+
+        // Tutup celah kebocoran data HPP pada payload response JSON jika user tidak berhak
+        if (!$canSeeHpp) {
+            $quotation->makeHidden(['total_hpp', 'estimasi_laba_kotor', 'margin_persen']);
+            foreach ($quotation->items as $it) {
+                $it->makeHidden(['hpp_satuan', 'total_hpp', 'estimasi_laba', 'margin_persen']);
+            }
+        }
 
         return response()->json([
             'data'           => $quotation,
@@ -585,18 +709,39 @@ class SalesQuotationController extends Controller
 
     public function edit(SalesQuotation $quotation)
     {
-        $this->authorize('edit-penawaran');
+        $user = Auth::user();
+        if (!$user || (!$user->hasAnyRole(['Super Admin', 'Owner', 'Admin']) && !$user->can('edit-penawaran'))) {
+            $this->authorize('edit-penawaran');
+        }
         $this->authorizeCompanyAccess($quotation);
+
+        // Validasi Draf: Hanya pembuat atau Super Admin/Owner yang boleh mengedit draf
+        if ($quotation->status === 'Draft' && !$user->hasAnyRole(['Super Admin', 'Owner']) && $quotation->created_by != $user->id) {
+            return redirect()->route('penawaran.index')->with('error', 'Anda hanya dapat mengedit draf penawaran yang Anda buat sendiri.');
+        }
 
         if (!in_array($quotation->status, ['Draft', 'Sent'])) {
             return redirect()->route('penawaran.index')->with('error', 'Penawaran berstatus ' . $quotation->status . ' tidak dapat diedit langsung. Silakan gunakan tombol Buat Revisi.');
         }
 
-        $activeCompanyId = session('active_company_id') ?: (Auth::user()->company_id ?? 1);
-        $user = Auth::user();
-        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-penawaran') || $user->can('lihat-hpp-tender') || $user->can('akses-accounting')) : false;
+        $activeCompanyId = session('active_company_id') ?: ($quotation->company_id ?: ($user->company_id ?? 1));
+        $activeBranchId  = session('active_branch_id') ?: $quotation->cabang_id;
+        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-penawaran') || $user->can('akses-accounting')) : false;
 
         $customers = MasterCustomer::forActiveCompany()->where('status', 'Active')->orderBy('nama_perusahaan', 'asc')->orderBy('nama_customer', 'asc')->get();
+        
+        $chainQuotationIds = SalesQuotation::where('id', $quotation->parent_quotation_id ?: $quotation->id)
+            ->orWhere('parent_quotation_id', $quotation->parent_quotation_id ?: $quotation->id)
+            ->pluck('id')
+            ->toArray();
+
+        $usedTenderIds = SalesQuotation::whereNotNull('tender_id')
+            ->whereNotIn('id', $chainQuotationIds)
+            ->pluck('tender_id')
+            ->filter()
+            ->unique()
+            ->toArray();
+
         $tenders = Tender::forActiveCompany()
             ->with([
                 'customer',
@@ -604,6 +749,8 @@ class SalesQuotationController extends Controller
                 'items.barang.kategori',
                 'items.barang.primaryFoto'
             ])
+            ->whereNotIn('status', ['Lost', 'Cancelled'])
+            ->whereNotIn('id', $usedTenderIds)
             ->orderBy('id', 'desc')
             ->get();
         $salesList = Karyawan::forActiveCompany()->where('status', 'Aktif')->get();
@@ -616,6 +763,9 @@ class SalesQuotationController extends Controller
         if ($pajakPpnList->isEmpty()) {
             $pajakPpnList = $masterPajaks;
         }
+        $pajakPphList = $masterPajaks->filter(function ($p) {
+            return stripos($p->nama_pajak, 'pph') !== false || stripos($p->kode_pajak, 'pph') !== false;
+        });
 
         $kategoriList = MasterKategoriBarang::forActiveCompany()->where('status', 'Active')->orderBy('nama_kategori', 'asc')->get();
         $allowedKategoriIds = $kategoriList->pluck('id')->toArray();
@@ -634,7 +784,7 @@ class SalesQuotationController extends Controller
             ->get();
 
         $barangIds = $barangList->pluck('id')->toArray();
-        $hppMap = $this->resolveBarangHppMap($barangIds, $canSeeHpp);
+        $hppMap = $this->resolveBarangHppMap($barangIds, $canSeeHpp, $activeCompanyId, $activeBranchId);
 
         $barangList->transform(function ($b) use ($hppMap, $canSeeHpp) {
             $b->hpp_referensi = $canSeeHpp ? ($hppMap[$b->id] ?? 0) : 0;
@@ -699,6 +849,7 @@ class SalesQuotationController extends Controller
             'paymentTerms',
             'masterPajaks',
             'pajakPpnList',
+            'pajakPphList',
             'kategoriList',
             'barangList',
             'canSeeHpp'
@@ -707,38 +858,103 @@ class SalesQuotationController extends Controller
 
     public function update(Request $request, SalesQuotation $quotation)
     {
-        $this->authorize('edit-penawaran');
+        $user = Auth::user();
+        if (!$user || (!$user->hasAnyRole(['Super Admin', 'Owner', 'Admin']) && !$user->can('edit-penawaran'))) {
+            $this->authorize('edit-penawaran');
+        }
         $this->authorizeCompanyAccess($quotation);
+
+        // Validasi Draf: Hanya pembuat atau Super Admin/Owner yang boleh mengubah draf
+        if ($quotation->status === 'Draft' && !$user->hasAnyRole(['Super Admin', 'Owner']) && $quotation->created_by != $user->id) {
+            return redirect()->route('penawaran.index')->with('error', 'Anda hanya dapat mengubah draf penawaran yang Anda buat sendiri.');
+        }
+
         $this->sanitizeCurrencyInputs($request);
 
         $request->validate([
             'customer_id'       => 'required|exists:master_customers,id',
             'tanggal_quotation' => 'required|date',
+            'perihal'           => 'required|string|max:40',
+            'catatan'           => 'nullable|string|max:60',
+            'syarat_ketentuan'  => 'nullable|string|max:400',
+            'biaya_pengiriman'  => 'nullable|numeric|max:9999999999',
             'items'             => 'required|array|min:1',
             'items.*.qty'       => 'required|numeric|min:0.0001',
             'items.*.harga'     => 'required|numeric|min:0',
+        ], [
+            'perihal.required'           => 'Perihal / Judul Penawaran wajib diisi!',
+            'perihal.max'                => 'Perihal / Judul Penawaran maksimal 40 karakter!',
+            'catatan.max'                => 'Catatan maksimal 60 karakter!',
+            'syarat_ketentuan.max'       => 'Syarat & Ketentuan maksimal 400 karakter!',
+            'biaya_pengiriman.max'       => 'Biaya Pengiriman maksimal 10 digit angka!',
+            'customer_id.required'       => 'Customer wajib dipilih!',
+            'tanggal_quotation.required' => 'Tanggal penawaran wajib diisi!',
+            'items.required'             => 'Minimal tambahkan 1 item barang dalam penawaran!',
+            'items.min'                  => 'Minimal tambahkan 1 item barang dalam penawaran!',
         ]);
+
+        if ($request->filled('tender_id')) {
+            $chainQuotationIds = SalesQuotation::where('id', $quotation->parent_quotation_id ?: $quotation->id)
+                ->orWhere('parent_quotation_id', $quotation->parent_quotation_id ?: $quotation->id)
+                ->pluck('id')
+                ->toArray();
+
+            $tenderAlreadyUsed = SalesQuotation::where('tender_id', $request->tender_id)
+                ->whereNotIn('id', $chainQuotationIds)
+                ->exists();
+
+            if ($tenderAlreadyUsed) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Tender yang dipilih sudah digunakan pada Penawaran Harga lain!');
+            }
+        }
 
         try {
             DB::beginTransaction();
 
             $subtotal = 0;
             $totalHpp = 0;
+            $totalNilaiPpn = 0;
             $itemsData = [];
+
+            // Authoritative HPP Resolution from Database (Mencegah manipulasi client-side)
+            $targetBarangIds = collect($request->items)->pluck('barang_id')->filter()->unique()->toArray();
+            $serverHppMap = !empty($targetBarangIds) ? $this->resolveBarangHppMap($targetBarangIds, true, $quotation->company_id ?: session('active_company_id'), $quotation->branch_id ?: session('active_branch_id')) : [];
 
             foreach ($request->items as $idx => $item) {
                 $qty = (float)($item['qty'] ?? 1);
                 $harga = (float)($item['harga'] ?? 0);
                 $diskonPersen = (float)($item['diskon_persen'] ?? 0);
                 $diskonNominal = (float)($item['diskon_nominal'] ?? 0);
+                $gross = $harga * $qty;
 
-                if ($diskonPersen > 0) {
-                    $diskonNominal = ($harga * $qty) * ($diskonPersen / 100);
+                if ($diskonNominal > 0) {
+                    if ($diskonNominal > $gross) $diskonNominal = $gross;
+                    if ($diskonPersen <= 0 && $gross > 0) {
+                        $diskonPersen = ($diskonNominal / $gross) * 100;
+                    }
+                } elseif ($diskonPersen > 0) {
+                    if ($diskonPersen > 100) $diskonPersen = 100;
+                    $diskonNominal = $gross * ($diskonPersen / 100);
                 }
-                $itemSubtotal = max(0, ($harga * $qty) - $diskonNominal);
+                $itemSubtotal = max(0, $gross - $diskonNominal);
                 $subtotal += $itemSubtotal;
 
-                $hppSatuan = (float)($item['hpp_satuan'] ?? 0);
+                // Item PPN
+                $ppnPajakId = !empty($item['ppn_pajak_id']) ? $item['ppn_pajak_id'] : null;
+                $tarifPpn = (float)($item['tarif_ppn'] ?? 0);
+                if ($ppnPajakId && $tarifPpn == 0) {
+                    $pajakObj = MasterPajak::find($ppnPajakId);
+                    if ($pajakObj) {
+                        $tarifPpn = (float)$pajakObj->tarif;
+                    }
+                }
+                $itemNilaiPpn = $itemSubtotal * ($tarifPpn / 100);
+                $totalNilaiPpn += $itemNilaiPpn;
+
+                $bId = !empty($item['barang_id']) ? $item['barang_id'] : null;
+                $hppSatuan = ($bId && isset($serverHppMap[$bId])) ? (float)$serverHppMap[$bId] : (float)($item['hpp_satuan'] ?? 0);
                 $itemTotalHpp = $hppSatuan * $qty;
                 $totalHpp += $itemTotalHpp;
 
@@ -757,6 +973,9 @@ class SalesQuotationController extends Controller
                     'harga_satuan'       => $harga,
                     'diskon_persen'      => $diskonPersen,
                     'diskon_nominal'     => $diskonNominal,
+                    'ppn_pajak_id'       => $ppnPajakId,
+                    'tarif_ppn'          => $tarifPpn,
+                    'nilai_ppn'          => $itemNilaiPpn,
                     'subtotal'           => $itemSubtotal,
                     'hpp_satuan'         => $hppSatuan,
                     'total_hpp'          => $itemTotalHpp,
@@ -769,50 +988,50 @@ class SalesQuotationController extends Controller
                 ];
             }
 
-            // Global Discount
-            $diskonTipe = $request->diskon_tipe ?: 'Nominal';
-            $diskonPersen = (float)($request->diskon_persen ?: 0);
-            $diskonNominal = (float)($request->diskon_nominal ?: 0);
-            if ($diskonTipe === 'Persen' && $diskonPersen > 0) {
-                $diskonNominal = $subtotal * ($diskonPersen / 100);
-            }
-            $dpp = max(0, $subtotal - $diskonNominal);
+            // Global Discount (removed / defaulted to 0)
+            $diskonTipe = 'Nominal';
+            $diskonPersen = 0;
+            $diskonNominal = 0;
+            $dpp = $subtotal;
 
-            // PPN & PPh
-            $tipePpn = $request->tipe_ppn ?: 'None';
-            $tarifPpn = (float)($request->tarif_ppn ?: 0);
-            if ($tipePpn === 'Include' && $tarifPpn > 0) {
-                $nilaiPpn = $dpp - ($dpp / (1 + ($tarifPpn / 100)));
-            } elseif ($tipePpn === 'Exclude' && $tarifPpn > 0) {
-                $nilaiPpn = $dpp * ($tarifPpn / 100);
-            } else {
-                $nilaiPpn = 0;
-            }
+            // Total PPN & PPh
+            $nilaiPpn = $totalNilaiPpn;
+            $tipePpn = $totalNilaiPpn > 0 ? 'Exclude' : 'None';
+            $tarifPpn = $subtotal > 0 ? ($totalNilaiPpn / $subtotal) * 100 : 0;
 
             $tipePph = $request->tipe_pph ?: 'None';
             $tarifPph = (float)($request->tarif_pph ?: 0);
             $nilaiPph = ($tipePph === 'Exclude' && $tarifPph > 0) ? ($dpp * ($tarifPph / 100)) : 0;
 
             $biayaPengiriman = (float)($request->biaya_pengiriman ?: 0);
-            $grandTotal = ($tipePpn === 'Include') ? ($dpp + $biayaPengiriman) : ($dpp + $nilaiPpn + $biayaPengiriman);
+            $grandTotal = $subtotal + $nilaiPpn + $biayaPengiriman;
 
-            $estimasiLabaKotor = $grandTotal - $totalHpp;
-            $marginPersen = $grandTotal > 0 ? ($estimasiLabaKotor / $grandTotal) * 100 : 0;
+            // Net Revenue Produk (DPP Murni barang sebelum PPN & Biaya Pengiriman)
+            $netRevenue = $subtotal;
+            $estimasiLabaKotor = $netRevenue - $totalHpp;
+            $marginPersen = $netRevenue > 0 ? ($estimasiLabaKotor / $netRevenue) * 100 : 0;
 
-            if ($totalHpp > 0 && ($estimasiLabaKotor < 0 || $grandTotal < $totalHpp)) {
+            if ($totalHpp > 0 && $estimasiLabaKotor < 0) {
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', 'Penawaran tidak dapat disimpan karena menghasilkan Margin Negatif (Estimasi Rugi Rp ' . number_format(abs($estimasiLabaKotor), 0, ',', '.') . '). Total penawaran harga jual tidak boleh lebih rendah dari total HPP modal pokok.');
+                    ->with('error', 'Penawaran tidak dapat disimpan karena menghasilkan Margin Negatif (Estimasi Rugi Rp ' . number_format(abs($estimasiLabaKotor), 0, ',', '.') . '). Total harga jual produk (DPP Rp ' . number_format($netRevenue, 0, ',', '.') . ') tidak boleh lebih rendah dari total HPP modal pokok (Rp ' . number_format($totalHpp, 0, ',', '.') . ').');
             }
 
             // DP & Sisa
             $tipeDp = $request->tipe_dp ?: 'None';
             $dpPersen = (float)($request->dp_persen ?: 0);
             $dpNominal = (float)($request->dp_nominal ?: 0);
+            $roundedGrandTotal = round($grandTotal);
             if ($tipeDp === 'Persen' && $dpPersen > 0) {
-                $dpNominal = $grandTotal * ($dpPersen / 100);
+                $dpNominal = round($roundedGrandTotal * ($dpPersen / 100));
+            } elseif ($tipeDp === 'Nominal' && $dpNominal > 0) {
+                $dpNominal = round($dpNominal);
+                $dpPersen = $roundedGrandTotal > 0 ? round(($dpNominal / $roundedGrandTotal) * 100, 2) : 0;
+            } else {
+                $dpNominal = 0;
+                $dpPersen = 0;
             }
-            $sisaTagihan = max(0, $grandTotal - $dpNominal);
+            $sisaTagihan = max(0, $roundedGrandTotal - $dpNominal);
 
             $quotation->update([
                 'nomor_quotation'          => $request->nomor_quotation ?: $quotation->nomor_quotation,
@@ -884,25 +1103,61 @@ class SalesQuotationController extends Controller
 
     public function destroy(SalesQuotation $quotation)
     {
-        $this->authorize('hapus-penawaran');
+        $user = Auth::user();
+        if (!$user->can('hapus-penawaran') && !$user->hasAnyRole(['Super Admin', 'Owner'])) {
+            $this->authorize('hapus-penawaran');
+        }
         $this->authorizeCompanyAccess($quotation);
 
-        if (!in_array($quotation->status, ['Draft', 'Rejected'])) {
+        if ($quotation->sales_order_id) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Hanya penawaran berstatus Draft atau Ditolak yang dapat dihapus.'
+                'message' => 'Penawaran ini sudah terkonversi menjadi Sales Order (SO) dan tidak dapat dihapus.'
+            ], 422);
+        }
+
+        if ($quotation->status === 'Draft' && !$user->hasAnyRole(['Super Admin', 'Owner']) && $quotation->created_by != $user->id) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Anda hanya dapat menghapus draf penawaran yang Anda buat sendiri.'
+            ], 403);
+        }
+
+        if (!in_array($quotation->status, ['Draft', 'Sent', 'Rejected']) && !$user->hasRole('Super Admin')) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Penawaran berstatus ' . $quotation->status . ' tidak dapat dihapus.'
             ], 422);
         }
 
         try {
+            DB::beginTransaction();
+
             $nomor = $quotation->nomor_quotation;
+            $tenderId = $quotation->tender_id;
+
             $quotation->delete();
+
+            // Reset tender deal value if tender exists
+            if ($tenderId) {
+                $otherQuotation = SalesQuotation::where('tender_id', $tenderId)
+                    ->where('id', '!=', $quotation->id)
+                    ->latest()
+                    ->first();
+
+                Tender::where('id', $tenderId)->update([
+                    'nilai_deal' => $otherQuotation ? $otherQuotation->grand_total : 0
+                ]);
+            }
+
+            DB::commit();
 
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Penawaran ' . $nomor . ' berhasil dihapus.'
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Error destroy SalesQuotation: ' . $e->getMessage());
             return response()->json([
                 'status'  => 'error',
@@ -919,15 +1174,38 @@ class SalesQuotationController extends Controller
         try {
             DB::beginTransaction();
 
-            $activeCompanyId = session('active_company_id') ?: (Auth::user()->company_id ?? 1);
-            $newRevisiNum = $quotation->revisi + 1;
+            $lockedQuotation = SalesQuotation::lockForUpdate()->find($quotation->id);
+            if (!$lockedQuotation) {
+                DB::rollBack();
+                return response()->json(['status' => 'error', 'message' => 'Data penawaran tidak ditemukan!'], 404);
+            }
+
+            if ($lockedQuotation->status === 'Revised') {
+                DB::rollBack();
+                return response()->json(['status' => 'error', 'message' => 'Penawaran ini sudah pernah direvisi sebelumnya!'], 422);
+            }
+
+            if ($lockedQuotation->status === 'Approved') {
+                DB::rollBack();
+                return response()->json(['status' => 'error', 'message' => 'Penawaran yang sudah disetujui (Approved) tidak dapat direvisi!'], 422);
+            }
+
+            if ($lockedQuotation->status === 'Converted_to_SO') {
+                DB::rollBack();
+                return response()->json(['status' => 'error', 'message' => 'Penawaran yang sudah diterbitkan Sales Order (SO) tidak dapat direvisi!'], 422);
+            }
+
+            $maxRevisi = SalesQuotation::withTrashed()
+                ->where('nomor_quotation', $lockedQuotation->nomor_quotation)
+                ->max('revisi');
+            $newRevisiNum = ($maxRevisi !== null ? (int)$maxRevisi : $lockedQuotation->revisi) + 1;
 
             // Mark old quotation as Revised
-            $quotation->update(['status' => 'Revised']);
+            $lockedQuotation->update(['status' => 'Revised']);
 
             // Clone to new quotation with increased revision count
-            $newQuotation = $quotation->replicate(['sales_order_id', 'created_at', 'updated_at']);
-            $newQuotation->parent_quotation_id = $quotation->parent_quotation_id ?: $quotation->id;
+            $newQuotation = $lockedQuotation->replicate(['sales_order_id', 'created_at', 'updated_at']);
+            $newQuotation->parent_quotation_id = $lockedQuotation->parent_quotation_id ?: $lockedQuotation->id;
             $newQuotation->revisi = $newRevisiNum;
             $newQuotation->status = 'Draft';
             $newQuotation->tanggal_quotation = now()->toDateString();
@@ -948,6 +1226,7 @@ class SalesQuotationController extends Controller
             return response()->json([
                 'status'       => 'success',
                 'message'      => 'Revisi ' . $newRevisiNum . ' berhasil dibuat!',
+                'redirect'     => route('penawaran.edit', $newQuotation->id),
                 'redirect_url' => route('penawaran.edit', $newQuotation->id)
             ]);
         } catch (\Exception $e) {
@@ -960,15 +1239,82 @@ class SalesQuotationController extends Controller
         }
     }
 
+    public function ajukan(SalesQuotation $quotation)
+    {
+        $user = Auth::user();
+        if (!$user->can('edit-penawaran') && !$user->can('tambah-penawaran') && !$user->hasAnyRole(['Super Admin', 'Owner'])) {
+            $this->authorize('edit-penawaran');
+        }
+        $this->authorizeCompanyAccess($quotation);
+
+        // Hanya pembuat atau Super Admin/Owner yang boleh mengajukan draf
+        if (!$user->hasAnyRole(['Super Admin', 'Owner']) && $quotation->created_by != $user->id) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Anda hanya dapat mengajukan draf penawaran yang Anda buat sendiri.'
+            ], 403);
+        }
+
+        if ($quotation->status !== 'Draft') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Hanya penawaran berstatus Draf yang dapat diajukan. Status saat ini: ' . $quotation->status
+            ], 422);
+        }
+
+        if ($quotation->items()->count() === 0) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Penawaran tidak dapat diajukan karena belum memiliki item rincian barang!'
+            ], 422);
+        }
+
+        if ($quotation->total_hpp > 0 && $quotation->estimasi_laba_kotor < 0) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Penawaran tidak dapat diajukan karena menghasilkan margin negatif (rugi). Silakan sesuaikan harga jual atau diskon terlebih dahulu.'
+            ], 422);
+        }
+
+        try {
+            $quotation->update([
+                'status' => 'Sent'
+            ]);
+
+            // Kirim notifikasi WA ke Approver
+            WhatsAppGatewayController::runAsync(fn() =>
+                WhatsAppGatewayController::sendQuotationSubmissionNotification($quotation)
+            );
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Penawaran ' . $quotation->nomor_quotation . ' berhasil diajukan untuk persetujuan!'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error ajukan SalesQuotation: ' . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal mengajukan penawaran: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function approve(Request $request, SalesQuotation $quotation)
     {
         $this->authorize('approve-penawaran');
         $this->authorizeCompanyAccess($quotation);
 
-        if (!in_array($quotation->status, ['Draft', 'Sent'])) {
+        if ($quotation->status === 'Draft') {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Hanya penawaran berstatus Draft atau Terkirim yang dapat disetujui / ditolak.'
+                'message' => 'Penawaran masih berstatus Draf dan belum diajukan. Penawaran harus diajukan terlebih dahulu sebelum dapat disetujui atau ditolak.'
+            ], 422);
+        }
+
+        if ($quotation->status !== 'Sent') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Hanya penawaran berstatus Menunggu Persetujuan (Terkirim/Diajukan) yang dapat disetujui atau ditolak.'
             ], 422);
         }
 
@@ -1007,7 +1353,10 @@ class SalesQuotationController extends Controller
 
     public function convertToSalesOrder(Request $request, SalesQuotation $quotation)
     {
-        $this->authorize('tambah-sales-order');
+        $user = Auth::user();
+        if (!$user->can('konversi-so-penawaran') && !$user->can('tambah-sales-order') && !$user->hasAnyRole(['Super Admin', 'Owner'])) {
+            $this->authorize('konversi-so-penawaran');
+        }
         $this->authorizeCompanyAccess($quotation);
 
         if ($quotation->status !== 'Approved') {
@@ -1027,50 +1376,79 @@ class SalesQuotationController extends Controller
         try {
             DB::beginTransaction();
 
-            $activeCompanyId = $quotation->company_id;
-            $activeBranchId = $quotation->branch_id;
+            // Lock quotation against concurrent duplicate conversions
+            $lockedQuotation = SalesQuotation::lockForUpdate()->find($quotation->id);
+            if (!$lockedQuotation) {
+                DB::rollBack();
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Data penawaran tidak ditemukan!'
+                ], 404);
+            }
 
-            // Generate SO number
-            $nomorSo = 'SO/' . date('Ymd') . '/' . str_pad(SalesOrder::where('company_id', $activeCompanyId)->count() + 1, 4, '0', STR_PAD_LEFT);
+            if ($lockedQuotation->status !== 'Approved') {
+                DB::rollBack();
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Penawaran harus berstatus Disetujui (Approved) terlebih dahulu sebelum dapat dikonversi ke Sales Order!'
+                ], 422);
+            }
+
+            if ($lockedQuotation->sales_order_id) {
+                DB::rollBack();
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Penawaran ini sudah pernah dikonversi ke Sales Order.'
+                ], 422);
+            }
+
+            $activeBranchId = $lockedQuotation->branch_id ?: null;
+            $activeCompanyId = !empty($activeBranchId) ? null : ($lockedQuotation->company_id ?: session('active_company_id'));
+
+            // Concurrency-safe unique SO number (with entity prefix & advisory lock)
+            $nomorSo = SalesOrder::generateNomorSo($activeCompanyId, $activeBranchId);
 
             $salesOrder = SalesOrder::create([
                 'company_id'               => $activeCompanyId,
                 'branch_id'                => $activeBranchId,
-                'sales_quotation_id'       => $quotation->id,
-                'tender_id'                => $quotation->tender_id,
+                'sales_quotation_id'       => $lockedQuotation->id,
+                'tender_id'                => $lockedQuotation->tender_id,
                 'nomor_so'                 => $nomorSo,
-                'customer_id'              => $quotation->customer_id,
-                'sales_id'                 => $quotation->sales_id,
+                'customer_id'              => $lockedQuotation->customer_id,
+                'sales_id'                 => $lockedQuotation->sales_id,
                 'tanggal_so'               => now()->toDateString(),
-                'status'                   => 'Draft',
-                'payment_term_id'          => $quotation->payment_term_id,
-                'tipe_dp'                  => $quotation->tipe_dp,
-                'dp_persen'                => $quotation->dp_persen,
-                'dp_nominal'               => $quotation->dp_nominal,
-                'sisa_tagihan'             => $quotation->sisa_tagihan,
-                'subtotal'                 => $quotation->subtotal,
-                'diskon_tipe'              => $quotation->diskon_tipe,
-                'diskon_persen'            => $quotation->diskon_persen,
-                'diskon_nominal'           => $quotation->diskon_nominal,
-                'ppn_pajak_id'             => $quotation->ppn_pajak_id,
-                'tipe_ppn'                 => $quotation->tipe_ppn,
-                'tarif_ppn'                => $quotation->tarif_ppn,
-                'nilai_ppn'                => $quotation->nilai_ppn,
-                'pph_pajak_id'             => $quotation->pph_pajak_id,
-                'tipe_pph'                 => $quotation->tipe_pph,
-                'tarif_pph'                => $quotation->tarif_pph,
-                'nilai_pph'                => $quotation->nilai_pph,
-                'biaya_pengiriman'         => $quotation->biaya_pengiriman,
-                'grand_total'              => $quotation->grand_total,
-                'total_hpp'                => $quotation->total_hpp,
-                'estimasi_laba_kotor'      => $quotation->estimasi_laba_kotor,
-                'margin_persen'            => $quotation->margin_persen,
-                'catatan'                  => $quotation->catatan,
-                'syarat_ketentuan'         => $quotation->syarat_ketentuan,
+                'pricing_tier'             => $lockedQuotation->tender_id ? 'Tender' : 'Retail',
+                'status'                   => 'Confirmed',
+                'payment_term_id'          => $lockedQuotation->payment_term_id,
+                'tipe_dp'                  => $lockedQuotation->tipe_dp,
+                'dp_persen'                => $lockedQuotation->dp_persen,
+                'dp_nominal'               => $lockedQuotation->dp_nominal,
+                'sisa_tagihan'             => $lockedQuotation->sisa_tagihan,
+                'subtotal'                 => $lockedQuotation->subtotal,
+                'diskon_tipe'              => $lockedQuotation->diskon_tipe,
+                'diskon_persen'            => $lockedQuotation->diskon_persen,
+                'diskon_nominal'           => $lockedQuotation->diskon_nominal,
+                'ppn_pajak_id'             => $lockedQuotation->ppn_pajak_id,
+                'tipe_ppn'                 => $lockedQuotation->tipe_ppn,
+                'tarif_ppn'                => $lockedQuotation->tarif_ppn,
+                'nilai_ppn'                => $lockedQuotation->nilai_ppn,
+                'pph_pajak_id'             => $lockedQuotation->pph_pajak_id,
+                'tipe_pph'                 => $lockedQuotation->tipe_pph,
+                'tarif_pph'                => $lockedQuotation->tarif_pph,
+                'nilai_pph'                => $lockedQuotation->nilai_pph,
+                'biaya_pengiriman'         => $lockedQuotation->biaya_pengiriman,
+                'grand_total'              => $lockedQuotation->grand_total,
+                'total'                    => $lockedQuotation->grand_total,
+                'total_hpp'                => $lockedQuotation->total_hpp,
+                'estimasi_laba_kotor'      => $lockedQuotation->estimasi_laba_kotor,
+                'margin_persen'            => $lockedQuotation->margin_persen,
+                'catatan'                  => $lockedQuotation->catatan,
+                'syarat_ketentuan'         => $lockedQuotation->syarat_ketentuan,
+                'alamat_pengiriman'        => $lockedQuotation->customer?->defaultAddress?->alamat_lengkap,
                 'created_by'               => Auth::id(),
             ]);
 
-            foreach ($quotation->items as $idx => $qItem) {
+            foreach ($lockedQuotation->items as $idx => $qItem) {
                 SalesOrderDetail::create([
                     'sales_order_id'     => $salesOrder->id,
                     'barang_id'          => $qItem->barang_id,
@@ -1079,10 +1457,14 @@ class SalesQuotationController extends Controller
                     'kategori_id'        => $qItem->kategori_id,
                     'satuan_id'          => $qItem->satuan_id,
                     'nama_satuan'        => $qItem->nama_satuan,
+                    'pricing_tier'       => $lockedQuotation->tender_id ? 'Tender' : 'Retail',
                     'qty'                => $qItem->qty,
                     'harga_satuan'       => $qItem->harga_satuan,
                     'diskon_persen'      => $qItem->diskon_persen,
                     'diskon_nominal'     => $qItem->diskon_nominal,
+                    'ppn_pajak_id'       => $qItem->ppn_pajak_id,
+                    'tarif_ppn'          => $qItem->tarif_ppn,
+                    'nilai_ppn'          => $qItem->nilai_ppn,
                     'subtotal'           => $qItem->subtotal,
                     'hpp_satuan'         => $qItem->hpp_satuan,
                     'total_hpp'          => $qItem->total_hpp,
@@ -1094,14 +1476,14 @@ class SalesQuotationController extends Controller
             }
 
             // Update quotation status and relation
-            $quotation->update([
+            $lockedQuotation->update([
                 'status'         => 'Converted_to_SO',
                 'sales_order_id' => $salesOrder->id
             ]);
 
             // Also update tender's sales_order_id if linked
-            if ($quotation->tender_id && $quotation->tender) {
-                $quotation->tender->update([
+            if ($lockedQuotation->tender_id && $lockedQuotation->tender) {
+                $lockedQuotation->tender->update([
                     'sales_order_id' => $salesOrder->id,
                     'status'         => 'Won'
                 ]);
@@ -1117,6 +1499,7 @@ class SalesQuotationController extends Controller
             return response()->json([
                 'status'       => 'success',
                 'message'      => 'Penawaran berhasil dikonversi menjadi Sales Order ' . $salesOrder->nomor_so . '!',
+                'redirect'     => route('marketing.sales-order.index'),
                 'redirect_url' => route('marketing.sales-order.index')
             ]);
         } catch (\Exception $e) {
@@ -1134,10 +1517,16 @@ class SalesQuotationController extends Controller
         $this->authorize('cetak-penawaran');
         $this->authorizeCompanyAccess($quotation);
 
+        $user = Auth::user();
+        if ($quotation->status === 'Draft' && !$user->hasAnyRole(['Super Admin', 'Owner']) && $quotation->created_by != $user->id) {
+            abort(403, 'Akses ditolak. Anda hanya dapat mencetak draf penawaran yang Anda buat sendiri.');
+        }
+
         $quotation->load([
             'customer.defaultAddress',
             'tender',
             'sales.department',
+            'sales.position',
             'paymentTerm',
             'ppnPajak',
             'pphPajak',
@@ -1145,44 +1534,108 @@ class SalesQuotationController extends Controller
             'items.satuan',
             'company',
             'branch',
-            'creator',
+            'creator.karyawan.position',
             'approver'
         ]);
+
+        $activeBranchId = session('active_branch_id') ?: $quotation->branch_id;
+        $branch = null;
+        $isBranch = false;
+
+        if (!empty($activeBranchId)) {
+            $branch = \App\Models\Branch::with('company')->find($activeBranchId);
+            if ($branch) {
+                $isBranch = true;
+            }
+        }
 
         $companies = \App\Models\Company::active()->get();
         if ($companies->isEmpty()) {
             $companies = \App\Models\Company::all();
         }
 
-        $selectedCompanyId = $request->query('company_id', session('active_company_id') ?? $quotation->company_id ?? auth()->user()?->company_id);
-        $company = $companies->firstWhere('id', $selectedCompanyId)
-            ?? \App\Models\Company::find($selectedCompanyId)
-            ?? $quotation->company
-            ?? $companies->first()
-            ?? \App\Models\Company::first();
-
-        $appLogo = asset('gambar/logo.png');
-        if (\Illuminate\Support\Facades\Schema::hasTable('app_settings')) {
-            $settingLogo = \Illuminate\Support\Facades\DB::table('app_settings')->where('key', 'app_logo')->value('value');
-            if ($settingLogo) {
-                $appLogo = file_exists(public_path('storage/' . $settingLogo)) 
-                    ? asset('storage/' . $settingLogo) 
-                    : (file_exists(public_path($settingLogo)) ? asset($settingLogo) : $appLogo);
-            }
+        $activeCompanyId = session('active_company_id');
+        if ($isBranch && $branch && $branch->company) {
+            $company = $branch->company;
+        } elseif ($activeCompanyId) {
+            $company = $companies->firstWhere('id', $activeCompanyId) ?? \App\Models\Company::find($activeCompanyId);
+        } else {
+            $selectedCompanyId = $request->query('company_id', $quotation->company_id ?? auth()->user()?->company_id);
+            $company = $companies->firstWhere('id', $selectedCompanyId)
+                ?? \App\Models\Company::find($selectedCompanyId)
+                ?? $quotation->company
+                ?? $companies->first()
+                ?? \App\Models\Company::first();
         }
 
-        $companyLogo = null;
-        if ($company && $company->logo) {
-            if (file_exists(public_path('storage/' . $company->logo))) {
-                $companyLogo = asset('storage/' . $company->logo);
-            } elseif (file_exists(public_path($company->logo))) {
-                $companyLogo = asset($company->logo);
+        if ($isBranch && $branch) {
+            $entityName = $branch->nama_cabang ?: '';
+            $parentName = $branch->company?->nama_perusahaan ?: ($branch->nama_perusahaan ?: '');
+            
+            $alamatParts = array_filter([
+                $branch->address ?: ($branch->alamat ?? ''),
+                $branch->city ?: ($branch->kota ?? ''),
+                $branch->province ?: ($branch->provinsi ?? ''),
+                $branch->postal_code ?: ($branch->kode_pos ?? '')
+            ]);
+            $entityAddress = implode(', ', $alamatParts);
+            $entityPhone   = $branch->phone ?: ($branch->telepon ?? '');
+            $entityEmail   = $branch->email ?: '';
+            $entityNpwp    = $branch->company?->npwp ?: ($company?->npwp ?? '');
+        } else {
+            $entityName = $company?->nama_perusahaan ?? '';
+            $parentName = '';
+            
+            $alamatParts = array_filter([
+                $company?->address ?: ($company?->alamat ?? ''),
+                $company?->city ?: ($company?->kota ?? ''),
+                $company?->province ?: ($company?->provinsi ?? ''),
+                $company?->postal_code ?: ($company?->kode_pos ?? '')
+            ]);
+            $entityAddress = implode(', ', $alamatParts);
+            $entityPhone   = $company?->phone ?: ($company?->telepon ?? '');
+            $entityEmail   = $company?->email ?: '';
+            $entityNpwp    = $company?->npwp ?: '';
+        }
+
+        $activeLogo = null;
+        if ($isBranch && $branch) {
+            // Sesi Cabang: gunakan logo cabang jika ada, jika cabang belum punya logo -> kosongkan
+            if (!empty($branch->logo)) {
+                if (file_exists(public_path('storage/' . $branch->logo))) {
+                    $activeLogo = asset('storage/' . $branch->logo);
+                } elseif (file_exists(public_path($branch->logo))) {
+                    $activeLogo = asset($branch->logo);
+                }
+            }
+        } else {
+            // Sesi PT Pusat: gunakan logo PT yang aktif login
+            if ($company && !empty($company->logo)) {
+                if (file_exists(public_path('storage/' . $company->logo))) {
+                    $activeLogo = asset('storage/' . $company->logo);
+                } elseif (file_exists(public_path($company->logo))) {
+                    $activeLogo = asset($company->logo);
+                }
             }
         }
 
         $terbilang = $this->terbilang($quotation->grand_total) . ' Rupiah';
 
-        return view('modul_marketing.penawaran.print_penawaran', compact('quotation', 'company', 'companies', 'companyLogo', 'appLogo', 'terbilang'));
+        return view('modul_marketing.penawaran.print_penawaran', compact(
+            'quotation',
+            'company',
+            'companies',
+            'branch',
+            'isBranch',
+            'entityName',
+            'parentName',
+            'entityAddress',
+            'entityPhone',
+            'entityEmail',
+            'entityNpwp',
+            'activeLogo',
+            'terbilang'
+        ));
     }
 
     private function terbilang($angka)
@@ -1327,45 +1780,169 @@ class SalesQuotationController extends Controller
         return asset('storage/' . ltrim($path, '/'));
     }
 
-    private function resolveBarangHppMap(array $barangIds, bool $canSeeHpp): array
+    private function resolveBarangHppMap(array $barangIds, bool $canSeeHpp, ?int $companyId = null, ?int $branchId = null): array
     {
         if (!$canSeeHpp || empty($barangIds)) {
             return [];
         }
 
-        $stokInfoMap = DB::table('stok_gudangs')
-            ->whereIn('barang_id', $barangIds)
-            ->groupBy('barang_id')
-            ->selectRaw('barang_id, AVG(harga_pokok_rata_rata) as avg_hpp, AVG(harga_beli_terakhir) as last_buy_price, SUM(stok_aktual) as total_stok, SUM(nilai_persediaan) as total_nilai')
-            ->get()
-            ->keyBy('barang_id');
-
-        $latestKartuMap = DB::table('kartu_stoks')
-            ->whereIn('barang_id', $barangIds)
-            ->whereIn('id', function ($q) use ($barangIds) {
-                $q->selectRaw('MAX(id)')
-                    ->from('kartu_stoks')
-                    ->whereIn('barang_id', $barangIds)
-                    ->groupBy('barang_id');
+        // 1. Tentukan Gudang Utama untuk Entity yang sedang aktif
+        // Jika sedang aktif di Cabang: ambil gudang-gudang aktif milik cabang tersebut
+        // Jika sedang aktif di PT Pusat: ambil gudang-gudang aktif milik PT Pusat (cabang_id IS NULL)
+        $primaryGudangIds = MasterGudang::where('status', 'Active')
+            ->when($branchId, function ($q) use ($branchId) {
+                $q->where('cabang_id', $branchId);
+            }, function ($q) use ($companyId) {
+                $q->whereNull('cabang_id');
+                if ($companyId) {
+                    $q->where('company_id', $companyId);
+                }
             })
-            ->pluck('harga_satuan', 'barang_id');
+            ->pluck('id')
+            ->toArray();
+
+        // 2. Tentukan Gudang Fallback
+        // Jika sedang aktif di Cabang, fallback ke Gudang PT Pusat (jika barang belum pernah ada pergerakan stok di cabang)
+        // Jika sedang aktif di PT Pusat, fallback ke gudang manapun dalam company yang sama
+        $fallbackGudangIds = MasterGudang::where('status', 'Active')
+            ->when($branchId, function ($q) use ($companyId) {
+                $q->whereNull('cabang_id');
+                if ($companyId) {
+                    $q->where('company_id', $companyId);
+                }
+            }, function ($q) use ($companyId, $primaryGudangIds) {
+                if ($companyId) {
+                    $q->where('company_id', $companyId);
+                }
+                if (!empty($primaryGudangIds)) {
+                    $q->whereNotIn('id', $primaryGudangIds);
+                }
+            })
+            ->pluck('id')
+            ->toArray();
+
+        // Helper untuk fetch HPP dari stok_gudangs dan kartu_stoks
+        $fetchHppForGudangs = function(array $targetBarangIds, array $targetGudangIds) {
+            if (empty($targetBarangIds) || empty($targetGudangIds)) {
+                return [[], []];
+            }
+
+            $stokMap = DB::table('stok_gudangs')
+                ->whereIn('barang_id', $targetBarangIds)
+                ->whereIn('gudang_id', $targetGudangIds)
+                ->groupBy('barang_id')
+                ->selectRaw('barang_id, AVG(CASE WHEN harga_pokok_rata_rata > 0 THEN harga_pokok_rata_rata END) as avg_hpp, MAX(harga_beli_terakhir) as last_buy_price, SUM(stok_aktual) as total_stok, SUM(nilai_persediaan) as total_nilai')
+                ->get()
+                ->keyBy('barang_id');
+
+            $kartuMap = DB::table('kartu_stoks')
+                ->whereIn('barang_id', $targetBarangIds)
+                ->whereIn('gudang_id', $targetGudangIds)
+                ->where('harga_satuan', '>', 0)
+                ->whereIn('id', function ($q) use ($targetBarangIds, $targetGudangIds) {
+                    $q->selectRaw('MAX(id)')
+                        ->from('kartu_stoks')
+                        ->whereIn('barang_id', $targetBarangIds)
+                        ->whereIn('gudang_id', $targetGudangIds)
+                        ->where('harga_satuan', '>', 0)
+                        ->groupBy('barang_id');
+                })
+                ->pluck('harga_satuan', 'barang_id');
+
+            return [$stokMap, $kartuMap];
+        };
+
+        // Query dari Gudang Utama Entity aktif
+        [$primaryStokMap, $primaryKartuMap] = $fetchHppForGudangs($barangIds, $primaryGudangIds);
+
+        // Identifikasi barang yang belum mendapatkan HPP di gudang utama
+        $needFallbackBarangIds = [];
+        foreach ($barangIds as $bId) {
+            $hasHpp = false;
+            if (isset($primaryStokMap[$bId])) {
+                $row = $primaryStokMap[$bId];
+                if ((float)$row->avg_hpp > 0 || (float)$row->last_buy_price > 0 || ((float)$row->total_stok > 0 && (float)$row->total_nilai > 0)) {
+                    $hasHpp = true;
+                }
+            }
+            if (!$hasHpp && isset($primaryKartuMap[$bId]) && (float)$primaryKartuMap[$bId] > 0) {
+                $hasHpp = true;
+            }
+
+            if (!$hasHpp) {
+                $needFallbackBarangIds[] = $bId;
+            }
+        }
+
+        // Query Fallback jika ada barang yang belum ber-HPP di gudang utama
+        $fallbackStokMap = [];
+        $fallbackKartuMap = [];
+        if (!empty($needFallbackBarangIds) && !empty($fallbackGudangIds)) {
+            [$fallbackStokMap, $fallbackKartuMap] = $fetchHppForGudangs($needFallbackBarangIds, $fallbackGudangIds);
+        }
+
+        // Bundle check jika barang adalah paket/bundle
+        $bundleMap = DB::table('master_barang_bundle')
+            ->whereIn('parent_barang_id', $barangIds)
+            ->get()
+            ->groupBy('parent_barang_id');
+
+        $childIds = $bundleMap->flatten()->pluck('child_barang_id')->unique()->filter()->toArray();
+        $childHppMap = [];
+        if (!empty($childIds)) {
+            $childHppMap = $this->resolveBarangHppMap($childIds, $canSeeHpp, $companyId, $branchId);
+        }
 
         $hppMap = [];
         foreach ($barangIds as $bId) {
             $hpp = 0;
-            if (isset($stokInfoMap[$bId])) {
-                $stokRow = $stokInfoMap[$bId];
-                if ((float)$stokRow->avg_hpp > 0) {
-                    $hpp = (float)$stokRow->avg_hpp;
-                } elseif ((float)$stokRow->last_buy_price > 0) {
-                    $hpp = (float)$stokRow->last_buy_price;
-                } elseif ((float)$stokRow->total_stok > 0 && (float)$stokRow->total_nilai > 0) {
-                    $hpp = (float)$stokRow->total_nilai / (float)$stokRow->total_stok;
+
+            // 1. Ambil dari Stok Gudang Utama
+            if (isset($primaryStokMap[$bId])) {
+                $row = $primaryStokMap[$bId];
+                if ((float)$row->avg_hpp > 0) {
+                    $hpp = (float)$row->avg_hpp;
+                } elseif ((float)$row->total_stok > 0 && (float)$row->total_nilai > 0) {
+                    $hpp = (float)$row->total_nilai / (float)$row->total_stok;
+                } elseif ((float)$row->last_buy_price > 0) {
+                    $hpp = (float)$row->last_buy_price;
                 }
             }
 
-            if ($hpp <= 0 && isset($latestKartuMap[$bId]) && (float)$latestKartuMap[$bId] > 0) {
-                $hpp = (float)$latestKartuMap[$bId];
+            // 2. Ambil dari Kartu Stok Gudang Utama
+            if ($hpp <= 0 && isset($primaryKartuMap[$bId]) && (float)$primaryKartuMap[$bId] > 0) {
+                $hpp = (float)$primaryKartuMap[$bId];
+            }
+
+            // 3. Fallback ke Gudang PT Pusat / Company
+            if ($hpp <= 0 && isset($fallbackStokMap[$bId])) {
+                $row = $fallbackStokMap[$bId];
+                if ((float)$row->avg_hpp > 0) {
+                    $hpp = (float)$row->avg_hpp;
+                } elseif ((float)$row->total_stok > 0 && (float)$row->total_nilai > 0) {
+                    $hpp = (float)$row->total_nilai / (float)$row->total_stok;
+                } elseif ((float)$row->last_buy_price > 0) {
+                    $hpp = (float)$row->last_buy_price;
+                }
+            }
+
+            // 4. Fallback ke Kartu Stok Gudang Fallback
+            if ($hpp <= 0 && isset($fallbackKartuMap[$bId]) && (float)$fallbackKartuMap[$bId] > 0) {
+                $hpp = (float)$fallbackKartuMap[$bId];
+            }
+
+            // 5. Dari Komponen Bundle jika bertipe bundle
+            if ($hpp <= 0 && isset($bundleMap[$bId])) {
+                $bComps = $bundleMap[$bId];
+                $bHpp = 0;
+                foreach ($bComps as $comp) {
+                    $cId = $comp->child_barang_id;
+                    $cHpp = $childHppMap[$cId] ?? 0;
+                    $bHpp += ((float)$comp->qty * $cHpp);
+                }
+                if ($bHpp > 0) {
+                    $hpp = $bHpp;
+                }
             }
 
             $hppMap[$bId] = round($hpp, 2);
@@ -1376,14 +1953,24 @@ class SalesQuotationController extends Controller
 
     private function authorizeCompanyAccess(SalesQuotation $quotation): void
     {
+        $activeCompanyId = session('active_company_id');
+        $activeBranchId  = session('active_branch_id');
         $user = Auth::user();
-        if ($user->hasRole('Super Admin')) {
+
+        if ($user && $user->hasAnyRole(['Super Admin', 'Owner'])) {
             return;
         }
 
-        $activeCompanyId = session('active_company_id') ?: ($user->company_id ?? 1);
-        if ($quotation->company_id != $activeCompanyId) {
-            abort(403, 'Akses tidak diizinkan untuk data perusahaan ini.');
+        if ($activeCompanyId && $quotation->company_id && $quotation->company_id != $activeCompanyId) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki wewenang mengakses data penawaran perusahaan lain.');
+        }
+
+        if (!empty($activeBranchId) && $quotation->branch_id != $activeBranchId) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki wewenang mengakses data penawaran milik cabang lain atau PT Pusat.');
+        }
+
+        if (empty($activeBranchId) && !empty($quotation->branch_id)) {
+            abort(403, 'Akses ditolak. Anda sedang aktif di PT Pusat dan tidak dapat mengelola langsung data penawaran milik cabang.');
         }
     }
 }

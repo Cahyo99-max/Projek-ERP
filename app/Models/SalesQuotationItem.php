@@ -24,6 +24,9 @@ class SalesQuotationItem extends Model
         'diskon_persen',
         'diskon_nominal',
         'subtotal',
+        'ppn_pajak_id',
+        'tarif_ppn',
+        'nilai_ppn',
         'hpp_satuan',
         'total_hpp',
         'estimasi_laba',
@@ -38,6 +41,8 @@ class SalesQuotationItem extends Model
         'diskon_persen'  => 'decimal:2',
         'diskon_nominal' => 'decimal:2',
         'subtotal'       => 'decimal:2',
+        'tarif_ppn'      => 'decimal:2',
+        'nilai_ppn'      => 'decimal:2',
         'hpp_satuan'     => 'decimal:2',
         'total_hpp'      => 'decimal:2',
         'estimasi_laba'  => 'decimal:2',
@@ -47,6 +52,11 @@ class SalesQuotationItem extends Model
     public function quotation()
     {
         return $this->belongsTo(SalesQuotation::class, 'sales_quotation_id');
+    }
+
+    public function ppnPajak()
+    {
+        return $this->belongsTo(MasterPajak::class, 'ppn_pajak_id');
     }
 
     public function barang()

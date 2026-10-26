@@ -193,164 +193,283 @@
              <i class="bi bi-arrows-fullscreen fs-6"></i>
          </button>
 
-         <!-- Notifications -->
-         @php
-             $notifications = [];
+          <!-- Notifications -->
+          @php
+              $notifications = [];
 
-             if (auth()->check()) {
-                 // 1. Low Stock Alert (Staff Gudang & Super Admin)
-                 if (auth()->user()->can('lihat-barang') || auth()->user()->hasRole('Super Admin')) {
-                     try {
-                         $lowStockCount = \App\Models\StokGudang::join('master_barang', 'stok_gudangs.barang_id', '=', 'master_barang.id')
-                             ->whereColumn('stok_gudangs.stok_aktual', '<=', 'master_barang.minimum_stok')
-                             ->whereNull('master_barang.deleted_at')
-                             ->count();
-                     } catch (\Exception $e) {
-                         $lowStockCount = 0;
-                     }
+              if (auth()->check()) {
+                  $user = auth()->user();
+                  $activeBranchId = session('active_branch_id');
+                  $activeCompanyId = session('active_company_id');
 
-                     if ($lowStockCount > 0) {
-                         $notifications[] = [
-                             'type' => 'danger',
-                             'icon' => 'bi-exclamation-triangle',
-                             'title' => 'Peringatan Stok Menipis',
-                             'message' => 'Terdapat ' . $lowStockCount . ' item barang dengan stok menipis.',
-                             'link' => '/stok'
-                         ];
-                     }
-                 }
+                  // 1. Low Stock Alert (Staff Gudang, Inventori & Super Admin)
+                  if ($user->can('lihat-barang') || $user->can('lihat-dashboard-inventori') || $user->can('lihat-stok-gudang') || $user->can('lihat-dashboard') || $user->hasRole(['Super Admin', 'Warehouse', 'Supervisor Warehouse', 'Admin', 'Owner', 'Director'])) {
+                      try {
+                          $gudangQuery = \App\Models\MasterGudang::query()->where('status', 'Active');
+                          if (!empty($activeBranchId)) {
+                              $gudangQuery->where('cabang_id', $activeBranchId);
+                          } else {
+                              $gudangQuery->whereNull('cabang_id');
+                              if (!empty($activeCompanyId)) {
+                                  $gudangQuery->where('company_id', $activeCompanyId);
+                              }
+                          }
+                          $gudangIds = $gudangQuery->pluck('id')->toArray();
 
-                 // 2. PR Pending Review (Accounting, Buyer & Super Admin)
-                 if (auth()->user()->can('lihat-pr') || auth()->user()->hasRole('Super Admin')) {
-                     try {
-                         $pendingPrCount = \Illuminate\Support\Facades\DB::table('purchase_requisitions')->where('status', 'Pending')->count();
-                     } catch (\Exception $e) {
-                         $pendingPrCount = 0;
-                     }
+                          if (!empty($gudangIds)) {
+                              $lowStockCount = \App\Models\StokGudang::join('master_barang', 'stok_gudangs.barang_id', '=', 'master_barang.id')
+                                  ->whereIn('stok_gudangs.gudang_id', $gudangIds)
+                                  ->where(function($q) {
+                                      $q->whereColumn('stok_gudangs.stok_aktual', '<=', 'master_barang.minimum_stok')
+                                        ->where('master_barang.minimum_stok', '>', 0);
+                                  })
+                                  ->whereNull('master_barang.deleted_at')
+                                  ->count();
 
-                     if ($pendingPrCount > 0) {
-                         $notifications[] = [
-                             'type' => 'warning',
-                             'icon' => 'bi-file-earmark-text',
-                             'title' => 'Pengajuan PR Pending',
-                             'message' => $pendingPrCount . ' pengajuan PR menunggu persetujuan.',
-                             'link' => '/purchase-requisition'
-                         ];
-                     }
-                 }
+                              if ($lowStockCount > 0) {
+                                  $notifications[] = [
+                                      'type' => 'danger',
+                                      'icon' => 'bi-exclamation-triangle-fill',
+                                      'title' => 'Stok Menipis (' . $lowStockCount . ' SKU)',
+                                      'message' => 'Terdapat ' . $lowStockCount . ' item barang mendekati / di bawah batas buffer minimum.',
+                                      'link' => route('stock-overview.index')
+                                  ];
+                              }
+                          }
+                      } catch (\Throwable $e) {}
+                  }
 
-                 // 3. Sales / Tender Alert (Sales & Super Admin)
-                 if (auth()->user()->can('lihat-tender') || auth()->user()->hasRole('Super Admin')) {
-                     try {
-                         $pendingTenders = \Illuminate\Support\Facades\DB::table('tenders')->where('status', 'Pending')->count();
-                     } catch (\Exception $e) {
-                         $pendingTenders = 0;
-                     }
+                  // 2. Goods Receipt Pending (Warehouse & Super Admin)
+                  if ($user->can('lihat-goods-receipt') || $user->can('lihat-penerimaan-barang') || $user->can('lihat-dashboard-inventori') || $user->hasRole(['Super Admin', 'Warehouse', 'Supervisor Warehouse', 'Admin'])) {
+                      try {
+                          $pendingGr = \Illuminate\Support\Facades\DB::table('goods_receipts')
+                              ->whereNull('deleted_at')
+                              ->whereIn('status', ['Draft', 'Pending'])
+                              ->count();
 
-                     if ($pendingTenders > 0) {
-                         $notifications[] = [
-                             'type' => 'info',
-                             'icon' => 'bi-briefcase',
-                             'title' => 'Penawaran Tender Pending',
-                             'message' => $pendingTenders . ' tender aktif membutuhkan tindak lanjut.',
-                             'link' => '/tender'
-                         ];
-                     }
-                 }
+                          if ($pendingGr > 0) {
+                              $notifications[] = [
+                                  'type' => 'info',
+                                  'icon' => 'bi-box-arrow-in-down',
+                                  'title' => 'Penerimaan Barang (GR)',
+                                  'message' => $pendingGr . ' dokumen penerimaan barang belum difinalisasi.',
+                                  'link' => route('gr.index')
+                              ];
+                          }
+                      } catch (\Throwable $e) {}
+                  }
 
-                 // 4. Warehouse Transfers Pending (Warehouse Staff & Super Admin)
-                 if (auth()->user()->can('lihat-transfer') || auth()->user()->hasRole('Super Admin')) {
-                     try {
-                         $pendingTransfers = \Illuminate\Support\Facades\DB::table('warehouse_transfers')->where('status', 'Pending')->count();
-                     } catch (\Exception $e) {
-                         $pendingTransfers = 0;
-                     }
+                  // 3. Goods Issue Pending (Warehouse & Super Admin)
+                  if ($user->can('lihat-goods-issue') || $user->can('lihat-pengeluaran-barang') || $user->can('lihat-dashboard-inventori') || $user->hasRole(['Super Admin', 'Warehouse', 'Supervisor Warehouse', 'Admin'])) {
+                      try {
+                          $pendingGi = \Illuminate\Support\Facades\DB::table('goods_issues')
+                              ->whereNull('deleted_at')
+                              ->whereIn('status', ['Draft', 'Pending'])
+                              ->count();
 
-                     if ($pendingTransfers > 0) {
-                         $notifications[] = [
-                             'type' => 'primary',
-                             'icon' => 'bi-arrow-left-right',
-                             'title' => 'Transfer Gudang Pending',
-                             'message' => $pendingTransfers . ' transfer gudang menunggu konfirmasi.',
-                             'link' => '/warehouse-transfer'
-                         ];
-                     }
-                 }
+                          if ($pendingGi > 0) {
+                              $notifications[] = [
+                                  'type' => 'warning',
+                                  'icon' => 'bi-box-arrow-up-right',
+                                  'title' => 'Pengeluaran Barang (GI)',
+                                  'message' => $pendingGi . ' dokumen pengeluaran barang menunggu konfirmasi.',
+                                  'link' => route('gi.index')
+                              ];
+                          }
+                      } catch (\Throwable $e) {}
+                  }
 
-                 // 5. Security Warning: Failed Login Attempts (IT Admin & Super Admin)
-                 if (auth()->user()->can('lihat-hak-akses') || auth()->user()->hasRole('Super Admin')) {
-                     try {
-                         $failedCount = \App\Models\UserActivityLog::where('activity', 'Login')
-                             ->where('status', 'Failed')
-                             ->where('created_at', '>=', now()->subHours(24))
-                             ->count();
-                     } catch (\Exception $e) {
-                         $failedCount = 0;
-                     }
+                  // 4. Warehouse Transfers Pending (Warehouse & Super Admin)
+                  if ($user->can('lihat-transfer') || $user->can('lihat-transfer-gudang') || $user->can('lihat-dashboard-inventori') || $user->hasRole(['Super Admin', 'Warehouse', 'Supervisor Warehouse', 'Admin'])) {
+                      try {
+                          $pendingTransfers = \Illuminate\Support\Facades\DB::table('warehouse_transfers')
+                              ->whereNull('deleted_at')
+                              ->whereIn('status', ['Pending', 'Draft'])
+                              ->when(!empty($activeBranchId), fn($q) => $q->where('branch_id', $activeBranchId))
+                              ->count();
 
-                     if ($failedCount > 0) {
-                         $notifications[] = [
-                             'type' => 'danger',
-                             'icon' => 'bi-shield-exclamation',
-                             'title' => 'Percobaan Login Gagal',
-                             'message' => $failedCount . ' kali login gagal dalam 24 jam terakhir.',
-                             'link' => '/activity-logs'
-                         ];
-                     }
-                 }
+                          if ($pendingTransfers > 0) {
+                              $notifications[] = [
+                                  'type' => 'primary',
+                                  'icon' => 'bi-arrow-left-right',
+                                  'title' => 'Transfer Gudang Aktif',
+                                  'message' => $pendingTransfers . ' transfer antar gudang menunggu proses tindak lanjut.',
+                                  'link' => route('transfer.index')
+                              ];
+                          }
+                      } catch (\Throwable $e) {}
+                  }
 
-                 // 6. Default welcome notification (All users, customized by role)
-                 $roleName = auth()->user()->getRoleNames()->first() ?? 'Staff';
-                 $notifications[] = [
-                     'type' => 'success',
-                     'icon' => 'bi-check-circle',
-                     'title' => 'Sesi Aktif: ' . $roleName,
-                     'message' => 'Anda masuk sebagai ' . $roleName . '. Modul Anda siap digunakan.',
-                     'link' => '#'
-                 ];
-             }
-         @endphp
+                  // 5. Stock Opname Active (Warehouse & Super Admin)
+                  if ($user->can('lihat-stock-opname') || $user->can('lihat-dashboard-inventori') || $user->hasRole(['Super Admin', 'Warehouse', 'Supervisor Warehouse', 'Admin'])) {
+                      try {
+                          $pendingOpname = \Illuminate\Support\Facades\DB::table('stock_opnames')
+                              ->whereNull('deleted_at')
+                              ->whereIn('status', ['Draft', 'Pending'])
+                              ->count();
 
-         <div class="dropdown">
-             <button class="btn-icon position-relative" data-bs-toggle="dropdown">
-                 <i class="bi bi-bell fs-5"></i>
-                 @if(count($notifications) > 0)
-                     <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
-                 @endif
-             </button>
-             <div class="dropdown-menu dropdown-menu-end shadow border-0"
-                 style="width: 320px; border-radius: var(--border-radius-md);">
-                 <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                     <h6 class="mb-0 fw-bold">Notifikasi</h6>
-                     <span class="badge bg-primary rounded-pill">{{ count($notifications) }} Baru</span>
-                 </div>
-                 <div class="p-2" style="max-height: 300px; overflow-y: auto;">
-                     @forelse($notifications as $notif)
-                         <a href="{{ $notif['link'] }}" class="dropdown-item d-flex align-items-start py-2 rounded mb-1 text-wrap">
-                             <div class="icon-box bg-{{ $notif['type'] }}-soft text-{{ $notif['type'] }} me-3 d-flex align-items-center justify-content-center" style="width:36px; height:36px; flex-shrink: 0; border-radius: 8px;">
-                                 <i class="bi {{ $notif['icon'] }} fs-6"></i>
-                             </div>
-                             <div style="min-width: 0;">
-                                 <p class="mb-0 fw-semibold fs-7 text-dark text-truncate">{{ $notif['title'] }}</p>
-                                 <small class="text-muted text-wrap d-block fs-8" style="line-height: 1.25;">{{ $notif['message'] }}</small>
-                             </div>
-                         </a>
-                     @empty
-                         <div class="text-center py-4 text-muted fs-8">
-                             <i class="bi bi-bell-slash d-block fs-4 mb-2 text-muted"></i>
-                             Tidak ada notifikasi baru
-                         </div>
-                     @endforelse
-                 </div>
-                 @if(count($notifications) > 0)
-                     @can('lihat-log-aktivitas-user')
-                     <div class="p-2 border-top text-center">
-                         <a href="/activity-logs" class="text-primary fw-medium text-decoration-none fs-7">Lihat Riwayat Log</a>
-                     </div>
-                     @endcan
-                 @endif
-             </div>
-         </div>
+                          if ($pendingOpname > 0) {
+                              $notifications[] = [
+                                  'type' => 'info',
+                                  'icon' => 'bi-clipboard-check-fill',
+                                  'title' => 'Stock Opname Berjalan',
+                                  'message' => $pendingOpname . ' sesi stock opname aktif membutuhkan audit fisik.',
+                                  'link' => route('opname.index')
+                              ];
+                          }
+                      } catch (\Throwable $e) {}
+                  }
+
+                  // 6. PR Pending Review (Accounting, Buyer, Purchasing & Super Admin)
+                  if ($user->can('lihat-pr') || $user->can('lihat-dashboard-purchasing') || $user->hasRole(['Super Admin', 'Purchasing', 'Admin', 'Director', 'Owner'])) {
+                      try {
+                          $pendingPrCount = \Illuminate\Support\Facades\DB::table('purchase_requisitions')
+                              ->whereNull('deleted_at')
+                              ->when(!empty($activeBranchId), fn($q) => $q->where('branch_id', $activeBranchId), fn($q) => $q->whereNull('branch_id'))
+                              ->where('status', 'Pending')
+                              ->count();
+
+                          if ($pendingPrCount > 0) {
+                              $notifications[] = [
+                                  'type' => 'warning',
+                                  'icon' => 'bi-file-earmark-text-fill',
+                                  'title' => 'Pengajuan PR Pending',
+                                  'message' => $pendingPrCount . ' pengajuan PR menunggu persetujuan approval.',
+                                  'link' => route('pr.index')
+                              ];
+                          }
+                      } catch (\Throwable $e) {}
+                  }
+
+                  // 7. Purchase Order Pending / Draft (Purchasing & Super Admin)
+                  if ($user->can('lihat-po') || $user->can('lihat-dashboard-purchasing') || $user->hasRole(['Super Admin', 'Purchasing', 'Admin', 'Director', 'Owner'])) {
+                      try {
+                          $pendingPoCount = \Illuminate\Support\Facades\DB::table('purchase_orders')
+                              ->whereNull('deleted_at')
+                              ->whereIn('status', ['Pending', 'Draft'])
+                              ->when(!empty($activeBranchId), fn($q) => $q->where('branch_id', $activeBranchId))
+                              ->count();
+
+                          if ($pendingPoCount > 0) {
+                              $notifications[] = [
+                                  'type' => 'primary',
+                                  'icon' => 'bi-cart-check-fill',
+                                  'title' => 'Purchase Order (PO)',
+                                  'message' => $pendingPoCount . ' PO belum dikonfirmasi / release.',
+                                  'link' => route('po.index')
+                              ];
+                          }
+                      } catch (\Throwable $e) {}
+                  }
+
+                  // 8. Sales / Tender Alert (Sales & Super Admin)
+                  if ($user->can('lihat-tender') || $user->hasRole(['Super Admin', 'Sales', 'Admin'])) {
+                      try {
+                          $pendingTenders = \Illuminate\Support\Facades\DB::table('tenders')
+                              ->whereNull('deleted_at')
+                              ->where('status', 'Pending')
+                              ->count();
+
+                          if ($pendingTenders > 0) {
+                              $notifications[] = [
+                                  'type' => 'info',
+                                  'icon' => 'bi-briefcase-fill',
+                                  'title' => 'Penawaran Tender Aktif',
+                                  'message' => $pendingTenders . ' tender aktif membutuhkan tindak lanjut.',
+                                  'link' => route('tender.index')
+                              ];
+                          }
+                      } catch (\Throwable $e) {}
+                  }
+
+                  // 9. Security Warning: Failed Login Attempts (IT Admin & Super Admin)
+                  if ($user->can('lihat-hak-akses') || $user->hasRole(['Super Admin', 'Admin'])) {
+                      try {
+                          $failedCount = \App\Models\UserActivityLog::where('activity', 'Login')
+                              ->where('status', 'Failed')
+                              ->where('created_at', '>=', now()->subHours(24))
+                              ->count();
+
+                          if ($failedCount > 0) {
+                              $notifications[] = [
+                                  'type' => 'danger',
+                                  'icon' => 'bi-shield-exclamation',
+                                  'title' => 'Percobaan Login Gagal',
+                                  'message' => $failedCount . ' kali login gagal dalam 24 jam terakhir.',
+                                  'link' => '/activity-logs'
+                              ];
+                          }
+                      } catch (\Throwable $e) {}
+                  }
+              }
+          @endphp
+
+          <div class="dropdown">
+              <button class="btn-icon position-relative" data-bs-toggle="dropdown" aria-expanded="false" title="Pusat Notifikasi">
+                  <i class="bi bi-bell fs-5"></i>
+                  @if(count($notifications) > 0)
+                      <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+                  @endif
+              </button>
+              <div class="dropdown-menu dropdown-menu-end shadow border-0"
+                  style="width: 340px; border-radius: 14px; background: var(--card-bg, #ffffff); border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8)) !important;">
+                  <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="border-color: var(--border-color, #e2e8f0) !important;">
+                      <h6 class="mb-0 fw-bold" style="color: var(--text-main, #1e293b); font-size: 0.92rem;">
+                          <i class="bi bi-bell me-1 text-primary"></i> Notifikasi
+                      </h6>
+                      @if(count($notifications) > 0)
+                          <span class="badge bg-danger rounded-pill" style="font-size: 0.7rem;">{{ count($notifications) }} Perlu Tindakan</span>
+                      @else
+                          <span class="badge bg-success bg-opacity-10 text-success rounded-pill" style="font-size: 0.7rem; border: 1px solid rgba(16, 185, 129, 0.25);">Terkendali</span>
+                      @endif
+                  </div>
+                  <div class="p-2" style="max-height: 340px; overflow-y: auto;">
+                      @forelse($notifications as $notif)
+                          @php
+                              $typeColorMap = [
+                                  'primary' => ['bg' => 'rgba(37, 99, 235, 0.15)', 'color' => '#2563eb'],
+                                  'danger'  => ['bg' => 'rgba(239, 68, 68, 0.15)', 'color' => '#ef4444'],
+                                  'warning' => ['bg' => 'rgba(245, 158, 11, 0.15)', 'color' => '#f59e0b'],
+                                  'info'    => ['bg' => 'rgba(14, 165, 233, 0.15)', 'color' => '#0ea5e9'],
+                                  'success' => ['bg' => 'rgba(16, 185, 129, 0.15)', 'color' => '#10b981'],
+                              ];
+                              $style = $typeColorMap[$notif['type']] ?? $typeColorMap['primary'];
+                          @endphp
+                          <a href="{{ $notif['link'] }}" class="dropdown-item d-flex align-items-start p-2.5 rounded-3 mb-1 text-wrap" style="transition: all 0.2s ease;">
+                              <div class="icon-box me-3 d-flex align-items-center justify-content-center" style="width:36px; height:36px; min-width: 36px; border-radius: 10px; background: {{ $style['bg'] }}; color: {{ $style['color'] }};">
+                                  <i class="bi {{ $notif['icon'] }} fs-6"></i>
+                              </div>
+                              <div style="min-width: 0; flex: 1;">
+                                  <p class="mb-0 fw-semibold text-truncate" style="color: var(--text-main, #1e293b); font-size: 0.82rem;">{{ $notif['title'] }}</p>
+                                  <small class="text-wrap d-block" style="color: var(--text-muted, #64748b); font-size: 0.75rem; line-height: 1.35; margin-top: 2px;">{{ $notif['message'] }}</small>
+                              </div>
+                          </a>
+                      @empty
+                          <div class="text-center py-4 px-3">
+                              <div class="d-inline-flex align-items-center justify-content-center mb-2 rounded-circle" style="width: 44px; height: 44px; background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                                  <i class="bi bi-shield-check fs-4"></i>
+                              </div>
+                              <p class="mb-1 fw-semibold" style="color: var(--text-main, #1e293b); font-size: 0.85rem;">Sistem Terkendali</p>
+                              <small class="d-block" style="color: var(--text-muted, #64748b); font-size: 0.75rem; line-height: 1.4;">
+                                  Tidak ada antrean tugas mendesak atau peringatan stok yang memerlukan tindakan Anda saat ini.
+                              </small>
+                              <div class="mt-3 pt-2 border-top text-center" style="border-color: var(--border-color, #e2e8f0) !important; font-size: 0.72rem; color: var(--text-muted, #94a3b8);">
+                                  <i class="bi bi-person-badge me-1 text-primary"></i> Sesi: <strong>{{ auth()->user()->getRoleNames()->first() ?? 'Staff' }}</strong> &bull; {{ session('active_branch_name') ?? session('active_company_name') ?? 'Pusat' }}
+                              </div>
+                          </div>
+                      @endforelse
+                  </div>
+                  @if(count($notifications) > 0)
+                      @can('lihat-log-aktivitas-user')
+                      <div class="p-2 border-top text-center" style="border-color: var(--border-color, #e2e8f0) !important;">
+                          <a href="/activity-logs" class="text-primary fw-medium text-decoration-none" style="font-size: 0.75rem;">
+                              <i class="bi bi-clock-history me-1"></i> Lihat Riwayat Log Aktivitas
+                          </a>
+                      </div>
+                      @endcan
+                  @endif
+              </div>
+          </div>
 
          <div class="vr mx-2 text-muted"></div>
 

@@ -27,7 +27,7 @@ class SpkProduksiMaterial extends Model
         'waste_percent'         => 'decimal:2',
         'total_kebutuhan'       => 'decimal:4',
         'total_keluar_gudang'   => 'decimal:4',
-        'estimasi_harga_satuan' => 'decimal:4',
+        'estimasi_harga_satuan' => 'decimal:6',
         'estimasi_subtotal'     => 'decimal:4',
     ];
 

@@ -3,277 +3,11 @@
 <x-slot:title>Faktur Pembelian (Purchase Invoice)</x-slot:title>
 
 @push('styles')
-<style>
-    /* ===== THEME ADAPTIVE CSS VARIABLES ===== */
-    :root {
-        --erp-bg: #f8fafc;
-        --erp-card-bg: #ffffff;
-        --erp-border: #e2e8f0;
-        --erp-table-header: #f1f5f9;
-        --erp-table-stripe: #f8fafc;
-        --erp-table-hover: #f1f5f9;
-        --erp-text-main: #0f172a;
-        --erp-text-muted: #64748b;
-    }
-
-    [data-bs-theme="dark"] {
-        --erp-bg: #0b1120;
-        --erp-card-bg: #111827;
-        --erp-border: rgba(255, 255, 255, 0.08);
-        --erp-table-header: #1f2937;
-        --erp-table-stripe: #131d2e;
-        --erp-table-hover: #1e293b;
-        --erp-text-main: #f8fafc;
-        --erp-text-muted: #94a3b8;
-    }
-
-    .erp-card {
-        background-color: var(--erp-card-bg) !important;
-        border: 1px solid var(--erp-border) !important;
-        border-radius: 0.75rem;
-    }
-    .erp-card-header {
-        background-color: transparent !important;
-        border-bottom: 1px solid var(--erp-border) !important;
-        padding: 0.85rem 1.25rem;
-    }
-
-    /* ===== CINEMATIC BENTO GLOW CARDS ===== */
-    .inv-cinematic-card {
-        border-radius: 1.15rem;
-        padding: 1.35rem 1.45rem;
-        position: relative;
-        overflow: hidden;
-        border: none !important;
-        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 1;
-    }
-    .inv-cinematic-card:hover {
-        transform: translateY(-3px);
-    }
-    .inv-cine-blue {
-        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
-        box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4), 0 8px 10px -6px rgba(37, 99, 235, 0.2);
-    }
-    .inv-cine-amber {
-        background: linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%);
-        box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.4), 0 8px 10px -6px rgba(217, 119, 6, 0.2);
-    }
-    .inv-cine-emerald {
-        background: linear-gradient(135deg, #047857 0%, #059669 50%, #10b981 100%);
-        box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.4), 0 8px 10px -6px rgba(5, 150, 105, 0.2);
-    }
-    .inv-cine-title {
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.85);
-    }
-    .inv-cine-value {
-        font-size: 1.55rem;
-        font-weight: 800;
-        line-height: 1.15;
-        letter-spacing: -0.02em;
-        color: #ffffff;
-        margin-bottom: 0.4rem;
-        font-family: system-ui, -apple-system, sans-serif;
-    }
-    .inv-cine-sub {
-        font-size: 0.76rem;
-        color: rgba(255, 255, 255, 0.85);
-    }
-    .inv-cine-icon {
-        width: 2.75rem;
-        height: 2.75rem;
-        border-radius: 0.75rem;
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(8px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-        color: #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.25);
-    }
-    .inv-cine-circle {
-        position: absolute;
-        bottom: -20px;
-        right: -20px;
-        width: 110px;
-        height: 110px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
-        pointer-events: none;
-    }
-
-    /* ===== DUAL TOUCH SCROLLBARS FOR MOBILE & TABLET ===== */
-    .inv-top-scroll-container {
-        overflow-x: auto;
-        overflow-y: hidden;
-        height: 12px;
-        width: 100%;
-        border-radius: 4px;
-        background: rgba(0,0,0,0.02);
-    }
-    .inv-top-scroll-inner {
-        height: 12px;
-    }
-    .inv-table-scroll-wrapper {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        width: 100%;
-    }
-    .inv-top-scroll-container::-webkit-scrollbar,
-    .inv-table-scroll-wrapper::-webkit-scrollbar {
-        height: 8px;
-    }
-    .inv-top-scroll-container::-webkit-scrollbar-thumb,
-    .inv-table-scroll-wrapper::-webkit-scrollbar-thumb {
-        background: rgba(100, 116, 139, 0.35);
-        border-radius: 6px;
-    }
-    .inv-top-scroll-container::-webkit-scrollbar-thumb:hover,
-    .inv-table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
-        background: rgba(100, 116, 139, 0.6);
-    }
-
-    /* ===== THEMED TABLE STYLES ===== */
-    #tableInvoice {
-        min-width: 980px;
-    }
-    #tableInvoice thead th {
-        background-color: var(--erp-table-header) !important;
-        color: var(--erp-text-main) !important;
-        border-bottom: 2px solid var(--erp-border) !important;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        padding: 0.75rem 0.65rem;
-    }
-    #tableInvoice tbody tr {
-        background-color: transparent !important;
-        transition: background-color 0.15s ease-in-out;
-    }
-    #tableInvoice tbody tr:hover {
-        background-color: var(--erp-table-hover) !important;
-    }
-    #tableInvoice td {
-        padding: 0.7rem 0.65rem;
-        font-size: 0.84rem;
-        border-bottom: 1px solid var(--erp-border);
-        vertical-align: middle;
-    }
-
-    /* ===== MODAL FULLSCREEN STYLES ===== */
-    .modal-dialog-invoice-wide {
-        max-width: 1400px;
-    }
-    .inv-modal-header {
-        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-        color: #fff;
-        padding: 1.15rem 1.5rem;
-        border-bottom: 0;
-    }
-    .inv-modal-header .modal-title {
-        font-weight: 800;
-        font-size: 1.15rem;
-        color: #fff;
-        letter-spacing: -0.01em;
-    }
-    .inv-modal-header .text-subtitle {
-        font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.75);
-    }
-    .inv-modal-header .btn-close {
-        filter: invert(1) grayscale(100%) brightness(200%);
-    }
-    .inv-action-bar {
-        position: sticky;
-        top: 0;
-        z-index: 1020;
-        background: var(--erp-card-bg);
-        border-bottom: 1px solid var(--erp-border);
-        padding: 0.75rem 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.5rem;
-        backdrop-filter: blur(8px);
-    }
-    .inv-status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-    }
-    .inv-status-pill.draft {
-        background: rgba(245, 158, 11, 0.2);
-        color: #fef08a;
-        border: 1px solid rgba(245, 158, 11, 0.4);
-    }
-
-    /* ===== SUMMARY SIDEBAR ===== */
-    .calc-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.4rem 0;
-        border-bottom: 1px dashed var(--erp-border);
-        font-size: 0.8rem;
-    }
-    .calc-row:last-child {
-        border-bottom: none;
-    }
-    .calc-label {
-        color: var(--erp-text-muted);
-    }
-    .calc-value {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-weight: 600;
-    }
-    .calc-grand-total {
-        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-        border-radius: 0.625rem;
-        padding: 1rem 1.25rem;
-        color: #fff;
-        margin-top: 0.75rem;
-    }
-    .calc-grand-total .label {
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: rgba(255, 255, 255, 0.75);
-        font-weight: 600;
-    }
-    .calc-grand-total .value {
-        font-size: 1.4rem;
-        font-weight: 800;
-        color: #fff;
-        line-height: 1.2;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 767.98px) {
-        .inv-page-container {
-            padding-left: 0.35rem !important;
-            padding-right: 0.35rem !important;
-        }
-        .inv-cinematic-card {
-            padding: 1rem 1.15rem;
-            margin-bottom: 0.5rem;
-        }
-        .inv-cine-value {
-            font-size: 1.35rem;
-        }
-    }
-</style>
+<!-- Select2 Searchable Dropdown CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<!-- Faktur Pembelian Custom CSS -->
+<link href="{{ asset('css/faktur_pembelian.css') }}?v={{ file_exists(public_path('css/faktur_pembelian.css')) ? filemtime(public_path('css/faktur_pembelian.css')) : time() }}" rel="stylesheet" />
 @endpush
 
 <div class="container-fluid py-2 py-md-3 inv-page-container">
@@ -284,9 +18,11 @@
             <h4 class="fw-bold mb-0 text-body">Faktur Pembelian</h4>
         </div>
         <div class="d-flex align-items-center gap-2 w-100 w-md-auto">
+            @can('tambah-purchase-invoice')
             <button type="button" class="btn btn-primary fw-semibold w-100 w-md-auto rounded-3 px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahInvoice">
                 <i class="bi bi-plus-lg me-1"></i> Buat Faktur Pembelian
             </button>
+            @endcan
         </div>
     </div>
 
@@ -300,38 +36,63 @@
                         <i class="bi bi-receipt-cutoff"></i>
                     </div>
                 </div>
-                <div class="inv-cine-value">{{ number_format($totalInvoiceCount ?? 0) }}</div>
-                <div class="inv-cine-sub d-flex flex-wrap gap-1 align-items-center mt-1">
-                    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2 py-0.5" style="font-size: 0.72rem;">
-                        <i class="bi bi-tag-fill me-1"></i>{{ $countIdr ?? 0 }} IDR
+                <div class="inv-cine-value" id="kpi_total_invoice_count">{{ number_format($totalInvoiceCount ?? 0) }}</div>
+                <div class="inv-cine-sub d-flex flex-wrap gap-1 align-items-center mt-1" id="kpi_total_invoice_sub">
+                    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2 py-0.5" style="font-size: 0.72rem;" id="kpi_count_idr_badge">
+                        <i class="bi bi-tag-fill me-1"></i><span id="kpi_count_idr_val">{{ $countIdr ?? 0 }}</span> IDR
                     </span>
-                    @if(($countForeign ?? 0) > 0)
-                    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2 py-0.5" style="font-size: 0.72rem;">
-                        <i class="bi bi-currency-exchange me-1"></i>{{ $countForeign }} USD / Valas
+                    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-2 py-0.5 {{ ($countForeign ?? 0) > 0 ? '' : 'd-none' }}" style="font-size: 0.72rem;" id="kpi_count_foreign_badge">
+                        <i class="bi bi-currency-exchange me-1"></i><span id="kpi_count_foreign_val">{{ $countForeign ?? 0 }}</span> USD / Valas
                     </span>
-                    @endif
                 </div>
                 <div class="inv-cine-circle"></div>
             </div>
         </div>
         <div class="col-12 col-md-4">
-            <div class="card inv-cinematic-card inv-cine-amber text-white h-100 position-relative overflow-hidden">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <div class="inv-cine-title">HUTANG BELUM LUNAS (UNPAID)</div>
-                    <div class="inv-cine-icon">
-                        <i class="bi bi-exclamation-triangle-fill"></i>
+            <div class="card inv-cinematic-card inv-cine-amber text-white h-100 position-relative overflow-hidden d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="inv-cine-title">HUTANG BELUM LUNAS (UNPAID)</div>
+                        <div class="inv-cine-icon">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                        </div>
+                    </div>
+
+                    <!-- DUAL CURRENCY VALUE DISPLAY -->
+                    <div class="d-flex flex-column gap-1 mb-2">
+                        <!-- Nominal Utang Rupiah (IDR) -->
+                        <div class="d-flex align-items-baseline justify-content-between">
+                            <span class="badge bg-black bg-opacity-25 text-white-50 rounded px-2 py-0.5" style="font-size: 0.7rem; font-weight: 600;">
+                                <i class="bi bi-cash-stack me-1 text-warning"></i>IDR
+                            </span>
+                            <div class="inv-cine-value mb-0 text-end" id="kpi_unpaid_idr" style="font-size: 1.35rem; letter-spacing: -0.02em;">
+                                Rp {{ number_format($unpaidIdr ?? 0, 2, ',', '.') }}
+                            </div>
+                        </div>
+
+                        <!-- Nominal Utang Valas (Mata Uang Asing) -->
+                        <div class="d-flex align-items-baseline justify-content-between pt-1 border-top border-white border-opacity-15" id="kpi_unpaid_foreign_row" style="{{ ($unpaidForeign ?? 0) > 0 ? '' : 'opacity: 0.65;' }}">
+                            <span class="badge bg-white bg-opacity-25 text-white rounded px-2 py-0.5 font-monospace" style="font-size: 0.7rem; font-weight: 600;">
+                                <i class="bi bi-currency-exchange me-1"></i><span id="kpi_unpaid_foreign_code">{{ $unpaidForeignCode ?? 'USD' }}</span>
+                            </span>
+                            <div class="fw-bold font-monospace text-end" id="kpi_unpaid_foreign_val" style="font-size: 1.15rem; color: #fef08a;">
+                                <span id="kpi_unpaid_foreign_symbol">{{ $unpaidForeignSymbol ?? '$' }}</span> {{ number_format($unpaidForeign ?? 0, 2, ',', '.') }}
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="inv-cine-value">Rp {{ number_format($totalUnpaidAmount ?? 0, 2, ',', '.') }}</div>
-                <div class="inv-cine-sub">
+
+                <!-- Footer Subtitle: Estimasi Total Setelah Kurs atau Status -->
+                <div class="inv-cine-sub pt-1 border-top border-white border-opacity-10" id="kpi_unpaid_sub">
                     @if(($unpaidForeign ?? 0) > 0)
-                    <div class="d-flex flex-wrap gap-1 align-items-center mt-1 font-monospace" style="font-size: 0.73rem;">
-                        <span class="badge bg-black bg-opacity-25 text-white rounded px-2 py-0.5">IDR: Rp {{ number_format($unpaidIdr ?? 0, 2, ',', '.') }}</span>
-                        <span class="badge bg-white bg-opacity-25 text-white rounded px-2 py-0.5">{{ $unpaidForeignCode ?? 'USD' }}: {{ $unpaidForeignSymbol ?? '$' }} {{ number_format($unpaidForeign, 2, ',', '.') }}</span>
+                    <div class="d-flex align-items-center justify-content-between" style="font-size: 0.73rem;">
+                        <span class="text-white-50"><i class="bi bi-calculator me-1"></i>Estimasi Total (Kurs):</span>
+                        <span class="fw-bold text-white font-monospace" id="kpi_total_unpaid_amount">Rp {{ number_format($totalUnpaidAmount ?? 0, 2, ',', '.') }}</span>
                     </div>
                     @else
-                    <div class="d-flex align-items-center gap-1">
-                        <i class="bi bi-clock-history me-1"></i> Draft & Menunggu Pembayaran
+                    <div class="d-flex align-items-center justify-content-between" style="font-size: 0.73rem;">
+                        <span class="text-white-50"><i class="bi bi-clock-history me-1"></i>Draft & Menunggu Pembayaran</span>
+                        <span class="fw-bold text-white font-monospace d-none" id="kpi_total_unpaid_amount">Rp {{ number_format($totalUnpaidAmount ?? 0, 2, ',', '.') }}</span>
                     </div>
                     @endif
                 </div>
@@ -339,25 +100,41 @@
             </div>
         </div>
         <div class="col-12 col-md-4">
-            <div class="card inv-cinematic-card inv-cine-emerald text-white h-100 position-relative overflow-hidden">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <div class="inv-cine-title">PEMBAYARAN BULAN INI</div>
-                    <div class="inv-cine-icon">
-                        <i class="bi bi-calendar-check-fill"></i>
+            <div class="card inv-cinematic-card inv-cine-emerald text-white h-100 position-relative overflow-hidden d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="inv-cine-title">PEMBAYARAN BULAN INI</div>
+                        <div class="inv-cine-icon">
+                            <i class="bi bi-calendar-check-fill"></i>
+                        </div>
+                    </div>
+
+                    <!-- DUAL CURRENCY VALUE DISPLAY -->
+                    <div class="d-flex flex-column gap-1 mb-2">
+                        <div class="d-flex align-items-baseline justify-content-between">
+                            <span class="badge bg-black bg-opacity-25 text-white-50 rounded px-2 py-0.5" style="font-size: 0.7rem; font-weight: 600;">
+                                <i class="bi bi-cash-stack me-1 text-success-emphasis"></i>IDR
+                            </span>
+                            <div class="inv-cine-value mb-0 text-end" id="kpi_total_paid_this_month" style="font-size: 1.35rem; letter-spacing: -0.02em;">
+                                Rp {{ number_format($paidThisMonthIdr ?? ($totalPaidThisMonth ?? 0), 2, ',', '.') }}
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-baseline justify-content-between pt-1 border-top border-white border-opacity-15" id="kpi_paid_foreign_row" style="{{ ($paidThisMonthForeign ?? 0) > 0 ? '' : 'opacity: 0.65;' }}">
+                            <span class="badge bg-white bg-opacity-25 text-white rounded px-2 py-0.5 font-monospace" style="font-size: 0.7rem; font-weight: 600;">
+                                <i class="bi bi-currency-exchange me-1"></i><span id="kpi_paid_foreign_code">{{ $paidThisMonthForeignCode ?? 'USD' }}</span>
+                            </span>
+                            <div class="fw-bold font-monospace text-end" id="kpi_paid_foreign_val" style="font-size: 1.15rem; color: #a7f3d0;">
+                                <span id="kpi_paid_foreign_symbol">{{ $paidThisMonthForeignSymbol ?? '$' }}</span> {{ number_format($paidThisMonthForeign ?? 0, 2, ',', '.') }}
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="inv-cine-value">Rp {{ number_format($totalPaidThisMonth ?? 0, 2, ',', '.') }}</div>
-                <div class="inv-cine-sub">
-                    @if(($paidThisMonthForeign ?? 0) > 0)
-                    <div class="d-flex flex-wrap gap-1 align-items-center mt-1 font-monospace" style="font-size: 0.73rem;">
-                        <span class="badge bg-black bg-opacity-25 text-white rounded px-2 py-0.5">IDR: Rp {{ number_format($paidThisMonthIdr ?? 0, 2, ',', '.') }}</span>
-                        <span class="badge bg-white bg-opacity-25 text-white rounded px-2 py-0.5">{{ $paidThisMonthForeignCode ?? 'USD' }}: {{ $paidThisMonthForeignSymbol ?? '$' }} {{ number_format($paidThisMonthForeign, 2, ',', '.') }}</span>
+
+                <div class="inv-cine-sub pt-1 border-top border-white border-opacity-10" id="kpi_paid_this_month_sub">
+                    <div class="d-flex align-items-center justify-content-between" style="font-size: 0.73rem;">
+                        <span class="text-white-50"><i class="bi bi-calendar3 me-1"></i>Periode {{ $currentMonthName ?? \Carbon\Carbon::now()->translatedFormat('F Y') }}</span>
                     </div>
-                    @else
-                    <div class="d-flex align-items-center gap-1">
-                        <i class="bi bi-calendar3 me-1"></i> Periode {{ $currentMonthName ?? \Carbon\Carbon::now()->translatedFormat('F Y') }}
-                    </div>
-                    @endif
                 </div>
                 <div class="inv-cine-circle"></div>
             </div>
@@ -371,11 +148,27 @@
                 <i class="bi bi-table text-primary"></i>
                 <h6 class="fw-bold mb-0 text-body">Daftar Tagihan Supplier (AP Invoices)</h6>
             </div>
-            <div class="d-none d-md-block text-muted small">
-                <i class="bi bi-info-circle me-1"></i> Geser horizontal untuk melihat rincian kolom
+            <div class="d-flex align-items-center gap-2">
+                <div class="d-none d-lg-block text-muted small me-1">
+                    <i class="bi bi-info-circle me-1"></i> Geser horizontal untuk melihat rincian kolom
+                </div>
+                <button type="button" class="btn inv-filter-trigger position-relative" id="btnOpenInvFilter" data-bs-toggle="modal" data-bs-target="#modalFilterInvoice" title="Filter Pencarian">
+                    <i class="bi bi-funnel-fill"></i>
+                    <span class="d-none d-sm-inline ms-1">Filter</span>
+                    <span class="inv-filter-count d-none" id="invFilterCount">0</span>
+                </button>
             </div>
         </div>
         <div class="card-body p-2 p-md-3">
+
+            <!-- Active Filter Chips -->
+            <div class="inv-active-filters d-none" id="invActiveFilters">
+                <span class="inv-active-filters-label"><i class="bi bi-funnel me-1"></i>Filter aktif:</span>
+                <div class="d-flex flex-wrap gap-1" id="invActiveFilterChips"></div>
+                <button type="button" class="btn btn-link btn-sm inv-clear-all-filter" id="btnClearAllInvFilter">
+                    <i class="bi bi-x-circle me-1"></i>Reset semua
+                </button>
+            </div>
             
             <!-- Mobile Scroll Indicator Badge -->
             <div class="d-md-none text-center my-1">
@@ -393,16 +186,15 @@
                 <table class="table align-middle table-hover w-100 inv-wide-table" id="tableInvoice">
                     <thead>
                         <tr>
-                            <th width="3%">NO</th>
-                            <th width="12%">NO. FAKTUR</th>
-                            <th width="14%">NO. FAKTUR SUPPLIER</th>
+                            <th width="3%" class="text-center">NO</th>
+                            <th width="16%">NO. FAKTUR</th>
                             <th width="10%">TANGGAL</th>
-                            <th width="10%">JATUH TEMPO</th>
-                            <th width="18%">SUPPLIER</th>
-                            <th width="12%">NO. PENERIMAAN (GR)</th>
-                            <th width="12%" class="text-end">GRAND TOTAL</th>
-                            <th width="9%" class="text-center">STATUS</th>
-                            <th width="10%" class="text-center">AKSI</th>
+                            <th width="11%">JATUH TEMPO</th>
+                            <th width="20%">SUPPLIER</th>
+                            <th width="14%" class="text-end">TOTAL TAGIHAN</th>
+                            <th width="14%" class="text-end">SISA HUTANG</th>
+                            <th width="6%" class="text-center">STATUS</th>
+                            <th width="6%" class="text-center">AKSI</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -417,9 +209,442 @@
 @include('modul_purchasing.faktur_pembelian.partials.modal_create')
 @include('modul_purchasing.faktur_pembelian.partials.modal_edit')
 @include('modul_purchasing.faktur_pembelian.partials.modal_view')
+@include('modul_purchasing.faktur_pembelian.partials.modal_jurnal')
 @include('modul_purchasing.faktur_pembelian.partials.modal_browse_gr')
+@include('modul_purchasing.faktur_pembelian.partials.modal_browse_po')
+@include('modul_purchasing.faktur_pembelian.partials.modal_preview_lampiran')
+@include('modul_purchasing.faktur_pembelian.partials.modal_filter')
 
 @push('scripts')
+    <!-- Select2 Searchable Dropdown Library -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        // Shared Searchable Pajak (PPN) Select2 Initializer
+        window.initPajakSelect2 = function($elem, $modal, opts) {
+            if (!$.fn.select2 || !$elem || !$elem.length) return;
+            opts = opts || {};
+            $elem.each(function() {
+                let $this = $(this);
+                let targetParent = ($modal && $modal.length) ? $modal : ($this.closest('.modal').length ? $this.closest('.modal') : $(document.body));
+
+                if ($this.data('select2')) {
+                    $this.select2('destroy');
+                }
+                $this.off('select2:open.pjk select2:select.pjk');
+
+                $this.select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: targetParent,
+                    placeholder: opts.placeholder || 'Non PPN (0%)',
+                    allowClear: true,
+                    width: '100%',
+                    dropdownAutoWidth: false,
+                    minimumResultsForSearch: 0, // Always show search field so user can type to search
+                    closeOnSelect: true
+                });
+
+                $this.on('select2:open.pjk', function() {
+                    let data = $(this).data('select2');
+                    if (data && data.$dropdown) {
+                        data.$dropdown.css('z-index', 1065);
+                    }
+                    setTimeout(function() {
+                        let searchField = document.querySelector('.select2-container--open .select2-search__field');
+                        if (searchField) {
+                            searchField.setAttribute('placeholder', opts.searchPlaceholder || 'Cari PPN (misal: 11%, 12%)...');
+                            searchField.focus();
+                        }
+                    }, 40);
+                });
+
+                $this.on('select2:select.pjk', function() {
+                    let self = this;
+                    setTimeout(function() {
+                        try {
+                            $(self).select2('close');
+                        } catch (e) {}
+                    }, 10);
+                });
+            });
+        };
+
+        // Shared Searchable Syarat Pembayaran (Termin) Select2 Initializer
+        window.initTerminSelect2 = function($elem, $modal) {
+            if (!$.fn.select2 || !$elem || !$elem.length) return;
+            $elem.each(function() {
+                let $this = $(this);
+                let targetParent = ($modal && $modal.length) ? $modal : ($this.closest('.modal').length ? $this.closest('.modal') : $(document.body));
+
+                if ($this.data('select2')) {
+                    $this.select2('destroy');
+                }
+                $this.off('select2:open.trm select2:select.trm');
+
+                $this.select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: targetParent,
+                    placeholder: 'Pilih Syarat Pembayaran...',
+                    width: '100%',
+                    dropdownAutoWidth: false,
+                    minimumResultsForSearch: 0,
+                    closeOnSelect: true
+                });
+
+                $this.on('select2:open.trm', function() {
+                    let data = $(this).data('select2');
+                    if (data && data.$dropdown) {
+                        data.$dropdown.css('z-index', 1065);
+                    }
+                    setTimeout(function() {
+                        let searchField = document.querySelector('.select2-container--open .select2-search__field');
+                        if (searchField) {
+                            searchField.setAttribute('placeholder', 'Cari termin (misal: 30 Hari, Net, Cash)...');
+                            searchField.focus();
+                        }
+                    }, 40);
+                });
+
+                $this.on('select2:select.trm', function() {
+                    let self = this;
+                    setTimeout(function() {
+                        try {
+                            $(self).select2('close');
+                        } catch (e) {}
+                    }, 10);
+                });
+            });
+        };
+
+        // Shared Searchable Akun Uang Muka (COA) Select2 Initializer
+        window.initUangMukaCoaSelect2 = function($elem, $modal) {
+            if (!$.fn.select2 || !$elem || !$elem.length) return;
+            $elem.each(function() {
+                let $this = $(this);
+                let targetParent = ($modal && $modal.length) ? $modal : ($this.closest('.modal').length ? $this.closest('.modal') : $(document.body));
+
+                if ($this.data('select2')) {
+                    $this.select2('destroy');
+                }
+                $this.off('select2:open.dp select2:select.dp');
+
+                $this.select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: targetParent,
+                    placeholder: 'Cari & Pilih Akun Uang Muka...',
+                    width: '100%',
+                    dropdownAutoWidth: false,
+                    minimumResultsForSearch: 0,
+                    closeOnSelect: true,
+                    matcher: function(params, data) {
+                        // Empty query -> show all
+                        if (!params.term || $.trim(params.term) === '') {
+                            return data;
+                        }
+                        if (typeof data.text === 'undefined') {
+                            return null;
+                        }
+                        // Multi-word flexible case-insensitive matching across code and name
+                        let term = params.term.toLowerCase().trim();
+                        let text = data.text.toLowerCase();
+                        let words = term.split(/\s+/).filter(Boolean);
+                        let matched = words.every(function(word) {
+                            return text.indexOf(word) > -1;
+                        });
+                        return matched ? data : null;
+                    },
+                    templateResult: function(item) {
+                        if (!item.id) return item.text;
+                        let text = item.text;
+                        let sepIdx = text.indexOf(' - ');
+                        if (sepIdx > -1) {
+                            let code = text.substring(0, sepIdx).trim();
+                            let name = text.substring(sepIdx + 3).trim();
+                            let safeCode = $('<div>').text(code).html();
+                            let safeName = $('<div>').text(name).html();
+                            return $('<span><span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle font-monospace me-1 px-1">' + safeCode + '</span> <span class="fw-medium">' + safeName + '</span></span>');
+                        }
+                        return item.text;
+                    },
+                    templateSelection: function(item) {
+                        if (!item.id) return item.text;
+                        let text = item.text;
+                        let sepIdx = text.indexOf(' - ');
+                        if (sepIdx > -1) {
+                            let code = text.substring(0, sepIdx).trim();
+                            let name = text.substring(sepIdx + 3).trim();
+                            let safeCode = $('<div>').text(code).html();
+                            let safeName = $('<div>').text(name).html();
+                            return $('<span><span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle font-monospace me-1 px-1">' + safeCode + '</span> ' + safeName + '</span>');
+                        }
+                        return item.text;
+                    },
+                    escapeMarkup: function(m) { return m; }
+                });
+
+                $this.on('select2:open.dp', function() {
+                    let data = $(this).data('select2');
+                    if (data && data.$dropdown) {
+                        data.$dropdown.css('z-index', 1070);
+                    }
+                    setTimeout(function() {
+                        let searchField = document.querySelector('.select2-container--open .select2-search__field') || document.querySelector('.select2-dropdown .select2-search__field');
+                        if (searchField) {
+                            searchField.setAttribute('placeholder', 'Ketik kode atau nama akun (misal: 1111, Uang Muka, DP)...');
+                            searchField.focus();
+                        }
+                    }, 40);
+                });
+
+                $this.on('select2:select.dp', function() {
+                    let self = this;
+                    setTimeout(function() {
+                        try {
+                            $(self).select2('close');
+                        } catch (e) {}
+                    }, 10);
+                });
+            });
+        };
+
+        // Shared Searchable Akun Biaya Tambahan & Akun Alokasi (COA) Select2 Initializer
+        window.initCoaSelect2 = function($elem, $modal) {
+            if (!$.fn.select2 || !$elem || !$elem.length) return;
+            $elem.each(function() {
+                let $this = $(this);
+                let targetParent = ($modal && $modal.length) ? $modal : ($this.closest('.modal').length ? $this.closest('.modal') : $(document.body));
+
+                if ($this.data('select2')) {
+                    $this.select2('destroy');
+                }
+                $this.off('select2:open.coa select2:select.coa');
+
+                $this.select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: targetParent,
+                    placeholder: '-- Cari & Pilih Akun (COA) --',
+                    width: '100%',
+                    dropdownAutoWidth: false,
+                    minimumResultsForSearch: 0,
+                    closeOnSelect: true,
+                    matcher: function(params, data) {
+                        if (!params.term || $.trim(params.term) === '') {
+                            return data;
+                        }
+                        if (!data || typeof data.text === 'undefined' || data.text === null) {
+                            return null;
+                        }
+                        let term = params.term.toLowerCase().trim();
+                        let text = String(data.text).toLowerCase();
+                        let words = term.split(/\s+/).filter(Boolean);
+                        let matched = words.every(function(word) {
+                            return text.indexOf(word) > -1;
+                        });
+                        return matched ? data : null;
+                    },
+                    templateResult: function(item) {
+                        if (!item || !item.id || !item.text) {
+                            return item ? (item.text || '') : '';
+                        }
+                        let text = String(item.text);
+                        let sepIdx = text.indexOf(' - ');
+                        if (sepIdx > -1) {
+                            let code = text.substring(0, sepIdx).trim();
+                            let name = text.substring(sepIdx + 3).trim();
+                            let safeCode = $('<div>').text(code).html();
+                            let safeName = $('<div>').text(name).html();
+                            return $('<span><span class="badge bg-secondary bg-opacity-20 text-body border font-monospace me-1 px-1">' + safeCode + '</span> <span class="fw-medium">' + safeName + '</span></span>');
+                        }
+                        return text;
+                    },
+                    templateSelection: function(item) {
+                        if (!item || !item.id || !item.text) {
+                            return item ? (item.text || '') : '';
+                        }
+                        let text = String(item.text);
+                        let sepIdx = text.indexOf(' - ');
+                        if (sepIdx > -1) {
+                            let code = text.substring(0, sepIdx).trim();
+                            let name = text.substring(sepIdx + 3).trim();
+                            let safeCode = $('<div>').text(code).html();
+                            let safeName = $('<div>').text(name).html();
+                            return $('<span><span class="badge bg-secondary bg-opacity-20 text-body border font-monospace me-1 px-1">' + safeCode + '</span> ' + safeName + '</span>');
+                        }
+                        return text;
+                    },
+                    escapeMarkup: function(m) { return m; }
+                });
+
+                $this.on('select2:open.coa', function() {
+                    let data = $(this).data('select2');
+                    if (data && data.$dropdown) {
+                        data.$dropdown.css('z-index', 1070);
+                    }
+                    setTimeout(function() {
+                        let searchField = document.querySelector('.select2-container--open .select2-search__field') || document.querySelector('.select2-dropdown .select2-search__field');
+                        if (searchField) {
+                            searchField.setAttribute('placeholder', 'Ketik kode atau nama akun (misal: 5103, Biaya Angkut)...');
+                            searchField.focus();
+                        }
+                    }, 40);
+                });
+
+                $this.on('select2:select.coa', function() {
+                    let self = this;
+                    setTimeout(function() {
+                        try {
+                            $(self).select2('close');
+                        } catch (e) {}
+                    }, 10);
+                });
+            });
+        };
+
+        // Shared Searchable Kas / Bank Select2 Initializer
+        window.initKasBankSelect2 = function($elem, $modal) {
+            if (!$.fn.select2 || !$elem || !$elem.length) return;
+            $elem.each(function() {
+                let $this = $(this);
+                let targetParent = ($modal && $modal.length) ? $modal : ($this.closest('.modal').length ? $this.closest('.modal') : $(document.body));
+
+                if ($this.data('select2')) {
+                    $this.select2('destroy');
+                }
+                $this.off('select2:open.kb select2:select.kb');
+
+                $this.select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: targetParent,
+                    placeholder: '-- Pilih Kas / Bank Pengeluaran DP --',
+                    width: '100%',
+                    dropdownAutoWidth: false,
+                    minimumResultsForSearch: 0,
+                    closeOnSelect: true,
+                    escapeMarkup: function(m) { return m; }
+                });
+
+                $this.on('select2:open.kb', function() {
+                    let data = $(this).data('select2');
+                    if (data && data.$dropdown) {
+                        data.$dropdown.css('z-index', 1070);
+                    }
+                    setTimeout(function() {
+                        let searchField = document.querySelector('.select2-container--open .select2-search__field') || document.querySelector('.select2-dropdown .select2-search__field');
+                        if (searchField) {
+                            searchField.setAttribute('placeholder', 'Ketik nama akun / bank (misal: BCA, Mandiri, Kas Kecil)...');
+                            searchField.focus();
+                        }
+                    }, 40);
+                });
+
+                $this.on('select2:select.kb', function() {
+                    let self = this;
+                    setTimeout(function() {
+                        try {
+                            $(self).select2('close');
+                        } catch (e) {}
+                    }, 10);
+                });
+            });
+        };
+
+        // ===== Shared PPh (Withholding Tax) & Expense Type Helpers =====
+        window.expenseTypeCoaMap = @json($expenseTypeCoaMap ?? new \stdClass());
+        window.pphCoaMap = @json($pphCoaMap ?? new \stdClass());
+        window.defaultPphCoaId = {{ $defaultPphCoaId ?? 'null' }};
+
+        function pphEls(prefix) {
+            return {
+                sel:   $('#' + prefix + '_pph_pajak_id'),
+                tarif: $('#' + prefix + '_tarif_pph'),
+                nom:   $('#' + prefix + '_pph_nominal'),
+                coa:   $('#' + prefix + '_pph_coa_id'),
+                label: $('#' + prefix + '_label_pph_tarif'),
+                sum:   $('#' + prefix + '_sum_pph')
+            };
+        }
+
+        function pphToggle(el, enabled) {
+            el.nom.prop('disabled', true).prop('readonly', true).addClass('bg-body-tertiary');
+            el.coa.prop('disabled', !enabled);
+            if (el.coa.data('select2')) el.coa.trigger('change.select2');
+        }
+
+        // Bind events once per modal. recalcFn = the modal's summary recalculation.
+        window.initPphPanel = function(prefix, $modal, recalcFn) {
+            let el = pphEls(prefix);
+            if (!el.sel.length) return;
+
+            window.initPajakSelect2(el.sel, $modal, { placeholder: 'Tanpa PPh', searchPlaceholder: 'Cari PPh (misal: PPh 23, 2%)...' });
+            window.initPajakSelect2(el.coa, $modal, { placeholder: '-- Pilih Akun PPh --', searchPlaceholder: 'Cari akun (kode / nama)...' });
+
+            el.sel.on('change', function() {
+                let id = $(this).val();
+                let tarif = parseFloat($(this).find('option:selected').data('tarif')) || 0;
+                el.tarif.val(id ? tarif : 0);
+                el.nom.data('manual', false);
+
+                if (!id) {
+                    el.nom.val('0,00');
+                    el.coa.val('').data('userPicked', false);
+                    pphToggle(el, false);
+                } else {
+                    pphToggle(el, true);
+                    if (!el.coa.data('userPicked') || !el.coa.val()) {
+                        let autoCoa = window.pphCoaMap[id] || window.defaultPphCoaId;
+                        if (autoCoa) el.coa.val(String(autoCoa)).trigger('change.select2');
+                    }
+                }
+                if (typeof recalcFn === 'function') recalcFn();
+            });
+
+            el.coa.on('select2:select', function() { el.coa.data('userPicked', true); });
+        };
+
+        // Returns PPh nominal for given DPP and refreshes the panel display.
+        window.computePph = function(prefix, dpp, currencyCode) {
+            let el = pphEls(prefix);
+            if (!el.sel.length) return 0;
+
+            let id = el.sel.val();
+            let tarif = parseFloat(el.tarif.val()) || 0;
+            let nominal = 0;
+
+            if (id && tarif > 0) {
+                nominal = Math.round(dpp * (tarif / 100) * 100) / 100;
+                el.nom.val(formatNumber(nominal));
+            } else {
+                el.nom.val('0,00');
+            }
+
+            el.label.text(id ? '(' + String(tarif).replace('.', ',') + '%)' : '');
+            el.sum.text(nominal > 0 ? '- ' + formatNumberOnly(nominal, currencyCode) : '0,00');
+            return nominal;
+        };
+
+        // Set panel state (reset / populate when editing)
+        window.setPphState = function(prefix, pajakId, tarif, nominal, coaId) {
+            let el = pphEls(prefix);
+            if (!el.sel.length) return;
+
+            el.sel.val(pajakId ? String(pajakId) : '').trigger('change.select2');
+            el.tarif.val(pajakId ? (parseFloat(tarif) || parseFloat(el.sel.find('option:selected').data('tarif')) || 0) : 0);
+            el.coa.val(coaId ? String(coaId) : '').data('userPicked', !!coaId).trigger('change.select2');
+
+            el.nom.data('manual', false);
+            pphToggle(el, !!pajakId);
+        };
+
+        window.userInvoicePermissions = {
+            canCreate: {{ auth()->user()?->can('tambah-purchase-invoice') ? 'true' : 'false' }},
+            canEdit: {{ auth()->user()?->can('edit-purchase-invoice') ? 'true' : 'false' }},
+            canDelete: {{ auth()->user()?->can('hapus-purchase-invoice') ? 'true' : 'false' }},
+            canCancel: {{ (auth()->user()?->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()?->can('batalkan-purchase-invoice')) ? 'true' : 'false' }},
+            isApprover: {{ (auth()->user() && (function() { try { return auth()->user()->hasPermissionTo('approve-purchase-invoice'); } catch (\Throwable $e) { return false; } })()) ? 'true' : 'false' }},
+            canPrint: {{ auth()->user()?->can('cetak-purchase-invoice') ? 'true' : 'false' }},
+            canViewJurnal: {{ (auth()->user()?->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()?->can('lihat-jurnal-purchase-invoice') || auth()->user()?->can('lihat-jurnal-umum')) ? 'true' : 'false' }},
+            currentUserId: {{ auth()->id() ?? 'null' }}
+        };
+    </script>
     <!-- ===== INCLUDE JAVASCRIPTS ===== -->
     @include('modul_purchasing.faktur_pembelian.scripts.index_js')
     @include('modul_purchasing.faktur_pembelian.scripts.create_js')

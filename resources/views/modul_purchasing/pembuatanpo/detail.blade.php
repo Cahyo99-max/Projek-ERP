@@ -148,6 +148,7 @@
                                             <th class="text-end" style="min-width: 130px;">Harga Satuan</th>
                                             <th class="text-end" style="min-width: 100px;">Diskon</th>
                                             <th class="text-end" style="min-width: 140px;">Subtotal</th>
+                                            <th class="text-center" style="min-width: 110px;">PPN</th>
                                         </tr>
                                     </thead>
                                     <tbody id="detail_items_tbody">
@@ -180,7 +181,7 @@
                             </div>
 
                             <div class="d-flex justify-content-between mb-2 d-none" id="detail_diskon_wrapper">
-                                <span class="text-secondary small" id="detail_diskon_label">Diskon Header (PO)</span>
+                                <span class="text-secondary small" id="detail_diskon_label">Total Diskon Barang</span>
                                 <span class="fw-semibold text-danger" id="detail_diskon">-</span>
                             </div>
 
@@ -192,8 +193,17 @@
                             </div>
 
                             <div class="d-flex justify-content-between mb-2" id="detail_pajak_wrapper">
-                                <span class="text-secondary small" id="detail_pajak_label">PPN (0%)</span>
+                                <span class="text-secondary small" id="detail_pajak_label">Total PPN (Pajak Barang)</span>
                                 <span class="fw-semibold text-dark" id="detail_total_pajak">-</span>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-2 d-none" id="detail_pph_wrapper">
+                                <span class="text-warning small fw-semibold" id="detail_pph_label">Potongan PPh</span>
+                                <span class="fw-semibold text-warning" id="detail_total_pph">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 d-none" id="detail_pph_coa_wrapper">
+                                <span class="text-muted extra-small" style="font-size:0.75rem;"><i class="bi bi-wallet2 me-1"></i>Akun Utang PPh:</span>
+                                <span class="text-muted extra-small fw-medium" style="font-size:0.75rem;" id="detail_pph_coa">-</span>
                             </div>
 
                             <hr class="my-2 opacity-25">
@@ -275,9 +285,16 @@
             </div>
 
             <div class="modal-footer po-detail-modal-footer border-0 justify-content-between">
-                <a id="btn_print_po_modal" href="#" target="_blank" class="btn btn-info text-white rounded-pill px-4">
-                    <i class="bi bi-printer-fill me-1"></i> Cetak PO
-                </a>
+                <div class="d-flex align-items-center gap-2">
+                    <a id="btn_print_po_modal" href="#" target="_blank" class="btn btn-info text-white rounded-pill px-4">
+                        <i class="bi bi-printer-fill me-1"></i> Cetak PO
+                    </a>
+                    @if(auth()->user()->can('buka-po') || auth()->user()->hasAnyRole(['Super Admin', 'Admin', 'Owner', 'Director']))
+                    <button type="button" class="btn btn-outline-warning rounded-pill px-3 d-none btn-reopen-po" id="btn_detail_reopen_po">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Buka / Kembalikan ke Draft
+                    </button>
+                    @endif
+                </div>
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
@@ -317,6 +334,12 @@
 
             $('#detail_down_payment').text('-');
             $('#detail_down_payment_wrapper').addClass('d-none');
+
+            $('#detail_pph_label').text('Potongan PPh');
+            $('#detail_total_pph').text('-');
+            $('#detail_pph_wrapper').addClass('d-none');
+            $('#detail_pph_coa').text('-');
+            $('#detail_pph_coa_wrapper').addClass('d-none');
 
             $('#detail_biaya_inventory').text('-');
             $('#detail_biaya_inventory_wrapper').addClass('d-none');
@@ -454,6 +477,12 @@
                     $('#po_approval_action_panel').addClass('d-none');
                 }
 
+                if (po.status !== 'Draft') {
+                    $('#btn_detail_reopen_po').removeClass('d-none').data('id', po.id).data('nama', po.nomor_po);
+                } else {
+                    $('#btn_detail_reopen_po').addClass('d-none');
+                }
+
                 $('#detail_keterangan').text(po.keterangan || 'Tidak ada catatan.');
 
                 let html = '';
@@ -481,12 +510,18 @@
                         let hargaItem = parseFloat(det.harga_satuan) || 0;
                         let diskonCell = `<span class="text-muted">-</span>`;
                         if (diskonItem > 0) {
-                            let itemPct = (hargaItem > 0) ? (diskonItem / hargaItem) * 100 : 0;
-                            let roundedItemPct = Math.round(itemPct * 100) / 100;
                             let pctBadge = '';
-                            if (roundedItemPct > 0 && roundedItemPct <= 100 && Math.abs(hargaItem * (roundedItemPct / 100) - diskonItem) < 0.01) {
-                                let fmtPct = (roundedItemPct % 1 === 0) ? roundedItemPct.toFixed(0) : parseFloat(roundedItemPct.toFixed(2)).toString().replace('.', ',');
+                            if (det.diskon_tipe === 'percent' && parseFloat(det.diskon_persen) > 0) {
+                                let pVal = parseFloat(det.diskon_persen);
+                                let fmtPct = (pVal % 1 === 0) ? pVal.toFixed(0) : parseFloat(pVal.toFixed(2)).toString().replace('.', ',');
                                 pctBadge = `<span class="badge bg-danger bg-opacity-10 text-danger ms-1" style="font-size:0.7rem;">${fmtPct}%</span>`;
+                            } else {
+                                let itemPct = (hargaItem > 0) ? (diskonItem / hargaItem) * 100 : 0;
+                                let roundedItemPct = Math.round(itemPct * 100) / 100;
+                                if (roundedItemPct > 0 && roundedItemPct <= 100 && Math.abs(hargaItem * (roundedItemPct / 100) - diskonItem) < 0.01) {
+                                    let fmtPct = (roundedItemPct % 1 === 0) ? roundedItemPct.toFixed(0) : parseFloat(roundedItemPct.toFixed(2)).toString().replace('.', ',');
+                                    pctBadge = `<span class="badge bg-danger bg-opacity-10 text-danger ms-1" style="font-size:0.7rem;">${fmtPct}%</span>`;
+                                }
                             }
                             let totalItemDiskon = diskonItem * qtyPO;
                             diskonCell = `<span class="text-danger fw-semibold">${sym} ${formatNumber(diskonItem)}</span>${pctBadge}`;
@@ -500,6 +535,15 @@
                             fotosArray = det.barang.fotos.map(f => '/storage/' + f.foto_path);
                         } else if (fotoUrl) {
                             fotosArray = [fotoUrl];
+                        }
+
+                        let tarifPpn = parseFloat(det.tarif_ppn) || 0;
+                        let ppnNominal = parseFloat(det.ppn_nominal) || 0;
+                        let ppnCell = `<span class="text-muted">-</span>`;
+                        if (tarifPpn > 0 || ppnNominal > 0) {
+                            let namaPajak = (det.ppn_pajak && det.ppn_pajak.nama_pajak) ? det.ppn_pajak.nama_pajak : ((det.ppnPajak && det.ppnPajak.nama_pajak) ? det.ppnPajak.nama_pajak : 'PPN');
+                            let fmtTarif = (tarifPpn % 1 === 0) ? tarifPpn.toFixed(0) : parseFloat(tarifPpn.toFixed(2)).toString().replace('.', ',');
+                            ppnCell = `<span class="badge bg-primary bg-opacity-10 text-primary mb-1" style="font-size:0.7rem;">${escapeHtml(namaPajak)} (${fmtTarif}%)</span><br><small class="text-dark fw-semibold" style="font-size:0.75rem;">+ ${sym} ${formatNumber(ppnNominal)}</small>`;
                         }
 
                         html += `
@@ -529,11 +573,12 @@
                                 <td class="text-end text-secondary">${sym} ${formatNumber(det.harga_satuan)}</td>
                                 <td class="text-end">${diskonCell}</td>
                                 <td class="text-end fw-bold text-dark">${sym} ${formatNumber(det.subtotal)}</td>
+                                <td class="text-center">${ppnCell}</td>
                             </tr>
                         `;
                     });
                 } else {
-                    html = '<tr><td colspan="7" class="text-center py-3 text-muted">Tidak ada rincian item barang.</td></tr>';
+                    html = '<tr><td colspan="8" class="text-center py-3 text-muted">Tidak ada rincian item barang.</td></tr>';
                 }
                 $('#detail_items_tbody').html(html);
 
@@ -579,30 +624,41 @@
                     $('#detail_biaya_expense_wrapper').addClass('d-none');
                 }
 
-                // Diskon Header (PO) - HANYA tampil jika ada diskon header (> 0), jika tidak ada otomatis disembunyikan
+                // Total Diskon Barang
                 if (headerDiskon > 0) {
-                    let headerPct = parseFloat(po.diskon_persen) || 0;
-                    if (headerPct <= 0 && subtotal > 0) {
-                        headerPct = (headerDiskon / subtotal) * 100;
-                    }
-                    let fmtHeaderDisc = (headerPct % 1 === 0) ? headerPct.toFixed(0) : parseFloat(headerPct.toFixed(2)).toString().replace('.', ',');
-                    let headerDiscLabel = headerPct > 0 ? ('Diskon (' + fmtHeaderDisc + '%)') : 'Diskon Header (PO)';
-                    $('#detail_diskon_label').text(headerDiscLabel);
+                    $('#detail_diskon_label').text('Total Diskon Barang');
                     $('#detail_diskon').text('- ' + sym + ' ' + formatNumber(headerDiskon));
                     $('#detail_diskon_wrapper').removeClass('d-none');
                 } else {
-                    $('#detail_diskon_label').text('Diskon Header (PO)');
+                    $('#detail_diskon_label').text('Total Diskon Barang');
                     $('#detail_diskon').text('-');
                     $('#detail_diskon_wrapper').addClass('d-none');
                 }
 
                 $('#detail_dpp').text(sym + ' ' + formatNumber(dpp));
 
-                let taxRate = po.pajak ? parseFloat(po.pajak.tarif) : 0;
-                let taxName = po.pajak ? po.pajak.nama_pajak : 'PPN';
-                $('#detail_pajak_label').text(taxName + ' (' + taxRate + '%)');
+                $('#detail_pajak_label').text('Total PPN (Pajak Barang)');
                 $('#detail_total_pajak').text(sym + ' ' + formatNumber(totalPajak));
                 $('#detail_pajak_wrapper').removeClass('d-none');
+
+                let pphNom = parseFloat(po.pph_nominal || po.total_pph || 0);
+                if (pphNom > 0) {
+                    let pphName = (po.pph_pajak && po.pph_pajak.nama_pajak) ? po.pph_pajak.nama_pajak : 'PPh';
+                    let tarifTxt = po.tarif_pph ? ` (${String(po.tarif_pph).replace('.', ',')}%)` : '';
+                    $('#detail_pph_label').text(`Potongan ${pphName}${tarifTxt}`);
+                    $('#detail_total_pph').text('- ' + sym + ' ' + formatNumber(pphNom));
+                    $('#detail_pph_wrapper').removeClass('d-none');
+
+                    if (po.pph_coa) {
+                        $('#detail_pph_coa').text(`${po.pph_coa.code} - ${po.pph_coa.name}`);
+                        $('#detail_pph_coa_wrapper').removeClass('d-none');
+                    } else {
+                        $('#detail_pph_coa_wrapper').addClass('d-none');
+                    }
+                } else {
+                    $('#detail_pph_wrapper').addClass('d-none');
+                    $('#detail_pph_coa_wrapper').addClass('d-none');
+                }
 
                 $('#detail_grand_total').text(sym + ' ' + formatNumber(grandTotal));
 

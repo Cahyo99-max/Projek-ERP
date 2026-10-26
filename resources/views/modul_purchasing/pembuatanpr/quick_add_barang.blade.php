@@ -881,49 +881,9 @@
                     };
                     activeBarang.push(newBarang);
 
-                    // 2. Add row to tablePopupCariBarang DataTable
+                    // 2. Refresh tablePopupCariBarang DataTable from server
                     let popupTable = $('#tablePopupCariBarang').DataTable();
-                    let bg = 'background-color: rgba(100, 116, 139, 0.1); color: #64748b;';
-                    if (newBarang.tipe_item === 'Stok') bg = 'background-color: rgba(16, 185, 129, 0.1); color: #10b981;';
-                    else if (newBarang.tipe_item === 'Aset') bg = 'background-color: rgba(245, 158, 11, 0.1); color: #f59e0b;';
-                    let tBadge = `<span class="badge small px-2 py-0.5 rounded-pill" style="font-size: 0.65rem; ${bg}">${newBarang.tipe_item.toUpperCase()}</span>`;
-
-                    let warnaBadge = '';
-                    if (newBarang.warna_nama) {
-                        warnaBadge = `
-                            <span class="badge bg-light text-dark border px-2 py-0.5 rounded small d-inline-flex align-items-center" style="font-size:0.75rem;font-weight:600; margin-left:4px;">
-                                <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${newBarang.warna_hex || '#e2e8f0'};margin-right:6px;border:1px solid rgba(0,0,0,0.15);"></span>
-                                ${escapeHtml(newBarang.warna_nama)}
-                            </span>
-                        `;
-                    }
-
-                    // Add new row to DataTable
-                    let addedRowNode = popupTable.row.add([
-                        `<div class="border rounded d-flex align-items-center justify-content-center bg-light img-thumbnail-preview" style="width: 40px; height: 40px; overflow: hidden; cursor: pointer;" title="Klik untuk memperbesar foto">
-                            ${newBarang.foto ? `<img src="${newBarang.foto}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="bi bi-image text-muted"></i>`}
-                        </div>`,
-                        escapeHtml(newBarang.kode),
-                        `<span class="fw-semibold text-dark">${escapeHtml(newBarang.nama)}</span>${warnaBadge}`,
-                        tBadge,
-                        escapeHtml(newBarang.satuan),
-                        `<button type="button" class="btn btn-sm btn-primary rounded-pill px-3 btn-pilih-barang-row">Pilih</button>`
-                    ]).draw(false).node();
-
-                    // Set custom data attributes on the newly created row element for pilih-barang functionality
-                    $(addedRowNode).attr({
-                        'data-id': newBarang.id,
-                        'data-kode': newBarang.kode,
-                        'data-nama': newBarang.nama,
-                        'data-ukuran': newBarang.ukuran,
-                        'data-satuan': newBarang.satuan,
-                        'data-tipe': newBarang.tipe_item,
-                        'data-foto': newBarang.foto,
-                        'data-semua-foto': newBarang.semua_foto.join(','),
-                        'data-warna-nama': newBarang.warna_nama,
-                        'data-warna-hex': newBarang.warna_hex,
-                        'data-spesifikasi': newBarang.spesifikasi
-                    });
+                    popupTable.ajax.reload(null, false);
                 },
                 error: function (err) {
                     saveBtn.prop('disabled', false).text('Simpan Barang');

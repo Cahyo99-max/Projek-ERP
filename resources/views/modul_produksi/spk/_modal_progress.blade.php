@@ -110,19 +110,21 @@
                 $('#prog_percent_text').text(`${percent}% Selesai (${res.completed_tahap}/${res.total_tahap} Tahapan)`);
                 $('#prog_percent_bar').css('width', `${percent}%`).attr('aria-valuenow', percent);
 
-                // Configure Complete Button
+                // Configure Complete Button & Status Guard
                 $('#btnCompleteSpkFromProgress').attr('onclick', `completeSpkFromProgress(${spk.id})`);
                 if (spk.status === 'Completed') {
                     $('#btnCompleteSpkFromProgress').prop('disabled', true).html('<i class="bi bi-patch-check-fill me-1"></i> Produksi Sudah Selesai');
+                } else if (spk.status !== 'In Progress') {
+                    $('#btnCompleteSpkFromProgress').prop('disabled', true).html('<i class="bi bi-lock-fill me-1"></i> SPK Belum Dimulai');
                 } else {
                     $('#btnCompleteSpkFromProgress').prop('disabled', false).html('<i class="bi bi-patch-check-fill me-1"></i> Selesaikan Seluruh Produksi SPK');
                 }
 
                 // Render Tahapan List
-                renderTahapanCards(spk.tahapans || [], satuan, spk.id);
+                renderTahapanCards(spk.tahapans || [], satuan, spk.id, spk.status);
             },
             error: function(xhr) {
-                $container.html(`
+                $('#containerTahapanProgressCards').html(`
                     <div class="alert alert-danger mb-0">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i> Gagal memuat data progress tahapan SPK.
                     </div>
@@ -131,11 +133,30 @@
         });
     }
 
-    function renderTahapanCards(tahapans, satuan, spkId) {
-        const $container = $('#containerTahapanProgress');
+    function renderTahapanCards(tahapans, satuan, spkId, spkStatus) {
+        const $container = $('#containerTahapanProgressCards');
+        
+        if (spkStatus && spkStatus !== 'In Progress' && spkStatus !== 'Completed') {
+            $container.html(`
+                <div class="col-12">
+                    <div class="alert alert-warning border border-warning rounded-3 p-3 mb-0" style="background: rgba(245, 158, 11, 0.1);">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
+                            <h6 class="fw-bold mb-0 text-warning">SPK Belum Dimulai! (Status: ${spkStatus})</h6>
+                        </div>
+                        <div class="small text-white-50">
+                            Pengerjaan dan input progress tahapan <b>belum dapat diisi</b> karena SPK belum dimulai.<br>
+                            Silakan tutup modal ini dan tekan tombol <b>"Mulai" / "Mulai Produksi"</b> pada daftar SPK untuk memulai pengerjaan.
+                        </div>
+                    </div>
+                </div>
+            `);
+            return;
+        }
+
         if (!tahapans || tahapans.length === 0) {
             $container.html(`
-                <div class="text-center py-4 text-white-50 border rounded-3 bg-dark bg-opacity-20">
+                <div class="col-12 text-center py-4 text-white-50 border rounded-3 bg-dark bg-opacity-20">
                     <i class="bi bi-info-circle fs-3 text-muted mb-2 d-block"></i>
                     Belum ada tahapan produksi yang terdaftar pada SPK ini.
                 </div>
@@ -189,8 +210,8 @@
                             <input type="number" id="prog_qty_reject_${t.id}" class="form-control form-control-sm bg-dark text-white border-danger fw-bold" value="${parseFloat(t.qty_reject || 0)}" min="0" step="any">
                         </div>
                         <div class="col-6 col-md-3">
-                            <label class="form-label small text-white-50 mb-1">Operator / PIC</label>
-                            <input type="text" id="prog_pic_${t.id}" class="form-control form-control-sm bg-dark text-white border-secondary" value="${t.pic_operator || ''}" placeholder="Nama Operator Line">
+                            <label class="form-label small text-white-50 mb-1">PIC</label>
+                            <input type="text" id="prog_pic_${t.id}" class="form-control form-control-sm bg-dark text-white border-secondary" value="${t.pic_operator || ''}" placeholder="Nama PIC Line">
                         </div>
                         <div class="col-12">
                             <input type="text" id="prog_catatan_${t.id}" class="form-control form-control-sm bg-dark text-white border-secondary" value="${t.catatan || ''}" placeholder="Catatan spesifik pengerjaan tahapan ini...">

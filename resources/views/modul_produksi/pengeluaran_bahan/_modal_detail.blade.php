@@ -722,7 +722,7 @@
     let _sessionCache = {};     // sessionId => session object
     let _historyPagination = { current: 1, last: 1, total: 0, per_page: 25, from: 0, to: 0 };
 
-    function showSpkHistoryModal(spkId) {
+    window.showSpkHistoryModal = function(spkId) {
         _currentSpkId = spkId;
         _sessionCache = {};
 
@@ -771,25 +771,37 @@
 
                 // ─── Overall progress dari rekap ───
                 let totalReq = 0, totalTaken = 0;
+                let itemsLengkap = 0;
+                let sumPct = 0;
+                const totalBahanCount = rekap.length;
+
                 rekap.forEach(m => {
-                    totalReq   += Number(m.qty_total_spk || 0);
-                    totalTaken += Number(m.qty_sudah_diambil || 0);
+                    const req = Number(m.qty_total_spk || 0);
+                    const taken = Number(m.qty_sudah_diambil || 0);
+                    totalReq   += req;
+                    totalTaken += taken;
+                    const itemPct = req > 0 ? Math.min(100, (taken / req) * 100) : 100;
+                    sumPct += itemPct;
+                    if (taken >= req && req > 0) {
+                        itemsLengkap++;
+                    }
                 });
-                const rawOverall = totalReq > 0 ? (totalTaken / totalReq) * 100 : 0;
+
+                const rawOverall = totalBahanCount > 0 ? (sumPct / totalBahanCount) : 0;
                 let overallPercentDisplay = '0%';
-                if (totalTaken >= totalReq && totalReq > 0) {
+                if (itemsLengkap === totalBahanCount && totalBahanCount > 0) {
                     overallPercentDisplay = '100%';
                 } else if (totalTaken > 0) {
                     overallPercentDisplay = rawOverall < 1 ? rawOverall.toFixed(2) + '%' : rawOverall.toFixed(1) + '%';
                 }
-                const overallBarWidth = totalTaken >= totalReq && totalReq > 0 ? 100 : (totalTaken > 0 ? Math.max(4, Math.min(99, rawOverall)) : 0);
+                const overallBarWidth = itemsLengkap === totalBahanCount && totalBahanCount > 0 ? 100 : (totalTaken > 0 ? Math.max(4, Math.min(99, rawOverall)) : 0);
                 $('#det_highlight_overall_percent').text(overallPercentDisplay);
                 $('#det_highlight_overall_progressbar').css('width', `${overallBarWidth}%`);
-                if (totalTaken >= totalReq && totalReq > 0) {
-                    $('#det_highlight_overall_status').html('<span class="text-success-vibrant fw-bold"><i class="bi bi-check2-all me-1"></i>Bahan Baku Lengkap</span>');
+                if (itemsLengkap === totalBahanCount && totalBahanCount > 0) {
+                    $('#det_highlight_overall_status').html('<span class="text-success fw-bold"><i class="bi bi-check2-all me-1"></i>Bahan Baku Lengkap (' + totalBahanCount + '/' + totalBahanCount + ')</span>');
                     $('#det_highlight_overall_progressbar').removeClass('bg-primary').addClass('bg-success');
                 } else {
-                    $('#det_highlight_overall_status').html(`<span class="spk-text-contrast font-monospace">${totalTaken.toLocaleString('id-ID',{maximumFractionDigits:2})} / ${totalReq.toLocaleString('id-ID',{maximumFractionDigits:2})} Total Qty</span>`);
+                    $('#det_highlight_overall_status').html(`<span class="spk-text-contrast font-monospace fw-semibold">${itemsLengkap} / ${totalBahanCount} Item Selesai</span>`);
                     $('#det_highlight_overall_progressbar').removeClass('bg-success').addClass('bg-primary');
                 }
 

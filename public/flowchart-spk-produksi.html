@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flowchart SPK Produksi (Work Order) — ERP System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <style>
+        :root {
+            --bg: #05080f;
+            --card: rgba(13, 18, 30, 0.85);
+            --surf: rgba(20, 28, 48, 0.65);
+            --border: rgba(255, 255, 255, 0.08);
+            --glow: rgba(220, 38, 38, 0.3);
+            --red: #dc2626;
+            --red-d: #991b1b;
+            --blue: #3b82f6;
+            --green: #10b981;
+            --amber: #f59e0b;
+            --cyan: #06b6d4;
+            --violet: #8b5cf6;
+            --t1: #f1f5f9;
+            --t2: #94a3b8;
+            --t3: #64748b;
+            --r-sm: 8px;
+            --r-md: 14px;
+            --r-lg: 22px;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--t1);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(ellipse 80% 50% at 15% 0%, rgba(220, 38, 38, 0.10) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 85% 100%, rgba(139, 92, 246, 0.07) 0%, transparent 60%);
+        }
+
+        /* HEADER */
+        header {
+            padding: 1.1rem 2rem;
+            background: rgba(5, 8, 15, 0.82);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .hbrand {
+            display: flex;
+            align-items: center;
+            gap: .85rem;
+        }
+
+        .hicon {
+            width: 42px;
+            height: 42px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, #dc2626, #f97316);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: #fff;
+            box-shadow: 0 0 22px rgba(220, 38, 38, .35);
+        }
+
+        .htxt h1 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: -.02em;
+            background: linear-gradient(90deg, #fff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+
+        .htxt span {
+            font-size: .74rem;
+            color: var(--t3);
+            font-weight: 500;
+        }
+
+        .hpills {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .28rem;
+            padding: .26rem .65rem;
+            border-radius: 99px;
+            font-size: .70rem;
+            font-weight: 700;
+            border: 1px solid;
+        }
+
+        .p-red {
+            background: rgba(220, 38, 38, .12);
+            color: #fca5a5;
+            border-color: rgba(220, 38, 38, .28);
+        }
+
+        .p-blue {
+            background: rgba(59, 130, 246, .12);
+            color: #93c5fd;
+            border-color: rgba(59, 130, 246, .28);
+        }
+
+        .p-green {
+            background: rgba(16, 185, 129, .12);
+            color: #6ee7b7;
+            border-color: rgba(16, 185, 129, .28);
+        }
+
+        .p-amber {
+            background: rgba(245, 158, 11, .12);
+            color: #fcd34d;
+            border-color: rgba(245, 158, 11, .28);
+        }
+
+        .hacts {
+            display: flex;
+            gap: .4rem;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .38rem;
+            padding: .44rem .88rem;
+            border-radius: var(--r-sm);
+            font-size: .81rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .18s;
+            border: 1px solid var(--border);
+            background: var(--surf);
+            color: var(--t1);
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, .08);
+            transform: translateY(-1px);
+        }
+
+        .btn-p {
+            background: var(--red-d);
+            border-color: var(--red);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(185, 28, 28, .3);
+        }
+
+        .btn-p:hover {
+            background: var(--red);
+            box-shadow: 0 6px 20px rgba(220, 38, 38, .38);
+        }
+
+        /* PAGE */
+        .wrap {
+            max-width: 1640px;
+            margin: 0 auto;
+            padding: 1.75rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.4rem;
+        }
+
+        /* STATUS BAR */
+        .status-bar {
+            display: flex;
+            border: 1px solid var(--border);
+            border-radius: var(--r-md);
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            overflow: hidden;
+        }
+
+        .sb-item {
+            flex: 1;
+            min-width: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: .65rem .4rem;
+            font-size: .70rem;
+            font-weight: 700;
+            text-align: center;
+            position: relative;
+        }
+
+        .sb-item:not(:last-child)::after {
+            content: '›';
+            position: absolute;
+            right: -3px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            color: var(--t3);
+        }
+
+        .si {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .8rem;
+        }
+
+        .s-draft {
+            color: #94a3b8;
+        }
+
+        .s-draft .si {
+            background: rgba(148, 163, 184, .15);
+        }
+
+        .s-pend {
+            color: #fbbf24;
+        }
+
+        .s-pend .si {
+            background: rgba(251, 191, 36, .15);
+        }
+
+        .s-rej {
+            color: #f87171;
+        }
+
+        .s-rej .si {
+            background: rgba(248, 113, 113, .15);
+        }
+
+        .s-appr {
+            color: #34d399;
+        }
+
+        .s-appr .si {
+            background: rgba(52, 211, 153, .15);
+        }
+
+        .s-inp {
+            color: #67e8f9;
+        }
+
+        .s-inp .si {
+            background: rgba(103, 232, 249, .15);
+        }
+
+        .s-done {
+            color: #a78bfa;
+        }
+
+        .s-done .si {
+            background: rgba(167, 139, 250, .15);
+        }
+
+        /* BANNER */
+        .banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            padding: 1rem 1.4rem;
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.09), rgba(249, 115, 22, 0.06));
+            border: 1px solid rgba(220, 38, 38, 0.22);
+            border-radius: var(--r-md);
+        }
+
+        .banner-l h2 {
+            font-size: .96rem;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            margin-bottom: .2rem;
+        }
+
+        .banner-l p {
+            font-size: .81rem;
+            color: var(--t2);
+            line-height: 1.5;
+        }
+
+        .steps {
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            flex-wrap: wrap;
+        }
+
+        .sc {
+            background: rgba(15, 23, 42, .7);
+            border: 1px solid rgba(255, 255, 255, .1);
+            padding: .3rem .65rem;
+            border-radius: 99px;
+            font-size: .73rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: .35rem;
+        }
+
+        .sc span {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--red);
+            color: #fff;
+            font-size: .6rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+        }
+
+        .sep {
+            color: var(--t3);
+            font-size: .72rem;
+        }
+
+        /* STAT STRIP */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+            gap: .75rem;
+        }
+
+        .st {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--r-md);
+            padding: .9rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: .8rem;
+            backdrop-filter: blur(12px);
+            transition: border-color .2s, transform .2s;
+        }
+
+        .st:hover {
+            border-color: var(--glow);
+            transform: translateY(-2px);
+        }
+
+        .si2 {
+            width: 38px;
+            height: 38px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .sl {
+            font-size: .69rem;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            font-weight: 700;
+            color: var(--t3);
+        }
+
+        .sv {
+            font-size: .88rem;
+            font-weight: 700;
+            color: #fff;
+            margin-top: 2px;
+        }
+
+        /* MAIN PANEL */
+        .panel {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 1.1rem;
+            align-items: start;
+        }
+
+        @media(max-width:1100px) {
+            .panel {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* DIAGRAM CARD */
+        .dcard {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--r-lg);
+            overflow: hidden;
+            box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .6);
+            backdrop-filter: blur(16px);
+        }
+
+        .dhead {
+            padding: .75rem 1.15rem;
+            background: rgba(10, 15, 28, .55);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .dhead-l {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            font-size: .79rem;
+            color: var(--t2);
+        }
+
+        .dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .d {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dr {
+            background: #ef4444;
+        }
+
+        .dy {
+            background: #f59e0b;
+        }
+
+        .dg {
+            background: #10b981;
+        }
+
+        .canvas {
+            position: relative;
+            width: 100%;
+            height: 900px;
+            background: linear-gradient(135deg, #070b14, #090d1a);
+            cursor: grab;
+            overflow: hidden;
+        }
+
+        .canvas:active {
+            cursor: grabbing;
+        }
+
+        .canvas::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(220, 38, 38, .025) 1px, transparent 1px), linear-gradient(90deg, rgba(220, 38, 38, .025) 1px, transparent 1px);
+            background-size: 38px 38px;
+        }
+
+        #mc {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ZOOM FAB */
+        .zfab {
+            position: absolute;
+            bottom: 14px;
+            right: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            background: rgba(10, 15, 28, .88);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            padding: 4px;
+            z-index: 50;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+        }
+
+        .zb {
+            width: 30px;
+            height: 30px;
+            background: transparent;
+            border: none;
+            color: var(--t2);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: .9rem;
+            transition: background .15s, color .15s;
+        }
+
+        .zb:hover {
+            background: rgba(220, 38, 38, .15);
+            color: #fca5a5;
+        }
+
+        .zdiv {
+            height: 1px;
+            background: var(--border);
+            margin: 1px 3px;
+        }
+
+        #zl {
+            text-align: center;
+            font-size: .61rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--t3);
+            padding: 2px 0;
+        }
+
+        /* LOADING */
+        .loverlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(7, 11, 20, .93);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: .9rem;
+            z-index: 100;
+            transition: opacity .3s, visibility .3s;
+        }
+
+        .loverlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 38px;
+            height: 38px;
+            border: 3px solid rgba(220, 38, 38, .18);
+            border-top-color: var(--red);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .ltxt {
+            font-size: .82rem;
+            color: var(--t2);
+            font-weight: 500;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: .85rem;
+        }
+
+        .lc {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--r-md);
+            padding: 1rem 1.05rem;
+            backdrop-filter: blur(12px);
+        }
+
+        .lt {
+            font-size: .70rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: var(--t3);
+            margin-bottom: .75rem;
+            display: flex;
+            align-items: center;
+            gap: .38rem;
+        }
+
+        .ll {
+            display: flex;
+            flex-direction: column;
+            gap: .48rem;
+        }
+
+        .lr {
+            display: flex;
+            align-items: center;
+            gap: .58rem;
+            font-size: .78rem;
+            color: var(--t2);
+            font-weight: 500;
+        }
+
+        .sw {
+            width: 21px;
+            height: 12px;
+            border-radius: 3px;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, .09);
+        }
+
+        .si-item {
+            display: flex;
+            gap: .58rem;
+            padding-bottom: .58rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .si-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .sinum {
+            width: 25px;
+            height: 25px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .68rem;
+            font-weight: 800;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .sibody h4 {
+            font-size: .79rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 1px;
+        }
+
+        .sibody p {
+            font-size: .71rem;
+            color: var(--t3);
+            line-height: 1.4;
+        }
+
+        /* DETAIL CARDS */
+        .dgrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(252px, 1fr));
+            gap: .9rem;
+        }
+
+        .dc {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--r-md);
+            padding: 1.15rem;
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+            transition: border-color .2s, transform .2s, box-shadow .2s;
+        }
+
+        .dc::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+        }
+
+        .dc:hover {
+            border-color: rgba(220, 38, 38, .3);
+            transform: translateY(-3px);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, .25);
+        }
+
+        .dnum {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 27px;
+            height: 27px;
+            border-radius: 6px;
+            font-size: .76rem;
+            font-weight: 800;
+            margin-bottom: .75rem;
+        }
+
+        .dc h3 {
+            font-size: .9rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: .38rem;
+        }
+
+        .dc p {
+            font-size: .79rem;
+            color: var(--t2);
+            line-height: 1.5;
+        }
+
+        .dbadge {
+            display: inline-block;
+            margin-top: .55rem;
+            font-size: .68rem;
+            font-weight: 600;
+            padding: .17rem .48rem;
+            border-radius: 5px;
+            background: rgba(220, 38, 38, .12);
+            color: #fca5a5;
+            border: 1px solid rgba(220, 38, 38, .22);
+        }
+
+        .c-r::before {
+            background: linear-gradient(90deg, #dc2626, #f97316);
+        }
+
+        .c-a::before {
+            background: linear-gradient(90deg, var(--amber), #fcd34d);
+        }
+
+        .c-g::before {
+            background: linear-gradient(90deg, var(--green), #34d399);
+        }
+
+        .c-v::before {
+            background: linear-gradient(90deg, var(--violet), #a78bfa);
+        }
+
+        /* TOAST */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(30px);
+            padding: .65rem 1.3rem;
+            border-radius: 10px;
+            font-size: .8rem;
+            font-weight: 600;
+            border: 1px solid;
+            backdrop-filter: blur(14px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all .25s cubic-bezier(.16, 1, .3, 1);
+            z-index: 999;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, .4);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        @media(max-width:768px) {
+            header {
+                padding: 1rem 1.25rem;
+            }
+
+            .wrap {
+                padding: 1.25rem 1rem;
+            }
+
+            .canvas {
+                height: 560px;
+            }
+
+            .status-bar {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="hbrand">
+            <div class="hicon"><i class="bi bi-file-earmark-ruled-fill"></i></div>
+            <div class="htxt">
+                <h1>SPK Produksi (Work Order) — Flowchart Alur Kerja</h1>
+                <span>Panduan alur SPK: dari terbitkan SPK → persetujuan → eksekusi produksi → selesai</span>
+            </div>
+        </div>
+        <div class="hpills">
+            <div class="pill p-red"><i class="bi bi-file-earmark-ruled"></i> 3 Langkah Utama</div>
+            <div class="pill p-amber"><i class="bi bi-shield-check"></i> Approval Berlapis</div>
+            <div class="pill p-blue"><i class="bi bi-whatsapp"></i> Notif WA Otomatis</div>
+            <div class="pill p-green"><i class="bi bi-check-circle"></i> Selesai &amp; Masuk Gudang</div>
+        </div>
+        <div class="hacts">
+            <button class="btn" id="btnExport" onclick="exportPNG()"><i class="bi bi-image"></i> Unduh PNG</button>
+            <a href="/produksi/spk" class="btn btn-p"><i class="bi bi-box-arrow-up-right"></i> Buka Modul SPK</a>
+        </div>
+    </header>
+
+    <div class="wrap">
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="sb-item s-draft">
+                <div class="si"><i class="bi bi-file-earmark"></i></div>Draft
+            </div>
+            <div class="sb-item s-pend">
+                <div class="si"><i class="bi bi-hourglass-split"></i></div>Pending
+            </div>
+            <div class="sb-item s-rej" style="flex:.7;min-width:80px;">
+                <div class="si"><i class="bi bi-x-circle"></i></div>Rejected
+            </div>
+            <div class="sb-item s-appr">
+                <div class="si"><i class="bi bi-check-circle-fill"></i></div>Approved
+            </div>
+            <div class="sb-item s-inp">
+                <div class="si"><i class="bi bi-arrow-repeat"></i></div>In Progress
+            </div>
+            <div class="sb-item s-done">
+                <div class="si"><i class="bi bi-patch-check-fill"></i></div>Completed
+            </div>
+        </div>
+
+        <!-- Banner -->
+        <div class="banner">
+            <div class="banner-l">
+                <h2><i class="bi bi-lightbulb-fill" style="color:#fbbf24;"></i> Apa itu SPK Produksi?</h2>
+                <p>SPK (Surat Perintah Kerja) adalah dokumen resmi yang <strong>memerintahkan pabrik untuk memproduksi
+                        barang</strong> sejumlah tertentu. Di SPK inilah tercatat: resep BOM yang dipakai, alokasi bahan
+                    baku, nomor seri / batch, siapa yang bertanggung jawab, hingga barang selesai dan masuk ke gudang.
+                </p>
+            </div>
+            <div class="steps">
+                <div class="sc"><span>1</span> Buat SPK</div>
+                <i class="bi bi-arrow-right sep"></i>
+                <div class="sc"><span>2</span> Minta Persetujuan</div>
+                <i class="bi bi-arrow-right sep"></i>
+                <div class="sc"><span>3</span> Eksekusi Produksi</div>
+                <i class="bi bi-arrow-right sep"></i>
+                <div class="sc"><span>✓</span> Selesai</div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="st">
+                <div class="si2" style="background:rgba(59,130,246,.15);color:#3b82f6;"><i
+                        class="bi bi-file-earmark-ruled-fill"></i></div>
+                <div>
+                    <div class="sl">Sumber Data</div>
+                    <div class="sv">Resep BOM Approved</div>
+                </div>
+            </div>
+            <div class="st">
+                <div class="si2" style="background:rgba(245,158,11,.15);color:#f59e0b;"><i
+                        class="bi bi-shield-lock-fill"></i></div>
+                <div>
+                    <div class="sl">Serial Number</div>
+                    <div class="sv">Anti-Duplikat Antar SPK</div>
+                </div>
+            </div>
+            <div class="st">
+                <div class="si2" style="background:rgba(16,185,129,.15);color:#10b981;"><i
+                        class="bi bi-diagram-3-fill"></i></div>
+                <div>
+                    <div class="sl">Tahapan Kerja</div>
+                    <div class="sv">Otomatis Dari Master Tahapan</div>
+                </div>
+            </div>
+            <div class="st">
+                <div class="si2" style="background:rgba(139,92,246,.15);color:#8b5cf6;"><i class="bi bi-whatsapp"></i>
+                </div>
+                <div>
+                    <div class="sl">Notifikasi WA</div>
+                    <div class="sv">Tiap Perubahan Status</div>
+                </div>
+            </div>
+            <div class="st">
+                <div class="si2" style="background:rgba(244,63,94,.15);color:#f43f5e;"><i
+                        class="bi bi-box-seam-fill"></i></div>
+                <div>
+                    <div class="sl">Hasil Produksi</div>
+                    <div class="sv">Otomatis Masuk Gudang</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel -->
+        <div class="panel">
+
+            <div class="dcard">
+                <div class="dhead">
+                    <div class="dhead-l">
+                        <div class="dots">
+                            <div class="d dr"></div>
+                            <div class="d dy"></div>
+                            <div class="d dg"></div>
+                        </div>
+                        <span style="margin-left:4px;"><i class="bi bi-mouse2"></i> Scroll = Zoom &nbsp;|&nbsp; Drag =
+                            Geser</span>
+                    </div>
+                    <div class="pill p-red" style="font-size:.67rem;">SPK Produksi — Detail</div>
+                </div>
+
+                <div class="canvas" id="canvasWrap">
+                    <div class="loverlay" id="loverlay">
+                        <div class="spinner"></div>
+                        <div class="ltxt">Memuat diagram…</div>
+                    </div>
+                    <div class="zfab">
+                        <button class="zb" onclick="zi()" title="Perbesar"><i class="bi bi-plus-lg"></i></button>
+                        <div class="zdiv"></div>
+                        <button class="zb" onclick="zo()" title="Perkecil"><i class="bi bi-dash-lg"></i></button>
+                        <div class="zdiv"></div>
+                        <button class="zb" onclick="zr()" title="Reset"><i class="bi bi-aspect-ratio"></i></button>
+                        <div id="zl">100%</div>
+                    </div>
+
+                    <div id="mc">
+                        <pre class="mermaid">
+flowchart TD
+
+    START(["🚀 MULAI\nBuka Menu SPK Produksi\nKlik 'Terbitkan SPK Baru'"])
+
+    %% ─── LANGKAH 1: BUAT SPK ───────────────────────────────────────────────
+    subgraph L1 ["  📝  LANGKAH 1 — BUAT SURAT PERINTAH KERJA  "]
+        direction TB
+        A1["🔍 Cari & Pilih Resep Produksi (BOM)\nContoh: 'Kemeja Formal Pria — BOM-2024-001'\n⚠️ Hanya BOM berstatus APPROVED yang bisa dipilih"]
+
+        A2["📦 Sistem Otomatis Mengisi:\n• Daftar seluruh bahan baku yang dibutuhkan\n• Estimasi biaya: bahan + tenaga kerja + overhead\n• Urutan tahapan kerja dari Master Tahapan\n• Info stok gudang: cukup atau kurang?"]
+
+        A3["🎯 Isi Detail Perintah Produksi:\n• Jumlah yang mau diproduksi\n   (Contoh: 500 pcs kemeja)\n• Tanggal mulai & batas waktu selesai\n• Tipe: Stok Gudang / Pesanan Pelanggan\n• Prioritas: Normal / Urgent / Rendah\n• Mandor / PIC yang bertanggung jawab"]
+
+        A4{"Perlu nomor seri\natau kode batch\nuntuk tiap unit?"}
+
+        A5["🏷️ Isi Nomor Batch & Serial Number:\nBatch: LOT-KMJ-20241001\nSerial: KMJ-001, KMJ-002 ... KMJ-500\n✅ Sistem otomatis cek agar tidak ada\n   nomor seri yang kembar antar SPK"]
+
+        A6{"Simpan\nsebagai?"}
+
+        A7["📄 DRAFT\nDisimpan sebagai konsep dulu\nBisa diedit & diubah kapan saja\nBelum terkirim ke atasan"]
+
+        A8["📨 LANGSUNG AJUKAN\nOtomatis dikirim ke atasan\n📱 Notifikasi WA terkirim ke Approver\n'Ada SPK baru menunggu persetujuan'"]
+    end
+
+    %% ─── LANGKAH 2: PERSETUJUAN ────────────────────────────────────────────
+    subgraph L2 ["  🔐  LANGKAH 2 — MINTA PERSETUJUAN ATASAN  "]
+        direction TB
+        B1["📤 Klik 'Kirim ke Atasan'\nStatus berubah: DRAFT → PENDING\n📱 WA otomatis terkirim ke Atasan / Approver\n'SPK No. XXX menunggu persetujuan Anda'"]
+
+        B2{"Atasan membuka\ndan memeriksa\ndetail SPK:\nQty, Biaya, Deadline..."}
+
+        B3["✅ DISETUJUI — Status: APPROVED\n• Resep BOM berubah otomatis ke 'Selesai'\n• SPK resmi bisa dikerjakan di pabrik\n📱 WA ke Mandor: 'SPK siap dikerjakan, segera mulai!'"]
+
+        B4["❌ DITOLAK — Status: REJECTED\n• Alasan penolakan dicatat di kolom catatan\n• SPK tidak bisa dikerjakan\n📱 WA ke Pengaju: 'SPK Anda ditolak, mohon perbaiki'"]
+
+        B5["✏️ Perbaiki & Revisi SPK:\n• Sesuaikan qty atau ubah deadline\n• Ganti mandor / ubah prioritas\n• Update tahapan kerja jika perlu\nSetelah selesai, klik 'Ajukan Ulang'"]
+    end
+
+    %% ─── LANGKAH 3: EKSEKUSI PRODUKSI ──────────────────────────────────────
+    subgraph L3 ["  🏭  LANGKAH 3 — EKSEKUSI PRODUKSI DI PABRIK  "]
+        direction TB
+        C1["▶️ Mandor Klik Tombol 'Mulai Produksi'\nTombol ini hanya aktif jika SPK = APPROVED\nStatus berubah: APPROVED → IN PROGRESS"]
+
+        C2["⏱️ Sistem Mencatat Waktu Mulai Produksi\nTahapan kerja otomatis aktif di lantai pabrik\n📱 WA ke seluruh Tim Pabrik:\n'Produksi SPK-2024-001 resmi dimulai!'"]
+
+        C3["📋 Proses Pengerjaan di Lantai Pabrik:\nMandor & operator menjalankan pengerjaan\nsesuai resep BOM & daftar tahapan kerja\nhingga seluruh kuantitas target selesai diproduksi"]
+    end
+
+    SELESAI(["🎉 menunggu pekerjaan selesai"])
+
+    %% ─── KONEKSI ────────────────────────────────────────────────────────────
+    START --> A1 --> A2 --> A3 --> A4
+
+    A4 -->|"Ya, perlu"| A5 --> A6
+    A4 -->|"Tidak perlu"| A6
+
+    A6 -->|"Simpan Draft dulu"| A7
+    A6 -->|"Langsung ajukan"| A8
+
+    A7 --> B1
+    A8 --> B2
+    B1 --> B2
+
+    B2 -->|"✅ Setujui"| B3
+    B2 -->|"❌ Tolak"| B4
+    B4 --> B5 --> B1
+
+    B3 --> C1 --> C2 --> C3 --> SELESAI
+
+    %% ─── STYLE ──────────────────────────────────────────────────────────────
+    classDef default   fill:#0f172a,stroke:#334155,stroke-width:1.5px,color:#e2e8f0;
+    classDef stStart   fill:#0c1a2e,stroke:#3b82f6,stroke-width:2.5px,color:#fff;
+    classDef stDone    fill:#052e16,stroke:#10b981,stroke-width:2.5px,color:#d1fae5;
+    classDef stDecis   fill:#1a1040,stroke:#7c3aed,stroke-width:2px,color:#ddd6fe;
+    classDef stWarn    fill:#450a0a,stroke:#ef4444,stroke-width:2px,color:#fecaca;
+    classDef stApprv   fill:#022c1a,stroke:#10b981,stroke-width:2px,color:#d1fae5;
+    classDef stInPrg   fill:#08162e,stroke:#06b6d4,stroke-width:2px,color:#a5f3fc;
+    classDef stDraft   fill:#1a1204,stroke:#f59e0b,stroke-width:1.8px,color:#fde68a;
+
+    class START stStart;
+    class SELESAI stDone;
+    class A4,A6,B2 stDecis;
+    class B4 stWarn;
+    class B3 stApprv;
+    class C1,C2,C3 stInPrg;
+    class A7 stDraft;
+    class A8 stApprv;
+                    </pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+
+                <!-- Status -->
+                <div class="lc">
+                    <div class="lt"><i class="bi bi-circle-half"></i> Status SPK &amp; Artinya</div>
+                    <div class="ll">
+                        <div class="lr">
+                            <div class="sw" style="background:#1e293b;border-color:#64748b;"></div><span><strong
+                                    style="color:#94a3b8;">Draft</strong> — Baru dibuat, belum diajukan</span>
+                        </div>
+                        <div class="lr">
+                            <div class="sw" style="background:#1a1204;border-color:#f59e0b;"></div><span><strong
+                                    style="color:#fbbf24;">Pending</strong> — Menunggu persetujuan atasan</span>
+                        </div>
+                        <div class="lr">
+                            <div class="sw" style="background:#450a0a;border-color:#ef4444;"></div><span><strong
+                                    style="color:#f87171;">Rejected</strong> — Ditolak, wajib direvisi</span>
+                        </div>
+                        <div class="lr">
+                            <div class="sw" style="background:#052e16;border-color:#10b981;"></div><span><strong
+                                    style="color:#34d399;">Approved</strong> — Disetujui, siap dikerjakan</span>
+                        </div>
+                        <div class="lr">
+                            <div class="sw" style="background:#0c1a2e;border-color:#06b6d4;"></div><span><strong
+                                    style="color:#67e8f9;">In Progress</strong> — Sedang dikerjakan pabrik</span>
+                        </div>
+                        <div class="lr">
+                            <div class="sw" style="background:#1a0a2e;border-color:#8b5cf6;"></div><span><strong
+                                    style="color:#a78bfa;">Completed</strong> — Selesai, barang masuk gudang</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Siapa bisa apa -->
+                <div class="lc">
+                    <div class="lt"><i class="bi bi-person-badge-fill"></i> Siapa Bisa Lakukan Apa?</div>
+                    <div class="ll" style="gap:0;">
+                        <div class="si-item">
+                            <div class="sinum" style="background:rgba(59,130,246,.15);color:#60a5fa;"><i
+                                    class="bi bi-person-fill"></i></div>
+                            <div class="sibody">
+                                <h4>Staff / Admin SPK</h4>
+                                <p>Buat, edit Draft/Rejected, dan ajukan ke atasan</p>
+                            </div>
+                        </div>
+                        <div class="si-item">
+                            <div class="sinum" style="background:rgba(16,185,129,.15);color:#34d399;"><i
+                                    class="bi bi-shield-check"></i></div>
+                            <div class="sibody">
+                                <h4>Atasan / Approver</h4>
+                                <p>Setujui atau tolak SPK yang masuk ke Pending</p>
+                            </div>
+                        </div>
+                        <div class="si-item">
+                            <div class="sinum" style="background:rgba(6,182,212,.15);color:#67e8f9;"><i
+                                    class="bi bi-hammer"></i></div>
+                            <div class="sibody">
+                                <h4>Mandor / Operator</h4>
+                                <p>Klik Mulai Produksi &amp; jalankan pengerjaan pabrik</p>
+                            </div>
+                        </div>
+                        <div class="si-item">
+                            <div class="sinum" style="background:rgba(244,63,94,.15);color:#fb7185;"><i
+                                    class="bi bi-star-fill"></i></div>
+                            <div class="sibody">
+                                <h4>Super Admin / Owner</h4>
+                                <p>Semua akses, termasuk batalkan SPK yang sedang berjalan</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contoh Tahapan -->
+                <div class="lc" style="border-color:rgba(16,185,129,.28);background:rgba(5,46,22,.2);">
+                    <div class="lt" style="color:#34d399;"><i class="bi bi-diagram-3-fill"></i> Contoh Tahapan Kemeja
+                    </div>
+                    <div class="ll" style="gap:.4rem;">
+                        <div class="lr"><span style="color:#34d399;font-weight:800;font-size:.85rem;">①</span> Pola
+                            &amp; Gelar Kain</div>
+                        <div class="lr"><span style="color:#34d399;font-weight:800;font-size:.85rem;">②</span> Potong
+                            Bahan</div>
+                        <div class="lr"><span style="color:#34d399;font-weight:800;font-size:.85rem;">③</span> Sablon
+                            &amp; Bordir</div>
+                        <div class="lr"><span style="color:#34d399;font-weight:800;font-size:.85rem;">④</span>
+                            Penjahitan</div>
+                        <div class="lr"><span style="color:#34d399;font-weight:800;font-size:.85rem;">⑤</span>
+                            Pemeriksaan QC</div>
+                        <div class="lr"><span style="color:#34d399;font-weight:800;font-size:.85rem;">⑥</span> Setrika
+                            &amp; Packing</div>
+                    </div>
+                    <small style="color:var(--t3);font-size:.69rem;display:block;margin-top:.6rem;">Urutan tahapan ini
+                        otomatis tersalin dari Master Tahapan saat SPK dibuat.</small>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Detail Cards -->
+        <div class="dgrid">
+            <div class="dc c-r">
+                <div class="dnum" style="background:rgba(220,38,38,.15);color:#dc2626;">01</div>
+                <h3>Pilih BOM = Data Terisi Otomatis</h3>
+                <p>Begitu Anda memilih resep BOM, sistem langsung mengisi daftar bahan baku, estimasi biaya produksi,
+                    dan urutan tahapan kerja secara otomatis. Tidak perlu input manual satu per satu — tinggal isi
+                    jumlah dan deadline saja.</p>
+                <div class="dbadge">Auto-fill dari Resep BOM</div>
+            </div>
+            <div class="dc c-a">
+                <div class="dnum" style="background:rgba(245,158,11,.15);color:#f59e0b;">02</div>
+                <h3>Nomor Seri Dijaga Agar Tidak Kembar</h3>
+                <p>Setiap unit produk bisa diberi nomor seri unik (misal: KMJ-001 s.d. KMJ-500). Sistem secara otomatis
+                    mengecek ke seluruh SPK aktif dan riwayat produksi — jika ada yang sama, SPK langsung ditolak agar
+                    tidak ada unit yang ID-nya kembar.</p>
+                <div class="dbadge">Anti-Duplikat Antar SPK &amp; Cabang</div>
+            </div>
+            <div class="dc c-g">
+                <div class="dnum" style="background:rgba(16,185,129,.15);color:#10b981;">03</div>
+                <h3>Pengerjaan Terstruktur Sesuai BOM</h3>
+                <p>Mandor dan operator bekerja mengacu pada resep dan daftar tahapan yang sudah disetujui. Estimasi
+                    waktu, bahan baku yang dibutuhkan, dan target kuantitas terjaga rapi hingga barang jadi siap
+                    dipindahkan ke gudang.</p>
+                <div class="dbadge">Standardized Production Flow</div>
+            </div>
+            <div class="dc c-v">
+                <div class="dnum" style="background:rgba(139,92,246,.15);color:#8b5cf6;">04</div>
+                <h3>Notifikasi WA di Setiap Perubahan</h3>
+                <p>Sistem mengirim notifikasi WhatsApp otomatis di setiap perubahan penting: saat SPK diajukan, saat
+                    disetujui/ditolak, dan saat produksi dimulai. Atasan dan mandor selalu tahu kondisi terkini tanpa
+                    harus cek aplikasi terus-menerus.</p>
+                <div class="dbadge">WA Gateway Otomatis</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let pz = null;
+        mermaid.initialize({
+            startOnLoad: true, theme: 'dark', securityLevel: 'loose',
+            flowchart: { useMaxWidth: false, htmlLabels: true, curve: 'basis', diagramPadding: 18, nodeSpacing: 36, rankSpacing: 42 },
+            themeVariables: {
+                darkMode: true, background: '#090d16',
+                primaryColor: '#0f172a', primaryTextColor: '#e2e8f0', primaryBorderColor: '#334155',
+                lineColor: '#475569', secondaryColor: '#1a1040', tertiaryColor: '#052e16',
+                clusterBkg: 'rgba(15,23,42,0.55)', clusterBorder: 'rgba(71,85,105,0.5)',
+                titleColor: '#94a3b8', edgeLabelBackground: 'rgba(9,13,22,0.9)',
+                fontFamily: 'Inter, sans-serif',
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const overlay = document.getElementById('loverlay');
+            const tryInit = (t) => {
+                const svg = document.querySelector('#mc svg');
+                if (svg) {
+                    svg.style.width = '100%'; svg.style.height = '100%'; svg.style.maxWidth = 'none';
+                    pz = svgPanZoom(svg, {
+                        zoomEnabled: true, controlIconsEnabled: false, fit: true, center: true,
+                        minZoom: 0.1, maxZoom: 8, zoomScaleSensitivity: 0.22,
+                        onZoom: z => { document.getElementById('zl').textContent = Math.round(z * 100) + '%'; }
+                    });
+                    overlay.classList.add('hidden');
+                } else if (t > 0) {
+                    setTimeout(() => tryInit(t - 1), 350);
+                } else { overlay.classList.add('hidden'); }
+            };
+            setTimeout(() => tryInit(18), 400);
+        });
+
+        function zi() { if (pz) pz.zoomIn(); }
+        function zo() { if (pz) pz.zoomOut(); }
+        function zr() { if (pz) { pz.resetZoom(); pz.center(); document.getElementById('zl').textContent = '100%'; } }
+
+        async function exportPNG() {
+            const btn = document.getElementById('btnExport');
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Memproses...';
+            try {
+                if (pz) { pz.fit(); pz.center(); }
+                await new Promise(r => setTimeout(r, 300));
+                const svg = document.querySelector('#mc svg');
+                if (!svg) throw new Error('SVG tidak ditemukan.');
+                const r = svg.getBoundingClientRect();
+                const W = Math.max(r.width, 1600), H = Math.max(r.height, 1000);
+                const cl = svg.cloneNode(true);
+                cl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                cl.setAttribute('width', W); cl.setAttribute('height', H); cl.removeAttribute('style');
+                const vp = cl.querySelector('[id*="viewport"]') || cl.querySelector('g');
+                if (vp) vp.removeAttribute('transform');
+                const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                bg.setAttribute('width', '100%'); bg.setAttribute('height', '100%'); bg.setAttribute('fill', '#090d16');
+                cl.insertBefore(bg, cl.firstChild);
+                const uri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(cl));
+                const sc = 2, cv = document.createElement('canvas');
+                cv.width = W * sc; cv.height = H * sc;
+                const ctx = cv.getContext('2d');
+                ctx.scale(sc, sc); ctx.fillStyle = '#090d16'; ctx.fillRect(0, 0, W, H);
+                await new Promise((res, rej) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0, W, H);
+                        const now = new Date();
+                        ctx.font = '500 11px sans-serif'; ctx.fillStyle = 'rgba(148,163,184,0.5)';
+                        ctx.textAlign = 'right';
+                        ctx.fillText('ERP — SPK Produksi | ' + now.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }), W - 14, H - 10);
+                        const lnk = document.createElement('a');
+                        lnk.download = 'Flowchart-SPK-Produksi-' + now.toISOString().slice(0, 10) + '.png';
+                        lnk.href = cv.toDataURL('image/png', 1.0);
+                        document.body.appendChild(lnk); lnk.click(); document.body.removeChild(lnk); res();
+                    };
+                    img.onerror = () => rej(new Error('Gagal render.'));
+                    img.src = uri;
+                });
+                showToast('✅ Berhasil diunduh!');
+            } catch (e) { showToast('❌ ' + e.message, true); }
+            btn.innerHTML = '<i class="bi bi-image"></i> Unduh PNG';
+        }
+
+        function showToast(msg, err = false) {
+            let t = document.getElementById('toastEl');
+            if (!t) { t = document.createElement('div'); t.id = 'toastEl'; t.className = 'toast'; document.body.appendChild(t); }
+            t.textContent = msg;
+            t.style.background = err ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)';
+            t.style.borderColor = err ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.35)';
+            t.style.color = err ? '#f87171' : '#34d399';
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3200);
+        }
+    </script>
+</body>
+
+</html>

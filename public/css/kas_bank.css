@@ -840,3 +840,218 @@
     opacity: 1 !important;
 }
 
+/* ==========================================================================
+   12. ULTRA-MODERN FINTECH MODAL RIWAYAT MUTASI (RESPONSIVE & WIDE)
+   ========================================================================== */
+.kb-modal-wide {
+    width: 94vw !important;
+    max-width: 1420px !important;
+    margin: 1.5rem auto !important;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@media (max-width: 1400px) {
+    .kb-modal-wide {
+        width: 95vw !important;
+        max-width: 95vw !important;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .kb-modal-wide {
+        width: 98vw !important;
+        max-width: 98vw !important;
+        margin: 0.5rem auto !important;
+    }
+}
+
+/* Modal Container Glassmorphism */
+.kb-modal-glass-container {
+    border-radius: 1.25rem !important;
+    box-shadow: 0 25px 65px -15px rgba(0, 0, 0, 0.4), 0 0 45px rgba(16, 185, 129, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(16px);
+    overflow: hidden;
+}
+
+[data-bs-theme="dark"] .kb-modal-glass-container {
+    background: #0f172a !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.8), 0 0 50px rgba(16, 185, 129, 0.12) !important;
+}
+
+/* Modal Hero Header */
+.kb-modal-hero-header {
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.95) 100%);
+    position: relative;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+[data-bs-theme="dark"] .kb-modal-hero-header {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Bento Info Cards Strip */
+.kb-bento-strip {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 1rem;
+    box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.04);
+}
+
+[data-bs-theme="dark"] .kb-bento-strip {
+    background: rgba(15, 23, 42, 0.65);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Pulsing Online Dot */
+.kb-pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #10b981;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: kbPulse 2s infinite;
+}
+
+@keyframes kbPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+/* Copy Chip Button */
+.kb-chip-copy {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px dashed rgba(100, 116, 139, 0.35);
+    background: rgba(241, 245, 249, 0.6);
+}
+.kb-chip-copy:hover {
+    background: rgba(22, 163, 74, 0.12);
+    border-color: #16a34a;
+    color: #16a34a !important;
+}
+[data-bs-theme="dark"] .kb-chip-copy {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+[data-bs-theme="dark"] .kb-chip-copy:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+    color: #34d399 !important;
+}
+
+/* Interactive Quick Filter Pills */
+.kb-quick-filter-pills .nav-link {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.38rem 0.9rem;
+    border-radius: 50rem;
+    color: #64748b;
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: transparent;
+}
+.kb-quick-filter-pills .nav-link:hover {
+    color: #0f172a;
+    background: rgba(241, 245, 249, 0.8);
+}
+.kb-quick-filter-pills .nav-link.active {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+    box-shadow: 0 3px 10px rgba(22, 163, 74, 0.3) !important;
+}
+[data-bs-theme="dark"] .kb-quick-filter-pills .nav-link {
+    color: #94a3b8;
+}
+[data-bs-theme="dark"] .kb-quick-filter-pills .nav-link:hover {
+    color: #f8fafc;
+    background: rgba(30, 41, 59, 0.7);
+}
+[data-bs-theme="dark"] .kb-quick-filter-pills .nav-link.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 3px 12px rgba(16, 185, 129, 0.35) !important;
+}
+
+/* Modern Datatable Header in Modal */
+#tableCardMutasi thead tr {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    border-bottom: 2px solid #334155 !important;
+}
+#tableCardMutasi thead th {
+    font-size: 0.73rem !important;
+    letter-spacing: 0.8px !important;
+    font-weight: 700 !important;
+    padding: 0.85rem 0.95rem !important;
+    color: #f8fafc !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+}
+#tableCardMutasi tbody td {
+    padding: 0.75rem 0.95rem !important;
+    font-size: 0.84rem !important;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6) !important;
+}
+[data-bs-theme="dark"] #tableCardMutasi tbody td {
+    border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+#tableCardMutasi tbody tr:hover {
+    background-color: rgba(16, 185, 129, 0.04) !important;
+}
+[data-bs-theme="dark"] #tableCardMutasi tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* DataTables Controls Integration Inside Modal */
+.kb-dt-toolbar {
+    padding: 0.85rem 1.25rem;
+    background: rgba(248, 250, 252, 0.8);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+[data-bs-theme="dark"] .kb-dt-toolbar {
+    background: rgba(15, 23, 42, 0.5);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+.kb-dt-toolbar .dataTables_length select {
+    border-radius: 50rem !important;
+    padding: 0.35rem 1.8rem 0.35rem 0.85rem !important;
+    font-size: 0.82rem !important;
+    font-weight: 600;
+}
+.kb-dt-toolbar .dataTables_filter input {
+    border-radius: 50rem !important;
+    padding: 0.35rem 1rem !important;
+    font-size: 0.82rem !important;
+    min-width: 240px;
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    transition: all 0.2s ease;
+}
+[data-bs-theme="dark"] .kb-dt-toolbar .dataTables_filter input {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    background-color: rgba(30, 41, 59, 0.8) !important;
+    color: #f8fafc !important;
+}
+.kb-dt-toolbar .dataTables_filter input:focus {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
+}
+
+.kb-dt-scroll {
+    min-height: 280px;
+    max-height: 520px;
+    overflow-y: auto;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}

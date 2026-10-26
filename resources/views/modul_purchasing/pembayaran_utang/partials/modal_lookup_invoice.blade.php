@@ -26,7 +26,7 @@
                         <div class="col-12 col-md-5">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" id="lookupInvoiceSearch" class="form-control" placeholder="Ketik No. Faktur / No. Ref Supplier / Nama Supplier...">
+                                <input type="text" id="lookupInvoiceSearch" class="form-control" placeholder="Ketik No. Faktur / No. Ref / Proyek Tender / Supplier...">
                             </div>
                         </div>
                         <div class="col-6 col-md-4">
@@ -60,13 +60,14 @@
                                     <th>Tgl Faktur</th>
                                     <th>Jatuh Tempo</th>
                                     <th class="text-end">Total Faktur</th>
+                                    <th class="text-end text-success">Terbayar</th>
                                     <th class="text-end text-primary">Sisa Utang</th>
                                     <th class="text-center">Status Tempo</th>
                                 </tr>
                             </thead>
                             <tbody id="lookupInvoicesTbody">
                                 <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted">
+                                    <td colspan="10" class="text-center py-4 text-muted">
                                         <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                                         <span>Memuat daftar faktur pembelian...</span>
                                     </td>

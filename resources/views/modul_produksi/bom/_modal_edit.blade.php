@@ -120,17 +120,30 @@
 
                                     {{-- Link Tender / Project --}}
                                     <div class="col-12">
-                                        <label class="form-label fw-semibold text-theme-muted small mb-1">
-                                            <i class="bi bi-briefcase text-warning me-1"></i> Tender / Project Terkait <small class="text-muted">(Opsional)</small>
+                                        <label class="form-label fw-semibold text-theme-muted small mb-1 d-flex align-items-center justify-content-between">
+                                            <span>
+                                                <i class="bi bi-briefcase text-warning me-1"></i> Tender / Project Terkait <small class="text-muted">(Opsional)</small>
+                                            </span>
+                                            <span class="badge rounded-pill px-2 py-0.5" style="font-size: 10px; background: rgba(245, 158, 11, 0.1); color: #f59e0b;">Make to Order</span>
                                         </label>
-                                        <select name="tender_id" id="edit_tender_id" class="form-select rounded-3">
-                                            <option value="">-- Tanpa Tender (Produksi Standar Mandiri) --</option>
-                                            @if(isset($tenders) && count($tenders) > 0)
-                                                @foreach($tenders as $t)
-                                                    <option value="{{ $t->id }}">[{{ $t->nomor_kontrak ?: 'TENDER' }}] {{ $t->nama_tender }}</option>
-                                                @endforeach
-                                            @endif
-                                        </select>
+                                        <input type="hidden" name="tender_id" id="edit_tender_id" value="">
+                                        <div class="input-group shadow-xs rounded-3 overflow-hidden">
+                                            <span class="input-group-text bg-light-theme border-end-0 text-warning">
+                                                <i class="bi bi-briefcase-fill"></i>
+                                            </span>
+                                            <input type="text" id="edit_tender_display" class="form-control border-start-0 border-end-0 bg-light-theme" 
+                                                   placeholder="-- Klik tombol cari untuk memilih Tender / Project --" readonly style="cursor: pointer;"
+                                                   onclick="bukaModalLookupTenderBom('edit')">
+                                            <button type="button" class="btn btn-outline-danger border-start-0 border-end-0 d-none" id="btn_clear_tender_edit" 
+                                                    onclick="clearTenderBom('edit')" title="Hapus Tender Terpilih">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-warning px-3 d-flex align-items-center gap-1.5 fw-semibold text-dark" 
+                                                    onclick="bukaModalLookupTenderBom('edit')" title="Cari Tender / Project">
+                                                <i class="bi bi-search"></i>
+                                                <span class="d-none d-sm-inline">Cari Tender</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -399,7 +412,20 @@
                 $('#edit_satuan_hasil_id').val(b.satuan_hasil_id);
                 $('#edit_satuan_hasil_name').val(b.satuan_hasil ? b.satuan_hasil.nama_satuan : '');
                 $('#edit_tipe_bom').val(b.tipe_bom || 'Garmen');
-                $('#edit_tender_id').val(b.tender_id || '');
+                
+                if (b.tender) {
+                    $('#edit_tender_id').val(b.tender.id);
+                    $('#edit_tender_display').val(`[${b.tender.nomor_kontrak || 'TENDER'}] ${b.tender.nama_tender}`);
+                    $('#btn_clear_tender_edit').removeClass('d-none');
+                } else if (b.tender_id) {
+                    $('#edit_tender_id').val(b.tender_id);
+                    $('#edit_tender_display').val(`Tender #${b.tender_id}`);
+                    $('#btn_clear_tender_edit').removeClass('d-none');
+                } else {
+                    $('#edit_tender_id').val('');
+                    $('#edit_tender_display').val('');
+                    $('#btn_clear_tender_edit').addClass('d-none');
+                }
                 
                 let currentStatus = b.status || 'Draft';
                 if (currentStatus === 'Rejected') {

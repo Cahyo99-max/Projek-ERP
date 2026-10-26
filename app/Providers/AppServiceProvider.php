@@ -21,9 +21,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Super Admin bypass for all permissions
+        \Illuminate\Pagination\Paginator::useBootstrapFive();
+
+        // Super Admin & Owner bypass for all permissions
         Gate::before(function ($user, $ability) {
-            return $user->hasRole('Super Admin') ? true : null;
+            return ($user->hasRole('Super Admin') || $user->hasRole('Owner')) ? true : null;
         });
         // Force HTTPS if loaded behind ngrok or HTTPS proxy to fix broken asset loading
         if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
@@ -32,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Global app settings sharing
         try {
-            if (\Illuminate\Support\Facades\Schema::hasTable('app_settings')) {
+            if (\Illuminate\Support\Facades\Schema::hasTable('app_settings') || \Illuminate\Support\Facades\Schema::hasTable('app_settings_tb')) {
                 $settings = \Illuminate\Support\Facades\DB::table('app_settings')->pluck('value', 'key')->all();
                 $appName = $settings['app_name'] ?? 'Lumen ERP';
                 $appLogo = isset($settings['app_logo']) && $settings['app_logo'] 

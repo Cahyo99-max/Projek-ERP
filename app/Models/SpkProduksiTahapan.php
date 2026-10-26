@@ -32,7 +32,7 @@ class SpkProduksiTahapan extends Model
         'waktu_selesai' => 'datetime',
     ];
 
-    protected $appends = ['persentase_selesai'];
+    protected $appends = ['persentase_selesai', 'foto_url'];
 
     public function spk(): BelongsTo
     {
@@ -42,6 +42,29 @@ class SpkProduksiTahapan extends Model
     public function logHarians(): HasMany
     {
         return $this->hasMany(SpkProduksiLogHarian::class, 'spk_tahapan_id')->orderBy('tanggal', 'desc')->orderBy('id', 'desc');
+    }
+
+    public function masterTahapan()
+    {
+        $spk = $this->spk;
+        if ($spk && $spk->bom_id) {
+            $master = MasterTahapanProduksi::where('bom_id', $spk->bom_id)
+                ->where(function ($q) {
+                    $q->where('urutan', $this->urutan)
+                      ->orWhere('nama_tahapan', $this->nama_tahapan);
+                })->first();
+            if ($master) return $master;
+        }
+
+        return MasterTahapanProduksi::where('nama_tahapan', $this->nama_tahapan)
+            ->whereNotNull('foto')
+            ->first();
+    }
+
+    public function getFotoUrlAttribute(): ?string
+    {
+        $master = $this->masterTahapan();
+        return $master ? $master->foto_url : null;
     }
 
     public function getPersentaseSelesaiAttribute()

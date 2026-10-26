@@ -49,20 +49,18 @@ class PaymentTerm extends Model
 
     public function scopeForActiveCompany($query)
     {
-        $activeCompanyId = session('active_company_id');
+        $activeCompanyId = session('active_company_id') ?: (auth()->check() ? auth()->user()->company_id : 1);
         if ($activeCompanyId) {
-            return $query->where($this->getTable() . '.company_id', $activeCompanyId);
+            return $query->where(function($q) use ($activeCompanyId) {
+                $q->where($this->getTable() . '.company_id', $activeCompanyId)
+                  ->orWhereNull($this->getTable() . '.company_id');
+            });
         }
         return $query;
     }
 
     public function scopeActive($query)
     {
-        $q = $query->where($this->getTable() . '.status', 'Active');
-        $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId) {
-            $q->where($this->getTable() . '.company_id', $activeCompanyId);
-        }
-        return $q;
+        return $this->scopeForActiveCompany($query)->where($this->getTable() . '.status', 'Active');
     }
 }

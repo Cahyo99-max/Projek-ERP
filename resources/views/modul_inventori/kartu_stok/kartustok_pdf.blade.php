@@ -477,9 +477,12 @@
                 <tbody>
                     @forelse($mutasi as $idx => $m)
                         @php
-                            $rowStokAwal = (floor($m->stok_awal) == $m->stok_awal) ? number_format($m->stok_awal, 0, ',', '.') : rtrim(rtrim(number_format($m->stok_awal, 4, ',', '.'), '0'), ',');
-                            $rowJumlah = (floor($m->jumlah) == $m->jumlah) ? number_format($m->jumlah, 0, ',', '.') : rtrim(rtrim(number_format($m->jumlah, 4, ',', '.'), '0'), ',');
-                            $rowStokAkhir = (floor($m->stok_akhir) == $m->stok_akhir) ? number_format($m->stok_akhir, 0, ',', '.') : rtrim(rtrim(number_format($m->stok_akhir, 4, ',', '.'), '0'), ',');
+                            $rStokAwal = round($m->stok_awal, 2);
+                            $rowStokAwal = (floor($rStokAwal) == $rStokAwal) ? number_format($rStokAwal, 0, ',', '.') : rtrim(rtrim(number_format($rStokAwal, 2, ',', '.'), '0'), ',');
+                            $rJumlah = round($m->jumlah, 2);
+                            $rowJumlah = (floor($rJumlah) == $rJumlah) ? number_format($rJumlah, 0, ',', '.') : rtrim(rtrim(number_format($rJumlah, 2, ',', '.'), '0'), ',');
+                            $rStokAkhir = round($m->stok_akhir, 2);
+                            $rowStokAkhir = (floor($rStokAkhir) == $rStokAkhir) ? number_format($rStokAkhir, 0, ',', '.') : rtrim(rtrim(number_format($rStokAkhir, 2, ',', '.'), '0'), ',');
                         @endphp
                         <tr>
                             <td class="text-center font-mono text-muted">{{ $idx + 1 }}</td>
@@ -531,8 +534,10 @@
 
                     @if($mutasi->isNotEmpty())
                         @php
-                            $dispTotalMasuk = (floor($totalMasuk) == $totalMasuk) ? number_format($totalMasuk, 0, ',', '.') : rtrim(rtrim(number_format($totalMasuk, 4, ',', '.'), '0'), ',');
-                            $dispTotalKeluar = (floor($totalKeluar) == $totalKeluar) ? number_format($totalKeluar, 0, ',', '.') : rtrim(rtrim(number_format($totalKeluar, 4, ',', '.'), '0'), ',');
+                            $rTotMasuk = round($totalMasuk, 2);
+                            $dispTotalMasuk = (floor($rTotMasuk) == $rTotMasuk) ? number_format($rTotMasuk, 0, ',', '.') : rtrim(rtrim(number_format($rTotMasuk, 2, ',', '.'), '0'), ',');
+                            $rTotKeluar = round($totalKeluar, 2);
+                            $dispTotalKeluar = (floor($rTotKeluar) == $rTotKeluar) ? number_format($rTotKeluar, 0, ',', '.') : rtrim(rtrim(number_format($rTotKeluar, 2, ',', '.'), '0'), ',');
                         @endphp
                         <tr class="table-summary-row">
                             <td colspan="7" class="text-end fw-bold">TOTAL MUTASI PERIODE:</td>

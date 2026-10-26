@@ -4,19 +4,19 @@
         <div class="modal-content cinematic-modal-content border-0 shadow-2xl overflow-hidden">
             
             <!-- Modal Header with Ambient Glow & Badges -->
-            <div class="modal-header border-0 pb-0 pt-3 px-4 d-flex justify-content-between align-items-center position-relative z-3">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge cinematic-type-badge px-3 py-1.5 rounded-pill fw-bold" id="modal_prod_type_badge">
+            <div class="modal-header border-0 pb-2 pt-3.5 px-4 d-flex justify-content-between align-items-center position-relative z-3">
+                <div class="d-flex align-items-center gap-2.5">
+                    <span class="badge cinematic-type-badge rounded-pill fw-bold" id="modal_prod_type_badge">
                         <i class="bi bi-box-seam me-1"></i> Produk Fisik
                     </span>
-                    <span class="badge cinematic-stock-badge px-3 py-1.5 rounded-pill fw-bold" id="modal_prod_stock_badge">
+                    <span class="badge cinematic-stock-badge rounded-pill fw-bold" id="modal_prod_stock_badge">
                         <i class="bi bi-check-circle-fill me-1"></i> Stok Tersedia
                     </span>
                 </div>
                 <button type="button" class="btn-close cinematic-btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-body p-4 pt-3">
+            <div class="modal-body p-4 pt-2">
                 <div class="row g-4">
                     
                     <!-- LEFT COLUMN: CINEMATIC IMAGE STAGE & THUMBNAILS -->
@@ -61,7 +61,7 @@
                             
                             <div>
                                 <!-- Category & Brand Pills -->
-                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2.5">
                                     <span class="cinematic-meta-pill" id="modal_prod_category">-</span>
                                     <span class="cinematic-meta-pill text-primary" id="modal_prod_brand">-</span>
                                     <span class="badge bg-secondary-subtle text-secondary font-monospace px-2.5 py-1 rounded-pill" id="modal_prod_sku">-</span>
@@ -69,49 +69,49 @@
 
                                 <!-- Product Main Title -->
                                 <h2 class="fw-black mb-1 cinematic-title" id="modal_prod_title">-</h2>
-                                <div class="text-muted small mb-3 fst-italic" id="modal_prod_alias"></div>
+                                <div class="text-muted small mb-3.5 fst-italic" id="modal_prod_alias"></div>
 
                                 <!-- 3-TIER NEON PRICING GRID -->
-                                <div class="cinematic-tier-container p-3.5 rounded-4 mb-3">
-                                    <div class="d-flex justify-content-between align-items-center mb-2.5">
+                                <div class="cinematic-tier-container p-3.5 rounded-4 mb-3.5">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
                                         <div class="cinematic-section-label">
-                                            <i class="bi bi-tags-fill me-1 text-success"></i> TINGKAT HARGA JUAL (3-TIER PRICING)
+                                            <i class="bi bi-tags-fill me-1.5 text-success"></i> TINGKAT HARGA JUAL (3-TIER PRICING)
                                         </div>
                                         <span class="badge bg-dark-subtle text-muted small font-monospace" style="font-size:0.7rem;">Auto-Sync Tier</span>
                                     </div>
                                     
-                                    <div class="row g-2.5">
+                                    <div class="row g-3">
                                         <div class="col-4">
-                                            <div class="cinematic-tier-card tier-retail text-center p-2.5 rounded-3" id="modal_tier_retail">
+                                            <div class="cinematic-tier-card tier-retail text-center p-3 rounded-3" id="modal_tier_retail">
                                                 <div class="tier-label text-success"><i class="bi bi-tag-fill me-1"></i>Retail</div>
-                                                <div class="tier-price text-success font-monospace" id="modal_prod_price_retail">Rp 0</div>
+                                                <div class="tier-price text-success font-monospace" id="modal_prod_price_retail">Rp 0,00</div>
                                             </div>
                                         </div>
                                         <div class="col-4">
-                                            <div class="cinematic-tier-card tier-grosir text-center p-2.5 rounded-3" id="modal_tier_grosir">
+                                            <div class="cinematic-tier-card tier-grosir text-center p-3 rounded-3" id="modal_tier_grosir">
                                                 <div class="tier-label text-primary"><i class="bi bi-boxes me-1"></i>Grosir</div>
-                                                <div class="tier-price text-primary font-monospace" id="modal_prod_price_grosir">Rp 0</div>
+                                                <div class="tier-price text-primary font-monospace" id="modal_prod_price_grosir">Rp 0,00</div>
                                             </div>
                                         </div>
                                         <div class="col-4">
-                                            <div class="cinematic-tier-card tier-tender text-center p-2.5 rounded-3" id="modal_tier_tender">
+                                            <div class="cinematic-tier-card tier-tender text-center p-3 rounded-3" id="modal_tier_tender">
                                                 <div class="tier-label text-warning"><i class="bi bi-briefcase-fill me-1"></i>Tender</div>
-                                                <div class="tier-price text-warning font-monospace" id="modal_prod_price_tender">Rp 0</div>
+                                                <div class="tier-price text-warning font-monospace" id="modal_prod_price_tender">Rp 0,00</div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- PHYSICAL SPECIFICATIONS CARDS -->
-                                <div class="row g-2.5 mb-3">
+                                <div class="row g-3 mb-3.5">
                                     <div class="col-6 col-md-3">
-                                        <div class="cinematic-spec-card text-center p-2.5 rounded-3">
+                                        <div class="cinematic-spec-card text-center p-3 rounded-3">
                                             <div class="spec-label">UKURAN</div>
                                             <div class="spec-val font-monospace" id="modal_prod_ukuran">-</div>
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-3">
-                                        <div class="cinematic-spec-card text-center p-2.5 rounded-3">
+                                        <div class="cinematic-spec-card text-center p-3 rounded-3">
                                             <div class="spec-label">WARNA</div>
                                             <div class="d-flex align-items-center justify-content-center gap-1.5 mt-0.5">
                                                 <span class="cinematic-color-dot rounded-circle shadow-sm" id="modal_prod_warna_dot"></span>
@@ -120,13 +120,13 @@
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-3">
-                                        <div class="cinematic-spec-card text-center p-2.5 rounded-3">
+                                        <div class="cinematic-spec-card text-center p-3 rounded-3">
                                             <div class="spec-label">DIMENSI (PxLxT)</div>
                                             <div class="spec-val font-monospace" id="modal_prod_dimensi">-</div>
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-3">
-                                        <div class="cinematic-spec-card text-center p-2.5 rounded-3">
+                                        <div class="cinematic-spec-card text-center p-3 rounded-3">
                                             <div class="spec-label">BERAT</div>
                                             <div class="spec-val font-monospace" id="modal_prod_berat">-</div>
                                         </div>
@@ -134,21 +134,27 @@
                                 </div>
 
                                 <!-- BUNDLE COMPONENTS BOX (IF APPLICABLE) -->
-                                <div class="mb-3 d-none" id="modal_prod_bundle_wrap">
-                                    <div class="cinematic-section-label mb-2 text-primary">
-                                        <i class="bi bi-collection-fill me-1"></i> KOMPONEN ISI PAKET BUNDLE
+                                <div class="mb-3.5 d-none" id="modal_prod_bundle_wrap">
+                                    <div class="d-flex justify-content-between align-items-center mb-2.5">
+                                        <div class="cinematic-section-label text-primary d-flex align-items-center gap-1.5">
+                                            <i class="bi bi-collection-fill fs-6"></i>
+                                            <span>KOMPONEN ISI PAKET BUNDLE</span>
+                                        </div>
+                                        <span class="badge bg-primary-subtle text-primary font-monospace rounded-pill px-2.5 py-1" style="font-size:0.7rem;">Paket Rakitan</span>
                                     </div>
-                                    <div class="cinematic-bundle-box p-2.5 rounded-3" id="modal_prod_bundle_items">
-                                        <!-- Dynamic bundle items -->
+                                    <!-- Dynamic Individual Bundle Cards Container -->
+                                    <div class="d-flex flex-column gap-2.5" id="modal_prod_bundle_items">
+                                        <!-- Dynamic bundle cards rendered here by JS -->
                                     </div>
                                 </div>
 
                                 <!-- DESCRIPTION & PRODUCT SPECS -->
-                                <div class="mb-2">
-                                    <div class="cinematic-section-label mb-1.5">
-                                        <i class="bi bi-info-circle-fill me-1 text-muted"></i> DESKRIPSI & SPESIFIKASI
+                                <div class="mb-3">
+                                    <div class="cinematic-section-label mb-2 text-secondary d-flex align-items-center gap-1.5">
+                                        <i class="bi bi-info-circle-fill"></i>
+                                        <span>DESKRIPSI &amp; SPESIFIKASI</span>
                                     </div>
-                                    <div class="cinematic-desc-box p-3 rounded-3 small" id="modal_prod_spesifikasi">
+                                    <div class="cinematic-desc-box p-3.5 rounded-3 small" id="modal_prod_spesifikasi">
                                         -
                                     </div>
                                 </div>
@@ -161,19 +167,19 @@
                                     
                                     <!-- Stepper Quantity (Futuristic Pill) -->
                                     <div class="d-flex align-items-center gap-2.5">
-                                        <span class="cinematic-qty-label">Qty:</span>
+                                        <span class="cinematic-qty-label fw-bold">Qty:</span>
                                         <div class="cinematic-stepper shadow-sm">
                                             <button type="button" class="cinematic-stepper-btn" id="modal_btn_qty_dec">-</button>
                                             <input type="text" class="cinematic-stepper-input font-monospace fw-bold" id="modal_input_qty" value="1">
                                             <button type="button" class="cinematic-stepper-btn" id="modal_btn_qty_inc">+</button>
                                         </div>
-                                        <span class="badge bg-secondary-subtle text-secondary font-monospace" id="modal_prod_satuan_label">Pcs</span>
+                                        <span class="badge bg-secondary-subtle text-secondary font-monospace px-2.5 py-1.5 rounded-pill" id="modal_prod_satuan_label">Pcs</span>
                                     </div>
 
                                     <!-- Glowing Add to Cart CTA -->
                                     <button type="button" class="btn cinematic-btn-cta fw-bold d-flex align-items-center gap-2" id="modal_btn_add_cart">
                                         <i class="bi bi-cart-plus-fill fs-5"></i>
-                                        <span>+ Masukkan ke Keranjang</span>
+                                        <span>+ Tambah ke Keranjang</span>
                                     </button>
 
                                 </div>
@@ -190,7 +196,7 @@
 
 <style>
     /* ==========================================================
-       CINEMATIC MODAL & PRODUCT STAGE (DARK & LIGHT MODE)
+       CINEMATIC MODAL & PRODUCT STAGE (MODERN & SPACED STYLING)
        ========================================================== */
     
     /* MODAL CONTAINER & BACKDROP */
@@ -200,7 +206,7 @@
     }
 
     [data-bs-theme="dark"] .cinematic-modal-content {
-        background: rgba(15, 23, 42, 0.96) !important;
+        background: rgba(15, 23, 42, 0.98) !important;
         backdrop-filter: blur(28px);
         -webkit-backdrop-filter: blur(28px);
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -209,12 +215,46 @@
     }
 
     [data-bs-theme="light"] .cinematic-modal-content {
-        background: rgba(255, 255, 255, 0.98) !important;
+        background: #ffffff !important;
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
         border: 1px solid rgba(0, 0, 0, 0.08) !important;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 30px rgba(16, 185, 129, 0.08) !important;
-        color: #1e293b;
+        color: #0f172a;
+    }
+
+    /* HEADER BADGES */
+    .cinematic-type-badge {
+        font-size: 0.78rem;
+        padding: 6px 14px;
+        background: #eff6ff !important;
+        color: #1d4ed8 !important;
+        border: 1px solid #bfdbfe !important;
+        letter-spacing: 0.02em;
+        display: inline-flex;
+        align-items: center;
+    }
+    [data-bs-theme="dark"] .cinematic-type-badge {
+        background: rgba(37, 99, 235, 0.2) !important;
+        color: #60a5fa !important;
+        border: 1px solid rgba(96, 165, 250, 0.35) !important;
+    }
+
+    .cinematic-stock-badge {
+        font-size: 0.78rem;
+        padding: 6px 14px;
+        letter-spacing: 0.02em;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .cinematic-btn-close {
+        transition: all 0.2s ease;
+        opacity: 0.75;
+    }
+    .cinematic-btn-close:hover {
+        opacity: 1;
+        transform: rotate(90deg);
     }
 
     /* CINEMATIC IMAGE STAGE */
@@ -255,7 +295,7 @@
         object-fit: contain;
         padding: 18px;
         z-index: 2;
-        filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.25));
+        filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.15));
         transition: transform 0.3s ease;
     }
     .cinematic-stage:hover .cinematic-main-img {
@@ -359,23 +399,32 @@
 
     /* TYPOGRAPHY & HEADINGS */
     .cinematic-title {
-        font-size: 1.45rem;
+        font-size: 1.55rem;
         font-weight: 800;
         letter-spacing: -0.02em;
         line-height: 1.25;
     }
     .cinematic-meta-pill {
-        font-size: 0.75rem;
+        font-size: 0.74rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.04em;
+        padding: 3px 8px;
+        background: rgba(0,0,0,0.04);
+        border-radius: 6px;
+    }
+    [data-bs-theme="dark"] .cinematic-meta-pill {
+        background: rgba(255,255,255,0.08);
     }
     .cinematic-section-label {
         font-size: 0.72rem;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--tkpd-text-sub);
+        color: #64748b;
+    }
+    [data-bs-theme="dark"] .cinematic-section-label {
+        color: #94a3b8;
     }
 
     /* 3-TIER PRICING CARDS */
@@ -383,12 +432,12 @@
         transition: all 0.2s ease;
     }
     [data-bs-theme="dark"] .cinematic-tier-container {
-        background: rgba(30, 41, 59, 0.45);
-        border: 1px solid rgba(255, 255, 255, 0.07);
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.08);
     }
     [data-bs-theme="light"] .cinematic-tier-container {
-        background: rgba(248, 250, 252, 0.85);
-        border: 1px solid rgba(0, 0, 0, 0.05);
+        background: #f8fafc;
+        border: 1px solid rgba(0, 0, 0, 0.06);
     }
 
     .cinematic-tier-card {
@@ -399,27 +448,29 @@
     .cinematic-tier-card .tier-label {
         font-size: 0.75rem;
         font-weight: 700;
-        margin-bottom: 2px;
+        margin-bottom: 8px;
+        letter-spacing: 0.02em;
     }
     .cinematic-tier-card .tier-price {
-        font-size: 1.02rem;
+        font-size: 1.05rem;
         font-weight: 800;
+        letter-spacing: -0.01em;
     }
 
     /* Retail Glow */
     .cinematic-tier-card.tier-retail {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.03) 100%);
-        border-color: rgba(16, 185, 129, 0.3);
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.03) 100%);
+        border-color: rgba(16, 185, 129, 0.35);
     }
     /* Grosir Glow */
     .cinematic-tier-card.tier-grosir {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.03) 100%);
-        border-color: rgba(59, 130, 246, 0.3);
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.03) 100%);
+        border-color: rgba(59, 130, 246, 0.35);
     }
     /* Tender Glow */
     .cinematic-tier-card.tier-tender {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.03) 100%);
-        border-color: rgba(245, 158, 11, 0.3);
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.03) 100%);
+        border-color: rgba(245, 158, 11, 0.35);
     }
 
     .cinematic-tier-card.active-selected-tier {
@@ -433,22 +484,31 @@
         transition: all 0.2s ease;
     }
     [data-bs-theme="dark"] .cinematic-spec-card {
-        background: rgba(30, 41, 59, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
     }
     [data-bs-theme="light"] .cinematic-spec-card {
         background: #ffffff;
-        border: 1px solid rgba(0, 0, 0, 0.06);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
     }
     .cinematic-spec-card .spec-label {
-        font-size: 0.68rem;
+        font-size: 0.7rem;
         font-weight: 700;
-        color: var(--tkpd-text-sub);
+        color: #64748b;
+        letter-spacing: 0.05em;
+        margin-bottom: 8px;
+    }
+    [data-bs-theme="dark"] .cinematic-spec-card .spec-label {
+        color: #94a3b8;
     }
     .cinematic-spec-card .spec-val {
-        font-size: 0.86rem;
+        font-size: 0.92rem;
         font-weight: 700;
+        color: #0f172a;
+    }
+    [data-bs-theme="dark"] .cinematic-spec-card .spec-val {
+        color: #f1f5f9;
     }
     .cinematic-color-dot {
         width: 14px;
@@ -457,24 +517,96 @@
         display: inline-block;
     }
 
-    /* BUNDLE & DESC BOX */
-    [data-bs-theme="dark"] .cinematic-bundle-box,
-    [data-bs-theme="dark"] .cinematic-desc-box {
-        background: rgba(30, 41, 59, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+    /* INDIVIDUAL BUNDLE COMPONENT CARDS */
+    .cinematic-component-card {
+        padding: 12px 16px;
+        border-radius: 12px;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    [data-bs-theme="dark"] .cinematic-component-card {
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    [data-bs-theme="dark"] .cinematic-component-card:hover {
+        background: rgba(30, 41, 59, 0.85);
+        border-color: rgba(56, 189, 248, 0.3);
+    }
+    [data-bs-theme="light"] .cinematic-component-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.025);
+    }
+    [data-bs-theme="light"] .cinematic-component-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        transform: translateY(-1px);
+    }
+
+    .cinematic-component-card .comp-thumb {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        object-fit: cover;
+        flex-shrink: 0;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        padding: 2px;
+    }
+    [data-bs-theme="dark"] .cinematic-component-card .comp-thumb {
+        border-color: rgba(255, 255, 255, 0.1);
+        background: #1e293b;
+    }
+
+    .cinematic-component-card .comp-title {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 4px;
+        line-height: 1.3;
+    }
+    [data-bs-theme="dark"] .cinematic-component-card .comp-title {
+        color: #f8fafc;
+    }
+
+    .cinematic-component-card .comp-meta {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-family: var(--bs-font-monospace);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    [data-bs-theme="dark"] .cinematic-component-card .comp-meta {
         color: #94a3b8;
     }
-    [data-bs-theme="light"] .cinematic-bundle-box,
+
+    .cinematic-component-card .comp-stock-badge {
+        font-size: 0.75rem;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-family: var(--bs-font-monospace);
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+
+    /* DESC BOX */
+    [data-bs-theme="dark"] .cinematic-desc-box {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+    }
     [data-bs-theme="light"] .cinematic-desc-box {
         background: #f8fafc;
-        border: 1px solid rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
         color: #475569;
     }
     .cinematic-desc-box {
         white-space: pre-wrap;
-        max-height: 110px;
+        max-height: 120px;
         overflow-y: auto;
-        line-height: 1.5;
+        line-height: 1.6;
     }
 
     /* STEPPER */
@@ -483,10 +615,11 @@
         border-radius: 30px;
         overflow: hidden;
         align-items: center;
-        border: 1.5px solid var(--tkpd-card-border);
+        border: 1.5px solid #cbd5e1;
     }
     [data-bs-theme="dark"] .cinematic-stepper {
         background: #0f172a;
+        border-color: rgba(255, 255, 255, 0.15);
     }
     [data-bs-theme="light"] .cinematic-stepper {
         background: #ffffff;
@@ -498,7 +631,7 @@
         border: none;
         font-size: 1.2rem;
         font-weight: 700;
-        color: var(--tkpd-green);
+        color: #059669;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -506,7 +639,7 @@
         transition: background 0.15s ease;
     }
     .cinematic-stepper-btn:hover {
-        background: var(--tkpd-green-light);
+        background: rgba(16, 185, 129, 0.12);
     }
     .cinematic-stepper-input {
         width: 52px;
@@ -515,7 +648,7 @@
         border: none;
         text-align: center;
         font-size: 0.95rem;
-        color: var(--tkpd-text-main);
+        color: inherit;
     }
     .cinematic-stepper-input:focus {
         outline: none;
@@ -523,7 +656,7 @@
 
     /* CTA BUTTON */
     .cinematic-btn-cta {
-        padding: 10px 24px;
+        padding: 10px 26px;
         border-radius: 30px;
         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         border: none;

@@ -123,7 +123,7 @@
 
 @push('scripts')
 <script>
-    function openRakitBundleModal(bundleId = '') {
+    window.openRakitBundleModal = function(bundleId = '') {
         $('#formRakitBundle')[0].reset();
         $('#rakit_tanggal').val(new Date().toISOString().split('T')[0]);
         $('#rakit_jumlah_paket').val(1);
@@ -170,7 +170,7 @@
         `);
 
         $.ajax({
-            url: `/master-bundle/${bundleId}/edit`,
+            url: `/master-bundle/${bundleId}/show`,
             method: 'GET',
             data: { gudang_id: gudangId },
             success: function(res) {
@@ -193,7 +193,9 @@
 
                     res.components.forEach((c, idx) => {
                         const totalNeeded = (parseFloat(c.qty_per_bundle) * jumlahPaket);
-                        const isStockEnough = c.stok_gudang >= totalNeeded;
+                        const stokAktual = c.stok_aktual_gudang !== undefined ? parseFloat(c.stok_aktual_gudang) : parseFloat(c.stok_gudang || 0);
+                        const isStockEnough = stokAktual >= totalNeeded;
+                        const satuanNama = c.satuan || c.satuan_singkatan || 'Pcs';
 
                         if (!isStockEnough) {
                             allSufficient = false;
@@ -213,9 +215,9 @@
                                         <span class="fw-bold font-monospace text-primary" style="font-size:12px;">[${c.kode_barang}] ${c.nama_barang}</span>
                                     </div>
                                 </td>
-                                <td class="text-center font-monospace fw-semibold">${numberFormatLocal(c.qty_per_bundle)} ${c.satuan_singkatan}</td>
-                                <td class="text-center font-monospace fw-bold text-primary">${numberFormatLocal(totalNeeded)} ${c.satuan_singkatan}</td>
-                                <td class="text-center font-monospace fw-bold ${isStockEnough ? 'text-success' : 'text-danger'}">${numberFormatLocal(c.stok_gudang)} ${c.satuan_singkatan}</td>
+                                <td class="text-center font-monospace fw-semibold">${numberFormatLocal(c.qty_per_bundle)} ${satuanNama}</td>
+                                <td class="text-center font-monospace fw-bold text-primary">${numberFormatLocal(totalNeeded)} ${satuanNama}</td>
+                                <td class="text-center font-monospace fw-bold ${isStockEnough ? 'text-success' : 'text-danger'}">${numberFormatLocal(stokAktual)} ${satuanNama}</td>
                                 <td class="text-center">${statusBadge}</td>
                             </tr>
                         `;

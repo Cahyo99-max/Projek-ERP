@@ -166,6 +166,10 @@
                                                 <span class="text-muted" style="width: 140px; font-size: 0.8rem;">PPN / Pajak PO</span>
                                                 <span id="card_pajak_info" class="fw-semibold text-dark" style="font-size: 0.8rem;">-</span>
                                             </div>
+                                            <div class="d-flex align-items-center d-none" id="card_pph_row">
+                                                <span class="text-muted" style="width: 140px; font-size: 0.8rem;">PPh PO</span>
+                                                <span id="card_pph_info" class="fw-semibold text-warning" style="font-size: 0.8rem;">-</span>
+                                            </div>
                                             <div class="d-flex align-items-center">
                                                 <span class="text-muted" style="width: 140px; font-size: 0.8rem;">Uang Muka (DP)</span>
                                                 <span id="card_dp_info" class="fw-bold text-warning" style="font-size: 0.8rem;">-</span>
@@ -249,16 +253,18 @@
                             <table class="table table-hover align-middle mb-0 gr-scroll-table" id="gr_details_table" style="min-width: 1120px;">
                                 <thead class="table-light">
                                     <tr class="text-secondary small fw-bold">
-                                        <th class="sticky-col-header" style="min-width: 250px; width: 250px;">Nama Barang</th>
-                                        <th style="min-width: 140px;" class="text-center">Lokasi Rak</th>
-                                        <th style="min-width: 90px; white-space: nowrap;" class="text-center">Qty PO</th>
-                                        <th style="min-width: 100px; white-space: nowrap;" class="text-center" title="Qty yang sudah pernah diterima dari PO ini sebelumnya">Qty Sdh Diterima</th>
-                                        <th style="min-width: 90px; white-space: nowrap;" class="text-center">Qty Sisa</th>
-                                        <th style="min-width: 120px; white-space: nowrap;" class="text-end">Harga Satuan</th>
-                                        <th style="min-width: 110px;" class="text-center">Qty Diterima</th>
-                                        <th style="min-width: 100px;" class="text-center">Qty Reject</th>
-                                        <th style="min-width: 110px;" class="text-center">Satuan</th>
-                                        <th style="min-width: 125px; white-space: nowrap;" class="text-end">Total</th>
+                                        <th class="sticky-col-header" style="min-width: 240px; width: 240px;">Nama Barang</th>
+                                        <th style="min-width: 130px;" class="text-center">Lokasi Rak</th>
+                                        <th style="min-width: 80px; white-space: nowrap;" class="text-center">Qty PO</th>
+                                        <th style="min-width: 90px; white-space: nowrap;" class="text-center" title="Qty yang sudah pernah diterima dari PO ini sebelumnya">Qty Sdh Diterima</th>
+                                        <th style="min-width: 80px; white-space: nowrap;" class="text-center">Qty Sisa</th>
+                                        <th style="min-width: 110px; white-space: nowrap;" class="text-end">Harga Satuan</th>
+                                        <th style="min-width: 95px; white-space: nowrap;" class="text-end">Diskon Item</th>
+                                        <th style="min-width: 90px; white-space: nowrap;" class="text-center">PPN</th>
+                                        <th style="min-width: 105px;" class="text-center">Qty Diterima</th>
+                                        <th style="min-width: 95px;" class="text-center">Qty Reject</th>
+                                        <th style="min-width: 105px;" class="text-center">Satuan</th>
+                                        <th style="min-width: 120px; white-space: nowrap;" class="text-end">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody id="gr_details_tbody">
@@ -327,6 +333,12 @@
                                                 <span id="summary_ppn_val" class="fw-bold text-dark" style="font-size: 0.85rem;">Rp 0,00</span>
                                             </div>
                                         </div>
+                                        <div class="col-6 col-sm-4 col-md-3 col-xl-2 d-none" id="summary_pph_tile">
+                                            <div class="gr-metric-tile h-100" style="border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.04);">
+                                                <small class="text-warning d-block mb-1 fw-semibold" style="font-size: 0.68rem;" id="summary_pph_title">Potongan PPh</small>
+                                                <span id="summary_pph_val" class="fw-bold text-warning" style="font-size: 0.85rem;">- Rp 0,00</span>
+                                            </div>
+                                        </div>
                                         <div class="col-6 col-sm-4 col-md-3 col-xl-2">
                                             <div class="gr-metric-tile h-100">
                                                 <small class="text-muted d-block mb-1" style="font-size: 0.68rem; font-weight: 600;">Biaya Lain-lain</small>
@@ -370,7 +382,7 @@
                         <button type="button" class="btn btn-action-draft rounded-pill px-3.5 py-2 fw-semibold d-flex align-items-center gap-1.5 shadow-sm" id="btn_save_draft" style="font-size: 0.86rem; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #000; border: none;">
                             <i class="bi bi-file-earmark-code"></i> Simpan Draft
                         </button>
-                        <button type="submit" class="btn btn-action-posting rounded-pill px-4 py-2 fw-bold d-flex align-items-center gap-1.5 shadow-sm text-white" id="btn_save_gr" style="font-size: 0.88rem; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border: none; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4) !important;">
+                        <button type="button" class="btn btn-action-posting rounded-pill px-4 py-2 fw-bold d-flex align-items-center gap-1.5 shadow-sm text-white" id="btn_save_gr" style="font-size: 0.88rem; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border: none; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4) !important;">
                             <i class="bi bi-check-circle-fill"></i> Simpan &amp; Posting
                         </button>
                     </div>
@@ -423,6 +435,16 @@
 
 @push('scripts')
 <script>
+    window.escapeHtml = window.escapeHtml || function (str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
     // ===== SELECT2 INIT =====
     $(document).ready(function () {
         $('.select2-init').select2({
@@ -446,6 +468,9 @@
     window.currentPoDeskripsiBiayaLain = 'Biaya Lain-lain';
     window.currentPoDp = 0;
     window.currentPoTotalPajak = 0;
+    window.currentPoPphTarif = 0;
+    window.currentPoPphNominal = 0;
+    window.currentPoPphNama = 'PPh';
     window.activeGudangRaks = window.activeGudangRaks || [];
     window.gudangGunakanRak = window.gudangGunakanRak || false;
 
@@ -472,7 +497,7 @@
         $('#card_status_po').html(statusPOHtml);
     };
 
-    // ===== FOOTER SUMMARY CALCULATOR =====
+    // ===== FOOTER SUMMARY CALCULATOR (Per-Item Discount & PPN) =====
     window.calculateFooterSummary = function () {
         let totalJenis = 0;
         let totalQtyReceived = 0;
@@ -480,7 +505,14 @@
         let totalQtyReject = 0;
         let totalDiskonBarang = 0;
         let totalNetItemSubtotal = 0;
+        let totalPajakBarang = 0;
         let itemIds = new Set();
+        let fmt = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+
+        let effectiveKurs = parseFloat($('#kurs_gr_raw').val()) 
+            || (typeof window.parseKursID === 'function' ? window.parseKursID($('#kurs_gr').val()) : 0) 
+            || window.currentPoKurs 
+            || 1;
 
         $('#gr_details_tbody tr').each(function () {
             let bId = $(this).find('.barang-id-val').val();
@@ -488,48 +520,66 @@
             let qtyReject = parseFloat($(this).find('.qty-reject-input').val()) || 0;
             let hargaSatuan = parseFloat($(this).data('harga-satuan')) || 0;
             let diskonItem = parseFloat($(this).data('diskon-item')) || 0;
+            let tarifPpn = parseFloat($(this).data('tarif-ppn')) || 0;
 
             if (qtyReceived > 0 || qtyReject > 0) {
                 if (bId) itemIds.add(bId);
             }
             let netPrice = Math.max(0, hargaSatuan - diskonItem);
+            let lineGross = qtyReceived * hargaSatuan;
+            let lineDiskon = qtyReceived * diskonItem;
+            let lineNet = qtyReceived * netPrice;
+            let linePpn = Math.round(lineNet * (tarifPpn / 100) * 100) / 100;
+
             totalQtyReceived += qtyReceived;
             totalQtyReject += qtyReject;
-            totalNilaiBarang += qtyReceived * hargaSatuan;
-            totalDiskonBarang += qtyReceived * diskonItem;
-            totalNetItemSubtotal += qtyReceived * netPrice;
+            totalNilaiBarang += lineGross;
+            totalDiskonBarang += lineDiskon;
+            totalNetItemSubtotal += lineNet;
+            totalPajakBarang += linePpn;
+
+            // Live updates for row
+            let fmtT = fmt(lineNet);
+            let fmtTIdr = fmt(lineNet * effectiveKurs);
+            $(this).find('.total-price-val').html(
+                `${window.currentCurrencySymbol} ${fmtT}` +
+                (window.currentCurrencySymbol !== 'Rp' ? `<br><small class="text-muted total-price-idr-val" style="font-size: 0.72rem;">Rp ${fmtTIdr}</small>` : '')
+            );
+            $(this).find('.row-ppn-preview').text(linePpn > 0 ? ('+ ' + window.currentCurrencySymbol + ' ' + fmt(linePpn)) : '');
         });
+
+        totalNilaiBarang = Math.round(totalNilaiBarang * 100) / 100;
+        totalDiskonBarang = Math.round(totalDiskonBarang * 100) / 100;
+        totalNetItemSubtotal = Math.round(totalNetItemSubtotal * 100) / 100;
+        totalPajakBarang = Math.round(totalPajakBarang * 100) / 100;
+
+        let totalDiscountVal = totalDiskonBarang;
+        let dpp = totalNetItemSubtotal;
+        let taxVal = totalPajakBarang;
 
         let ratio = (window.currentPoSubtotal > 0) ? (totalNetItemSubtotal / window.currentPoSubtotal) : 0;
         let isFullReceipt = Math.abs(ratio - 1) < 0.0001;
 
-        let headerDiscountVal = 0;
-        if (window.currentPoTotalDiskon > 0 && window.currentPoSubtotal > 0) {
-            headerDiscountVal = isFullReceipt ? window.currentPoTotalDiskon : (totalNetItemSubtotal * (window.currentPoTotalDiskon / window.currentPoSubtotal));
-        } else if (window.currentPoDiskonPersen > 0) {
-            headerDiscountVal = totalNetItemSubtotal * (window.currentPoDiskonPersen / 100);
+        let pphVal = 0;
+        if (window.currentPoPphTarif > 0) {
+            pphVal = Math.round(dpp * (window.currentPoPphTarif / 100) * 100) / 100;
+        } else if (window.currentPoPphNominal > 0) {
+            pphVal = (isFullReceipt && window.currentPoPphNominal > 0) 
+                ? window.currentPoPphNominal 
+                : Math.round(((window.currentPoPphNominal || 0) * ratio) * 100) / 100;
         }
-        let totalDiscountVal = totalDiskonBarang + headerDiscountVal;
 
-        let dpp = Math.max(0, totalNilaiBarang - totalDiscountVal);
-        let taxRate = window.currentPoPajakTarif || 0;
-        let taxVal = 0;
-        if (taxRate > 0) {
-            taxVal = (isFullReceipt && window.currentPoTotalPajak > 0) 
-                ? window.currentPoTotalPajak 
-                : Math.round(dpp * (taxRate / 100) * 100) / 100;
-        }
         let biayaLain = (isFullReceipt && window.currentPoBiayaLain > 0) 
             ? window.currentPoBiayaLain 
             : Math.round(((window.currentPoBiayaLain || 0) * ratio) * 100) / 100;
-        let totalSebelumDp = dpp + taxVal + biayaLain;
+        let totalSebelumDp = Math.max(0, dpp + taxVal + biayaLain - pphVal);
         let dpVal = (isFullReceipt && window.currentPoDp > 0) 
             ? window.currentPoDp 
             : Math.round(((window.currentPoDp || 0) * ratio) * 100) / 100;
-        let grandTotal = totalSebelumDp - dpVal;
+        let grandTotal = Math.max(0, totalSebelumDp - dpVal);
         grandTotal = Math.round(grandTotal * 100) / 100;
 
-        let effectiveKurs = parseFloat($('#kurs_gr_raw').val()) 
+        effectiveKurs = parseFloat($('#kurs_gr_raw').val()) 
             || (typeof window.parseKursID === 'function' ? window.parseKursID($('#kurs_gr').val()) : 0) 
             || window.currentPoKurs 
             || 1;
@@ -541,10 +591,19 @@
         $('#summary_qty_diterima').text(new Intl.NumberFormat('id-ID').format(totalQtyReceived));
         $('#summary_qty_reject').text(new Intl.NumberFormat('id-ID').format(totalQtyReject));
 
-        let fmt = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
         $('#summary_nilai_barang').text(window.currentCurrencySymbol + ' ' + fmt(totalNilaiBarang));
         $('#summary_diskon_val').text(totalDiscountVal > 0 ? ('-' + window.currentCurrencySymbol + ' ' + fmt(totalDiscountVal)) : (window.currentCurrencySymbol + ' 0,00'));
         $('#summary_ppn_val').text(window.currentCurrencySymbol + ' ' + fmt(taxVal));
+
+        if (pphVal > 0 || window.currentPoPphTarif > 0 || window.currentPoPphNominal > 0) {
+            $('#summary_pph_tile').removeClass('d-none');
+            let pphTitle = window.currentPoPphTarif > 0 ? ('PPh (' + window.currentPoPphTarif + '%)') : (window.currentPoPphNama || 'Potongan PPh');
+            $('#summary_pph_title').text(pphTitle);
+            $('#summary_pph_val').text(pphVal > 0 ? ('-' + window.currentCurrencySymbol + ' ' + fmt(pphVal)) : (window.currentCurrencySymbol + ' 0,00'));
+        } else {
+            $('#summary_pph_tile').addClass('d-none');
+        }
+
         $('#summary_biaya_lain_val').text(window.currentCurrencySymbol + ' ' + fmt(biayaLain));
         $('#summary_total_sebelum_dp_val').text(window.currentCurrencySymbol + ' ' + fmt(totalSebelumDp));
         $('#summary_dp_val').text(dpVal > 0 ? ('-' + window.currentCurrencySymbol + ' ' + fmt(dpVal)) : (window.currentCurrencySymbol + ' 0,00'));
@@ -624,7 +683,7 @@
                 if (rak.level) sub.push('L:' + rak.level);
                 if (sub.length > 0) label += ' (' + sub.join('/') + ')';
             }
-            html += `<option value="${rak.id}" ${sel}>${escapeHtml(label)}</option>`;
+            html += `<option value="${rak.id}" ${sel}>${window.escapeHtml(label)}</option>`;
         });
         html += `</select>`;
         if (!isSplitRow) {
@@ -692,6 +751,9 @@
             window.currentPoDeskripsiBiayaLain = res.po.deskripsi_biaya_lain || 'Biaya Lain-lain';
             window.currentPoDp = parseFloat(res.po.down_payment) || 0;
             window.currentPoTotalPajak = parseFloat(res.po.total_pajak) || 0;
+            window.currentPoPphTarif = parseFloat(res.po.pph_tarif) || 0;
+            window.currentPoPphNominal = parseFloat(res.po.pph_nominal) || parseFloat(res.po.total_pph) || 0;
+            window.currentPoPphNama = res.po.pph_nama || 'PPh';
             window.currentPoGrandTotal = parseFloat(res.po.grand_total) || 0;
 
             let fmt = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
@@ -732,6 +794,22 @@
             $('#card_gudang_tujuan').text(currentGudang);
 
             $('#card_pajak_info').text(window.currentPoPajakTarif > 0 ? `${window.currentPoPajakNama} (${window.currentPoPajakTarif}%)` : 'Tanpa PPN');
+
+            if (window.currentPoPphTarif > 0 || window.currentPoPphNominal > 0) {
+                let pphText = `${window.currentPoPphNama}`;
+                if (window.currentPoPphTarif > 0) {
+                    pphText += ` (${window.currentPoPphTarif}%)`;
+                }
+                if (window.currentPoPphNominal > 0) {
+                    pphText += ` - ${window.currentCurrencySymbol} ${fmt(window.currentPoPphNominal)}`;
+                }
+                $('#card_pph_info').text(pphText);
+                $('#card_pph_row').removeClass('d-none');
+            } else {
+                $('#card_pph_row').addClass('d-none');
+                $('#card_pph_info').text('-');
+            }
+
             $('#card_dp_info').text(window.currentPoDp > 0 ? `${window.currentCurrencySymbol} ${fmt(window.currentPoDp)}` : 'Rp 0,00 (Tanpa DP)');
             $('#card_biaya_lain_info').text(window.currentPoBiayaLain > 0 ? `${window.currentCurrencySymbol} ${fmt(window.currentPoBiayaLain)} (${window.currentPoDeskripsiBiayaLain})` : '-');
             $('#card_eta').text(res.po.eta || '-');
@@ -759,7 +837,11 @@
                 let initialQty = '';
                 let initialQtyVal = 0;
                 let diskonItem = parseFloat(item.diskon_item || 0);
-                let initialTotal = initialQtyVal * item.harga_satuan;
+                let diskonPersen = parseFloat(item.diskon_persen || 0);
+                let tarifPpn = parseFloat(item.tarif_ppn || 0);
+                let namaPpn = item.nama_ppn || (tarifPpn > 0 ? 'PPN ' + tarifPpn + '%' : 'Non PPN');
+
+                let initialTotal = initialQtyVal * Math.max(0, item.harga_satuan - diskonItem);
                 let hargaIdr = item.harga_satuan * window.currentPoKurs;
                 let diskonIdr = diskonItem * window.currentPoKurs;
                 let totalIdr = initialTotal * window.currentPoKurs;
@@ -769,6 +851,16 @@
                 let fmtHIdr = fmt(hargaIdr);
                 let fmtDIdr = fmt(diskonIdr);
                 let fmtTIdr = fmt(totalIdr);
+
+                let discText = '-';
+                if (diskonItem > 0) {
+                    let pctLabel = diskonPersen > 0 ? `-${diskonPersen % 1 === 0 ? diskonPersen.toFixed(0) : diskonPersen.toFixed(2)}% ` : '';
+                    discText = `<span class="text-danger fw-bold">${pctLabel}</span><br><small class="text-muted" style="font-size:0.72rem;">(${window.currentCurrencySymbol} ${fmtD})</small>`;
+                }
+
+                let ppnBadge = tarifPpn > 0 
+                    ? `<span class="badge bg-warning bg-opacity-10 text-warning px-2 py-0.5 rounded-pill fw-semibold" style="font-size: 0.72rem;">${window.escapeHtml(namaPpn)}</span>` 
+                    : `<span class="badge bg-light text-secondary border px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">0%</span>`;
 
                 let serialBtnHtml = '';
                 if (item.tipe_item === 'Aset' && !isFull) {
@@ -789,9 +881,9 @@
                 if (units.length <= 1) {
                     let displaySatuan = (units.length === 1 && units[0].nama_satuan) ? units[0].nama_satuan : (item.po_satuan_nama || 'UNT');
                     satuanCellHtml = `
-                        <div class="d-inline-flex align-items-center justify-content-center px-3 py-1.5 rounded-pill gr-satuan-badge" title="Satuan: ${escapeHtml(displaySatuan)}">
+                        <div class="d-inline-flex align-items-center justify-content-center px-3 py-1.5 rounded-pill gr-satuan-badge" title="Satuan: ${window.escapeHtml(displaySatuan)}">
                             <i class="bi bi-tag-fill me-1.5" style="font-size: 0.72rem;"></i>
-                            <span class="fw-bold font-monospace" style="font-size: 0.8rem; letter-spacing: 0.3px;">${escapeHtml(displaySatuan)}</span>
+                            <span class="fw-bold font-monospace" style="font-size: 0.8rem; letter-spacing: 0.3px;">${window.escapeHtml(displaySatuan)}</span>
                         </div>
                         <input type="hidden" class="satuan-id-val" value="${defaultSatuanId}">
                         <input type="hidden" class="faktor-pengali-val" value="${defaultFaktor}">
@@ -801,7 +893,7 @@
                     units.forEach(function (u) {
                         let selectedAttr = (u.satuan_id == defaultSatuanId) ? 'selected' : '';
                         let optLabel = u.label || u.nama_satuan;
-                        satuanOptionsHtml += `<option value="${u.satuan_id}" data-faktor="${u.faktor_pengali}" data-nama="${u.nama_satuan}" ${selectedAttr}>${escapeHtml(optLabel)}</option>`;
+                        satuanOptionsHtml += `<option value="${u.satuan_id}" data-faktor="${u.faktor_pengali}" data-nama="${u.nama_satuan}" ${selectedAttr}>${window.escapeHtml(optLabel)}</option>`;
                     });
                     satuanCellHtml = `
                         <select class="form-select form-select-sm satuan-select gr-satuan-select rounded-pill px-2.5 py-1 text-center" ${isFull ? 'disabled' : ''}>
@@ -823,7 +915,9 @@
                         data-qty-dipesan-dasar="${item.qty_dipesan_dasar}"
                         data-dasar-satuan-nama="${item.dasar_satuan_nama}"
                         data-po-satuan-nama="${item.po_satuan_nama}"
-                        data-diskon-item="${diskonItem}">
+                        data-diskon-item="${diskonItem}"
+                        data-diskon-persen="${diskonPersen}"
+                        data-tarif-ppn="${tarifPpn}">
                         <td data-label="Nama Barang" class="sticky-col-body">
                             <div class="d-flex align-items-center gap-3">
                                 <div class="product-img-wrapper" style="flex-shrink:0;">
@@ -855,6 +949,13 @@
                             ${window.currentCurrencySymbol} ${fmtH}
                             ${window.currentCurrencySymbol !== 'Rp' ? `<br><small class="text-muted harga-satuan-idr-val" style="font-size: 0.72rem;">Rp ${fmtHIdr}</small>` : ''}
                         </td>
+                        <td data-label="Diskon Item" class="text-end fw-medium text-nowrap">
+                            ${discText}
+                        </td>
+                        <td data-label="PPN" class="text-center text-nowrap">
+                            ${ppnBadge}
+                            <small class="text-muted d-block row-ppn-preview mt-0.5" style="font-size: 0.68rem;"></small>
+                        </td>
                         <td data-label="Qty Diterima" class="text-center">
                             <input type="number" step="any" class="form-control form-control-sm text-end qty-input rounded-pill"
                                 value="" placeholder="0" min="0" max="${item.qty_sisa}" data-max-sisa="${item.qty_sisa}" style="width: 90px; display: inline-block;" ${isFull ? 'disabled' : ''}>
@@ -876,7 +977,7 @@
             });
 
             if (!html || res.items.length === 0) {
-                $('#gr_details_tbody').html('<tr><td colspan="10" class="text-center text-muted py-4"><i class="bi bi-info-circle fs-4 d-block mb-1"></i> Tidak ada rincian barang untuk PO ini.</td></tr>');
+                $('#gr_details_tbody').html('<tr><td colspan="12" class="text-center text-muted py-4"><i class="bi bi-info-circle fs-4 d-block mb-1"></i> Tidak ada rincian barang untuk PO ini.</td></tr>');
             } else {
                 $('#gr_details_tbody').html(html);
                 if (typeof window.initGrTableDragScroll === 'function') {
@@ -1170,7 +1271,7 @@
 
                 Swal.fire({
                     title: 'Peringatan Kelebihan Qty!',
-                    html: `Total kuantitas diterima & reject untuk <b>${escapeHtml(barangNama)}</b> melebihi sisa PO!<br><small class="text-muted">Batas sisa: <b>${fmtQ(maxInCurrentUnit)}</b> (setara <b>${fmtQ(maxSisaDasar)} ${escapeHtml(dasarSatuanNama)}</b>).</small>`,
+                    html: `Total kuantitas diterima & reject untuk <b>${window.escapeHtml(barangNama)}</b> melebihi sisa PO!<br><small class="text-muted">Batas sisa: <b>${fmtQ(maxInCurrentUnit)}</b> (setara <b>${fmtQ(maxSisaDasar)} ${window.escapeHtml(dasarSatuanNama)}</b>).</small>`,
                     icon: 'warning',
                     confirmButtonText: 'Saya Mengerti',
                     customClass: { confirmButton: 'btn btn-primary rounded-pill px-4' }
@@ -1242,6 +1343,13 @@
             $('#card_total_item').text('-');
             $('#card_total_qty').text('-');
             $('#card_grand_total').text('-');
+            $('#card_pph_row').addClass('d-none');
+            $('#card_pph_info').text('-');
+            $('#summary_pph_tile').addClass('d-none');
+            $('#summary_pph_val').text('Rp 0,00');
+            window.currentPoPphTarif = 0;
+            window.currentPoPphNominal = 0;
+            window.currentPoPphNama = '';
             $('#card_progress_text').text('0%');
             $('#card_progress_bar').css('width', '0%').attr('aria-valuenow', 0);
             $('#card_progress_ratio').text('Sudah diterima: 0 / 0');
@@ -1343,9 +1451,27 @@
             }
         });
 
+        // Single submission guard for Input Modal
+        let isInputSubmitting = false;
+
+        $(document).on('click', '#btn_save_draft, .btn-action-draft', function (e) {
+            e.preventDefault();
+            if (isInputSubmitting) return;
+            $('#is_draft').val('1');
+            $('#formTambahGR').trigger('submit');
+        });
+
+        $(document).on('click', '#btn_save_gr, .btn-action-posting', function (e) {
+            e.preventDefault();
+            if (isInputSubmitting) return;
+            $('#is_draft').val('0');
+            $('#formTambahGR').trigger('submit');
+        });
+
         // ===== SUBMIT GR =====
         $('#formTambahGR').on('submit', function (e) {
             e.preventDefault();
+            if (isInputSubmitting) return;
 
             let gudangId = $('#gudang_id').val();
             if (!gudangId) {
@@ -1397,6 +1523,7 @@
                 return;
             }
 
+            isInputSubmitting = true;
             let submitBtn = $('#btn_save_gr');
             let draftBtn = $('#btn_save_draft');
             submitBtn.prop('disabled', true);
@@ -1428,6 +1555,7 @@
                 contentType: 'application/json',
                 data: JSON.stringify(payload),
                 success: function (res) {
+                    isInputSubmitting = false;
                     $('#modalTambahGR').modal('hide');
                     submitBtn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Simpan & Posting');
                     draftBtn.prop('disabled', false).html('<i class="bi bi-file-earmark-code me-1"></i>Simpan Draft');
@@ -1436,6 +1564,7 @@
                     }).then(() => { reloadTableGR(); });
                 },
                 error: function (err) {
+                    isInputSubmitting = false;
                     submitBtn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Simpan & Posting');
                     draftBtn.prop('disabled', false).html('<i class="bi bi-file-earmark-code me-1"></i>Simpan Draft');
                     let errorMsg = 'Gagal menyimpan penerimaan barang.';
@@ -1448,21 +1577,12 @@
                         } else if (err.responseJSON.message) {
                             errorMsg = err.responseJSON.message;
                         }
+                    } else if (err.responseJSON && err.responseJSON.message) {
+                        errorMsg = err.responseJSON.message;
                     }
                     Swal.fire({ title: 'Gagal!', html: errorMsg, icon: 'error' });
                 }
             });
-        });
-
-        // Draft button
-        $(document).on('click', '#btn_save_draft, .btn-action-draft', function () {
-            $('#is_draft').val('1');
-            $('#formTambahGR').trigger('submit');
-        });
-
-        // Posting button — reset is_draft=0
-        $(document).on('click', '#btn_save_gr, .btn-action-posting', function () {
-            $('#is_draft').val('0');
         });
 
     }); // end document.ready [modal_input]

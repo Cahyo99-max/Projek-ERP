@@ -23,29 +23,33 @@ class EnsureActiveBranch
 
             // If session not initialized
             if (!session()->has('active_company_id') && !session()->has('active_branch_id')) {
-                if ($userBranchesCount > 0 && $user->branches()->count() > 0) {
-                    $defaultBranch = $user->branches()
-                                          ->with('company')
-                                          ->where('branches.status', 'Active')
-                                          ->orderByRaw('user_branches.is_default DESC')
-                                          ->first();
+                // 1. Ambil PT Default yang dipilih user
+                $defaultCompany = $user->companies()
+                                       ->where('companies.status', 'Active')
+                                       ->orderByRaw('user_companies.is_default DESC')
+                                       ->first();
 
-                    if ($defaultBranch) {
-                        session([
-                            'active_branch_id'    => $defaultBranch->id,
-                            'active_branch_name'  => $defaultBranch->nama_cabang,
-                            'active_branch_kode'  => $defaultBranch->kode_cabang,
-                            'active_company_id'   => $defaultBranch->company_id,
-                            'active_company_name' => $defaultBranch->company?->nama_perusahaan ?? $defaultBranch->nama_perusahaan,
-                        ]);
-                        return $next($request);
-                    }
-                }
-
-                // Fallback to assigned company if user has no branches assigned
-                $defaultCompany = $user->companies()->orderByRaw('user_companies.is_default DESC')->first();
                 if (!$defaultCompany && $user->hasRole('Super Admin')) {
                     $defaultCompany = \App\Models\Company::where('status', 'Active')->first();
+                }
+
+                // 2. Cek apakah ada Cabang yang EKSPLISIT dijadikan default (is_default = 1)
+                $defaultBranch = $user->branches()
+                                      ->with('company')
+                                      ->where('branches.status', 'Active')
+                                      ->wherePivot('is_default', 1)
+                                      ->first();
+
+                // 3. Pasang sesi sesuai preferensi default user
+                if ($defaultBranch) {
+                    session([
+                        'active_branch_id'    => $defaultBranch->id,
+                        'active_branch_name'  => $defaultBranch->nama_cabang,
+                        'active_branch_kode'  => $defaultBranch->kode_cabang,
+                        'active_company_id'   => $defaultBranch->company_id,
+                        'active_company_name' => $defaultBranch->company?->nama_perusahaan ?? $defaultBranch->nama_perusahaan,
+                    ]);
+                    return $next($request);
                 }
 
                 if ($defaultCompany) {

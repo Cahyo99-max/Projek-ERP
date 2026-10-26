@@ -15,6 +15,8 @@ class ChartOfAccountController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('lihat-pengaturan-akuntansi');
+
         $typeFilter = $request->query('type');
         
         $query = ChartOfAccount::forActiveCompany()
@@ -30,13 +32,15 @@ class ChartOfAccountController extends Controller
 
         $accounts = $query->get();
         $parentAccounts = ChartOfAccount::forActiveCompany()->where('is_header', true)->orderBy('code')->get();
-        $accountTypes = MasterTipeAkun::active()->orderBy('kode_tipe')->get();
+        $accountTypes = MasterTipeAkun::forActiveCompany()->active()->orderBy('kode_tipe')->get();
 
         return view('master_keuangan.chart_of_accounts.viewchartofaccount', compact('accounts', 'parentAccounts', 'accountTypes', 'typeFilter'));
     }
 
     public function store(Request $request)
     {
+        $this->authorize('edit-pengaturan-akuntansi');
+
         $activeCompanyId = session('active_company_id');
 
         $request->validate([
@@ -88,6 +92,8 @@ class ChartOfAccountController extends Controller
 
     public function edit(ChartOfAccount $chartOfAccount)
     {
+        $this->authorize('lihat-pengaturan-akuntansi');
+
         $activeCompanyId = session('active_company_id');
 
         if ($activeCompanyId && $chartOfAccount->company_id && $chartOfAccount->company_id != $activeCompanyId) {
@@ -99,6 +105,8 @@ class ChartOfAccountController extends Controller
 
     public function update(Request $request, ChartOfAccount $chartOfAccount)
     {
+        $this->authorize('edit-pengaturan-akuntansi');
+
         $activeCompanyId = session('active_company_id');
 
         if ($activeCompanyId && $chartOfAccount->company_id && $chartOfAccount->company_id != $activeCompanyId) {
@@ -153,6 +161,8 @@ class ChartOfAccountController extends Controller
 
     public function destroy(ChartOfAccount $chartOfAccount)
     {
+        $this->authorize('edit-pengaturan-akuntansi');
+
         $activeCompanyId = session('active_company_id');
 
         if ($activeCompanyId && $chartOfAccount->company_id && $chartOfAccount->company_id != $activeCompanyId) {
@@ -175,6 +185,8 @@ class ChartOfAccountController extends Controller
     // ─── EXPORT ──────────────────────────────────────────────────────────────
     public function exportExcel()
     {
+        $this->authorize('lihat-pengaturan-akuntansi');
+
         $activeCompanyId = session('active_company_id');
         set_time_limit(0);
 
@@ -235,6 +247,8 @@ class ChartOfAccountController extends Controller
     // ─── TEMPLATE IMPORT ─────────────────────────────────────────────────────
     public function downloadTemplate()
     {
+        $this->authorize('lihat-pengaturan-akuntansi');
+
         $rows = [
             ['Kode Akun', 'Nama Akun', 'Tipe Akun', 'Saldo Normal', 'Akun Induk (Parent)', 'Kategori', 'Status', 'Deskripsi'],
             ['1-1000', 'ASET / AKTIVA', 'AST - Aset / Aktiva', 'DEBIT', '', 'Header (Induk)', 'Aktif', 'Induk Utama Aktiva'],
@@ -259,6 +273,8 @@ class ChartOfAccountController extends Controller
     // ─── IMPORT ──────────────────────────────────────────────────────────────
     public function importExcel(Request $request)
     {
+        $this->authorize('edit-pengaturan-akuntansi');
+
         try {
             $request->validate([
                 'excel_file' => 'required|file|mimes:xlsx,csv,txt',
@@ -302,7 +318,7 @@ class ChartOfAccountController extends Controller
             DB::beginTransaction();
             $activeCompanyId = session('active_company_id');
 
-            $tipeAkuns = MasterTipeAkun::all();
+            $tipeAkuns = MasterTipeAkun::forActiveCompany()->get();
             $parsedRows = [];
             $processedCodes = [];
 

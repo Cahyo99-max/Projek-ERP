@@ -28,6 +28,7 @@ class PurchasePayment extends Model
         'kurs',
         'total_faktur',
         'total_potongan',
+        'potongan_coa_id',
         'total_bayar',
         'status',
         'keterangan',
@@ -79,19 +80,32 @@ class PurchasePayment extends Model
     {
         static::creating(function ($model) {
             if (auth()->check()) {
-                $model->created_by = auth()->id();
+                $model->created_by = $model->created_by ?: auth()->id();
             }
-            if (!$model->branch_id && session('active_branch_id')) {
-                $model->branch_id = session('active_branch_id');
-            }
-            if (!$model->company_id && session('active_company_id')) {
-                $model->company_id = session('active_company_id');
+            $activeBranchId = session('active_branch_id');
+            // Strict Tenancy Isolation:
+            // Jika Cabang -> branch_id terisi, company_id WAJIB NULL
+            // Jika PT Pusat -> company_id terisi, branch_id WAJIB NULL
+            if (!empty($model->branch_id) || (!empty($activeBranchId) && empty($model->company_id))) {
+                $model->branch_id  = $model->branch_id ?: $activeBranchId;
+                $model->company_id = null;
+            } else {
+                $model->branch_id = null;
+                if (empty($model->company_id)) {
+                    $model->company_id = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
+                }
             }
         });
 
         static::updating(function ($model) {
             if (auth()->check()) {
                 $model->updated_by = auth()->id();
+            }
+            // Strict Tenancy Isolation pada update
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            } elseif (!empty($model->company_id)) {
+                $model->branch_id = null;
             }
         });
 
@@ -101,6 +115,45 @@ class PurchasePayment extends Model
                 $model->saveQuietly();
             }
         });
+    }
+
+    /**
+     * Scope: Filter berdasarkan entitas aktif (PT Pusat vs Cabang)
+     */
+    public function scopeForActiveCompany($query)
+    {
+        $branchId  = session('active_branch_id');
+        $companyId = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
+        $table = $this->getTable();
+
+        if (!empty($branchId)) {
+            // Aktif sebagai Cabang -> company_id WAJIB NULL
+            return $query->whereNull($table . '.company_id');
+        }
+
+        // Aktif sebagai PT Pusat -> branch_id WAJIB NULL, company_id = active_company_id
+        $query->whereNull($table . '.branch_id');
+        if (!empty($companyId)) {
+            $query->where($table . '.company_id', $companyId);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Scope Active Branch (Strict Isolation: PT Pusat vs Cabang)
+     */
+    public function scopeForActiveBranch($query)
+    {
+        $branchId = session('active_branch_id');
+        $table = $this->getTable();
+
+        if (!empty($branchId)) {
+            return $query->where($table . '.branch_id', intval($branchId))
+                         ->whereNull($table . '.company_id');
+        }
+
+        return $query->whereNull($table . '.branch_id');
     }
 
     public function isDraft(): bool
@@ -226,5 +279,10 @@ class PurchasePayment extends Model
     public function kasMutasi(): HasOne
     {
         return $this->hasOne(KasMutasi::class, 'nomor_referensi', 'nomor_pembayaran');
+    }
+
+    public function potonganCoa(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'potongan_coa_id');
     }
 }

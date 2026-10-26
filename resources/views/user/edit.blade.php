@@ -146,7 +146,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Cabang Default <small class="text-muted">(Opsional)</small></label>
                         <select name="default_branch_id" id="edit_default_branch_id" class="form-select form-select-custom">
-                            <option value="">Pilih Cabang Default...</option>
+                            <option value="">-- Tingkat Pusat / PT Induk (Tanpa Cabang) --</option>
                         </select>
                     </div>
                 </div>

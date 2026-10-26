@@ -141,8 +141,30 @@
         .sig-line {
             width: 155px;
             border-bottom: 1.5px solid #334155;
-            margin-top: 50px;
+            margin-top: 45px;
             margin-bottom: 5px;
+        }
+
+        /* Editable Signature Fields */
+        [contenteditable="true"] {
+            outline: 1px dashed transparent;
+            border-radius: 4px;
+            padding: 1px 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+
+        [contenteditable="true"]:hover {
+            outline: 1px dashed #3b82f6;
+            background: rgba(59, 130, 246, 0.06);
+        }
+
+        [contenteditable="true"]:focus {
+            outline: 1.5px solid #2563eb !important;
+            background: #ffffff !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+            cursor: text;
         }
 
         /* Print Specific Setup */
@@ -166,8 +188,10 @@
             .no-print {
                 display: none !important;
             }
-            .table-custom thead {
-                display: table-header-group;
+            /* Mencegah header tabel diulang di halaman baru saat print (hanya tampil di halaman 1) */
+            .table-custom thead,
+            thead {
+                display: table-row-group !important;
             }
             .table-custom tr {
                 page-break-inside: avoid !important;
@@ -176,6 +200,12 @@
             .jurnal-block-group {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+            }
+            [contenteditable="true"] {
+                outline: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                padding: 0 !important;
             }
         }
     </style>
@@ -189,37 +219,91 @@
             <button onclick="window.close()" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1">
                 <i class="bi bi-arrow-left me-1"></i> Tutup
             </button>
-            <button onclick="window.print()" class="btn btn-primary btn-sm rounded-pill px-4 py-1.5 fw-bold shadow-sm" style="background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); border: none;">
-                <i class="bi bi-printer me-1"></i> Cetak Laporan (PDF)
-            </button>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-light text-secondary border font-mono d-none d-md-inline-flex align-items-center gap-1.5 px-3 py-1.5" style="font-size: 10px;">
+                    <i class="bi bi-pencil-square text-primary"></i>
+                    <span>Tanda Tangan Dapat Diedit Langsung (Klik Teks)</span>
+                </span>
+                <a href="{{ route('accounting.jurnal-umum.export-excel', ['start_date' => $startDate, 'end_date' => $endDate, 'referensi_tipe' => $referensiTipe]) }}" class="btn btn-outline-success btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-flex align-items-center gap-1.5 text-decoration-none">
+                    <i class="bi bi-file-earmark-excel-fill text-success"></i>
+                    <span>Export Excel</span>
+                </a>
+                <button onclick="window.print()" class="btn btn-primary btn-sm rounded-pill px-4 py-1.5 fw-bold shadow-sm" style="background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); border: none;">
+                    <i class="bi bi-printer me-1"></i> Cetak Laporan (PDF)
+                </button>
+            </div>
         </div>
 
-        <!-- Kop Surat Resmi Perusahaan -->
+        @if(!empty($isTruncated))
+        <div class="alert alert-warning border-0 rounded-3 p-2.5 mb-3 d-flex align-items-center gap-2 small no-print">
+            <i class="bi bi-exclamation-triangle-fill text-warning fs-5 flex-shrink-0"></i>
+            <div>
+                <strong>Perhatian Skala Data Besar:</strong> Ditemukan total <strong>{{ number_format($totalCount, 0, ',', '.') }}</strong> transaksi jurnal pada rentang ini. Sistem membatasi pratinjau cetak ke <strong>{{ number_format($maxPrintLimit, 0, ',', '.') }} transaksi pertama</strong> untuk mencegah browser freeze / kehabisan memori. Nilai Grand Total di bawah tetap mengakumulasi seluruh {{ number_format($totalCount, 0, ',', '.') }} transaksi secara akurat. Silakan perkecil rentang tanggal (misal per bulan/minggu) untuk cetak dokumen fisik per periode.
+            </div>
+        </div>
+        @endif
+
+        <!-- Header Laporan Bersih (Tanpa Nama PT / Cabang Sesuai Permintaan) -->
         <div class="d-flex justify-content-between align-items-center kop-surat-wrapper">
-            <div class="d-flex align-items-center gap-3">
-                @if(!empty($companyLogo))
-                    <img src="{{ $companyLogo }}" alt="Logo Perusahaan" style="max-height: 50px; max-width: 130px; object-fit: contain;">
-                @else
-                    <div class="p-2 rounded-2 bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
-                        <i class="bi bi-building fs-5"></i>
-                    </div>
-                @endif
-                <div>
-                    <h5 class="fw-bold mb-0" style="color: #1e3a8a; letter-spacing: 0.5px; font-size: 15px;">{{ $company?->nama_perusahaan ?: config('app.name', 'PT PERSADA AMAN SENTOSA') }}</h5>
-                    <div class="text-muted" style="font-size: 10px;">
-                        {{ $company?->address ?: ($company?->city ?: 'Sistem Informasi Manajemen Akuntansi & Keuangan ERP') }}
-                        @if($company?->phone) | Telp: {{ $company->phone }} @endif
-                    </div>
-                </div>
+            <div>
+                <h5 class="fw-bold mb-0 text-uppercase" style="color: #1e3a8a; letter-spacing: 0.5px; font-size: 15px;">
+                    LAPORAN JURNAL UMUM
+                </h5>
             </div>
             <div class="text-end">
-                <h6 class="fw-bold mb-0 text-dark" style="letter-spacing: 0.5px; font-size: 13px;">LAPORAN BUKU JURNAL UMUM</h6>
-                <div class="text-muted" style="font-size: 10px;">
-                    Periode: <strong class="text-dark">{{ date('d F Y', strtotime($startDate)) }}</strong> s/d <strong class="text-dark">{{ date('d F Y', strtotime($endDate)) }}</strong>
+                <div class="fw-semibold text-dark" style="font-size: 11px;">
+                    Periode: <strong class="text-primary">{{ date('d F Y', strtotime($startDate)) }}</strong> s/d <strong class="text-primary">{{ date('d F Y', strtotime($endDate)) }}</strong>
                 </div>
                 <div class="text-muted font-mono" style="font-size: 9.5px;">Dicetak: {{ now()->translatedFormat('d F Y H:i') }} WIB</div>
             </div>
         </div>
+
+@php
+if (!function_exists('parseJurnalKeteranganAndTender')) {
+    function parseJurnalKeteranganAndTender($jurnal) {
+        $text   = $jurnal->keterangan ?: '-';
+        $tender = $jurnal->no_tender ?? null;
+
+        // 1. Ekstrak tender jika ada di dalam teks
+        if (!$tender && preg_match('/(?:Tender|TDN)[\s:]*([A-Za-z0-9\-_]+)/i', $text, $matches)) {
+            $tender = $matches[1];
+        }
+
+        // 2. Bersihkan tag tender dalam kurung dari teks agar tidak berulang
+        $clean = preg_replace('/\s*\((?:Tender)[\s:][^)]*\)/i', '', $text);
+        $clean = preg_replace('/\s*\[(?:Tender)[\s:][^\]]*\]/i', '', $clean);
+
+        // 3. Hapus kurung siku nama PT / Cabang di awal keterangan, misal: [Kas Kecil Cabang - Iconic Durable Reliable] atau [PT ...]
+        $clean = preg_replace('/^\[[^\]]+\]\s*/i', '', $clean);
+
+        // 4. Hapus referensi kode dokumen / nomor ref yang panjang (PC-..., DO-..., INV-..., CR-..., CD-..., PO-..., SO-..., GR-..., GI-..., KM-..., KK-..., dsb.)
+        $clean = preg_replace('/\b(?:PC|DO|INV|CR|CD|PO|SO|GR|GI|KM|KK|SPK|TF|ADJ|OPN)(?:-[A-Z0-9\/\-_]+|\/[A-Z0-9\/\-_]+)\b/i', '', $clean);
+
+        // 5. Bersihkan nomor ref dalam kurung jika masih ada
+        $clean = preg_replace('/\s*\((?:SO|PO|DO|CR|CD|INV|GR|GI|SPK|PC)[^)]*\)/i', '', $clean);
+        $clean = preg_replace('/\s*\([A-Z0-9\/\-_]{6,}\)/i', '', $clean);
+
+        // 6. Bersihkan duplikasi "PT PT" menjadi "PT"
+        $clean = preg_replace('/\bPT\s+PT\b/i', 'PT', $clean);
+
+        // 7. Ubah variasi kata sambung " dari " atau " ke " menjadi separator " - "
+        $clean = preg_replace('/\s+(?:ke|dari)\s+/i', ' - ', $clean);
+
+        // 8. Rapikan pemisah ganda seperti " - - " atau ": -" atau "- :", kurung kosong, dan tanda pagar menggantung
+        $clean = preg_replace('/\s*[-:]\s*[-:]+\s*/', ' - ', $clean);
+        $clean = preg_replace('/\s*:\s*/', ': ', $clean);
+        $clean = preg_replace('/\s*\(\s*\)/', '', $clean);
+        $clean = preg_replace('/\s*#\s*/', ' ', $clean);
+        $clean = preg_replace('/\s+/', ' ', $clean);
+        $clean = trim($clean, " -:,#");
+
+        return [
+            'keterangan' => $clean ?: $text,
+            'tender'     => $tender
+        ];
+    }
+}
+@endphp
 
         <!-- Tabel Jurnal Umum -->
         <div class="table-responsive mb-2">
@@ -227,41 +311,50 @@
                 <thead>
                     <tr>
                         <th style="width: 85px;" class="text-center">Tanggal</th>
-                        <th style="width: 145px;">No. Jurnal</th>
-                        <th>Kode &amp; Nama Akun COA / Keterangan</th>
-                        <th style="width: 130px;" class="text-end">Debit (Rp)</th>
-                        <th style="width: 130px;" class="text-end">Kredit (Rp)</th>
+                        <th style="width: 140px;">No. Jurnal</th>
+                        <th>Nama Akun COA / Keterangan</th>
+                        <th style="width: 125px;" class="text-end">Debit</th>
+                        <th style="width: 125px;" class="text-end">Kredit</th>
                     </tr>
                 </thead>
 
                 <!-- Mengelompokkan per transaksi jurnal dengan tbody tersendiri (page-break safe) -->
                 @forelse($jurnals as $j)
+                @php
+                    $parsed = parseJurnalKeteranganAndTender($j);
+                @endphp
                 <tbody class="jurnal-block-group">
-                    <!-- Header Judul Jurnal -->
+                    <!-- Header Judul Jurnal: Ringkas, Tanpa Nama PT/Cabang, Tanpa Nomor Ref, Menampilkan Tender -->
                     <tr class="jurnal-group-row">
                         <td class="text-center font-mono" style="color: #1d4ed8 !important;">{{ date('d/m/Y', strtotime($j->tanggal_jurnal)) }}</td>
                         <td class="font-mono">
-                            <span class="badge" style="background: rgba(37, 99, 235, 0.15); color: #1e40af; border: 1px solid rgba(37, 99, 235, 0.3); font-size: 9.5px;">{{ $j->nomor_jurnal }}</span>
+                            <span class="badge" style="background: rgba(37, 99, 235, 0.12); color: #1e40af; border: 1px solid rgba(37, 99, 235, 0.25); font-size: 9.5px;">{{ $j->nomor_jurnal }}</span>
                         </td>
                         <td colspan="3">
-                            <span class="fw-bold text-dark">{{ $j->keterangan ?: '-' }}</span>
-                            <span class="badge rounded-pill ms-1.5" style="background: #2563eb; color: #ffffff; font-size: 9px; padding: 2px 6px;">
-                                {{ $j->referensi_tipe ?: 'Manual' }}
-                            </span>
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-1.5">
+                                <div class="d-flex align-items-center flex-wrap gap-1.5">
+                                    <span class="fw-bold text-dark">{{ $parsed['keterangan'] }}</span>
+                                    @if(!empty($parsed['tender']))
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill font-mono px-2 py-0.5" style="font-size: 8.5px; font-weight: 700;">
+                                            <i class="bi bi-briefcase me-1"></i>Tender: {{ $parsed['tender'] }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <span class="badge rounded-pill font-mono" style="background: rgba(37, 99, 235, 0.12); color: #1d4ed8; border: 1px solid rgba(37, 99, 235, 0.25); font-size: 8.5px; padding: 2px 8px; font-weight: 600;">
+                                    {{ $j->referensi_tipe ?: 'Manual' }}
+                                </span>
+                            </div>
                         </td>
                     </tr>
 
-                    <!-- Baris Rincian Akun (Debit & Kredit) -->
+                    <!-- Baris Rincian Akun (Bersih & Padat: Tanpa Catatan Tambahan) -->
                     @foreach($j->details as $d)
                     <tr class="jurnal-detail-row">
                         <td class="border-0"></td>
                         <td class="border-0 text-center font-mono text-muted" style="font-size: 10px;">↳</td>
                         <td class="{{ $d->kredit > 0 ? 'kredit-indent' : '' }}">
                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono me-1" style="font-size: 9.5px;">{{ $d->account ? $d->account->code : '-' }}</span>
-                            <strong class="text-dark">{{ $d->account ? $d->account->name : 'Akun Tidak Ditemukan' }}</strong>
-                            @if($d->keterangan && $d->keterangan !== $j->keterangan)
-                                <div class="text-muted fst-italic ps-2" style="font-size: 9.5px;">Catatan: {{ $d->keterangan }}</div>
-                            @endif
+                            <span class="text-dark fw-semibold">{{ $d->account ? $d->account->name : 'Akun Tidak Ditemukan' }}</span>
                         </td>
                         <td class="text-end font-mono" style="{{ $d->debit > 0 ? 'font-weight: 700; color: #16a34a !important;' : 'color: #94a3b8;' }}">
                             {{ $d->debit > 0 ? number_format($d->debit, 2, ',', '.') : '-' }}
@@ -285,7 +378,20 @@
                 <!-- Grand Total (Hanya Tampil di Akhir Dokumen) -->
                 <tfoot>
                     <tr>
-                        <td colspan="3" class="text-end text-uppercase" style="font-size: 11px; font-weight: 700;">GRAND TOTAL PERIODE:</td>
+                        <td colspan="3" class="text-end text-uppercase" style="font-size: 11px; font-weight: 700;">
+                            GRAND TOTAL PERIODE:
+                            @if(isset($isBalanced))
+                                @if($isBalanced)
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle ms-2 font-mono" style="font-size: 9px; font-weight: 700; padding: 2px 7px;">
+                                        <i class="bi bi-check2-circle me-0.5"></i>BALANCE
+                                    </span>
+                                @else
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-2 font-mono" style="font-size: 9px; font-weight: 700; padding: 2px 7px;">
+                                        <i class="bi bi-exclamation-triangle me-0.5"></i>SELISIH: Rp {{ number_format(abs($totalDebit - $totalKredit), 2, ',', '.') }}
+                                    </span>
+                                @endif
+                            @endif
+                        </td>
                         <td class="text-end font-mono" style="font-size: 11px; font-weight: 700; color: #16a34a !important;">Rp {{ number_format($totalDebit, 2, ',', '.') }}</td>
                         <td class="text-end font-mono" style="font-size: 11px; font-weight: 700; color: #1d4ed8 !important;">Rp {{ number_format($totalKredit, 2, ',', '.') }}</td>
                     </tr>
@@ -293,22 +399,25 @@
             </table>
         </div>
 
-        <!-- Tanda Tangan Otorisasi Resmi -->
+        <!-- Tanda Tangan Otorisasi Resmi (Dapat Diedit Langsung Sebelum Dicetak) -->
         <div class="row text-center signature-section">
             <div class="col-4 sig-box">
-                <div class="text-muted" style="font-size: 10.5px;">Dibuat Oleh:</div>
+                <div class="text-muted" contenteditable="true" spellcheck="false" title="Klik untuk mengedit teks" style="font-size: 10.5px;">Dibuat Oleh:</div>
                 <div class="sig-line"></div>
-                <div class="fw-semibold text-dark" style="font-size: 10.5px;">Staff Accounting</div>
+                <div class="fw-bold text-dark" contenteditable="true" spellcheck="false" title="Klik untuk mengedit nama" style="font-size: 10.5px;">( Staff Accounting )</div>
+                <div class="text-muted mt-0.5" contenteditable="true" spellcheck="false" title="Klik untuk mengedit jabatan" style="font-size: 9.5px;">Staff Pembukuan</div>
             </div>
             <div class="col-4 sig-box">
-                <div class="text-muted" style="font-size: 10.5px;">Diperiksa Oleh:</div>
+                <div class="text-muted" contenteditable="true" spellcheck="false" title="Klik untuk mengedit teks" style="font-size: 10.5px;">Diperiksa Oleh:</div>
                 <div class="sig-line"></div>
-                <div class="fw-semibold text-dark" style="font-size: 10.5px;">Accounting Manager</div>
+                <div class="fw-bold text-dark" contenteditable="true" spellcheck="false" title="Klik untuk mengedit nama" style="font-size: 10.5px;">( Accounting Manager )</div>
+                <div class="text-muted mt-0.5" contenteditable="true" spellcheck="false" title="Klik untuk mengedit jabatan" style="font-size: 9.5px;">Manager Akuntansi &amp; Keuangan</div>
             </div>
             <div class="col-4 sig-box">
-                <div class="text-muted" style="font-size: 10.5px;">Disetujui Oleh:</div>
+                <div class="text-muted" contenteditable="true" spellcheck="false" title="Klik untuk mengedit teks" style="font-size: 10.5px;">Disetujui Oleh:</div>
                 <div class="sig-line"></div>
-                <div class="fw-semibold text-dark" style="font-size: 10.5px;">Direktur Keuangan</div>
+                <div class="fw-bold text-dark" contenteditable="true" spellcheck="false" title="Klik untuk mengedit nama" style="font-size: 10.5px;">( Direktur Keuangan )</div>
+                <div class="text-muted mt-0.5" contenteditable="true" spellcheck="false" title="Klik untuk mengedit jabatan" style="font-size: 9.5px;">Direksi Perusahaan</div>
             </div>
         </div>
 

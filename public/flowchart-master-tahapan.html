@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flowchart Master Tahapan Produksi — ERP System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <style>
+        :root {
+            --bg-deep:      #05080f;
+            --bg-card:      rgba(13, 18, 30, 0.85);
+            --bg-surface:   rgba(20, 28, 48, 0.65);
+            --border:       rgba(255, 255, 255, 0.08);
+            --border-glow:  rgba(59, 130, 246, 0.35);
+            --primary:      #3b82f6;
+            --primary-d:    #1d4ed8;
+            --emerald:      #10b981;
+            --amber:        #f59e0b;
+            --cyan:         #06b6d4;
+            --violet:       #8b5cf6;
+            --text-1:       #f1f5f9;
+            --text-2:       #94a3b8;
+            --text-3:       #64748b;
+            --radius-sm:    8px;
+            --radius-md:    14px;
+            --radius-lg:    22px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-1);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(ellipse 80% 50% at 10%  0%,  rgba(59,130,246,0.10) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 90% 100%, rgba(139,92,246,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 30% at 50%  50%, rgba(6,182,212,0.05)  0%, transparent 60%);
+        }
+
+        /* ── HEADER ─────────────────────────────────────────────── */
+        header {
+            padding: 1.1rem 2rem;
+            background: rgba(5,8,15,0.80);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 200;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; flex-wrap: wrap;
+        }
+
+        .header-brand { display: flex; align-items: center; gap: 0.85rem; }
+
+        .brand-icon {
+            width: 42px; height: 42px; border-radius: 11px;
+            background: linear-gradient(135deg, var(--primary), var(--cyan));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.25rem; color: #fff;
+            box-shadow: 0 0 22px rgba(59,130,246,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+
+        .brand-text h1 {
+            font-size: 1.08rem; font-weight: 800; letter-spacing: -0.02em;
+            background: linear-gradient(90deg,#fff 0%,#cbd5e1 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+        .brand-text span { font-size: 0.75rem; color: var(--text-3); font-weight: 500; }
+
+        .header-pills { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+
+        .pill {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            padding: 0.28rem 0.72rem; border-radius: 99px;
+            font-size: 0.71rem; font-weight: 700; letter-spacing: 0.03em; border: 1px solid;
+        }
+        .pill-blue   { background:rgba(59,130,246,0.12); color:#60a5fa; border-color:rgba(59,130,246,0.25); }
+        .pill-green  { background:rgba(16,185,129,0.12); color:#34d399; border-color:rgba(16,185,129,0.25); }
+        .pill-amber  { background:rgba(245,158,11,0.12); color:#fbbf24; border-color:rgba(245,158,11,0.25); }
+        .pill-violet { background:rgba(139,92,246,0.12); color:#a78bfa; border-color:rgba(139,92,246,0.25); }
+
+        .header-actions { display: flex; gap: 0.45rem; flex-shrink: 0; }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.46rem 0.9rem; border-radius: var(--radius-sm);
+            font-size: 0.82rem; font-weight: 600; cursor: pointer;
+            transition: all 0.18s ease; border: 1px solid var(--border);
+            background: var(--bg-surface); color: var(--text-1); text-decoration: none;
+        }
+        .btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); transform: translateY(-1px); }
+        .btn-primary { background: var(--primary-d); border-color: var(--primary); color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,0.28); }
+        .btn-primary:hover { background: var(--primary); box-shadow: 0 6px 20px rgba(59,130,246,0.35); }
+
+        /* ── PAGE WRAP ─────────────────────────────────────────── */
+        .page-wrap {
+            max-width: 1600px; margin: 0 auto;
+            padding: 1.75rem 2rem;
+            display: flex; flex-direction: column; gap: 1.5rem;
+        }
+
+        /* ── INFO BANNER ───────────────────────────────────────── */
+        .info-banner {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1.25rem; flex-wrap: wrap;
+            padding: 1.1rem 1.5rem;
+            background: linear-gradient(135deg, rgba(37,99,235,0.10) 0%, rgba(6,182,212,0.07) 100%);
+            border: 1px solid rgba(59,130,246,0.22);
+            border-radius: var(--radius-md);
+        }
+        .info-banner-left h2 {
+            font-size: 0.98rem; font-weight: 800; color: #fff;
+            display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.2rem;
+        }
+        .info-banner-left p { font-size: 0.82rem; color: var(--text-2); line-height: 1.5; }
+        .info-steps { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+        .step-chip {
+            background: rgba(15,23,42,0.7); border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.35rem 0.7rem; border-radius: 99px;
+            font-size: 0.74rem; font-weight: 600; color: #e2e8f0;
+            display: flex; align-items: center; gap: 0.38rem;
+        }
+        .step-chip span {
+            width: 17px; height: 17px; border-radius: 50%;
+            background: var(--primary); color: #fff;
+            font-size: 0.62rem; display: inline-flex;
+            align-items: center; justify-content: center; font-weight: 800;
+        }
+        .step-sep { color: var(--text-3); font-size: 0.75rem; }
+
+        /* ── STAT STRIP ────────────────────────────────────────── */
+        .stat-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 0.8rem;
+        }
+        .stat-item {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 0.95rem 1.1rem;
+            display: flex; align-items: center; gap: 0.85rem;
+            backdrop-filter: blur(12px);
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .stat-item:hover { border-color: var(--border-glow); transform: translateY(-2px); }
+        .stat-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; flex-shrink: 0;
+        }
+        .stat-label { font-size: 0.70rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--text-3); }
+        .stat-value { font-size: 0.90rem; font-weight: 700; color: #fff; margin-top: 2px; }
+
+        /* ── DIAGRAM PANEL ─────────────────────────────────────── */
+        .diagram-panel {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 1.2rem;
+            align-items: start;
+        }
+        @media (max-width: 1120px) { .diagram-panel { grid-template-columns: 1fr; } }
+
+        .diagram-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); overflow: hidden;
+            box-shadow: 0 30px 60px -20px rgba(0,0,0,0.65);
+            backdrop-filter: blur(16px);
+        }
+
+        .diagram-header {
+            padding: 0.8rem 1.2rem;
+            background: rgba(10,15,28,0.55);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        .diagram-header-left { display: flex; align-items: center; gap: 0.55rem; font-size: 0.8rem; color: var(--text-2); }
+        .dot-row { display: flex; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot-r { background:#ef4444; } .dot-y { background:#f59e0b; } .dot-g { background:#10b981; }
+
+        .canvas-wrap {
+            position: relative; width: 100%; height: 700px;
+            background: linear-gradient(135deg,#070b14 0%,#090d1a 100%);
+            cursor: grab; overflow: hidden;
+        }
+        .canvas-wrap:active { cursor: grabbing; }
+        .canvas-wrap::before {
+            content: ''; position: absolute; inset: 0; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        #mermaidCanvas { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+
+        /* ── ZOOM FAB ──────────────────────────────────────────── */
+        .zoom-fab {
+            position: absolute; bottom: 16px; right: 16px;
+            display: flex; flex-direction: column; gap: 3px;
+            background: rgba(10,15,28,0.88); backdrop-filter: blur(12px);
+            border: 1px solid var(--border); border-radius: 12px;
+            padding: 5px; z-index: 50;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+        }
+        .zoom-btn {
+            width: 32px; height: 32px; background: transparent; border: none;
+            color: var(--text-2); border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 0.95rem;
+            transition: background 0.15s, color 0.15s;
+        }
+        .zoom-btn:hover { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        .zoom-divider { height: 1px; background: var(--border); margin: 1px 4px; }
+        #zoomLevel { text-align:center; font-size:0.63rem; font-family:'JetBrains Mono',monospace; color:var(--text-3); padding:2px 0; }
+
+        /* ── LOADING ───────────────────────────────────────────── */
+        .loading-overlay {
+            position: absolute; inset: 0; background: rgba(7,11,20,0.93);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+            z-index: 100; transition: opacity 0.3s, visibility 0.3s;
+        }
+        .loading-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(59,130,246,0.18);
+            border-top-color: var(--primary); border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { font-size: 0.83rem; color: var(--text-2); font-weight: 500; }
+
+        /* ── SIDEBAR ───────────────────────────────────────────── */
+        .sidebar-legend { display: flex; flex-direction: column; gap: 0.9rem; }
+
+        .leg-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 1.05rem 1.1rem;
+            backdrop-filter: blur(12px);
+        }
+        .leg-title {
+            font-size: 0.71rem; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.07em; color: var(--text-3);
+            margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.4rem;
+        }
+        .leg-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .leg-row { display: flex; align-items: center; gap: 0.6rem; font-size: 0.79rem; color: var(--text-2); font-weight: 500; }
+        .swatch { width: 22px; height: 13px; border-radius: 4px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.09); }
+
+        /* Step items in sidebar */
+        .stp-item {
+            display: flex; gap: 0.6rem;
+            padding-bottom: 0.6rem; border-bottom: 1px solid var(--border);
+        }
+        .stp-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .stp-num {
+            width: 22px; height: 22px; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.68rem; font-weight: 800; flex-shrink: 0; margin-top: 1px;
+        }
+        .stp-body h4 { font-size: 0.79rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
+        .stp-body p  { font-size: 0.72rem; color: var(--text-3); line-height: 1.4; }
+
+        /* ── DETAIL CARDS ──────────────────────────────────────── */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+            gap: 0.95rem;
+        }
+        .dc {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 1.2rem;
+            backdrop-filter: blur(12px); position: relative; overflow: hidden;
+            transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+        }
+        .dc::before { content:''; position:absolute; top:0;left:0;right:0; height:2px; }
+        .dc:hover { border-color:rgba(59,130,246,0.3); transform:translateY(-3px); box-shadow:0 16px 32px rgba(0,0,0,0.25); }
+        .dc-num {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 7px;
+            font-size: 0.78rem; font-weight: 800; margin-bottom: 0.8rem;
+        }
+        .dc h3 { font-size: 0.92rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem; }
+        .dc p  { font-size: 0.8rem; color: var(--text-2); line-height: 1.5; }
+        .dc-badge {
+            display: inline-block; margin-top: 0.6rem;
+            font-size: 0.69rem; font-weight: 600; padding: 0.18rem 0.5rem;
+            border-radius: 5px; background: rgba(59,130,246,0.12);
+            color: #93c5fd; border: 1px solid rgba(59,130,246,0.22);
+        }
+        .c-blue::before   { background: linear-gradient(90deg,var(--primary),var(--cyan)); }
+        .c-amber::before  { background: linear-gradient(90deg,var(--amber),#fcd34d); }
+        .c-green::before  { background: linear-gradient(90deg,var(--emerald),#34d399); }
+        .c-violet::before { background: linear-gradient(90deg,var(--violet),#a78bfa); }
+
+        /* ── TOAST ─────────────────────────────────────────────── */
+        .toast-notif {
+            position: fixed; bottom: 22px; left: 50%;
+            transform: translateX(-50%) translateY(30px);
+            padding: 0.7rem 1.35rem; border-radius: 11px;
+            font-size: 0.81rem; font-weight: 600; border: 1px solid;
+            backdrop-filter: blur(14px); opacity: 0; pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.16,1,0.3,1); z-index: 999;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+        }
+        .toast-notif.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+
+        /* ── MERMAID FONT OVERRIDE ─────────────────────────────── */
+        .node text, .cluster-label text {
+            font-family: 'Inter', sans-serif !important;
+            font-weight: 600 !important;
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 1rem 1.25rem; }
+            .page-wrap { padding: 1.25rem 1rem; gap: 1.25rem; }
+            .canvas-wrap { height: 520px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header>
+    <div class="header-brand">
+        <div class="brand-icon"><i class="bi bi-diagram-3-fill"></i></div>
+        <div class="brand-text">
+            <h1>Master Tahapan Produksi — Flowchart Alur Kerja</h1>
+            <span>Panduan Menyusun Urutan Langkah Kerja &amp; SOP Visual Garmen</span>
+        </div>
+    </div>
+
+    <div class="header-pills">
+        <div class="pill pill-blue"><i class="bi bi-check2-circle"></i> Mudah Dipahami</div>
+        <div class="pill pill-amber"><i class="bi bi-magic"></i> Preset 6 Alur Garmen</div>
+        <div class="pill pill-green"><i class="bi bi-camera"></i> Foto SOP Otomatis</div>
+    </div>
+
+    <div class="header-actions">
+        <button class="btn" id="btnExport" onclick="exportPNG()">
+            <i class="bi bi-image"></i> Unduh PNG
+        </button>
+        <a href="/produksi/master-tahapan" class="btn btn-primary">
+            <i class="bi bi-box-arrow-up-right"></i> Buka Modul
+        </a>
+    </div>
+</header>
+
+<!-- ═══════════════ PAGE CONTENT ═══════════════ -->
+<div class="page-wrap">
+
+    <!-- Info Banner -->
+    <div class="info-banner">
+        <div class="info-banner-left">
+            <h2><i class="bi bi-lightbulb-fill" style="color:#fbbf24;"></i> Apa itu Master Tahapan Produksi?</h2>
+            <p>Tempat menyusun <strong>urutan langkah kerja pabrik</strong> (Pola → Potong → Jahit → QC → Setrika) beserta <strong>foto contoh SOP</strong> agar kualitas produksi konsisten dan operator tidak kebingungan.</p>
+        </div>
+        <div class="info-steps">
+            <div class="step-chip"><span>1</span> Pilih Resep / BOM</div>
+            <i class="bi bi-arrow-right step-sep"></i>
+            <div class="step-chip"><span>2</span> Susun Langkah Kerja</div>
+            <i class="bi bi-arrow-right step-sep"></i>
+            <div class="step-chip"><span>3</span> Unggah Foto SOP</div>
+            <i class="bi bi-arrow-right step-sep"></i>
+            <div class="step-chip"><span>4</span> Simpan &amp; Selesai</div>
+        </div>
+    </div>
+
+    <!-- Stat Strip -->
+    <div class="stat-strip">
+        <div class="stat-item">
+            <div class="stat-icon" style="background:rgba(59,130,246,0.15);color:#3b82f6;"><i class="bi bi-box-seam-fill"></i></div>
+            <div><div class="stat-label">Diterapkan Per</div><div class="stat-value">Resep Baju / BOM</div></div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;"><i class="bi bi-magic"></i></div>
+            <div><div class="stat-label">Fitur Cepat</div><div class="stat-value">1 Klik → 6 Alur Garmen</div></div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:#10b981;"><i class="bi bi-camera-fill"></i></div>
+            <div><div class="stat-label">Foto SOP</div><div class="stat-value">Kompres Otomatis (WebP)</div></div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:#8b5cf6;"><i class="bi bi-layers-fill"></i></div>
+            <div><div class="stat-label">Kapasitas Batch</div><div class="stat-value">Hingga 50 Tahapan</div></div>
+        </div>
+    </div>
+
+    <!-- Diagram Panel -->
+    <div class="diagram-panel">
+
+        <!-- Diagram Card -->
+        <div class="diagram-card">
+            <div class="diagram-header">
+                <div class="diagram-header-left">
+                    <div class="dot-row">
+                        <div class="dot dot-r"></div>
+                        <div class="dot dot-y"></div>
+                        <div class="dot dot-g"></div>
+                    </div>
+                    <span style="margin-left:4px;"><i class="bi bi-mouse2"></i> Scroll = Zoom &nbsp;|&nbsp; Drag = Geser</span>
+                </div>
+                <div class="pill pill-green" style="font-size:0.68rem;">v2.1 — Flowchart Produksi</div>
+            </div>
+
+            <div class="canvas-wrap" id="canvasWrap">
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Memuat diagram…</div>
+                </div>
+
+                <div class="zoom-fab">
+                    <button class="zoom-btn" onclick="doZoomIn()" title="Perbesar"><i class="bi bi-plus-lg"></i></button>
+                    <div class="zoom-divider"></div>
+                    <button class="zoom-btn" onclick="doZoomOut()" title="Perkecil"><i class="bi bi-dash-lg"></i></button>
+                    <div class="zoom-divider"></div>
+                    <button class="zoom-btn" onclick="resetView()" title="Reset"><i class="bi bi-aspect-ratio"></i></button>
+                    <div id="zoomLevel">100%</div>
+                </div>
+
+                <div id="mermaidCanvas">
+                    <pre class="mermaid">
+flowchart TD
+
+    %% ── MULAI ──────────────────────────────────────────────────────────────
+    START(["🚀 Buka Menu\nMaster Tahapan Produksi"])
+
+    %% ── BLOK 1: HALAMAN UTAMA ──────────────────────────────────────────────
+    subgraph BLK1 ["  📋  HALAMAN UTAMA — DAFTAR ALUR PRODUK  "]
+        direction TB
+        B1["Sistem mendeteksi lokasi aktif:\nPusat (PT) atau Cabang"]
+        B2["Tampil tabel alur produk\ndikelompokkan per Resep BOM"]
+        B3{"Pilih Tindakan"}
+    end
+
+    %% ── BLOK 2: BUAT ALUR BARU ─────────────────────────────────────────────
+    subgraph BLK2 ["  ➕  BUAT ALUR TAHAPAN BARU  "]
+        direction TB
+        C1["Klik  '+ Tambah Tahapan'"]
+        C2["Pilih Resep BOM\nyang sudah Approved"]
+        C3{"Cara Isi\nLangkah Kerja?"}
+        C4["⚡ Klik 'Preset Garmen'\nOtomatis 6 Langkah Standar:\nPola → Potong → Bordir → Jahit → QC → Setrika"]
+        C5["✏️ Ketik Manual\nNama Langkah Sendiri"]
+        C6["Tulis Petunjuk / Instruksi Kerja\n(Deskripsi SOP tiap langkah)"]
+        C7["📸 Unggah Foto Contoh\nFoto dikompres otomatis agar ringan"]
+        C8{"Tambah Langkah\nLagi?"}
+        C9["Klik Simpan Alur"]
+    end
+
+    %% ── BLOK 3: VALIDASI & SIMPAN ──────────────────────────────────────────
+    subgraph BLK3 ["  💾  VALIDASI & PENYIMPANAN  "]
+        direction TB
+        D1{"Alur untuk produk\nini sudah ada?"}
+        D2["⚠️ Peringatan:\nGunakan tombol Edit\nuntuk mengubah alur"]
+        D3["✅ Simpan ke Database\n& Foto SOP tersimpan permanen"]
+        D4(["🎉 Berhasil!\nTabel alur otomatis diperbarui"])
+    end
+
+    %% ── BLOK 4: KELOLA ALUR EKSISTING ─────────────────────────────────────
+    subgraph BLK4 ["  ⚙️  KELOLA ALUR YANG SUDAH ADA  "]
+        direction LR
+        E1["👁️ Detail\nLihat urutan lengkap\n& zoom foto SOP"]
+        E2["✏️ Edit\nTambah / ubah / hapus\nlangkah & foto"]
+        E3["🗑️ Hapus\nHapus seluruh alur\n& bersihkan foto"]
+    end
+
+    %% ── KONEKSI UTAMA ───────────────────────────────────────────────────────
+    START --> B1 --> B2 --> B3
+
+    B3 -->|"Buat Alur Baru"| C1
+    C1 --> C2 --> C3
+
+    C3 -->|"Otomatis"| C4
+    C3 -->|"Manual"| C5
+    C4 --> C6
+    C5 --> C6
+    C6 --> C7 --> C8
+
+    C8 -->|"Ya, tambah"| C5
+    C8 -->|"Sudah lengkap"| C9 --> D1
+
+    D1 -->|"Sudah Ada"| D2
+    D2 --> C6
+    D1 -->|"Belum Ada"| D3 --> D4
+
+    B3 -->|"Kelola Alur"| E1
+    B3 -->|"Kelola Alur"| E2
+    B3 -->|"Kelola Alur"| E3
+    E2 --> C9
+
+    %% ── STYLE CLASSES ───────────────────────────────────────────────────────
+    classDef default   fill:#0f172a,stroke:#334155,stroke-width:1.5px,color:#e2e8f0;
+    classDef nodeStart fill:#0c1a2e,stroke:#3b82f6,stroke-width:2.5px,color:#fff;
+    classDef nodeDone  fill:#052e16,stroke:#10b981,stroke-width:2.5px,color:#d1fae5;
+    classDef nodeDecis fill:#1a1040,stroke:#7c3aed,stroke-width:2px,color:#ddd6fe;
+    classDef nodeWarn  fill:#450a0a,stroke:#ef4444,stroke-width:2px,color:#fecaca;
+    classDef nodePhoto fill:#042f2e,stroke:#06b6d4,stroke-width:2px,color:#a5f3fc;
+    classDef nodeCtrl  fill:#1e293b,stroke:#64748b,stroke-width:1.5px,color:#cbd5e1;
+
+    class START nodeStart;
+    class D4 nodeDone;
+    class B3,C3,C8,D1 nodeDecis;
+    class D2 nodeWarn;
+    class C7 nodePhoto;
+    class E1,E2,E3 nodeCtrl;
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Legend -->
+        <div class="sidebar-legend">
+
+            <!-- Arti Warna -->
+            <div class="leg-card">
+                <div class="leg-title"><i class="bi bi-palette-fill"></i> Arti Warna Kotak</div>
+                <div class="leg-list">
+                    <div class="leg-row">
+                        <div class="swatch" style="background:#0c1a2e;border-color:#3b82f6;"></div>
+                        <span>Titik Mulai</span>
+                    </div>
+                    <div class="leg-row">
+                        <div class="swatch" style="background:#0f172a;border-color:#334155;"></div>
+                        <span>Langkah / Proses Biasa</span>
+                    </div>
+                    <div class="leg-row">
+                        <div class="swatch" style="background:#1a1040;border-color:#7c3aed;"></div>
+                        <span>Pilihan / Keputusan</span>
+                    </div>
+                    <div class="leg-row">
+                        <div class="swatch" style="background:#042f2e;border-color:#06b6d4;"></div>
+                        <span>Unggah Foto SOP</span>
+                    </div>
+                    <div class="leg-row">
+                        <div class="swatch" style="background:#052e16;border-color:#10b981;"></div>
+                        <span>Berhasil / Selesai</span>
+                    </div>
+                    <div class="leg-row">
+                        <div class="swatch" style="background:#450a0a;border-color:#ef4444;"></div>
+                        <span>Peringatan / Error</span>
+                    </div>
+                    <div class="leg-row">
+                        <div class="swatch" style="background:#1e293b;border-color:#64748b;"></div>
+                        <span>Tombol Kelola Alur</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6 Preset Standar -->
+            <div class="leg-card" style="border-color:rgba(16,185,129,0.28);background:rgba(5,46,22,0.22);">
+                <div class="leg-title" style="color:#34d399;"><i class="bi bi-magic"></i> 6 Preset Standar Garmen</div>
+                <div class="leg-list" style="gap:0.42rem;">
+                    <div class="leg-row"><span style="color:#34d399;font-size:0.8rem;font-weight:800;">①</span> Pola Kain (Pattern)</div>
+                    <div class="leg-row"><span style="color:#34d399;font-size:0.8rem;font-weight:800;">②</span> Potong Bahan (Cutting)</div>
+                    <div class="leg-row"><span style="color:#34d399;font-size:0.8rem;font-weight:800;">③</span> Sablon &amp; Bordir</div>
+                    <div class="leg-row"><span style="color:#34d399;font-size:0.8rem;font-weight:800;">④</span> Penjahitan (Sewing)</div>
+                    <div class="leg-row"><span style="color:#34d399;font-size:0.8rem;font-weight:800;">⑤</span> Pemeriksaan QC</div>
+                    <div class="leg-row"><span style="color:#34d399;font-size:0.8rem;font-weight:800;">⑥</span> Finishing &amp; Packing</div>
+                </div>
+                <small style="color:var(--text-3);font-size:0.7rem;display:block;margin-top:0.6rem;">
+                    Klik <strong style="color:#34d399;">"Preset Garmen"</strong> → 6 langkah ini langsung terisi otomatis!
+                </small>
+            </div>
+
+            <!-- 3 Tombol Kelola -->
+            <div class="leg-card">
+                <div class="leg-title"><i class="bi bi-toggles2"></i> 3 Tombol Aksi di Tabel</div>
+                <div class="leg-list" style="gap:0;">
+                    <div class="stp-item">
+                        <div class="stp-num" style="background:rgba(59,130,246,0.15);color:#60a5fa;"><i class="bi bi-eye-fill"></i></div>
+                        <div class="stp-body">
+                            <h4>Detail</h4>
+                            <p>Lihat urutan kerja &amp; perbesar foto SOP</p>
+                        </div>
+                    </div>
+                    <div class="stp-item">
+                        <div class="stp-num" style="background:rgba(245,158,11,0.15);color:#fbbf24;"><i class="bi bi-pencil-fill"></i></div>
+                        <div class="stp-body">
+                            <h4>Edit</h4>
+                            <p>Tambah, kurangi, atau ganti langkah &amp; foto kapan saja</p>
+                        </div>
+                    </div>
+                    <div class="stp-item">
+                        <div class="stp-num" style="background:rgba(239,68,68,0.15);color:#f87171;"><i class="bi bi-trash-fill"></i></div>
+                        <div class="stp-body">
+                            <h4>Hapus</h4>
+                            <p>Hapus seluruh alur beserta foto di server</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Detail Feature Cards -->
+    <div class="detail-grid">
+        <div class="dc c-blue">
+            <div class="dc-num" style="background:rgba(59,130,246,0.15);color:#3b82f6;">01</div>
+            <h3>1 Produk = 1 Alur Kerja</h3>
+            <p>Setiap jenis pakaian punya tahapan berbeda. Kaos polo cukup dengan 4–5 tahap, sedangkan kemeja formal atau jas bisa butuh 8–10 tahap. Alur dikunci rapi per Resep BOM sehingga tidak tercampur antar produk.</p>
+            <div class="dc-badge">Group by bom_id</div>
+        </div>
+        <div class="dc c-amber">
+            <div class="dc-num" style="background:rgba(245,158,11,0.15);color:#f59e0b;">02</div>
+            <h3>Isi Cepat dengan Preset</h3>
+            <p>Tidak perlu mengetik dari nol. Tekan tombol <strong>"Preset Garmen"</strong> dan sistem langsung mengisi 6 tahapan standar industri garmen. Bisa ditambah atau diubah setelah preset dimuat.</p>
+            <div class="dc-badge">Hemat Waktu Input</div>
+        </div>
+        <div class="dc c-green">
+            <div class="dc-num" style="background:rgba(16,185,129,0.15);color:#10b981;">03</div>
+            <h3>Foto SOP Anti-Lemot</h3>
+            <p>Operator lebih mudah memahami instruksi kerja lewat foto contoh jahitan yang benar. Setiap foto yang diunggah otomatis dikompres ke format WebP (max 1200px) agar tidak memakan memori dan tetap cepat dibuka di HP.</p>
+            <div class="dc-badge">Auto WebP Compression</div>
+        </div>
+        <div class="dc c-violet">
+            <div class="dc-num" style="background:rgba(139,92,246,0.15);color:#8b5cf6;">04</div>
+            <h3>Terhubung Otomatis ke SPK</h3>
+            <p>Saat SPK (Surat Perintah Kerja) dibuat dan memilih resep BOM tertentu, seluruh urutan tahapan langsung otomatis disalin ke lembar kerja SPK. Mandor dan operator tinggal menjalankan step by step sesuai panduan.</p>
+            <div class="dc-badge">API /api/all-active</div>
+        </div>
+    </div>
+
+</div><!-- /page-wrap -->
+
+<script>
+    let panZoomInst = null;
+
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        securityLevel: 'loose',
+        flowchart: {
+            useMaxWidth: false,
+            htmlLabels: true,
+            curve: 'basis',
+            diagramPadding: 20,
+            nodeSpacing: 40,
+            rankSpacing: 48,
+        },
+        themeVariables: {
+            darkMode: true,
+            background: '#090d16',
+            primaryColor: '#0f172a',
+            primaryTextColor: '#e2e8f0',
+            primaryBorderColor: '#334155',
+            lineColor: '#475569',
+            secondaryColor: '#1a1040',
+            tertiaryColor: '#052e16',
+            clusterBkg: 'rgba(15,23,42,0.55)',
+            clusterBorder: 'rgba(71,85,105,0.55)',
+            titleColor: '#94a3b8',
+            edgeLabelBackground: 'rgba(9,13,22,0.88)',
+            fontFamily: 'Inter, sans-serif',
+        }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const overlay = document.getElementById('loadingOverlay');
+        const tryInit = (tries) => {
+            const svg = document.querySelector('#mermaidCanvas svg');
+            if (svg) {
+                svg.style.width = '100%';
+                svg.style.height = '100%';
+                svg.style.maxWidth = 'none';
+                panZoomInst = svgPanZoom(svg, {
+                    zoomEnabled: true,
+                    controlIconsEnabled: false,
+                    fit: true, center: true,
+                    minZoom: 0.18, maxZoom: 8,
+                    zoomScaleSensitivity: 0.22,
+                    onZoom: (z) => {
+                        document.getElementById('zoomLevel').textContent = Math.round(z * 100) + '%';
+                    }
+                });
+                overlay.classList.add('hidden');
+            } else if (tries > 0) {
+                setTimeout(() => tryInit(tries - 1), 350);
+            } else {
+                overlay.classList.add('hidden');
+            }
+        };
+        setTimeout(() => tryInit(14), 400);
+    });
+
+    function doZoomIn()  { if (panZoomInst) panZoomInst.zoomIn(); }
+    function doZoomOut() { if (panZoomInst) panZoomInst.zoomOut(); }
+    function resetView() {
+        if (panZoomInst) {
+            panZoomInst.resetZoom(); panZoomInst.center();
+            document.getElementById('zoomLevel').textContent = '100%';
+        }
+    }
+
+    async function exportPNG() {
+        const btn = document.getElementById('btnExport');
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Memproses...';
+        try {
+            if (panZoomInst) { panZoomInst.fit(); panZoomInst.center(); }
+            await new Promise(r => setTimeout(r, 300));
+
+            const svgEl = document.querySelector('#mermaidCanvas svg');
+            if (!svgEl) throw new Error('SVG tidak ditemukan.');
+
+            const rect = svgEl.getBoundingClientRect();
+            const W = Math.max(rect.width, 1400);
+            const H = Math.max(rect.height, 800);
+
+            const clone = svgEl.cloneNode(true);
+            clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            clone.setAttribute('width', W);
+            clone.setAttribute('height', H);
+            clone.removeAttribute('style');
+
+            const vp = clone.querySelector('[id*="viewport"]') || clone.querySelector('g');
+            if (vp) vp.removeAttribute('transform');
+
+            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bg.setAttribute('width', '100%'); bg.setAttribute('height', '100%'); bg.setAttribute('fill', '#090d16');
+            clone.insertBefore(bg, clone.firstChild);
+
+            const svgStr = new XMLSerializer().serializeToString(clone);
+            const dataUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+
+            const scale = 2;
+            const canvas = document.createElement('canvas');
+            canvas.width = W * scale; canvas.height = H * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
+            ctx.fillStyle = '#090d16'; ctx.fillRect(0, 0, W, H);
+
+            await new Promise((res, rej) => {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0, W, H);
+                    const now = new Date();
+                    ctx.font = '500 11px sans-serif';
+                    ctx.fillStyle = 'rgba(148,163,184,0.5)';
+                    ctx.textAlign = 'right';
+                    ctx.fillText('ERP — Master Tahapan Produksi | ' + now.toLocaleDateString('id-ID', {day:'2-digit',month:'long',year:'numeric'}), W - 14, H - 10);
+                    const link = document.createElement('a');
+                    link.download = 'Flowchart-Master-Tahapan-' + now.toISOString().slice(0,10) + '.png';
+                    link.href = canvas.toDataURL('image/png', 1.0);
+                    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                    res();
+                };
+                img.onerror = () => rej(new Error('Gagal render PNG.'));
+                img.src = dataUri;
+            });
+            showToast('✅ Berhasil diunduh!');
+        } catch (e) {
+            showToast('❌ ' + e.message, true);
+        }
+        btn.innerHTML = '<i class="bi bi-image"></i> Unduh PNG';
+    }
+
+    function showToast(msg, isError = false) {
+        let t = document.getElementById('toastNotif');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'toastNotif'; t.className = 'toast-notif';
+            document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        t.style.background  = isError ? 'rgba(239,68,68,0.15)'  : 'rgba(16,185,129,0.15)';
+        t.style.borderColor = isError ? 'rgba(239,68,68,0.35)'  : 'rgba(16,185,129,0.35)';
+        t.style.color       = isError ? '#f87171' : '#34d399';
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3200);
+    }
+</script>
+</body>
+</html>

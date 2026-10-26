@@ -68,6 +68,11 @@ class MasterGudang extends Model
         return $this->belongsTo(Branch::class, 'cabang_id');
     }
 
+    public function branch(): BelongsTo
+    {
+        return $this->cabang();
+    }
+
     public function jenisGudang(): BelongsTo
     {
         return $this->belongsTo(MasterJenisGudang::class, 'jenis_gudang_id');
@@ -94,6 +99,36 @@ class MasterGudang extends Model
         if ($activeCompanyId) {
             return $query->where($this->getTable() . '.company_id', $activeCompanyId);
         }
+        return $query;
+    }
+
+    public function scopeForActiveBranch($query)
+    {
+        $activeBranchId = session('active_branch_id');
+        $table = $this->getTable();
+
+        if (!empty($activeBranchId)) {
+            return $query->where($table . '.cabang_id', $activeBranchId);
+        }
+        return $query->whereNull($table . '.cabang_id');
+    }
+
+    public function scopeForActiveEntity($query)
+    {
+        $activeCompanyId = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
+        $activeBranchId  = session('active_branch_id');
+        $table = $this->getTable();
+
+        if ($activeCompanyId) {
+            $query->where($table . '.company_id', $activeCompanyId);
+        }
+
+        if (!empty($activeBranchId)) {
+            $query->where($table . '.cabang_id', $activeBranchId);
+        } else {
+            $query->whereNull($table . '.cabang_id');
+        }
+
         return $query;
     }
 

@@ -23,27 +23,38 @@ class MasterTahapanProduksiController extends Controller
 
         // AJAX DataTables request (Grouped per Resep BOM / Template Umum)
         if ($request->ajax()) {
-            $allTahapans = MasterTahapanProduksi::forActiveCompany()
-                ->with(['bom.barangJadi'])
-                ->orderBy('urutan', 'asc')
-                ->get();
+            $query = MasterTahapanProduksi::forActiveCompany()
+                ->with(['bom.barangJadi:id,nama_barang,kode_barang'])
+                ->select(['id', 'company_id', 'branch_id', 'bom_id', 'nama_tahapan', 'deskripsi', 'foto', 'urutan', 'is_active', 'created_at', 'updated_at'])
+                ->orderBy('urutan', 'asc');
+
+            // Push filter langsung ke level query SQL (Hemat RAM & Skala Jutaan Data)
+            if ($request->filled('filter_bom_id')) {
+                $filterVal = (string) $request->filter_bom_id;
+                if ($filterVal === 'general') {
+                    $query->whereNull('bom_id');
+                } else {
+                    $query->where('bom_id', $filterVal);
+                }
+            }
+
+            $allTahapans = $query->get();
 
             // Group by bom_id (null => 'general')
             $grouped = $allTahapans->groupBy(function ($item) {
                 return $item->bom_id ? (string) $item->bom_id : 'general';
             });
 
-            // Filter if filter_bom_id is provided
-            if ($request->filled('filter_bom_id')) {
-                $filterVal = (string) $request->filter_bom_id;
-                $grouped = $grouped->filter(function ($items, $key) use ($filterVal) {
-                    return (string) $key === $filterVal;
-                });
-            }
+            // Urutkan grup alur tahapan berdasarkan yang terakhir dibuat (created_at desc / id desc)
+            $sortedGrouped = $grouped->sortByDesc(function ($items) {
+                $maxCreated = $items->max('created_at');
+                return $maxCreated ? $maxCreated->timestamp : $items->max('id');
+            });
 
             $data = [];
             $no = 1;
-            foreach ($grouped as $bomKey => $items) {
+            foreach ($sortedGrouped as $bomKey => $items) {
+                $items = $items->sortBy('urutan')->values();
                 $first = $items->first();
                 $bom = $first->bom;
                 $total = $items->count();
@@ -72,11 +83,11 @@ class MasterTahapanProduksiController extends Controller
                                         <span class="badge rounded-pill px-3 py-1.5 fw-bold text-white shadow-sm" style="background: linear-gradient(135deg, #1d4ed8, #2563eb); font-size: 12.5px; border: 1px solid rgba(255,255,255,0.25);">
                                             <i class="bi bi-diagram-2-fill me-1.5 text-white"></i>' . e($row['bom_nama']) . '
                                         </span>
-                                        <span class="badge rounded-pill px-2.5 py-1 fw-semibold text-white" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); font-size: 11px;">
+                                        <span class="badge rounded-pill px-2.5 py-1 fw-semibold spk-text-main" style="background: var(--spk-bg-tertiary, #f1f5f9); border: 1px solid var(--spk-border-color, #cbd5e1); font-size: 11px;">
                                             ' . e($row['bom_kode']) . '
                                         </span>
                                     </div>
-                                    ' . ($row['barang_nama'] ? '<div class="small mt-1 text-white-50" style="font-size: 12px;"><i class="bi bi-box-seam me-1 text-info"></i>Produk: <strong class="text-white fw-bold">' . e($row['barang_nama']) . '</strong></div>' : '') . '
+                                    ' . ($row['barang_nama'] ? '<div class="small mt-1 spk-text-muted" style="font-size: 12px;"><i class="bi bi-box-seam me-1 text-primary"></i>Produk: <strong class="spk-text-main fw-bold">' . e($row['barang_nama']) . '</strong></div>' : '') . '
                                 </div>';
                     }
                     return '<div class="d-flex flex-column gap-1 py-1">
@@ -85,7 +96,7 @@ class MasterTahapanProduksiController extends Controller
                                         <i class="bi bi-layers-fill me-1.5 text-white"></i>Template Umum (Semua BOM)
                                     </span>
                                 </div>
-                                <small class="text-white-50 mt-0.5" style="font-size: 11px;">Alur standar umum untuk SPK yang tidak memiliki resep BOM khusus</small>
+                                <small class="spk-text-muted mt-0.5" style="font-size: 11px;">Alur standar umum untuk SPK yang tidak memiliki resep BOM khusus</small>
                             </div>';
                 })
                 ->addColumn('preview_alur', function ($row) {
@@ -106,7 +117,7 @@ class MasterTahapanProduksiController extends Controller
                             $url = asset('storage/' . $item->foto);
                             $photoHtml .= '<img src="' . $url . '" alt="' . e($item->nama_tahapan) . '" 
                                                 class="rounded-3 border shadow-xs cursor-pointer img-thumbnail-tahapan" 
-                                                style="width: 34px; height: 34px; object-fit: cover; border-color: rgba(255,255,255,0.3) !important;" 
+                                                style="width: 34px; height: 34px; object-fit: cover; border-color: var(--spk-border-color, #cbd5e1) !important;" 
                                                 onclick="previewFotoTahapan(\'' . $url . '\', \'' . e(addslashes($item->nama_tahapan)) . '\')" 
                                                 title="Tahap ' . $item->urutan . ': ' . e($item->nama_tahapan) . '">';
                             $photoCount++;
@@ -122,12 +133,12 @@ class MasterTahapanProduksiController extends Controller
                     $stepNames = [];
                     $slice = $items->slice(0, 3);
                     foreach ($slice as $s) {
-                        $stepNames[] = '<span class="text-white-50">' . $s->urutan . '. <strong class="text-white fw-bold">' . e($s->nama_tahapan) . '</strong></span>';
+                        $stepNames[] = '<span class="spk-text-muted">' . $s->urutan . '. <strong class="spk-text-main fw-bold">' . e($s->nama_tahapan) . '</strong></span>';
                     }
                     if ($total > 3) {
                         $stepNames[] = '<span class="text-warning fw-semibold fst-italic">+' . ($total - 3) . ' lainnya...</span>';
                     }
-                    $html .= '<div class="small text-white-50 text-truncate" style="max-width: 440px; font-size: 12px;">' . implode(' <i class="bi bi-arrow-right text-info mx-1" style="font-size: 11px;"></i> ', $stepNames) . '</div>';
+                    $html .= '<div class="small spk-text-muted text-truncate" style="max-width: 440px; font-size: 12px;">' . implode(' <i class="bi bi-arrow-right text-primary mx-1" style="font-size: 11px;"></i> ', $stepNames) . '</div>';
                     $html .= '</div>';
 
                     return $html;
@@ -146,7 +157,7 @@ class MasterTahapanProduksiController extends Controller
                     $bomKey    = $row['bom_key'];
                     $bomNamaSafe = e(addslashes($row['bom_nama']));
 
-                    $btnDetail = "<button class='btn btn-sm btn-outline-info rounded-pill px-2.5 me-1.5 shadow-xs' onclick='bukaDetailAlurBom(\"{$bomKey}\")' title='Lihat Seluruh Tahapan'><i class='bi bi-eye-fill me-1'></i>Detail</button>";
+                    $btnDetail = "<button class='btn btn-sm btn-outline-primary rounded-pill px-2.5 me-1.5 shadow-xs' onclick='bukaDetailAlurBom(\"{$bomKey}\")' title='Lihat Seluruh Tahapan'><i class='bi bi-eye-fill me-1'></i>Detail</button>";
                     $btnEdit   = $canEdit ? "<button class='btn btn-sm btn-outline-warning rounded-pill px-2.5 me-1.5 shadow-xs' onclick='editAlurBom(\"{$bomKey}\")' title='Edit Alur BOM'><i class='bi bi-pencil'></i></button>" : '';
                     $btnDelete = $canDelete ? "<button class='btn btn-sm btn-outline-danger rounded-pill px-2.5 shadow-xs' onclick='hapusAlurBom(\"{$bomKey}\", \"{$bomNamaSafe}\")' title='Hapus Alur BOM'><i class='bi bi-trash'></i></button>" : '';
 
@@ -156,12 +167,88 @@ class MasterTahapanProduksiController extends Controller
                 ->make(true);
         }
 
-        $boms = Bom::forActiveCompany()
-            ->with(['barangJadi'])
-            ->orderBy('nama_bom', 'asc')
-            ->get(['id', 'kode_bom', 'nama_bom', 'barang_jadi_id', 'status']);
+        $activeBranchId    = session('active_branch_id');
+        $activeBranchName  = session('active_branch_name');
+        $activeCompanyName = session('active_company_name') ?: 'PT';
+        $isCabang          = !empty($activeBranchId);
+        $companyId         = session('active_company_id');
 
-        return view('modul_produksi.master_tahapan.index', compact('boms'));
+        // Untuk dropdown filter di halaman index:
+        // Ambil SEMUA BOM yang alur tahapannya sedang tampil di tabel untuk company/branch aktif
+        $bomIdsInTahapan = MasterTahapanProduksi::forActiveCompany()
+            ->whereNotNull('bom_id')
+            ->distinct()
+            ->pluck('bom_id');
+
+        $bomsQuery = Bom::forActiveCompany()
+            ->with(['barangJadi:id,nama_barang,kode_barang'])
+            ->whereIn('id', $bomIdsInTahapan)
+            ->orderBy('nama_bom', 'asc');
+
+        $boms = $bomsQuery->get(['id', 'kode_bom', 'nama_bom', 'barang_jadi_id', 'status', 'branch_id']);
+
+        return view('modul_produksi.master_tahapan.index', compact(
+            'boms', 'activeBranchId', 'activeBranchName', 'activeCompanyName', 'isCabang'
+        ));
+    }
+
+    /**
+     * Search Approved BOM via AJAX for Modal Lookup (Enterprise Scale / Millions of Records).
+     * Strictly limited to 25 items, fast indexing, isolated by PT vs Cabang, and status Approved.
+     */
+    public function searchBom(Request $request)
+    {
+        $this->authorize('lihat-master-tahapan');
+
+        $companyId       = session('active_company_id');
+        $activeBranchId  = session('active_branch_id');
+        $isCabang        = !empty($activeBranchId);
+
+        $query = Bom::forActiveCompany()
+            ->with(['barangJadi:id,nama_barang,kode_barang'])
+            ->whereIn('status', ['Approved', 'approved', 'Disetujui', 'disetujui']);
+
+        if ($request->filled('q')) {
+            $search = trim($request->q);
+            $query->where(function ($sub) use ($search) {
+                $sub->where('kode_bom', 'like', "%{$search}%")
+                    ->orWhere('nama_bom', 'like', "%{$search}%")
+                    ->orWhereHas('barangJadi', function ($b) use ($search) {
+                        $b->where('nama_barang', 'like', "%{$search}%")
+                          ->orWhere('kode_barang', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $boms = $query->orderBy('id', 'desc')->limit(25)->get(['id', 'kode_bom', 'nama_bom', 'barang_jadi_id', 'status', 'branch_id']);
+
+        // Cek BOM mana saja yang sudah pernah di-input alur tahapannya di company/branch aktif
+        $existingBomIds = MasterTahapanProduksi::forActiveCompany()
+            ->whereNotNull('bom_id')
+            ->distinct()
+            ->pluck('bom_id')
+            ->toArray();
+
+        // Cek apakah Template Umum sudah pernah di-input di company/branch aktif
+        $hasGeneralTahapan = MasterTahapanProduksi::forActiveCompany()
+            ->whereNull('bom_id')
+            ->exists();
+
+        return response()->json([
+            'boms' => $boms->map(function ($b) use ($existingBomIds) {
+                return [
+                    'id'          => $b->id,
+                    'kode_bom'    => $b->kode_bom,
+                    'nama_bom'    => $b->nama_bom,
+                    'barang_nama' => $b->barangJadi ? $b->barangJadi->nama_barang : '',
+                    'barang_kode' => $b->barangJadi ? $b->barangJadi->kode_barang : '',
+                    'status'      => $b->status,
+                    'has_tahapan' => in_array($b->id, $existingBomIds),
+                ];
+            }),
+            'count'               => $boms->count(),
+            'has_general_tahapan' => $hasGeneralTahapan,
+        ]);
     }
 
 
@@ -172,31 +259,84 @@ class MasterTahapanProduksiController extends Controller
     {
         $this->authorize('tambah-master-tahapan');
 
-        $companyId = session('active_company_id');
+        $activeCompanyId = session('active_company_id') ?? Auth::user()->company_id ?? 1;
+        $activeBranchId  = session('active_branch_id') ?: null;
 
         // ── BATCH MULTI-ROW INPUT ──
         if ($request->has('tahapans') && is_array($request->tahapans)) {
             $validated = $request->validate([
-                'bom_id'                  => 'nullable|exists:boms,id',
+                'bom_id'                  => 'required|exists:boms,id',
                 'tahapans'                => 'required|array|min:1|max:50',
                 'tahapans.*.nama_tahapan' => 'required|string|max:100',
                 'tahapans.*.deskripsi'    => 'nullable|string|max:255',
                 'tahapans.*.urutan'       => 'nullable|integer',
+            ], [
+                'bom_id.required'         => 'Resep BOM / Kode BOM wajib dipilih.',
+                'bom_id.exists'           => 'Resep BOM yang dipilih tidak valid atau tidak ditemukan.',
+                'tahapans.required'       => 'Daftar tahapan produksi wajib diisi.',
+                'tahapans.min'            => 'Minimal 1 baris tahapan produksi harus diisi.',
             ]);
 
             DB::beginTransaction();
             try {
-                $createdCount = 0;
                 $bomId = $validated['bom_id'] ?? null;
+                if ($bomId) {
+                    $bom = Bom::find($bomId);
+                    if ($bom && !empty($bom->branch_id)) {
+                        $finalBranchId  = $bom->branch_id;
+                        $finalCompanyId = null; // Cabang input: PT null
+                    } elseif ($bom) {
+                        $finalBranchId  = null; // PT input: Cabang null
+                        $finalCompanyId = $bom->company_id ?? $activeCompanyId;
+                    } else {
+                        $finalBranchId  = $activeBranchId;
+                        $finalCompanyId = !empty($activeBranchId) ? null : $activeCompanyId;
+                    }
+                } else {
+                    if (!empty($activeBranchId)) {
+                        $finalBranchId  = $activeBranchId;
+                        $finalCompanyId = null; // Cabang input: PT null
+                    } else {
+                        $finalBranchId  = null; // PT input: Cabang null
+                        $finalCompanyId = $activeCompanyId;
+                    }
+                }
 
-                // Hitung base urutan saat ini
-                $baseUrutanQuery = MasterTahapanProduksi::where('company_id', $companyId);
+                // Keamanan & Integritas: Cek apakah alur tahapan untuk BOM / Template ini sudah pernah di-input sebelumnya
+                $checkDuplicate = MasterTahapanProduksi::query();
+                if ($finalBranchId) {
+                    $checkDuplicate->where('branch_id', $finalBranchId)->whereNull('company_id');
+                } else {
+                    $checkDuplicate->whereNull('branch_id')->where('company_id', $finalCompanyId);
+                }
+                if ($bomId) {
+                    $checkDuplicate->where('bom_id', $bomId);
+                } else {
+                    $checkDuplicate->whereNull('bom_id');
+                }
+
+                if ($checkDuplicate->exists()) {
+                    $targetName = ($bomId && isset($bom) && $bom) ? "BOM \"{$bom->nama_bom}\"" : "Template Standar Umum";
+                    return response()->json([
+                        'message' => "Data alur tahapan untuk {$targetName} sudah pernah di-input sebelumnya! Silakan gunakan fitur Edit Alur pada daftar jika ingin mengubah alur proses, atau hapus data alur terlebih dahulu jika ingin membuat alur baru."
+                    ], 422);
+                }
+
+                $createdCount = 0;
+
+                // Ambil urutan terakhir untuk BOM ini
+                $baseUrutanQuery = MasterTahapanProduksi::query();
+                if ($finalBranchId) {
+                    $baseUrutanQuery->where('branch_id', $finalBranchId)->whereNull('company_id');
+                } else {
+                    $baseUrutanQuery->whereNull('branch_id')->where('company_id', $finalCompanyId);
+                }
                 if ($bomId) {
                     $baseUrutanQuery->where('bom_id', $bomId);
                 } else {
                     $baseUrutanQuery->whereNull('bom_id');
                 }
-                $maxUrutan = $baseUrutanQuery->max('urutan') ?? 0;
+                $maxUrutan = (int) ($baseUrutanQuery->max('urutan') ?? 0);
 
                 foreach ($request->tahapans as $idx => $tRow) {
                     $nama = trim($tRow['nama_tahapan'] ?? '');
@@ -216,8 +356,8 @@ class MasterTahapanProduksiController extends Controller
                     $fotoPath = $fotoFile ? $this->handleImageUpload($fotoFile) : null;
 
                     MasterTahapanProduksi::create([
-                        'company_id'   => $companyId,
-                        'branch_id'    => null,
+                        'company_id'   => $finalCompanyId, // NULL jika cabang
+                        'branch_id'    => $finalBranchId,  // NULL jika PT
                         'bom_id'       => $bomId,
                         'tipe_spk'     => 'Semua',
                         'urutan'       => !empty($tRow['urutan']) ? (int) $tRow['urutan'] : $maxUrutan,
@@ -234,11 +374,7 @@ class MasterTahapanProduksiController extends Controller
 
                 DB::commit();
 
-                $bomName = '';
-                if ($bomId) {
-                    $bom = Bom::find($bomId);
-                    $bomName = $bom ? " untuk BOM \"{$bom->nama_bom}\"" : '';
-                }
+                $bomName = ($bomId && isset($bom) && $bom) ? " untuk BOM \"{$bom->nama_bom}\"" : '';
 
                 return response()->json([
                     'success' => true,
@@ -255,15 +391,69 @@ class MasterTahapanProduksiController extends Controller
         $validated = $request->validate([
             'nama_tahapan' => 'required|string|max:100',
             'deskripsi'    => 'nullable|string|max:255',
-            'bom_id'       => 'nullable|exists:boms,id',
+            'bom_id'       => 'required|exists:boms,id',
             'foto'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+        ], [
+            'bom_id.required' => 'Resep BOM / Kode BOM wajib dipilih.',
+            'bom_id.exists'   => 'Resep BOM yang dipilih tidak valid atau tidak ditemukan.',
         ]);
 
         try {
-            $nextUrutan = MasterTahapanProduksi::where('company_id', $companyId)
-                ->where('bom_id', $validated['bom_id'] ?? null)
-                ->max('urutan') ?? 0;
-            $nextUrutan += 1;
+            $bomId = $validated['bom_id'] ?? null;
+            if ($bomId) {
+                $bom = Bom::find($bomId);
+                if ($bom && !empty($bom->branch_id)) {
+                    $finalBranchId  = $bom->branch_id;
+                    $finalCompanyId = null; // Cabang input: PT null
+                } elseif ($bom) {
+                    $finalBranchId  = null; // PT input: Cabang null
+                    $finalCompanyId = $bom->company_id ?? $activeCompanyId;
+                } else {
+                    $finalBranchId  = $activeBranchId;
+                    $finalCompanyId = !empty($activeBranchId) ? null : $activeCompanyId;
+                }
+            } else {
+                if (!empty($activeBranchId)) {
+                    $finalBranchId  = $activeBranchId;
+                    $finalCompanyId = null; // Cabang input: PT null
+                } else {
+                    $finalBranchId  = null; // PT input: Cabang null
+                    $finalCompanyId = $activeCompanyId;
+                }
+            }
+
+            // Keamanan & Integritas: Cek apakah alur tahapan untuk BOM / Template ini sudah pernah di-input sebelumnya
+            $checkDuplicate = MasterTahapanProduksi::query();
+            if ($finalBranchId) {
+                $checkDuplicate->where('branch_id', $finalBranchId)->whereNull('company_id');
+            } else {
+                $checkDuplicate->whereNull('branch_id')->where('company_id', $finalCompanyId);
+            }
+            if ($bomId) {
+                $checkDuplicate->where('bom_id', $bomId);
+            } else {
+                $checkDuplicate->whereNull('bom_id');
+            }
+
+            if ($checkDuplicate->exists()) {
+                $targetName = ($bomId && isset($bom) && $bom) ? "BOM \"{$bom->nama_bom}\"" : "Template Standar Umum";
+                return response()->json([
+                    'message' => "Data alur tahapan untuk {$targetName} sudah pernah di-input sebelumnya! Silakan gunakan fitur Edit Alur pada daftar jika ingin mengubah alur proses, atau hapus data alur terlebih dahulu jika ingin membuat alur baru."
+                ], 422);
+            }
+
+            $nextUrutanQuery = MasterTahapanProduksi::query();
+            if ($finalBranchId) {
+                $nextUrutanQuery->where('branch_id', $finalBranchId)->whereNull('company_id');
+            } else {
+                $nextUrutanQuery->whereNull('branch_id')->where('company_id', $finalCompanyId);
+            }
+            if ($bomId) {
+                $nextUrutanQuery->where('bom_id', $bomId);
+            } else {
+                $nextUrutanQuery->whereNull('bom_id');
+            }
+            $nextUrutan = (int) ($nextUrutanQuery->max('urutan') ?? 0) + 1;
 
             $fotoPath = null;
             if ($request->hasFile('foto')) {
@@ -271,9 +461,9 @@ class MasterTahapanProduksiController extends Controller
             }
 
             MasterTahapanProduksi::create([
-                'company_id'   => $companyId,
-                'branch_id'    => null,
-                'bom_id'       => $validated['bom_id'] ?? null,
+                'company_id'   => $finalCompanyId, // NULL jika cabang
+                'branch_id'    => $finalBranchId,  // NULL jika PT
+                'bom_id'       => $bomId,
                 'tipe_spk'     => 'Semua',
                 'urutan'       => $nextUrutan,
                 'nama_tahapan' => $validated['nama_tahapan'],
@@ -318,10 +508,13 @@ class MasterTahapanProduksiController extends Controller
         $validated = $request->validate([
             'nama_tahapan' => 'required|string|max:100',
             'deskripsi'    => 'nullable|string|max:255',
-            'bom_id'       => 'nullable|exists:boms,id',
+            'bom_id'       => 'required|exists:boms,id',
             'foto'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'hapus_foto'   => 'nullable|string',
             'is_active'    => 'sometimes|boolean',
+        ], [
+            'bom_id.required' => 'Resep BOM / Kode BOM wajib dipilih.',
+            'bom_id.exists'   => 'Resep BOM yang dipilih tidak valid atau tidak ditemukan.',
         ]);
 
         try {
@@ -384,6 +577,15 @@ class MasterTahapanProduksiController extends Controller
         $relativePath = $directory . '/' . $filename;
 
         $mime = $file->getMimeType();
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        // 🚀 FAST-PATH: Jika client sudah mengirim gambar WebP yang sudah dikompresi (<= 600 KB)
+        // langsung simpan file tanpa re-encode ulang via GD! Memangkas waktu dari ~400ms menjadi < 1ms per gambar.
+        if (($mime === 'image/webp' || $extension === 'webp') && $file->getSize() <= 614400) {
+            $file->move($fullDirPath, $filename);
+            return $relativePath;
+        }
+
         $srcImage = null;
 
         switch ($mime) {
@@ -477,38 +679,45 @@ class MasterTahapanProduksiController extends Controller
      }
 
     /**
-     * getAllActive — API: ambil semua tahapan aktif perusahaan (untuk checklist di modal SPK).
+     * getAllActive — API: ambil tahapan aktif khusus untuk resep BOM yang dipilih (untuk checklist di modal SPK).
      */
     public function getAllActive(Request $request)
     {
         $bomId = $request->input('bom_id');
 
-        $query = MasterTahapanProduksi::forActiveCompany()
-            ->with(['bom.barangJadi'])
-            ->where('is_active', true);
-
-        if ($bomId) {
-            $query->where(function ($q) use ($bomId) {
-                $q->where('bom_id', $bomId)
-                  ->orWhereNull('bom_id');
-            });
-        }
-
-        $tahapans = $query->orderBy('urutan', 'asc')->get();
-
-        // Jika belum ada master → kembalikan 6 default garmen sebagai saran
-        if ($tahapans->isEmpty()) {
-            $tahapans = collect([
-                ['id' => null, 'urutan' => 1, 'nama_tahapan' => 'Persiapan & Pola (Pattern / Spreading)',    'deskripsi' => null, 'tipe_spk' => 'Semua', 'foto_url' => null, 'bom_id' => null],
-                ['id' => null, 'urutan' => 2, 'nama_tahapan' => 'Pemotongan Bahan (Cutting)',                 'deskripsi' => null, 'tipe_spk' => 'Semua', 'foto_url' => null, 'bom_id' => null],
-                ['id' => null, 'urutan' => 3, 'nama_tahapan' => 'Sablon & Bordir (Embellishment / Print)',    'deskripsi' => null, 'tipe_spk' => 'Semua', 'foto_url' => null, 'bom_id' => null],
-                ['id' => null, 'urutan' => 4, 'nama_tahapan' => 'Penjahitan & Perakitan (Sewing / Assembly)', 'deskripsi' => null, 'tipe_spk' => 'Semua', 'foto_url' => null, 'bom_id' => null],
-                ['id' => null, 'urutan' => 5, 'nama_tahapan' => 'Pemeriksaan Kualitas (QC & Trimming)',       'deskripsi' => null, 'tipe_spk' => 'Semua', 'foto_url' => null, 'bom_id' => null],
-                ['id' => null, 'urutan' => 6, 'nama_tahapan' => 'Finishing & Kemasan (Ironing & Packing)',    'deskripsi' => null, 'tipe_spk' => 'Semua', 'foto_url' => null, 'bom_id' => null],
+        if (!$bomId) {
+            return response()->json([
+                'bom_id'      => null,
+                'has_tahapan' => false,
+                'tahapans'    => [],
+                'count'       => 0,
+                'message'     => 'Silakan pilih Resep BOM terlebih dahulu.',
             ]);
         }
 
-        return response()->json(['tahapans' => $tahapans]);
+        $bom = Bom::find($bomId);
+        $namaBom = $bom ? $bom->nama_bom : ('BOM #' . $bomId);
+        $kodeBom = $bom ? $bom->kode_bom : '-';
+
+        $query = MasterTahapanProduksi::forActiveCompany()
+            ->with(['bom.barangJadi'])
+            ->where('is_active', true)
+            ->where('bom_id', $bomId)
+            ->orderBy('urutan', 'asc');
+
+        $tahapans = $query->get();
+
+        return response()->json([
+            'bom_id'      => (int) $bomId,
+            'nama_bom'    => $namaBom,
+            'kode_bom'    => $kodeBom,
+            'has_tahapan' => $tahapans->isNotEmpty(),
+            'tahapans'    => $tahapans,
+            'count'       => $tahapans->count(),
+            'message'     => $tahapans->isEmpty() 
+                ? "Resep BOM \"{$namaBom}\" belum memiliki konfigurasi tahapan produksi di Master Tahapan." 
+                : "Berhasil memuat {$tahapans->count()} tahapan produksi untuk resep BOM \"{$namaBom}\".",
+        ]);
     }
 
     /**
@@ -516,13 +725,24 @@ class MasterTahapanProduksiController extends Controller
      */
     public function getTahapanByBom(string $bomKey)
     {
-        $companyId = session('active_company_id');
+        $this->authorize('lihat-master-tahapan');
 
-        $query = MasterTahapanProduksi::where('company_id', $companyId)
-            ->with(['bom.barangJadi']);
+        $activeCompanyId = session('active_company_id');
+        $activeBranchId  = session('active_branch_id') ?: null;
+
+        $query = MasterTahapanProduksi::query()->with(['bom.barangJadi']);
 
         if ($bomKey === 'general' || $bomKey === '' || $bomKey === '0') {
             $query->whereNull('bom_id');
+            if ($activeBranchId) {
+                $query->where('branch_id', $activeBranchId)->whereNull('company_id');
+            } else {
+                $query->whereNull('branch_id');
+                if (!empty($activeCompanyId)) {
+                    $query->where('company_id', $activeCompanyId);
+                }
+            }
+
             $bomInfo = [
                 'id'          => null,
                 'bom_key'     => 'general',
@@ -569,8 +789,34 @@ class MasterTahapanProduksiController extends Controller
     {
         $this->authorize('edit-master-tahapan');
 
-        $companyId = session('active_company_id');
-        $targetBomId = ($bomKey === 'general' || $bomKey === '' || $bomKey === '0') ? null : $bomKey;
+        $activeCompanyId = session('active_company_id') ?? Auth::user()->company_id ?? 1;
+        $activeBranchId  = session('active_branch_id') ?: null;
+        $targetBomId     = ($bomKey === 'general' || $bomKey === '' || $bomKey === '0') ? null : $bomKey;
+
+        // Tentukan apakah target alur ini milik Cabang atau PT:
+        // Jika cabang: company_id NULL & branch_id terisi.
+        // Jika PT: branch_id NULL & company_id terisi.
+        if ($targetBomId) {
+            $bom = Bom::find($targetBomId);
+            if ($bom && !empty($bom->branch_id)) {
+                $finalBranchId  = $bom->branch_id;
+                $finalCompanyId = null;
+            } elseif ($bom) {
+                $finalBranchId  = null;
+                $finalCompanyId = $bom->company_id ?? $activeCompanyId;
+            } else {
+                $finalBranchId  = $activeBranchId;
+                $finalCompanyId = !empty($activeBranchId) ? null : $activeCompanyId;
+            }
+        } else {
+            if (!empty($activeBranchId)) {
+                $finalBranchId  = $activeBranchId;
+                $finalCompanyId = null;
+            } else {
+                $finalBranchId  = null;
+                $finalCompanyId = $activeCompanyId;
+            }
+        }
 
         $validated = $request->validate([
             'tahapans'                => 'required|array|min:1|max:50',
@@ -583,12 +829,17 @@ class MasterTahapanProduksiController extends Controller
 
         DB::beginTransaction();
         try {
-            // Ambil id yang ada saat ini untuk BOM ini
-            $existingQuery = MasterTahapanProduksi::where('company_id', $companyId);
+            // Ambil id yang ada saat ini untuk BOM ini di company & branch aktif
+            $existingQuery = MasterTahapanProduksi::query();
             if ($targetBomId) {
                 $existingQuery->where('bom_id', $targetBomId);
             } else {
                 $existingQuery->whereNull('bom_id');
+                if ($finalBranchId) {
+                    $existingQuery->where('branch_id', $finalBranchId)->whereNull('company_id');
+                } else {
+                    $existingQuery->whereNull('branch_id')->where('company_id', $finalCompanyId);
+                }
             }
             $existingTahapans = $existingQuery->get()->keyBy('id');
 
@@ -629,6 +880,8 @@ class MasterTahapanProduksiController extends Controller
                     }
 
                     $current->update([
+                        'company_id'   => $finalCompanyId,
+                        'branch_id'    => $finalBranchId,
                         'urutan'       => $urutan,
                         'nama_tahapan' => $nama,
                         'deskripsi'    => $deskripsi,
@@ -642,8 +895,8 @@ class MasterTahapanProduksiController extends Controller
                     $fotoPath = $fotoFile ? $this->handleImageUpload($fotoFile) : null;
 
                     $newRecord = MasterTahapanProduksi::create([
-                        'company_id'   => $companyId,
-                        'branch_id'    => null,
+                        'company_id'   => $finalCompanyId,
+                        'branch_id'    => $finalBranchId,
                         'bom_id'       => $targetBomId,
                         'tipe_spk'     => 'Semua',
                         'urutan'       => $urutan,
@@ -659,14 +912,18 @@ class MasterTahapanProduksiController extends Controller
                 }
             }
 
-            // Hapus baris lama yang tidak ada di form (hard delete)
+            // Hapus baris lama yang tidak ada di form (hard delete secara bulk)
+            $toDeleteIds = [];
             foreach ($existingTahapans as $oldId => $oldTahapan) {
                 if (!in_array($oldId, $processedIds)) {
                     if ($oldTahapan->foto && Storage::disk('public')->exists($oldTahapan->foto)) {
                         Storage::disk('public')->delete($oldTahapan->foto);
                     }
-                    $oldTahapan->delete();
+                    $toDeleteIds[] = $oldId;
                 }
+            }
+            if (!empty($toDeleteIds)) {
+                MasterTahapanProduksi::whereIn('id', $toDeleteIds)->delete();
             }
 
             DB::commit();
@@ -689,12 +946,21 @@ class MasterTahapanProduksiController extends Controller
     {
         $this->authorize('hapus-master-tahapan');
 
-        $companyId = session('active_company_id');
+        $activeCompanyId = session('active_company_id');
+        $activeBranchId  = session('active_branch_id') ?: null;
 
         try {
-            $query = MasterTahapanProduksi::where('company_id', $companyId);
+            $query = MasterTahapanProduksi::query();
             if ($bomKey === 'general' || $bomKey === '' || $bomKey === '0') {
                 $query->whereNull('bom_id');
+                if ($activeBranchId) {
+                    $query->where('branch_id', $activeBranchId)->whereNull('company_id');
+                } else {
+                    $query->whereNull('branch_id');
+                    if (!empty($activeCompanyId)) {
+                        $query->where('company_id', $activeCompanyId);
+                    }
+                }
                 $bomNama = 'Template Umum';
             } else {
                 $query->where('bom_id', $bomKey);

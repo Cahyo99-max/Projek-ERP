@@ -109,48 +109,139 @@
     padding-bottom: 0.75rem;
 }
 
-/* ── SELECT2 (Exact Match with Tipe Barang Bootstrap 5) ── */
+/* ── SELECT2 MODERN & PREMIUM REDESIGN ── */
 .select2-container--bootstrap-5 {
     z-index: 1060;
 }
+.select2-container--bootstrap-5 .select2-selection {
+    border-radius: 8px !important;
+    min-height: 34px !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: all 0.2s ease !important;
+}
+.select2-container--bootstrap-5 .select2-selection--single {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+.select2-container--open {
+    z-index: 1075 !important;
+}
 .select2-container--bootstrap-5 .select2-dropdown {
-    border-radius: 6px !important;
-    border: 1px solid #ced4da !important;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-    z-index: 1060 !important;
+    border-radius: 10px !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+    z-index: 1075 !important;
     overflow: hidden;
     background-color: #ffffff !important;
+    margin-top: 3px !important;
+    animation: select2DropdownFadeIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.po-pph-box,
+.po-pph-col,
+.card-perhitungan {
+    overflow: visible !important;
+    position: relative;
+}
+.select2-container--open {
+    z-index: 1090 !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown .select2-search__field {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option {
+    color: #cbd5e1 !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option--selected {
+    background-color: #1e3a8a !important;
+    color: #ffffff !important;
+}
+@keyframes select2DropdownFadeIn {
+    from { opacity: 0; transform: translateY(-4px) scale(0.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .select2-container--bootstrap-5 .select2-dropdown .select2-search--dropdown {
-    padding: 8px !important;
+    padding: 10px 10px 6px 10px !important;
+    background-color: transparent !important;
 }
 .select2-container--bootstrap-5 .select2-dropdown .select2-search__field {
-    border-radius: 6px !important;
-    border: 1px solid #86b7fe !important;
-    padding: 6px 12px !important;
-    font-size: 0.875rem !important;
+    border-radius: 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 8px 12px 8px 36px !important;
+    font-size: 0.85rem !important;
     outline: none !important;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+    box-shadow: none !important;
     width: 100% !important;
+    background-color: #f8fafc !important;
+    color: #1e293b !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: 11px center !important;
+    background-size: 15px 15px !important;
+    transition: all 0.2s ease !important;
+}
+.select2-container--bootstrap-5 .select2-dropdown .select2-search__field:focus {
+    border-color: #3b82f6 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18) !important;
+}
+.select2-container--bootstrap-5 .select2-dropdown .select2-search__field::placeholder {
+    color: #94a3b8 !important;
+    font-size: 0.825rem !important;
+    font-weight: 400 !important;
+    opacity: 1 !important;
 }
 .select2-container--bootstrap-5 .select2-results__options {
     max-height: 280px !important; /* Pas menampilkan ~10 item dan dapat di-scroll */
     overflow-y: auto !important;
-    padding: 4px 0 !important;
+    padding: 4px 6px 6px 6px !important;
+}
+.select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar {
+    width: 6px;
+}
+.select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar-track {
+    background: transparent;
+}
+.select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 4px;
 }
 .select2-container--bootstrap-5 .select2-results__option {
-    padding: 6px 12px !important;
-    font-size: 0.875rem !important;
-    color: #212529 !important;
+    padding: 7px 12px !important;
+    font-size: 0.85rem !important;
+    color: #334155 !important;
     cursor: pointer !important;
+    border-radius: 6px !important;
+    margin: 2px 0 !important;
+    transition: background-color 0.15s ease, color 0.15s ease !important;
 }
 .select2-container--bootstrap-5 .select2-results__option--highlighted {
-    background-color: #0d6efd !important;
-    color: #ffffff !important;
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    font-weight: 500 !important;
 }
 .select2-container--bootstrap-5 .select2-results__option--selected {
-    background-color: #e9ecef !important;
-    color: #212529 !important;
+    background-color: #dbeafe !important;
+    color: #1e40af !important;
+    font-weight: 600 !important;
+}
+.select2-container--bootstrap-5 .select2-results__option[id$="-custom"] {
+    border-bottom: 1px dashed rgba(148, 163, 184, 0.5) !important;
+    margin-bottom: 4px !important;
+    padding-bottom: 8px !important;
+    color: #2563eb !important;
     font-weight: 600 !important;
 }
 
@@ -165,6 +256,154 @@
 }
 .responsive-expense-table td[data-label="Jenis Biaya"] {
     position: relative !important;
+}
+
+/* Table PPN Select2 Compact Styling */
+td[data-label="PPN"] {
+    position: relative !important;
+    overflow: visible !important;
+}
+td[data-label="PPN"] .select2-container--bootstrap-5 {
+    width: 100% !important;
+    cursor: pointer !important;
+}
+td[data-label="PPN"] .select2-container--bootstrap-5 .select2-selection--single {
+    min-height: 31px !important;
+    height: 31px !important;
+    padding: 0.2rem 0.5rem !important;
+    font-size: 0.8125rem !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    cursor: pointer !important;
+}
+td[data-label="PPN"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    line-height: 28px !important;
+    font-size: 0.8125rem !important;
+    padding-left: 0 !important;
+    padding-right: 1.25rem !important;
+    cursor: pointer !important;
+}
+td[data-label="PPN"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+    height: 29px !important;
+    top: 1px !important;
+    right: 4px !important;
+    cursor: pointer !important;
+}
+
+/* Elevated z-index when select2 is open in table row */
+tr:has(.select2-container--open) {
+    position: relative !important;
+    z-index: 1050 !important;
+}
+td:has(.select2-container--open) {
+    position: relative !important;
+    z-index: 1055 !important;
+}
+td[data-label="PPN"] .select2-container--open {
+    z-index: 1060 !important;
+}
+td[data-label="PPN"] .select2-container--open .select2-dropdown {
+    min-width: 185px !important;
+    max-width: 260px !important;
+    z-index: 1060 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Ensure table container does not clip select2 dropdown */
+.table-responsive.table-po-details-wrapper,
+.table-responsive:has(.responsive-po-table),
+.table-responsive:has(#tableDetailsPO),
+.table-responsive:has(#tableEditDetailsPO),
+.table-responsive:has(#edit_tableDetailsPO) {
+    overflow: visible !important;
+}
+.responsive-po-table,
+.responsive-po-table td {
+    overflow: visible !important;
+}
+
+/* Dark Mode Select2 Styles */
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    color: #f1f5f9 !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
+}
+[data-bs-theme="dark"] .select2-dropdown,
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown {
+    background-color: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #f1f5f9 !important;
+    box-shadow: 0 16px 32px -4px rgba(0, 0, 0, 0.6), 0 8px 12px -6px rgba(0, 0, 0, 0.4) !important;
+    border-radius: 10px !important;
+    z-index: 1075 !important;
+    margin-top: 3px !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-search--dropdown {
+    background-color: #1e293b !important;
+    padding: 10px 10px 6px 10px !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown .select2-search__field {
+    background-color: #0f172a !important;
+    border: 1px solid #334155 !important;
+    color: #f1f5f9 !important;
+    border-radius: 8px !important;
+    padding: 8px 12px 8px 36px !important;
+    font-size: 0.85rem !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: 11px center !important;
+    background-size: 15px 15px !important;
+    transition: all 0.2s ease !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown .select2-search__field:focus {
+    border-color: #3b82f6 !important;
+    background-color: #0b1120 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown .select2-search__field::placeholder {
+    color: #64748b !important;
+    font-size: 0.825rem !important;
+    font-weight: 400 !important;
+    opacity: 1 !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar-thumb {
+    background: rgba(51, 65, 85, 0.7) !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option {
+    color: #cbd5e1 !important;
+    background-color: transparent !important;
+    border-radius: 6px !important;
+    margin: 2px 0 !important;
+    padding: 7px 12px !important;
+    border-bottom: none !important;
+    transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option--selected {
+    background-color: rgba(59, 130, 246, 0.25) !important;
+    color: #60a5fa !important;
+    font-weight: 600 !important;
+}
+[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option[id$="-custom"] {
+    border-bottom: 1px dashed rgba(51, 65, 85, 0.7) !important;
+    margin-bottom: 4px !important;
+    padding-bottom: 8px !important;
+    color: #60a5fa !important;
+    font-weight: 600 !important;
 }
 
 /* Select2 override for mobile */

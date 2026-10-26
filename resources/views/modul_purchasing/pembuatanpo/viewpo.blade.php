@@ -33,8 +33,6 @@
             <th class="py-3">Nomor PO</th>
             <th class="py-3">Tanggal</th>
             <th class="py-3">Supplier</th>
-            <th class="py-3 text-end">PPN</th>
-            <th class="py-3 text-end">Diskon</th>
             <th class="py-3 text-end">Grand Total</th>
             <th class="py-3 text-center">Status</th>
             <th width="10%" class="text-center py-3">Aksi</th>
@@ -193,7 +191,196 @@
             }
         });
 
+        // Global PPh mapping & default COA
+        window.pphCoaMap = @json($pphCoaMap ?? new \stdClass());
+        window.defaultPphCoaId = {{ $defaultPphCoaId ?? 'null' }};
 
+        // Helper to force Select2 dropdown to ALWAYS render directly below the selection element
+        function forceSelect2DropdownBelow(s2) {
+            if (!s2 || !s2.dropdown) return;
+            let proto = Object.getPrototypeOf(s2.dropdown);
+            if (proto && !proto._hasFixedBelowPositioning) {
+                proto._hasFixedBelowPositioning = true;
+                proto._positionDropdown = function () {
+                    if (!this.$container || !this.$dropdown || !this.$dropdownContainer) return;
+
+                    let offset = this.$container.offset();
+                    if (!offset) return;
+
+                    let containerHeight = this.$container.outerHeight(false) || 34;
+                    let containerWidth = this.$container.outerWidth(false);
+                    let css = {
+                        left: offset.left,
+                        top: offset.top + containerHeight,
+                        width: containerWidth ? (containerWidth + 'px') : '100%',
+                        'min-width': containerWidth ? (containerWidth + 'px') : '180px'
+                    };
+
+                    let $offsetParent = this.$dropdownParent;
+                    if ($offsetParent && $offsetParent.length) {
+                        if ($offsetParent.css('position') === 'static') {
+                            $offsetParent = $offsetParent.offsetParent();
+                        }
+                        let parentOffset = { top: 0, left: 0 };
+                        if ($.contains(document.body, $offsetParent[0]) || $offsetParent[0].isConnected) {
+                            parentOffset = $offsetParent.offset();
+                        }
+                        css.top -= parentOffset.top;
+                        css.left -= parentOffset.left;
+
+                        // Perbaiki scroll offset jika parent atau ancestor modal di-scroll
+                        let scrollY = ($offsetParent[0] ? ($offsetParent[0].scrollTop || 0) : 0);
+                        let scrollX = ($offsetParent[0] ? ($offsetParent[0].scrollLeft || 0) : 0);
+                        if (!scrollY) {
+                            let $scrollingModal = $offsetParent.closest('.modal');
+                            if ($scrollingModal.length && $offsetParent[0] === $scrollingModal[0]) {
+                                scrollY = $scrollingModal[0].scrollTop || 0;
+                                scrollX = $scrollingModal[0].scrollLeft || 0;
+                            }
+                        }
+                        css.top += scrollY;
+                        css.left += scrollX;
+                    }
+
+                    if (this.$dropdown[0]) {
+                        this.$dropdown[0].classList.remove('select2-dropdown--above');
+                        this.$dropdown[0].classList.add('select2-dropdown--below');
+                    }
+                    if (this.$container[0]) {
+                        this.$container[0].classList.remove('select2-container--above');
+                        this.$container[0].classList.add('select2-container--below');
+                    }
+
+                    this.$dropdownContainer.css({
+                        top: css.top + 'px',
+                        left: css.left + 'px',
+                        width: css.width,
+                        'min-width': css['min-width'],
+                        position: 'absolute',
+                        'z-index': 1090
+                    });
+                };
+            }
+        }
+
+        // ===== SEARCHABLE COA (AKUN UTANG PPH) SELECT2 INITIALIZER =====
+        window.initCoaSelect2 = function($elem, $modal, placeholder = '-- Pilih Akun PPh --') {
+            if (!$.fn.select2 || !$elem || !$elem.length) return;
+            $elem.each(function() {
+                let $this = $(this);
+                let parentCol = $this.closest('.po-pph-col');
+                let targetParent = parentCol.length ? parentCol : ($this.closest('.po-pph-box').length ? $this.closest('.po-pph-box') : (($modal && $modal.length) ? $modal : ($this.closest('.modal').length ? $this.closest('.modal') : $(document.body))));
+
+                if ($this.data('select2')) {
+                    $this.select2('destroy');
+                }
+                $this.select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: targetParent,
+                    placeholder: placeholder,
+                    width: '100%',
+                    dropdownAutoWidth: false,
+                    minimumResultsForSearch: 0,
+                    closeOnSelect: true
+                });
+
+                let s2 = $this.data('select2');
+                forceSelect2DropdownBelow(s2);
+
+                $this.on('select2:open', function() {
+                    let data = $(this).data('select2');
+                    if (data && data.dropdown && typeof data.dropdown._positionDropdown === 'function') {
+                        data.dropdown._positionDropdown();
+                    }
+                    setTimeout(function() {
+                        if (data && data.dropdown && typeof data.dropdown._positionDropdown === 'function') {
+                            data.dropdown._positionDropdown();
+                        }
+                        let searchField = document.querySelector('.select2-container--open .select2-search__field') ||
+                                          document.querySelector('.select2-dropdown .select2-search__field');
+                        if (searchField) {
+                            searchField.setAttribute('placeholder', 'Cari akun (kode / nama, misal: 2105, PPh)...');
+                            searchField.focus();
+                        }
+                    }, 30);
+                });
+
+                $this.on('select2:select', function() {
+                    let self = this;
+                    setTimeout(function() {
+                        try {
+                            $(self).select2('close');
+                        } catch (e) {}
+                    }, 10);
+                });
+            });
+        };
+
+        // ===== SEARCHABLE JENIS PPH (WITHHOLDING TAX) SELECT2 INITIALIZER =====
+        window.initPphPajakSelect2 = function($elem, $modal) {
+            if (!$.fn.select2 || !$elem || !$elem.length) return;
+            $elem.each(function() {
+                let $this = $(this);
+                let parentCol = $this.closest('.po-pph-col');
+                let targetParent = parentCol.length ? parentCol : ($this.closest('.po-pph-box').length ? $this.closest('.po-pph-box') : (($modal && $modal.length) ? $modal : ($this.closest('.modal').length ? $this.closest('.modal') : $(document.body))));
+
+                if ($this.data('select2')) {
+                    $this.select2('destroy');
+                }
+                $this.select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: targetParent,
+                    placeholder: 'Tanpa PPh',
+                    allowClear: false,
+                    width: '100%',
+                    dropdownAutoWidth: false,
+                    minimumResultsForSearch: 0,
+                    closeOnSelect: true
+                });
+
+                let s2 = $this.data('select2');
+                forceSelect2DropdownBelow(s2);
+
+                $this.on('select2:open', function() {
+                    let data = $(this).data('select2');
+                    if (data && data.dropdown && typeof data.dropdown._positionDropdown === 'function') {
+                        data.dropdown._positionDropdown();
+                    }
+                    setTimeout(function() {
+                        if (data && data.dropdown && typeof data.dropdown._positionDropdown === 'function') {
+                            data.dropdown._positionDropdown();
+                        }
+                        let searchField = document.querySelector('.select2-container--open .select2-search__field') ||
+                                          document.querySelector('.select2-dropdown .select2-search__field');
+                        if (searchField) {
+                            searchField.setAttribute('placeholder', 'Cari jenis PPh (misal: 1,5%, PPh 23)...');
+                            searchField.focus();
+                        }
+                    }, 30);
+                });
+
+                $this.on('select2:select select2:clear', function() {
+                    let self = this;
+                    setTimeout(function() {
+                        try {
+                            $(self).select2('close');
+                            $(self).trigger('change');
+                        } catch (e) {}
+                    }, 10);
+                });
+            });
+        };
+
+        // Click fallback handler untuk membuka select2 pada area PPh jika diklik
+        $(document).on('click', '.po-pph-box .select2-selection', function() {
+            let $select = $(this).closest('.select2-container').prev('select');
+            if ($select.length && !$select.prop('disabled')) {
+                let s2 = $select.data('select2');
+                if (s2 && !s2.isOpen()) {
+                    $select.select2('open');
+                }
+            }
+        });
 
         // ===== SHARED SELECT2 INITIALIZER =====
         window.initSelect2Safely = function($elem, $modal, placeholder = '-- Pilih --') {
@@ -212,13 +399,45 @@
                     placeholder: placeholder,
                     width: '100%',
                     dropdownAutoWidth: false,
+                    minimumResultsForSearch: 0,
                     closeOnSelect: true
                 });
 
+                let s2 = $this.data('select2');
+                forceSelect2DropdownBelow(s2);
+
                 $this.on('select2:open', function() {
                     let data = $(this).data('select2');
-                    if (data && data.$dropdown) {
-                        data.$dropdown.removeClass('select2-dropdown--above').addClass('select2-dropdown--below');
+                    if (data && data.dropdown && typeof data.dropdown._positionDropdown === 'function') {
+                        data.dropdown._positionDropdown();
+                    }
+                    if (localTd.length) {
+                        localTd.closest('tr').css({ 'z-index': 1050, 'position': 'relative' });
+                        localTd.css({ 'z-index': 1055, 'position': 'relative' });
+                    }
+                    setTimeout(function() {
+                        if (data && data.dropdown && typeof data.dropdown._positionDropdown === 'function') {
+                            data.dropdown._positionDropdown();
+                        }
+                        let searchField = document.querySelector('.select2-container--open .select2-search__field') ||
+                                          document.querySelector('.select2-dropdown .select2-search__field');
+                        if (searchField) {
+                            let ph = 'Ketik untuk mencari...';
+                            if ($this.hasClass('select2-expense-type') || $this.hasClass('exp-jenis-select')) {
+                                ph = 'Cari jenis biaya (misal: Pengiriman, Bongkar)...';
+                            } else if (placeholder && placeholder !== '-- Pilih --') {
+                                ph = 'Cari ' + placeholder.replace(/--|\//g, '').trim() + '...';
+                            }
+                            searchField.setAttribute('placeholder', ph);
+                            searchField.focus();
+                        }
+                    }, 30);
+                });
+
+                $this.on('select2:close', function() {
+                    if (localTd.length) {
+                        localTd.closest('tr').css({ 'z-index': '', 'position': '' });
+                        localTd.css({ 'z-index': '', 'position': '' });
                     }
                 });
 
@@ -233,10 +452,104 @@
             });
         };
 
+        // ===== SEARCHABLE PAJAK (PPN) SELECT2 INITIALIZER =====
+        window.initPajakSelect2 = function($elem, $modal) {
+            if (!$.fn.select2 || !$elem || !$elem.length) return;
+            $elem.each(function() {
+                let $this = $(this);
+                let localTd = $this.closest('td');
+                let targetParent = localTd.length ? localTd : (($modal && $modal.length) ? $modal : ($this.closest('.modal').length ? $this.closest('.modal') : $(document.body)));
+
+                if ($this.data('select2')) {
+                    $this.select2('destroy');
+                }
+
+                $this.select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: targetParent,
+                    placeholder: 'Non PPN (0%)',
+                    width: '100%',
+                    dropdownAutoWidth: false,
+                    minimumResultsForSearch: 0, // ALWAYS show search input so user can type and search immediately
+                    closeOnSelect: true
+                });
+
+                let s2 = $this.data('select2');
+                forceSelect2DropdownBelow(s2);
+
+                $this.on('select2:open', function() {
+                    let data = $(this).data('select2');
+                    if (data && data.dropdown && typeof data.dropdown._positionDropdown === 'function') {
+                        data.dropdown._positionDropdown();
+                    }
+                    if (localTd.length) {
+                        localTd.closest('tr').css({ 'z-index': 1050, 'position': 'relative' });
+                        localTd.css({ 'z-index': 1055, 'position': 'relative' });
+                    }
+                    setTimeout(function() {
+                        if (data && data.dropdown && typeof data.dropdown._positionDropdown === 'function') {
+                            data.dropdown._positionDropdown();
+                        }
+                        let searchField = document.querySelector('.select2-container--open .select2-search__field') ||
+                                          document.querySelector('.select2-dropdown .select2-search__field');
+                        if (searchField) {
+                            searchField.setAttribute('placeholder', 'Cari PPN (misal: 11%, 12%)...');
+                            searchField.focus();
+                        }
+                    }, 30);
+                });
+
+                $this.on('select2:close', function() {
+                    if (localTd.length) {
+                        localTd.closest('tr').css({ 'z-index': '', 'position': '' });
+                        localTd.css({ 'z-index': '', 'position': '' });
+                    }
+                });
+
+                $this.on('select2:select', function() {
+                    let self = this;
+                    setTimeout(function() {
+                        try {
+                            $(self).select2('close');
+                        } catch (e) {}
+                    }, 10);
+                });
+            });
+        };
+
+        // Scroll listener on modal to maintain dropdown glued right below
+        $(document).on('scroll', '.modal', function() {
+            $('.select2-hidden-accessible').each(function() {
+                let s2 = $(this).data('select2');
+                if (s2 && typeof s2.isOpen === 'function' && s2.isOpen() && s2.dropdown && typeof s2.dropdown._positionDropdown === 'function') {
+                    s2.dropdown._positionDropdown();
+                }
+            });
+        });
+
+        // Click handler fallback to guarantee select2 opens on click
+        $(document).on('click', 'td[data-label="PPN"] .select2-container:not(.select2-container--open)', function () {
+            let $select = $(this).closest('td').find('.select-item-ppn');
+            if ($select.length && !$select.data('select2-opening-guard')) {
+                $select.data('select2-opening-guard', true);
+                setTimeout(function() { $select.data('select2-opening-guard', false); }, 250);
+                try {
+                    $select.select2('open');
+                } catch (err) {}
+            }
+        });
+
+        // Prevent Bootstrap modal from stealing focus from Select2 search input
+        document.addEventListener('focusin', function (e) {
+            if (e.target && e.target.closest && (e.target.closest('.select2-container') || e.target.closest('.select2-dropdown') || e.target.closest('.select2-search'))) {
+                e.stopImmediatePropagation();
+            }
+        }, true);
+
         // Close Select2 immediately upon clicking any option
         $(document).on('mouseup touchend click', '.select2-results__option', function () {
             setTimeout(function () {
-                $('.select2-hidden-accessible').each(function () {
+                $('.select2-container--open').prev('.select2-hidden-accessible').each(function () {
                     try {
                         $(this).select2('close');
                     } catch (e) {}
@@ -246,12 +559,17 @@
 
         // Close Select2 when clicking outside
         $(document).on('mousedown touchstart', function (e) {
-            if (!$(e.target).closest('.select2-container').length && !$(e.target).closest('.select2-dropdown').length) {
-                $('.select2-hidden-accessible').each(function () {
-                    try {
-                        $(this).select2('close');
-                    } catch (err) {}
-                });
+            if ($('.select2-container--open').length > 0) {
+                if (!$(e.target).closest('.select2-container').length && 
+                    !$(e.target).closest('.select2-dropdown').length &&
+                    !$(e.target).closest('td[data-label="PPN"]').length &&
+                    !$(e.target).closest('td[data-label="Jenis Biaya"]').length) {
+                    $('.select2-container--open').prev('.select2-hidden-accessible').each(function () {
+                        try {
+                            $(this).select2('close');
+                        } catch (err) {}
+                    });
+                }
             }
         });
 
@@ -309,18 +627,129 @@
             if (s.includes(',')) {
                 s = s.replace(/\./g, '').replace(/,/g, '.');
             } else {
-                // If NO comma exists, all dots are thousands separators (e.g. "18.600" -> 18600, "1.500.000" -> 1500000, "597" -> 597)
-                s = s.replace(/\./g, '');
+                // If NO comma exists, check if it has a single dot decimal (e.g. "12.50", "0.75", "16250.5540", "1.2345")
+                if (/^0\.\d+$/.test(s) || (/^\d+\.\d{1,4}$/.test(s) && !/^\d{1,3}\.\d{3}$/.test(s))) {
+                    // keep dot as decimal
+                } else {
+                    // All dots are thousands separators (e.g. "18.600" -> 18600, "1.500.000" -> 1500000, "597" -> 597)
+                    s = s.replace(/\./g, '');
+                }
             }
             let res = parseFloat(s);
             return isNaN(res) ? 0 : res;
         };
 
-        // Apply Real-time Thousands Separator & Decimal Handling
+        // Auto format kurs input on blur
+        $(document).on('blur', '#kurs_input, #edit_kurs_input', function() {
+            let val = ($(this).val() || '').trim();
+            if (val === '' || unformatNumber(val) === 0) {
+                $(this).val('1,00');
+            } else {
+                $(this).val(formatKurs(unformatNumber(val)));
+            }
+            if (typeof calculateTotals === 'function' && $('#modalTambahPO').hasClass('show')) {
+                calculateTotals();
+            }
+            if (typeof calculateEditTotals === 'function' && $('#modalEditPO').hasClass('show')) {
+                calculateEditTotals();
+            }
+        });
+
+        // Convert dot key (from standard numpad / keyboard) to decimal comma automatically
+        $(document).on('keydown', '.number-format', function(e) {
+            if (e.key === '.' || e.key === 'Decimal') {
+                let val = $(this).val();
+                if (!val.includes(',')) {
+                    e.preventDefault();
+                    let start = this.selectionStart !== null ? this.selectionStart : val.length;
+                    let end = this.selectionEnd !== null ? this.selectionEnd : val.length;
+                    let newVal = val.substring(0, start) + ',' + val.substring(end);
+                    $(this).val(newVal);
+                    if (this.setSelectionRange) {
+                        this.setSelectionRange(start + 1, start + 1);
+                    }
+                    $(this).trigger('input');
+                } else {
+                    e.preventDefault();
+                }
+            }
+        });
+
+        // Auto-clear zero (0 / 0,00) on focus/click so user doesn't have to backspace manually
+        $(document).on('focus', '.price-input, .discount-val-input, .number-format', function() {
+            if ($(this).prop('readonly') || $(this).prop('disabled')) return;
+            let val = ($(this).val() || '').trim();
+            if (val === '0,00' || val === '0' || val === '0.00' || unformatNumber(val) === 0) {
+                $(this).val('');
+            } else {
+                $(this).select();
+            }
+        });
+
+        $(document).on('click', '.price-input, .discount-val-input, .number-format', function() {
+            if ($(this).prop('readonly') || $(this).prop('disabled')) return;
+            let val = ($(this).val() || '').trim();
+            if (val === '0,00' || val === '0' || val === '0.00' || unformatNumber(val) === 0) {
+                $(this).val('');
+            }
+        });
+
+        // Restore formatting on blur if left empty or format decimal places
+        $(document).on('blur', '.price-input', function() {
+            let val = ($(this).val() || '').trim();
+            if (val === '' || unformatNumber(val) === 0) {
+                $(this).val('0,00');
+            } else {
+                $(this).val(formatNumber(unformatNumber(val)));
+            }
+            if (typeof calculateTotals === 'function' && $('#modalTambahPO').hasClass('show')) {
+                calculateTotals();
+            }
+            if (typeof calculateEditTotals === 'function' && $('#modalEditPO').hasClass('show')) {
+                calculateEditTotals();
+            }
+        });
+
+        $(document).on('blur', '.discount-val-input', function() {
+            let val = ($(this).val() || '').trim();
+            let tr = $(this).closest('tr');
+            let discType = tr.find('.discount-type-input').val() || 'percent';
+            if (val === '' || unformatNumber(val) === 0) {
+                $(this).val('0');
+            } else {
+                $(this).val(formatDiscountVal(unformatNumber(val), discType));
+            }
+            if (typeof calculateTotals === 'function' && $('#modalTambahPO').hasClass('show')) {
+                calculateTotals();
+            }
+            if (typeof calculateEditTotals === 'function' && $('#modalEditPO').hasClass('show')) {
+                calculateEditTotals();
+            }
+        });
+
+        $(document).on('blur', '.exp-nom-input, #down_payment, #edit_down_payment', function() {
+            let val = ($(this).val() || '').trim();
+            if (val === '' || unformatNumber(val) === 0) {
+                $(this).val('0,00');
+            } else {
+                $(this).val(formatNumber(unformatNumber(val)));
+            }
+            if (typeof calculateTotals === 'function' && $('#modalTambahPO').hasClass('show')) {
+                calculateTotals();
+            }
+            if (typeof calculateEditTotals === 'function' && $('#modalEditPO').hasClass('show')) {
+                calculateEditTotals();
+            }
+        });
+
+        // Apply Real-time Thousands Separator & Decimal Handling (Supports up to Trillions & Preserves Cursor)
         $(document).on('input', '.number-format', function() {
             let raw = $(this).val();
             if (raw === undefined || raw === null) return;
             if (raw === '') return;
+
+            let cursor = this.selectionStart;
+            let originalLen = raw.length;
 
             // Split by decimal comma if present
             let parts = raw.split(',');
@@ -332,12 +761,23 @@
                 return;
             }
 
-            let formattedInt = intStr !== '' ? parseInt(intStr, 10).toLocaleString('id-ID') : '0';
+            // High-precision regex formatting (no integer overflow even for trillions/quadrillions)
+            let cleanInt = intStr.replace(/^0+(?=\d)/, ''); // strip leading zeroes if multi-digit
+            let formattedInt = cleanInt !== '' ? cleanInt.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : (intStr === '' ? '' : '0');
             let result = formattedInt;
             if (decStr !== null) {
                 result += ',' + decStr;
             }
             $(this).val(result);
+
+            // Restore smooth cursor position
+            if (cursor !== null && this.setSelectionRange) {
+                let newLen = result.length;
+                let newCursor = cursor + (newLen - originalLen);
+                if (newCursor < 0) newCursor = 0;
+                if (newCursor > newLen) newCursor = newLen;
+                this.setSelectionRange(newCursor, newCursor);
+            }
         });
 
         // Helper to open picker modals — globally accessible on window
@@ -370,6 +810,19 @@
                 processing: false, // Disabled processing spinner entirely to prevent annoyance
                 serverSide: true,
                 stateSave: true,
+                stateLoadCallback: function(settings) {
+                    try {
+                        let key = 'DataTables_' + settings.sInstance + '_' + location.pathname;
+                        let saved = JSON.parse(localStorage.getItem(key));
+                        if (saved && saved.columns && saved.columns.length !== settings.aoColumns.length) {
+                            localStorage.removeItem(key);
+                            return null;
+                        }
+                        return saved;
+                    } catch (e) {
+                        return null;
+                    }
+                },
                 deferRender: true,
                 ajax: {
                     url: '{{ route('po.datatable') }}',
@@ -391,8 +844,6 @@
                     { data: 'nomor_po_badge',   name: 'nomor_po',          className: '' },
                     { data: 'tanggal_fmt',      name: 'tanggal_po',        className: 'fw-medium text-secondary' },
                     { data: 'supplier_name',    name: 'supplier_name',     className: 'fw-semibold' },
-                    { data: 'pajak_info',       name: 'total_pajak',       orderable: false, className: 'text-end' },
-                    { data: 'diskon_info',      name: 'diskon_info',       orderable: false, className: 'text-end' },
                     { data: 'grand_total_info', name: 'grand_total_info',  className: 'text-end' },
                     { data: 'status',           name: 'status',            className: 'text-center' },
                     { data: 'id',               name: 'id',                orderable: false, searchable: false, className: 'text-center' },
@@ -411,47 +862,15 @@
                         }
                     },
                     {
-                        targets: 4, // PPN
-                        render: function (data) {
-                            if (data.total_pajak > 0 || data.tarif > 0) {
-                                return `<span class="text-secondary fw-semibold">${escapeHtml(data.nama_pajak)} (${data.tarif}%)</span>`;
-                            }
-                            return '<span class="text-secondary">-</span>';
-                        }
-                    },
-                    {
-                        targets: 5, // Diskon — persen + nominal
-                        render: function (data) {
-                            if (!data) return '<span class="text-secondary">-</span>';
-                            let pct = parseFloat(data.diskon_persen) || 0;
-                            let totalNom = parseFloat(data.total_diskon) || 0;
-                            let unitNom = parseFloat(data.item_diskon_unit) || 0;
-                            let isItemOnly = (parseFloat(data.header_diskon || 0) <= 0 && parseFloat(data.item_diskon_total || 0) > 0);
-
-                            if (pct > 0 || totalNom > 0 || unitNom > 0) {
-                                if (pct <= 0 && data.subtotal > 0 && totalNom > 0) {
-                                    pct = (totalNom / (data.subtotal + totalNom)) * 100;
-                                }
-                                let formattedPct = (pct % 1 === 0) ? pct.toFixed(0) : parseFloat(pct.toFixed(2)).toString().replace('.', ',');
-                                let pctStr = pct > 0 ? `-${formattedPct}%` : '';
-
-                                let displayNom = totalNom;
-                                let nomStr = displayNom > 0 ? `(${escapeHtml(data.simbol || 'Rp')} ${formatNumber(displayNom)})` : '';
-                                let unitNote = (isItemOnly && data.item_diskon_count === 1 && unitNom > 0 && Math.abs(totalNom - unitNom) > 0.001)
-                                    ? `<br><small class="text-muted" style="font-size:0.72rem;">@ ${escapeHtml(data.simbol || 'Rp')} ${formatNumber(unitNom)}/item</small>`
-                                    : '';
-
-                                return `<span class="text-danger fw-bold">${pctStr || nomStr}</span>${pctStr && nomStr ? `<br><small class="text-muted">${nomStr}</small>` : ''}${unitNote}`;
-                            }
-                            return '<span class="text-secondary">-</span>';
-                        }
-                    },
-                    {
-                        targets: 6, // Grand Total — dengan IDR fallback & DP info
+                        targets: 4, // Grand Total — dengan IDR fallback & DP info
                         render: function (data) {
                             let html = `<span class="fw-bold text-success">${escapeHtml(data.simbol)} ${formatNumber(data.grand_total)}</span>`;
                             if (data.kode_currency !== 'IDR') {
                                 html += `<br><small class="text-dark fw-medium">Rp ${formatNumber(data.grand_total_idr)}</small>`;
+                            }
+                            if (data.pph_nominal > 0) {
+                                let tarifTxt = data.tarif_pph ? ` (${data.tarif_pph}%)` : '';
+                                html += `<br><span class="badge px-2 py-0.5 rounded-pill mt-1" style="font-size:0.7rem; background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2);" title="Potongan PPh: ${escapeHtml(data.nama_pph || 'PPh')}"><i class="bi bi-percent me-0.5"></i>PPh: -${escapeHtml(data.simbol)} ${formatNumber(data.pph_nominal)}</span>`;
                             }
                             if (data.down_payment > 0) {
                                 html += `<br><span class="badge px-2 py-0.5 rounded-pill mt-1" style="font-size:0.72rem; background: rgba(245, 158, 11, 0.15); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.25);" title="Uang Muka (DP)"><i class="bi bi-wallet2 me-1"></i>DP: ${escapeHtml(data.simbol)} ${formatNumber(data.down_payment)}</span>`;
@@ -461,7 +880,7 @@
                         }
                     },
                     {
-                        targets: 7, // Status — badge berwarna
+                        targets: 5, // Status — badge berwarna
                         render: function (data) {
                             const statusMap = {
                                 'Draft':              `<span class="badge px-3 py-1 rounded-pill fw-semibold shadow-sm" style="background: rgba(249, 115, 22, 0.15) !important; color: #ea580c !important; border: 1px solid rgba(249, 115, 22, 0.25);"><i class="bi bi-file-earmark-text me-1"></i>Draft</span>`,
@@ -475,13 +894,16 @@
                         }
                     },
                     {
-                        targets: 8, // Aksi — tombol aksi dinamis berdasarkan permission
+                        targets: 6, // Aksi — tombol aksi dinamis berdasarkan permission
                         render: function (data, type, row) {
                             let html = `<div class="d-flex justify-content-center gap-1">`;
                             html += `<button class="btn btn-sm btn-light text-primary border btn-detail" data-id="${data}" title="Lihat Detail"><i class="bi bi-eye-fill"></i></button>`;
                             html += `<a href="/purchase-order/${data}/print" target="_blank" class="btn btn-sm btn-light text-info border" title="Cetak PO"><i class="bi bi-printer-fill"></i></a>`;
                             if (row.can_edit) {
                                 html += `<button class="btn btn-sm btn-light text-warning border btn-edit" data-id="${data}" title="Edit PO"><i class="bi bi-pencil-fill"></i></button>`;
+                            }
+                            if (row.can_reopen) {
+                                html += `<button class="btn btn-sm btn-light text-warning-emphasis border btn-reopen-po" data-id="${data}" data-nama="${escapeHtml(row.nomor_po_badge)}" title="Kembalikan ke Draft / Buka PO"><i class="bi bi-arrow-counterclockwise"></i></button>`;
                             }
                             if (row.can_delete) {
                                 html += `<button class="btn btn-sm btn-light text-danger border btn-delete" data-id="${data}" data-nama="${escapeHtml(row.nomor_po_badge)}" title="Hapus"><i class="bi bi-trash-fill"></i></button>`;
@@ -872,7 +1294,7 @@
 
                 Swal.fire({
                     title: 'Hapus Purchase Order?',
-                    html: `Anda akan menghapus PO nomor: <b>${nama}</b>.<br><small class="text-muted">Tindakan ini juga akan mengembalikan sisa qty pengajuan PR asal.</small>`,
+                    html: 'Anda akan menghapus PO nomor: <b>' + escapeHtml(nama) + '</b>.<br><small class="text-muted">Tindakan ini juga akan mengembalikan sisa qty pengajuan PR asal.</small>',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#ef4444',
@@ -905,6 +1327,75 @@
                     }
                 });
             });
+
+            // ===== KEMBALIKAN KE DRAFT / BUKA PO =====
+            $(document).on('click', '.btn-reopen-po', function () {
+                let id = $(this).data('id');
+                let rawNama = $(this).data('nama') || '';
+                let tempDiv = document.createElement('div');
+                tempDiv.innerHTML = rawNama;
+                let nama = tempDiv.textContent || tempDiv.innerText || 'PO';
+
+                Swal.fire({
+                    title: 'Kembalikan PO ke Draft?',
+                    html: `Apakah Anda yakin ingin membuka kembali Purchase Order <b>${escapeHtml(nama)}</b> dan mengembalikannya ke status <b>Draft</b> agar dapat diedit kembali?<br><br>
+                           <div class="alert alert-warning text-start small mb-0 p-2" style="font-size:0.8rem;">
+                               <i class="bi bi-shield-exclamation me-1"></i> <b>Persyaratan Pembukaan PO:</b>
+                               <ul class="mb-0 ps-3 mt-1">
+                                   <li>Belum memiliki Penerimaan Barang (GR) aktif (atau harus dibatalkan).</li>
+                                   <li>Belum masuk dalam transaksi Alokasi Biaya (atau harus dibatalkan).</li>
+                                   <li>Belum memiliki transaksi Faktur Pembelian (Invoice).</li>
+                               </ul>
+                           </div>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#f59e0b',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: '<i class="bi bi-arrow-counterclockwise me-1"></i> Ya, Buka & Kembalikan ke Draft',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'Memproses...',
+                            text: 'Sedang memvalidasi persyaratan dan mengembalikan PO ke status Draft...',
+                            allowOutsideClick: false,
+                            didOpen: () => Swal.showLoading()
+                        });
+
+                        $.ajax({
+                            url: '/purchase-order/' + id + '/reopen',
+                            type: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                            },
+                            success: function (res) {
+                                Swal.fire({
+                                    title: 'Berhasil!',
+                                    html: res.message || 'Purchase Order berhasil dikembalikan ke status Draft.',
+                                    icon: 'success'
+                                });
+                                reloadTablePO();
+                                if ($('#modalDetailPO').hasClass('show')) {
+                                    $('#modalDetailPO').modal('hide');
+                                }
+                            },
+                            error: function (xhr) {
+                                let errMsg = 'Terjadi kesalahan saat mengembalikan PO ke draft.';
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    errMsg = xhr.responseJSON.message;
+                                }
+                                Swal.fire({
+                                    title: 'Tidak Dapat Dibuka!',
+                                    html: errMsg,
+                                    icon: 'error'
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+
             // ===== PRODUCT IMAGE PREVIEW CAROUSEL (CUSTOM LIGHTBOX) =====
             $(document).on('click', '.product-img-wrapper', function (e) {
                 e.preventDefault();

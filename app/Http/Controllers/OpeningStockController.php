@@ -31,16 +31,17 @@ class OpeningStockController extends Controller
     private function resolveGudang(int $gudangId): ?MasterGudang
     {
         $activeBranchId = session('active_branch_id');
-        return MasterGudang::where('id', $gudangId)
+        $query = MasterGudang::where('id', $gudangId)
             ->forActiveCompany()
-            ->where(function($q) use ($activeBranchId) {
-                if ($activeBranchId) {
-                    $q->where('cabang_id', $activeBranchId)
-                      ->orWhereNull('cabang_id');
-                }
-            })
-            ->where('status', 'Active')
-            ->first();
+            ->where('status', 'Active');
+
+        if (!empty($activeBranchId)) {
+            $query->where('cabang_id', $activeBranchId);
+        } else {
+            $query->whereNull('cabang_id');
+        }
+
+        return $query->first();
     }
 
     private function resolveOpeningStock(OpeningStock $os): bool
@@ -48,12 +49,19 @@ class OpeningStockController extends Controller
         $activeBranchId = session('active_branch_id');
         $activeCompanyId = session('active_company_id');
 
-        if ($os->company_id && $activeCompanyId && $os->company_id != $activeCompanyId) {
-            return false;
+        if (!empty($activeBranchId)) {
+            if ($os->branch_id != $activeBranchId) {
+                return false;
+            }
+        } else {
+            if (!empty($os->branch_id)) {
+                return false;
+            }
+            if (!empty($activeCompanyId) && !empty($os->company_id) && $os->company_id != $activeCompanyId) {
+                return false;
+            }
         }
-        if ($os->branch_id && $activeBranchId && $os->branch_id != $activeBranchId) {
-            return false;
-        }
+
         return MasterGudang::where('id', $os->gudang_id)
             ->forActiveCompany()
             ->exists();
@@ -79,12 +87,7 @@ class OpeningStockController extends Controller
 
         if ($request->ajax()) {
             $query = OpeningStock::forActiveCompany()
-                ->where(function($q) use ($activeBranchId) {
-                    if ($activeBranchId) {
-                        $q->where('opening_stocks.branch_id', $activeBranchId)
-                          ->orWhereNull('opening_stocks.branch_id');
-                    }
-                });
+                ->forActiveBranch();
 
             // Status Draft HANYA bisa dilihat oleh pembuat atau Admin/Super Admin
             if (!$isPrivileged) {
@@ -155,14 +158,19 @@ class OpeningStockController extends Controller
                 ->make(true);
         }
 
-        $gudangs = MasterGudang::where('cabang_id', $activeBranchId)
-            ->forActiveCompany()
-            ->where('status', 'Active')
-            ->orderBy('nama_gudang')
-            ->get();
+        $gudangsQuery = MasterGudang::forActiveCompany()
+            ->where('status', 'Active');
 
-        $baseCountQuery = OpeningStock::where('branch_id', $activeBranchId)
-            ->forActiveCompany();
+        if (!empty($activeBranchId)) {
+            $gudangsQuery->where('cabang_id', $activeBranchId);
+        } else {
+            $gudangsQuery->whereNull('cabang_id');
+        }
+
+        $gudangs = $gudangsQuery->orderBy('nama_gudang')->get();
+
+        $baseCountQuery = OpeningStock::forActiveCompany()
+            ->forActiveBranch();
 
         if (!$isPrivileged) {
             $baseCountQuery->where(function($q) use ($user) {
@@ -313,11 +321,16 @@ class OpeningStockController extends Controller
                 $nomorOpn = $request->nomor_opening_stock;
             }
 
+            $targetBranchId  = $gudang->cabang_id ?? session('active_branch_id');
+            $targetCompanyId = !empty($targetBranchId) ? null : ($gudang->company_id ?? session('active_company_id'));
+
             // Create Opening Stock
             $openingStock = OpeningStock::create([
                 'nomor_opening_stock'   => $nomorOpn,
                 'tanggal_opening_stock' => $request->tanggal_opening_stock,
                 'gudang_id'             => $gudang->id,
+                'company_id'            => $targetCompanyId,
+                'branch_id'             => $targetBranchId,
                 'keterangan'            => $request->keterangan ? strip_tags($request->keterangan) : null,
                 'status'                => $targetStatus,
             ]);
@@ -362,7 +375,7 @@ class OpeningStockController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
             return response()->json([
-                'message' => 'Terjadi kesalahan server. Silakan coba lagi.',
+                'message' => 'Gagal menyimpan saldo awal: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -536,10 +549,15 @@ class OpeningStockController extends Controller
                 $this->revertOpeningStockPosting($openingStock);
             }
 
+            $targetBranchId  = $gudang->cabang_id ?? session('active_branch_id');
+            $targetCompanyId = !empty($targetBranchId) ? null : ($gudang->company_id ?? session('active_company_id'));
+
             // STEP 2: Update header and replace details
             $openingStock->update([
                 'tanggal_opening_stock' => $request->tanggal_opening_stock,
                 'gudang_id'             => $gudang->id,
+                'company_id'            => $targetCompanyId,
+                'branch_id'             => $targetBranchId,
                 'keterangan'            => $request->keterangan ? strip_tags($request->keterangan) : null,
                 'status'                => $newStatus,
             ]);
@@ -802,10 +820,15 @@ class OpeningStockController extends Controller
                 $nomorOpn = $request->nomor_opening_stock;
             }
 
+            $targetBranchId  = $gudang->cabang_id ?? session('active_branch_id');
+            $targetCompanyId = !empty($targetBranchId) ? null : ($gudang->company_id ?? session('active_company_id'));
+
             $openingStock = OpeningStock::create([
                 'nomor_opening_stock'   => $nomorOpn,
                 'tanggal_opening_stock' => $request->tanggal_opening_stock,
                 'gudang_id'             => $gudang->id,
+                'company_id'            => $targetCompanyId,
+                'branch_id'             => $targetBranchId,
                 'keterangan'            => $request->keterangan ? strip_tags($request->keterangan) : 'Import Excel',
                 'status'                => $targetStatus,
             ]);
@@ -852,7 +875,7 @@ class OpeningStockController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
             return response()->json([
-                'message' => 'Terjadi kesalahan saat memproses import. Silakan coba lagi.',
+                'message' => 'Gagal memproses import: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -931,13 +954,8 @@ class OpeningStockController extends Controller
         $isPrivileged = $this->isPrivilegedUser();
 
         $query = OpeningStock::with(['gudang.cabang', 'creator', 'details.barang.satuan'])
-            ->whereHas('gudang', function ($q) use ($activeBranchId, $activeCompanyId) {
-                if ($activeBranchId) {
-                    $q->where('cabang_id', $activeBranchId);
-                } elseif ($activeCompanyId) {
-                    $q->whereHas('cabang', fn($c) => $c->where('company_id', $activeCompanyId));
-                }
-            });
+            ->forActiveCompany()
+            ->forActiveBranch();
 
         if (!$isPrivileged) {
             $query->where(function($q) use ($user) {

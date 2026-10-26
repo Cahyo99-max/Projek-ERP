@@ -135,8 +135,8 @@
                         ? `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 py-1">${b.tipe_bom}</span>`
                         : `<span class="badge bg-secondary bg-opacity-10 text-secondary border rounded-pill px-2 py-1">Garmen</span>`;
 
-                    const tenderBadge = b.nama_tender || b.nomor_kontrak
-                        ? `<div class="mt-1"><span class="badge rounded-pill px-2 py-0.5" style="background:rgba(139,92,246,0.12);color:#7c3aed;border:1px solid rgba(139,92,246,0.3);font-size:11px;"><i class="bi bi-file-earmark-text me-1"></i>${b.nomor_kontrak ? '['+b.nomor_kontrak+'] ' : ''}${b.nama_tender || ''}</span></div>`
+                    const tenderBadge = b.nama_tender
+                        ? `<div class="mt-1"><span class="badge rounded-pill px-2 py-0.5" style="background:rgba(139,92,246,0.12);color:#7c3aed;border:1px solid rgba(139,92,246,0.3);font-size:11px;"><i class="bi bi-file-earmark-text me-1"></i>${b.nama_tender}</span></div>`
                         : '';
 
                     const tenderJson = JSON.stringify({

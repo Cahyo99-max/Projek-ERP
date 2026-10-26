@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flowchart Realisasi & Kontrol Tahapan Produksi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <style>
+        :root {
+            --bg-deep: #05080f;
+            --bg-card: rgba(13, 18, 30, 0.85);
+            --bg-surface: rgba(20, 28, 48, 0.65);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(56, 189, 248, 0.35);
+            --primary: #0284c7;
+            --primary-light: #38bdf8;
+            --primary-glow: rgba(14, 165, 233, 0.35);
+            --emerald: #10b981;
+            --emerald-glow: rgba(16, 185, 129, 0.3);
+            --amber: #f59e0b;
+            --amber-glow: rgba(245, 158, 11, 0.3);
+            --rose: #f43f5e;
+            --rose-glow: rgba(244, 63, 94, 0.3);
+            --violet: #8b5cf6;
+            --cyan: #06b6d4;
+            --text-1: #f1f5f9;
+            --text-2: #94a3b8;
+            --text-3: #64748b;
+            --radius-sm: 8px;
+            --radius-md: 14px;
+            --radius-lg: 22px;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-1);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(ellipse 80% 50% at 15% 0%, rgba(14, 165, 233, 0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 70% 40% at 85% 100%, rgba(16, 185, 129, 0.09) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 30% at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 65%);
+        }
+
+        /* ─── HEADER ─── */
+        header {
+            padding: 1.1rem 2rem;
+            background: rgba(5, 8, 15, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0284c7, #10b981);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: #fff;
+            box-shadow: 0 0 24px rgba(56, 189, 248, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+        }
+
+        .brand-text h1 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            background: linear-gradient(90deg, #fff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+
+        .brand-text span {
+            font-size: 0.76rem;
+            color: var(--text-3);
+            font-weight: 500;
+            letter-spacing: 0.01em;
+        }
+
+        .header-pills {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border: 1px solid;
+        }
+
+        .pill-cyan {
+            background: rgba(6, 182, 212, 0.12);
+            color: #38bdf8;
+            border-color: rgba(6, 182, 212, 0.3);
+        }
+
+        .pill-green {
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .pill-amber {
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .pill-red {
+            background: rgba(239, 68, 68, 0.12);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .pill-violet {
+            background: rgba(139, 92, 246, 0.12);
+            color: #c084fc;
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.48rem 0.95rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--border);
+            background: var(--bg-surface);
+            color: var(--text-1);
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            border-color: #38bdf8;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0369a1, #0284c7);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.45);
+        }
+
+        /* ─── PAGE WRAPPER ─── */
+        .page-wrap {
+            max-width: 1650px;
+            margin: 0 auto;
+            padding: 1.75rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* ─── STATUS LIFECYCLE BAR ─── */
+        .lifecycle-bar {
+            display: flex;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+        }
+
+        .lifecycle-step {
+            flex: 1;
+            padding: 0.85rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-right: 1px solid var(--border);
+            position: relative;
+            transition: all 0.25s ease;
+        }
+
+        .lifecycle-step:last-child {
+            border-right: none;
+        }
+
+        .step-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            flex-shrink: 0;
+        }
+
+        .step-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .step-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .step-sub {
+            font-size: 0.68rem;
+            color: var(--text-3);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ls-1 .step-num {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .ls-1 .step-title {
+            color: #fca5a5;
+        }
+
+        .ls-2 .step-num {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .ls-2 .step-title {
+            color: #fcd34d;
+        }
+
+        .ls-3 .step-num {
+            background: rgba(14, 165, 233, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(14, 165, 233, 0.3);
+        }
+
+        .ls-3 .step-title {
+            color: #7dd3fc;
+        }
+
+        .ls-4 .step-num {
+            background: rgba(139, 92, 246, 0.15);
+            color: #c084fc;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .ls-4 .step-title {
+            color: #d8b4fe;
+        }
+
+        .ls-5 .step-num {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .ls-5 .step-title {
+            color: #6ee7b7;
+        }
+
+        /* ─── INFO BANNER ─── */
+        .hero-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            padding: 1.25rem 1.6rem;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(16, 185, 129, 0.08) 100%);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .hero-left h2 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .hero-left p {
+            font-size: 0.83rem;
+            color: var(--text-2);
+            line-height: 1.55;
+            max-width: 900px;
+        }
+
+        .hero-steps {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .step-badge {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.35rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .step-badge span {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0284c7;
+            color: #fff;
+            font-size: 0.62rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+        }
+
+        .step-arrow {
+            color: var(--text-3);
+            font-size: 0.78rem;
+        }
+
+        /* ─── STAT KPI STRIP ─── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 0.9rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 0.95rem 1.15rem;
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            backdrop-filter: blur(12px);
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.16);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-3);
+        }
+
+        .stat-val {
+            font-size: 0.92rem;
+            font-weight: 800;
+            color: #fff;
+            margin-top: 2px;
+        }
+
+        /* ─── TAB SWITCHER ─── */
+        .tab-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-card);
+            padding: 0.4rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-2);
+            font-size: 0.83rem;
+            font-weight: 600;
+            padding: 0.55rem 1.1rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: #fff;
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.3), rgba(16, 185, 129, 0.2));
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+        }
+
+        .tab-btn .badge-pill {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.45rem;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* ─── CANVAS & MERMAID CONTAINER ─── */
+        .canvas-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(16px);
+        }
+
+        .canvas-header {
+            padding: 0.85rem 1.3rem;
+            background: rgba(10, 15, 28, 0.6);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .canvas-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            font-size: 0.82rem;
+            color: var(--text-2);
+        }
+
+        .dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dr {
+            background: #ef4444;
+        }
+
+        .dy {
+            background: #f59e0b;
+        }
+
+        .dg {
+            background: #10b981;
+        }
+
+        .canvas-area {
+            position: relative;
+            width: 100%;
+            height: 720px;
+            background: linear-gradient(135deg, #070b14 0%, #090e1c 100%);
+            cursor: grab;
+            overflow: hidden;
+        }
+
+        .canvas-area:active {
+            cursor: grabbing;
+        }
+
+        /* Subtle grid background */
+        .canvas-area::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(56, 189, 248, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(56, 189, 248, 0.035) 1px, transparent 1px);
+            background-size: 32px 32px;
+            pointer-events: none;
+        }
+
+        .canvas-tab-pane {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .canvas-tab-pane.active {
+            display: block;
+        }
+
+        /* Zoom Toolbar FAB */
+        .zoom-toolbar {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            background: rgba(10, 15, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 5px;
+            gap: 4px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+        }
+
+        .zb {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: transparent;
+            border: none;
+            color: var(--text-2);
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .zb:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .zdiv {
+            width: 1px;
+            height: 18px;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .zlabel {
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-2);
+            padding: 0 7px;
+            min-width: 44px;
+            text-align: center;
+        }
+
+        /* Loading overlay */
+        .loverlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(5, 8, 15, 0.92);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            z-index: 100;
+            transition: opacity 0.3s ease;
+        }
+
+        .loverlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(56, 189, 248, 0.2);
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ─── TOAST NOTIFICATION ─── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 99px;
+            padding: 0.65rem 1.4rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #fff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 999;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        @media (max-width: 900px) {
+            header {
+                padding: 1rem 1.25rem;
+            }
+
+            .page-wrap {
+                padding: 1.25rem 1rem;
+            }
+
+            .canvas-area {
+                height: 560px;
+            }
+
+            .lifecycle-bar {
+                flex-wrap: wrap;
+            }
+
+            .lifecycle-step {
+                min-width: 50%;
+                border-bottom: 1px solid var(--border);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ─── HEADER ─── -->
+    <header>
+        <div class="header-brand">
+            <div class="brand-icon">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <div class="brand-text">
+                <h1>Realisasi & Kontrol Tahapan Produksi</h1>
+
+            </div>
+        </div>
+
+
+        <div class="header-actions">
+            <button class="btn" id="btnExport" onclick="exportPNG()">
+                <i class="bi bi-image"></i> Unduh PNG
+            </button>
+
+        </div>
+    </header>
+
+    <div class="page-wrap">
+
+        <!-- ─── TAB NAVIGATION BAR ─── -->
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchDiagramTab('tab-main', this)">
+                <i class="bi bi-diagram-3-fill"></i>
+                <span>1. Alur Utama Pabrik</span>
+                <span class="badge-pill">End-to-End</span>
+            </button>
+            <button class="tab-btn" onclick="switchDiagramTab('tab-log', this)">
+                <i class="bi bi-camera-fill"></i>
+                <span>2. Log Harian & Foto Bukti</span>
+                <span class="badge-pill">Detail Log</span>
+            </button>
+            <button class="tab-btn" onclick="switchDiagramTab('tab-matrix', this)">
+                <i class="bi bi-grid-3x3-gap-fill"></i>
+                <span>3. Matriks 4 Status Operasional</span>
+                <span class="badge-pill">Multi-Status</span>
+            </button>
+            <button class="tab-btn" onclick="switchDiagramTab('tab-persen', this)">
+                <i class="bi bi-bar-chart-line-fill"></i>
+                <span>4. Cara Hitung Persentase Pengerjaan</span>
+                <span class="badge-pill">Progres</span>
+            </button>
+        </div>
+
+        <!-- ─── DIAGRAM CANVAS PANEL ─── -->
+        <div class="canvas-card">
+            <div class="canvas-header">
+                <div class="canvas-header-left">
+                    <div class="dots">
+                        <div class="dot dr"></div>
+                        <div class="dot dy"></div>
+                        <div class="dot dg"></div>
+                    </div>
+                    <span style="margin-left: 6px;"><i class="bi bi-mouse2"></i> Scroll = Zoom &nbsp;|&nbsp; Drag =
+                        Geser Kanvas Diagram</span>
+                </div>
+                <div class="pill pill-cyan" id="currentTabBadge" style="font-size: 0.68rem;">Tab 1: Alur Utama
+                    Pengerjaan Pabrik</div>
+            </div>
+
+            <div class="canvas-area" id="canvasContainer">
+                <div class="loverlay" id="loverlay">
+                    <div class="spinner"></div>
+                    <div style="font-size: 0.88rem; color: var(--text-2); font-weight: 600;">Memuat diagram alur
+                        interaktif…</div>
+                </div>
+
+                <!-- ZOOM TOOLBAR FAB -->
+                <div class="zoom-toolbar">
+                    <button class="zb" onclick="zoomIn()" title="Perbesar"><i class="bi bi-plus-lg"></i></button>
+                    <div class="zdiv"></div>
+                    <button class="zb" onclick="zoomOut()" title="Perkecil"><i class="bi bi-dash-lg"></i></button>
+                    <div class="zdiv"></div>
+                    <button class="zb" onclick="resetZoom()" title="Reset Tampilan"><i
+                            class="bi bi-aspect-ratio"></i></button>
+                    <div class="zlabel" id="zoomLevel">100%</div>
+                </div>
+
+                <!-- ════ TAB 1: ALUR UTAMA PABRIK ════ -->
+                <div class="canvas-tab-pane active" id="tab-main">
+                    <pre class="mermaid" id="mermaid-main">
+flowchart LR
+
+    START(["🚀 MULAI\nBuka Modul Produksi\nRealisasi & Kontrol Tahapan"])
+
+    subgraph GATING ["🛑 LANGKAH 1 — CEK BAHAN BAKU"]
+        direction TB
+        G1["Sistem memeriksa apakah\nbahan baku sudah dikeluarkan\ndari gudang untuk SPK ini"]
+        G2{"Bahan sudah\nkeluar gudang?"}
+        G_ERR["🔴 AKSES DITOLAK\nTombol kontrol terkunci\nHubungi tim Gudang untuk\nkeluarkan bahan terlebih dahulu"]
+        G_PASS["🟢 AKSES DIIZINKAN\nSemua bahan sudah siap\nLanjut ke pengerjaan pabrik"]
+    end
+
+    START --> G1
+    G1 --> G2
+    G2 -- "Belum" --> G_ERR
+    G2 -- "Sudah" --> G_PASS
+
+    subgraph TAHAPAN ["🏭 LANGKAH 2 — KERJAKAN TAHAPAN PABRIK"]
+        direction TB
+        T1["Buka Lembar Kontrol SPK\nTampil daftar tahapan berurutan\nContoh: Potong → Jahit → QC → Packing"]
+        T2{"Pilih tindakan\npada tahapan ini"}
+        T_START["▶ Klik Mulai Pengerjaan\nStatus berubah jadi Sedang Dikerjakan\nSPK otomatis masuk status Berjalan"]
+        T_LOG["📝 Klik Catat Hasil Harian\nIsi: tanggal, jumlah selesai,\njumlah reject, catatan & foto bukti"]
+        T_DIRECT["✔ Klik Tandai Selesai\nTahapan langsung ditutup\njika pekerjaan sudah 100%"]
+    end
+
+    G_PASS --> T1
+    T1 --> T2
+    T2 -- "Baru Mulai" --> T_START
+    T2 -- "Isi Laporan Harian" --> T_LOG
+    T2 -- "Langsung Tuntas" --> T_DIRECT
+
+    subgraph ADVANCE ["🔄 LANGKAH 3 — CEK SELESAI & LANJUT OTOMATIS"]
+        direction TB
+        A1{"Jumlah selesai\nsudah capai target?"}
+        A_DONE["✅ TAHAPAN SELESAI\nTahapan ini ditutup\nTanggal selesai tersimpan"]
+        A_NEXT{"Ada tahapan\nberikutnya?"}
+        A_AUTO["⚡ OTOMATIS LANJUT\nTahapan berikutnya\nlangsung aktif dikerjakan"]
+        A_ALLDONE(["🎉 SEMUA TAHAPAN SELESAI\nSeluruh pengerjaan pabrik sudah 100% tuntas\nDilanjutkan ke modul Penerimaan Barang Jadi"])
+    end
+
+    T_START --> T_LOG
+    T_LOG --> A1
+    T_DIRECT --> A_DONE
+    A1 -- "Belum cukup" --> T1
+    A1 -- "Sudah tercapai" --> A_DONE
+    A_DONE --> A_NEXT
+    A_NEXT -- "Ada" --> A_AUTO
+    A_AUTO --> T1
+    A_NEXT -- "Tidak ada lagi" --> A_ALLDONE
+
+    classDef redStyle fill:#450a0a,stroke:#ef4444,stroke-width:2px,color:#fca5a5
+    classDef greenStyle fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#6ee7b7
+    classDef blueStyle fill:#0c4a6e,stroke:#0284c7,stroke-width:2px,color:#7dd3fc
+    classDef amberStyle fill:#451a03,stroke:#f59e0b,stroke-width:2px,color:#fcd34d
+    classDef violetStyle fill:#2e1065,stroke:#8b5cf6,stroke-width:2px,color:#d8b4fe
+
+    class G_ERR redStyle
+    class G_PASS,A_DONE greenStyle
+    class T_START,T_LOG,A_AUTO blueStyle
+    class T2,A1,A_NEXT,G2 amberStyle
+    class A_ALLDONE violetStyle
+                    </pre>
+                </div>
+
+                <!-- ════ TAB 2: LOG HARIAN & KAMERA ════ -->
+                <div class="canvas-tab-pane" id="tab-log">
+                    <pre class="mermaid" id="mermaid-log">
+flowchart LR
+
+    L_START(["📝 MULAI\nOperator klik\nCatat Hasil Harian"])
+
+    subgraph FORM ["📋 ISI FORM LAPORAN HARIAN"]
+        direction TB
+        M1["Pilih tanggal laporan\nDefault: Hari ini"]
+        M2["Sistem tampilkan info otomatis\n• Target total yang harus selesai\n• Jumlah yang sudah selesai\n• Sisa yang masih boleh diisi"]
+        M3["Isi data hasil kerja\n• Jumlah selesai hari ini — Wajib\n• Jumlah reject/cacat — Opsional\n• Catatan singkat — Maks 40 huruf"]
+    end
+
+    L_START --> M1
+    M1 --> M2
+    M2 --> M3
+
+    subgraph VALIDASI ["⚖️ CEK BATAS TARGET"]
+        direction TB
+        V1{"Jumlah yang diisi\nmelebihi sisa target?"}
+        V_REJECT["🚫 DITOLAK\nJumlah terlalu banyak!\nKurangi isian sesuai\nsisa target yang tersedia"]
+        V_OK["✅ JUMLAH VALID\nBoleh dilanjutkan"]
+    end
+
+    M3 --> V1
+    V1 -- "Ya, melebihi" --> V_REJECT
+    V_REJECT --> M3
+    V1 -- "Tidak, masih aman" --> V_OK
+
+    subgraph FOTO ["📸 AMBIL FOTO BUKTI — WAJIB"]
+        direction TB
+        C1{"Cara ambil foto?"}
+        C_CAM["🎥 Pakai Kamera\n1. Klik Ambil Foto Kamera\n2. Kamera HP atau webcam aktif\n3. Bisa putar kamera depan/belakang\n4. Klik Jepret untuk simpan foto"]
+        C_FILE["📁 Upload dari File\n1. Klik Pilih File\n2. Pilih foto dari galeri atau folder\n3. Foto tampil preview otomatis"]
+        C_CHECK{"Foto sudah\nterisi?"}
+        C_ERR["⚠️ FOTO BELUM ADA\nHarus upload atau ambil foto dulu\nsebelum bisa simpan laporan"]
+    end
+
+    V_OK --> C1
+    C1 -- "Pakai kamera" --> C_CAM
+    C1 -- "Upload file" --> C_FILE
+    C_CAM --> C_CHECK
+    C_FILE --> C_CHECK
+    C_CHECK -- "Kosong" --> C_ERR
+    C_ERR --> C1
+    C_CHECK -- "Sudah ada" --> SIMPAN
+
+    subgraph SIMPAN_PROSES ["💾 SIMPAN & HITUNG ULANG OTOMATIS"]
+        direction TB
+        SIMPAN["Klik Simpan Laporan Harian\nData masuk ke database\nFoto tersimpan ke server"]
+        HITUNG["Sistem hitung ulang total\n• Total selesai diperbarui\n• Total reject diperbarui\n• Persentase progres diperbarui"]
+        CEK_TARGET{"Total selesai\nsudah capai target?"}
+        TUNTAS["🎉 TAHAPAN SELESAI\nStatus berubah jadi Selesai\nTahapan berikutnya otomatis aktif"]
+        LANJUT["🔄 MASIH BERJALAN\nStatus tetap Sedang Dikerjakan\nBisa tambah laporan lagi besok"]
+    end
+
+    HITUNG --> CEK_TARGET
+    SIMPAN --> HITUNG
+    CEK_TARGET -- "Sudah" --> TUNTAS
+    CEK_TARGET -- "Belum" --> LANJUT
+
+    subgraph KOREKSI ["↩️ KOREKSI DATA — HAPUS ATAU EDIT LOG"]
+        direction TB
+        R1["Supervisor buka Riwayat Input\nPilih log yang mau dihapus atau diedit"]
+        R2["Sistem hitung ulang total setelah perubahan"]
+        R3["⚠️ STATUS OTOMATIS MUNDUR\nJika total turun di bawah target\nstatus kembali jadi Sedang Dikerjakan"]
+    end
+
+    LANJUT -.-> R1
+    TUNTAS -.-> R1
+    R1 --> R2
+    R2 --> R3
+
+    classDef redStyle fill:#450a0a,stroke:#ef4444,stroke-width:2px,color:#fca5a5
+    classDef greenStyle fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#6ee7b7
+    classDef blueStyle fill:#0c4a6e,stroke:#0284c7,stroke-width:2px,color:#7dd3fc
+    classDef amberStyle fill:#451a03,stroke:#f59e0b,stroke-width:2px,color:#fcd34d
+
+    class V_REJECT,C_ERR redStyle
+    class V_OK,TUNTAS greenStyle
+    class C_CAM,C_FILE,SIMPAN,HITUNG blueStyle
+    class V1,C1,C_CHECK,CEK_TARGET,R3 amberStyle
+                    </pre>
+                </div>
+
+                <!-- ════ TAB 3: MATRIKS 4 PILAR STATUS ════ -->
+                <div class="canvas-tab-pane" id="tab-matrix">
+                    <pre class="mermaid" id="mermaid-matrix">
+flowchart TD
+
+    MULAI(["🔍 SISTEM MEMBACA STATUS SPK\nSetiap SPK punya 4 kemungkinan status\nberdasarkan kondisi bahan, pabrik, dan gudang"])
+
+    subgraph P1 ["🔴 STATUS 1 — BAHAN BELUM KELUAR"]
+        direction LR
+        P1A["Ciri-ciri:\nBahan baku belum pernah dikeluarkan\noleh tim gudang untuk SPK ini"]
+        P1B["🏷 Label: BELUM KELUAR BAHAN\nTombol kontrol terkunci merah\nHarus lapor ke bagian Gudang"]
+    end
+
+    subgraph P2 ["🔵 STATUS 2 — SEDANG DIKERJAKAN DI PABRIK"]
+        direction LR
+        P2A["Ciri-ciri:\nBahan sudah keluar dari gudang\nAda tahapan yang sedang berjalan\nProgres antara 1% sampai 99%"]
+        P2B["🏷 Label: PROSES TAHAPAN PABRIK\nTombol kontrol aktif berwarna biru\nOperator bisa catat hasil harian"]
+    end
+
+    subgraph P3 ["🟡 STATUS 3 — PABRIK SELESAI TUNGGU GUDANG"]
+        direction LR
+        P3A["Ciri-ciri:\nSemua tahapan pabrik sudah 100% tuntas\nBarang jadi belum diserahkan ke gudang"]
+        P3B["🏷 Label: MENUNGGU GUDANG FG\nLabel kuning sebagai tanda peringatan\nTunggu konfirmasi penerimaan gudang"]
+    end
+
+    subgraph P4 ["🟢 STATUS 4 — SELESAI SEMPURNA"]
+        direction LR
+        P4A["Ciri-ciri:\nSemua tahapan tuntas 100%\nBarang sudah diterima gudang secara fisik\nJumlah diterima sesuai atau lebih dari target"]
+        P4B["🏷 Label: LENGKAP & COMPLETE\nLabel hijau tanda SPK berhasil\nKontrol tahapan dikunci otomatis"]
+    end
+
+    subgraph KUNCI ["🔐 ATURAN KEAMANAN — KUNCI SUPER ADMIN"]
+        direction TB
+        K1["Setelah SPK berstatus Selesai Sempurna:\n• Operator biasa tidak bisa ubah data\n• Kepala Line tidak bisa buka kontrol\n• Hanya Super Admin yang punya akses\n  untuk koreksi jika ada kesalahan"]
+    end
+
+    MULAI --> P1A
+    P1A --> P1B
+    P1B -- "Bahan dikeluarkan gudang" --> P2A
+    P2A --> P2B
+    P2B -- "Semua tahapan 100% selesai" --> P3A
+    P3A --> P3B
+    P3B -- "Gudang terima barang fisik" --> P4A
+    P4A --> P4B
+    P4B --> K1
+
+    classDef redStyle fill:#450a0a,stroke:#ef4444,stroke-width:2px,color:#fca5a5
+    classDef blueStyle fill:#0c4a6e,stroke:#0284c7,stroke-width:2px,color:#7dd3fc
+    classDef amberStyle fill:#451a03,stroke:#f59e0b,stroke-width:2px,color:#fcd34d
+    classDef greenStyle fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#6ee7b7
+    classDef violetStyle fill:#2e1065,stroke:#8b5cf6,stroke-width:2px,color:#d8b4fe
+    classDef neutralStyle fill:#1e293b,stroke:#475569,stroke-width:1px,color:#cbd5e1
+
+    class P1A,P1B redStyle
+    class P2A,P2B blueStyle
+    class P3A,P3B amberStyle
+    class P4A,P4B greenStyle
+    class K1 violetStyle
+                    </pre>
+                </div>
+
+                <!-- ════ TAB 4: PERSENTASE PENGERJAAN ════ -->
+                <div class="canvas-tab-pane" id="tab-persen">
+                    <pre class="mermaid" id="mermaid-persen">
+flowchart TD
+
+    MULAI(["📊 SISTEM MENGHITUNG PERSENTASE PENGERJAAN
+Dua tingkat perhitungan berjalan sekaligus:
+(1) Per Tahapan  dan  (2) Keseluruhan SPK"])
+
+    subgraph PER_TAHAPAN ["📋 TINGKAT 1 — PERSENTASE PER TAHAPAN"]
+        direction TB
+        T1["Setiap tahapan punya Target Qty sendiri
+Contoh: Tahap Potong = target 500 lembar"]
+        T2["Operator catat hasil kerja tiap hari
+Sistem menjumlah semua laporan harian
+Qty Selesai = Hari 1 + Hari 2 + Hari 3 + dst."]
+        T3{"Hitung persentase
+tahapan ini"}
+        T_FORMULA["Rumus:
+Qty Selesai ÷ Target Qty × 100
+Contoh: 350 ÷ 500 × 100 = 70%"]
+        T4["Progress bar tahapan berubah sesuai
+persentase — biru jika berjalan, hijau jika 100%"]
+        T_DONE["🟢 Tahapan = 100%
+Status berubah jadi Selesai
+Progress bar penuh warna hijau"]
+        T_PART["🔵 Tahapan < 100%
+Status tetap Sedang Dikerjakan
+Operator bisa tambah laporan lagi"]
+    end
+
+    MULAI --> T1
+    T1 --> T2
+    T2 --> T3
+    T3 --> T_FORMULA
+    T_FORMULA --> T4
+    T4 -- "Sudah 100%" --> T_DONE
+    T4 -- "Belum 100%" --> T_PART
+
+    subgraph SPK_OVERALL ["🏭 TINGKAT 2 — PERSENTASE KESELURUHAN SPK"]
+        direction TB
+        S1["SPK punya beberapa tahapan sekaligus
+Contoh: Potong, Jahit, QC, Packing = 4 Tahapan"]
+        S2["Sistem menghitung berapa tahapan
+yang sudah berstatus Selesai"]
+        S3["Rumus Keseluruhan SPK:
+Jumlah Tahapan Selesai ÷ Total Tahapan × 100
+Contoh: 2 Selesai dari 4 Tahapan = 50%"]
+        S4["Angka persen ini tampil di:
+• Halaman Lembar Kontrol SPK — progress bar atas
+• Daftar Realisasi — kolom status tiap baris SPK"]
+        S_100["🎉 SPK = 100%
+Semua tahapan sudah Selesai
+SPK masuk status Menunggu Gudang FG"]
+    end
+
+    T_DONE --> S1
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
+    S4 -- "Semua tahapan selesai" --> S_100
+
+    subgraph ANTI_LEBIH ["🚫 ATURAN ANTI-KELEBIHAN TARGET"]
+        direction TB
+        AO1["Saat operator isi laporan harian:
+Sistem otomatis hitung sisa yang masih boleh diisi"]
+        AO2["Rumus Sisa yang Boleh Diisi:
+Target Qty − Qty Selesai saat ini
+Contoh: 500 − 350 = 150 sisa boleh diisi"]
+        AO3{"Jumlah yang diisi
+operator melebihi sisa?"}
+        AO_TOLAK["🚫 DITOLAK SISTEM
+Muncul pesan peringatan merah
+Jumlah dikembalikan, tidak tersimpan"]
+        AO_SIMPAN["✅ DITERIMA DAN DISIMPAN
+Total qty diperbarui
+Progress bar otomatis naik"]
+    end
+
+    S4 -.-> AO1
+    AO1 --> AO2
+    AO2 --> AO3
+    AO3 -- "Ya, melebihi" --> AO_TOLAK
+    AO3 -- "Tidak, masih aman" --> AO_SIMPAN
+    AO_TOLAK -.-> AO1
+
+    subgraph REVERSAL_PERSEN ["↩️ JIKA LOG DIHAPUS — PERSENTASE OTOMATIS TURUN"]
+        direction LR
+        R1["Supervisor hapus satu entri laporan harian"]
+        R2["Sistem hitung ulang total qty selesai
+Tanpa entri yang dihapus"]
+        R3["Progress bar dan persentase
+langsung turun otomatis"]
+        R4["Jika persentase turun di bawah 100%
+status tahapan kembali jadi Sedang Dikerjakan"]
+    end
+
+    AO_SIMPAN -.-> R1
+    R1 --> R2
+    R2 --> R3
+    R3 --> R4
+
+    classDef redStyle fill:#450a0a,stroke:#ef4444,stroke-width:2px,color:#fca5a5
+    classDef greenStyle fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#6ee7b7
+    classDef blueStyle fill:#0c4a6e,stroke:#0284c7,stroke-width:2px,color:#7dd3fc
+    classDef amberStyle fill:#451a03,stroke:#f59e0b,stroke-width:2px,color:#fcd34d
+    classDef violetStyle fill:#2e1065,stroke:#8b5cf6,stroke-width:2px,color:#d8b4fe
+    classDef cyanStyle fill:#083344,stroke:#06b6d4,stroke-width:2px,color:#67e8f9
+
+    class AO_TOLAK redStyle
+    class T_DONE,S_100,AO_SIMPAN greenStyle
+    class T_FORMULA,S3,AO2 cyanStyle
+    class T3,AO3 amberStyle
+    class T_PART,S4 blueStyle
+    class R4 violetStyle
+                    </pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── SCRIPT & INTERACTIVITY ─── -->
+    <script>
+        let pzInstances = {};
+        let activeTabId = 'tab-main';
+
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            securityLevel: 'loose',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true,
+                curve: 'basis',
+                diagramPadding: 20,
+                nodeSpacing: 40,
+                rankSpacing: 46
+            },
+            themeVariables: {
+                darkMode: true,
+                background: '#070b14',
+                primaryColor: '#0f172a',
+                primaryTextColor: '#f1f5f9',
+                primaryBorderColor: '#0284c7',
+                lineColor: '#38bdf8',
+                secondaryColor: '#1e1b4b',
+                tertiaryColor: '#064e3b',
+                clusterBkg: 'rgba(15, 23, 42, 0.65)',
+                clusterBorder: 'rgba(56, 189, 248, 0.35)',
+                titleColor: '#38bdf8',
+                edgeLabelBackground: 'rgba(7, 11, 20, 0.92)',
+                fontFamily: 'Inter, sans-serif'
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const overlay = document.getElementById('loverlay');
+            initPanZoomForTab(activeTabId, 18, () => {
+                overlay.classList.add('hidden');
+            });
+        });
+
+        function initPanZoomForTab(tabId, retries, onDone) {
+            const container = document.getElementById(tabId);
+            if (!container) return;
+
+            const svg = container.querySelector('svg');
+            if (svg) {
+                svg.style.width = '100%';
+                svg.style.height = '100%';
+                svg.style.maxWidth = 'none';
+
+                if (pzInstances[tabId]) {
+                    pzInstances[tabId].destroy();
+                }
+
+                pzInstances[tabId] = svgPanZoom(svg, {
+                    zoomEnabled: true,
+                    controlIconsEnabled: false,
+                    fit: true,
+                    center: true,
+                    minZoom: 0.1,
+                    maxZoom: 8,
+                    zoomScaleSensitivity: 0.22,
+                    onZoom: z => {
+                        if (activeTabId === tabId) {
+                            document.getElementById('zoomLevel').textContent = Math.round(z * 100) + '%';
+                        }
+                    }
+                });
+
+                if (activeTabId === tabId) {
+                    const currentZ = pzInstances[tabId].getZoom();
+                    document.getElementById('zoomLevel').textContent = Math.round(currentZ * 100) + '%';
+                }
+
+                if (onDone) onDone();
+            } else if (retries > 0) {
+                setTimeout(() => initPanZoomForTab(tabId, retries - 1, onDone), 300);
+            } else {
+                if (onDone) onDone();
+            }
+        }
+
+        function switchDiagramTab(tabId, btn) {
+            if (activeTabId === tabId) return;
+
+            // Switch tab button classes
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Switch pane visibility
+            document.querySelectorAll('.canvas-tab-pane').forEach(p => p.classList.remove('active'));
+            const targetPane = document.getElementById(tabId);
+            targetPane.classList.add('active');
+
+            activeTabId = tabId;
+
+            // Update badge title
+            const badgeTitles = {
+                'tab-main': 'Tab 1: Alur Utama Pengerjaan Pabrik',
+                'tab-log': 'Tab 2: Log Harian, Kamera & Anti-Overfill',
+                'tab-matrix': 'Tab 3: Matriks 4 Pilar Status Operasional'
+            };
+            document.getElementById('currentTabBadge').textContent = badgeTitles[tabId] || 'Diagram Alur';
+
+            // Ensure PanZoom is initialized for the newly active pane
+            if (!pzInstances[tabId]) {
+                const overlay = document.getElementById('loverlay');
+                overlay.classList.remove('hidden');
+                initPanZoomForTab(tabId, 15, () => {
+                    overlay.classList.add('hidden');
+                });
+            } else {
+                pzInstances[tabId].resize();
+                pzInstances[tabId].fit();
+                pzInstances[tabId].center();
+                const z = pzInstances[tabId].getZoom();
+                document.getElementById('zoomLevel').textContent = Math.round(z * 100) + '%';
+            }
+        }
+
+        function zoomIn() {
+            if (pzInstances[activeTabId]) pzInstances[activeTabId].zoomIn();
+        }
+
+        function zoomOut() {
+            if (pzInstances[activeTabId]) pzInstances[activeTabId].zoomOut();
+        }
+
+        function resetZoom() {
+            if (pzInstances[activeTabId]) {
+                pzInstances[activeTabId].resetZoom();
+                pzInstances[activeTabId].center();
+                document.getElementById('zoomLevel').textContent = '100%';
+            }
+        }
+
+        async function exportPNG() {
+            const btn = document.getElementById('btnExport');
+            const origText = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Memproses PNG...';
+
+            try {
+                if (pzInstances[activeTabId]) {
+                    pzInstances[activeTabId].fit();
+                    pzInstances[activeTabId].center();
+                }
+                await new Promise(r => setTimeout(r, 250));
+
+                const container = document.getElementById(activeTabId);
+                const svg = container ? container.querySelector('svg') : null;
+                if (!svg) throw new Error('Diagram SVG tidak ditemukan.');
+
+                const rect = svg.getBoundingClientRect();
+                const W = Math.max(rect.width, 1800);
+                const H = Math.max(rect.height, 1100);
+
+                const clone = svg.cloneNode(true);
+                clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                clone.setAttribute('width', W);
+                clone.setAttribute('height', H);
+                clone.removeAttribute('style');
+
+                const vp = clone.querySelector('[id*="viewport"]') || clone.querySelector('g');
+                if (vp) vp.removeAttribute('transform');
+
+                const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                bgRect.setAttribute('width', '100%');
+                bgRect.setAttribute('height', '100%');
+                bgRect.setAttribute('fill', '#070b14');
+                clone.insertBefore(bgRect, clone.firstChild);
+
+                const uri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
+                const scale = 2;
+                const canvas = document.createElement('canvas');
+                canvas.width = W * scale;
+                canvas.height = H * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.scale(scale, scale);
+                ctx.fillStyle = '#070b14';
+                ctx.fillRect(0, 0, W, H);
+
+                await new Promise((res, rej) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0, W, H);
+                        const now = new Date();
+                        ctx.font = '600 12px Inter, sans-serif';
+                        ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
+                        ctx.textAlign = 'right';
+                        ctx.fillText('ERP — Realisasi & Kontrol Tahapan Produksi | ' + now.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }), W - 18, H - 14);
+
+                        const link = document.createElement('a');
+                        link.download = 'Flowchart-Realisasi-Produksi-' + activeTabId + '-' + now.toISOString().slice(0, 10) + '.png';
+                        link.href = canvas.toDataURL('image/png', 1.0);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        res();
+                    };
+                    img.onerror = () => rej(new Error('Gagal merender gambar PNG.'));
+                    img.src = uri;
+                });
+
+                showToast('✅ Flowchart berhasil diunduh sebagai gambar PNG!');
+            } catch (err) {
+                showToast('❌ ' + err.message, true);
+            } finally {
+                btn.innerHTML = origText;
+            }
+        }
+
+        function showToast(msg, isError = false) {
+            let toast = document.getElementById('toastEl');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toastEl';
+                toast.className = 'toast';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = msg;
+            toast.style.borderColor = isError ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)';
+            toast.style.color = isError ? '#f87171' : '#34d399';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3500);
+        }
+    </script>
+</body>
+
+</html>

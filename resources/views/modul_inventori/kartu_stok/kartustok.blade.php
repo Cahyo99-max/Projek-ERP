@@ -77,7 +77,8 @@
                         <div class="overflow-hidden">
                             <div class="kpi-title">STOK AWAL PERIODE</div>
                             @php
-                                $formattedStokAwal = (floor($stokAwalPeriode) == $stokAwalPeriode) ? number_format($stokAwalPeriode, 0, ',', '.') : rtrim(rtrim(number_format($stokAwalPeriode, 4, ',', '.'), '0'), ',');
+                                $rAwal = round($stokAwalPeriode, 2);
+                                $formattedStokAwal = (floor($rAwal) == $rAwal) ? number_format($rAwal, 0, ',', '.') : rtrim(rtrim(number_format($rAwal, 2, ',', '.'), '0'), ',');
                             @endphp
                             <div class="kpi-value text-truncate">{{ $formattedStokAwal }}</div>
                             <div>
@@ -100,7 +101,8 @@
                         <div class="overflow-hidden">
                             <div class="kpi-title">TOTAL MASUK</div>
                             @php
-                                $formattedTotalMasuk = (floor($totalMasuk) == $totalMasuk) ? number_format($totalMasuk, 0, ',', '.') : rtrim(rtrim(number_format($totalMasuk, 4, ',', '.'), '0'), ',');
+                                $rMasuk = round($totalMasuk, 2);
+                                $formattedTotalMasuk = (floor($rMasuk) == $rMasuk) ? number_format($rMasuk, 0, ',', '.') : rtrim(rtrim(number_format($rMasuk, 2, ',', '.'), '0'), ',');
                             @endphp
                             <div class="kpi-value text-truncate">+{{ $formattedTotalMasuk }}</div>
                             <div>
@@ -123,7 +125,8 @@
                         <div class="overflow-hidden">
                             <div class="kpi-title">TOTAL KELUAR</div>
                             @php
-                                $formattedTotalKeluar = (floor($totalKeluar) == $totalKeluar) ? number_format($totalKeluar, 0, ',', '.') : rtrim(rtrim(number_format($totalKeluar, 4, ',', '.'), '0'), ',');
+                                $rKeluar = round($totalKeluar, 2);
+                                $formattedTotalKeluar = (floor($rKeluar) == $rKeluar) ? number_format($rKeluar, 0, ',', '.') : rtrim(rtrim(number_format($rKeluar, 2, ',', '.'), '0'), ',');
                             @endphp
                             <div class="kpi-value text-truncate">-{{ $formattedTotalKeluar }}</div>
                             <div>
@@ -146,7 +149,8 @@
                         <div class="overflow-hidden">
                             <div class="kpi-title">STOK AKHIR PERIODE</div>
                             @php
-                                $formattedStokAkhir = (floor($stokAkhirPeriode) == $stokAkhirPeriode) ? number_format($stokAkhirPeriode, 0, ',', '.') : rtrim(rtrim(number_format($stokAkhirPeriode, 4, ',', '.'), '0'), ',');
+                                $rAkhir = round($stokAkhirPeriode, 2);
+                                $formattedStokAkhir = (floor($rAkhir) == $rAkhir) ? number_format($rAkhir, 0, ',', '.') : rtrim(rtrim(number_format($rAkhir, 2, ',', '.'), '0'), ',');
                             @endphp
                             <div class="kpi-value text-truncate">{{ $formattedStokAkhir }}</div>
                             <div>
@@ -267,9 +271,12 @@
                                         @endif
                                     </td>
                                     @php
-                                        $rowStokAwal = (floor($m->stok_awal) == $m->stok_awal) ? number_format($m->stok_awal, 0, ',', '.') : rtrim(rtrim(number_format($m->stok_awal, 4, ',', '.'), '0'), ',');
-                                        $rowJumlah = (floor($m->jumlah) == $m->jumlah) ? number_format($m->jumlah, 0, ',', '.') : rtrim(rtrim(number_format($m->jumlah, 4, ',', '.'), '0'), ',');
-                                        $rowStokAkhir = (floor($m->stok_akhir) == $m->stok_akhir) ? number_format($m->stok_akhir, 0, ',', '.') : rtrim(rtrim(number_format($m->stok_akhir, 4, ',', '.'), '0'), ',');
+                                        $rStokAwal = round($m->stok_awal, 2);
+                                        $rowStokAwal = (floor($rStokAwal) == $rStokAwal) ? number_format($rStokAwal, 0, ',', '.') : rtrim(rtrim(number_format($rStokAwal, 2, ',', '.'), '0'), ',');
+                                        $rJumlah = round($m->jumlah, 2);
+                                        $rowJumlah = (floor($rJumlah) == $rJumlah) ? number_format($rJumlah, 0, ',', '.') : rtrim(rtrim(number_format($rJumlah, 2, ',', '.'), '0'), ',');
+                                        $rStokAkhir = round($m->stok_akhir, 2);
+                                        $rowStokAkhir = (floor($rStokAkhir) == $rStokAkhir) ? number_format($rStokAkhir, 0, ',', '.') : rtrim(rtrim(number_format($rStokAkhir, 2, ',', '.'), '0'), ',');
                                     @endphp
                                     <td class="text-center font-monospace text-muted">{{ $rowStokAwal }}</td>
                                     <td class="text-end fw-semibold font-monospace text-nowrap text-body">
@@ -380,8 +387,10 @@
                                 <tr>
                                     <th colspan="7" class="text-end text-muted small fw-bold">TOTAL MUTASI PERIODE:</th>
                                     @php
-                                        $footTotalMasuk = (floor($totalMasuk) == $totalMasuk) ? number_format($totalMasuk, 0, ',', '.') : rtrim(rtrim(number_format($totalMasuk, 4, ',', '.'), '0'), ',');
-                                        $footTotalKeluar = (floor($totalKeluar) == $totalKeluar) ? number_format($totalKeluar, 0, ',', '.') : rtrim(rtrim(number_format($totalKeluar, 4, ',', '.'), '0'), ',');
+                                        $rFootMasuk = round($totalMasuk, 2);
+                                        $footTotalMasuk = (floor($rFootMasuk) == $rFootMasuk) ? number_format($rFootMasuk, 0, ',', '.') : rtrim(rtrim(number_format($rFootMasuk, 2, ',', '.'), '0'), ',');
+                                        $rFootKeluar = round($totalKeluar, 2);
+                                        $footTotalKeluar = (floor($rFootKeluar) == $rFootKeluar) ? number_format($rFootKeluar, 0, ',', '.') : rtrim(rtrim(number_format($rFootKeluar, 2, ',', '.'), '0'), ',');
                                     @endphp
                                     <th class="text-center font-monospace">
                                         <span class="text-success fw-bold">+{{ $footTotalMasuk }}</span>

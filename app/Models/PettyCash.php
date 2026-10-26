@@ -28,6 +28,7 @@ class PettyCash extends Model
         'saldo_sesudah',
         'nama_pengaju',
         'keterangan',
+        'alasan_pembatalan',
         'lampiran_nota',
         'status',
         'jurnal_id',
@@ -42,32 +43,84 @@ class PettyCash extends Model
         'saldo_sesudah' => 'decimal:2',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function ($model) {
+            if (auth()->check()) {
+                $model->created_by = $model->created_by ?: auth()->id();
+            }
+            $activeBranchId = session('active_branch_id');
+            // Strict Tenancy Isolation:
+            // Jika Cabang -> branch_id terisi, company_id WAJIB NULL, tipe_entitas = 'Cabang'
+            // Jika PT Pusat -> company_id terisi, branch_id WAJIB NULL, tipe_entitas = 'PT'
+            if (!empty($model->branch_id) || (!empty($activeBranchId) && empty($model->company_id))) {
+                $model->branch_id    = $model->branch_id ?: $activeBranchId;
+                $model->company_id   = null;
+                $model->tipe_entitas = 'Cabang';
+            } else {
+                $model->branch_id    = null;
+                $model->tipe_entitas = 'PT';
+                if (empty($model->company_id)) {
+                    $model->company_id = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
+                }
+            }
+        });
+
+        static::updating(function ($model) {
+            if (auth()->check()) {
+                $model->updated_by = auth()->id();
+            }
+            // Strict Tenancy Isolation pada update:
+            if (!empty($model->branch_id)) {
+                $model->company_id   = null;
+                $model->tipe_entitas = 'Cabang';
+            } else {
+                $model->branch_id    = null;
+                $model->tipe_entitas = 'PT';
+                if (empty($model->company_id)) {
+                    $model->company_id = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
+                }
+            }
+        });
+    }
+
     /**
-     * Scope Filter Active Company
+     * Scope Filter Active Company (Strict Isolation PT vs Cabang)
      */
     public function scopeForActiveCompany($query)
     {
-        $companyId = session('active_company_id') ?? auth()->user()?->company_id;
-        if (!empty($companyId)) {
-            return $query->where(function ($q) use ($companyId) {
-                $q->where('company_id', $companyId)->orWhereNull('company_id');
-            });
+        $activeCompanyId = session('active_company_id') ?: auth()->user()?->company_id;
+        $activeBranchId  = session('active_branch_id');
+        $table = $this->getTable();
+
+        if (!empty($activeBranchId)) {
+            // Aktif sebagai Cabang -> hanya data cabang ini (company_id WAJIB NULL)
+            $query->where($table . '.branch_id', $activeBranchId)
+                  ->whereNull($table . '.company_id');
+        } else {
+            // Aktif sebagai PT Pusat -> hanya data level PT (branch_id WAJIB NULL)
+            $query->whereNull($table . '.branch_id');
+            if (!empty($activeCompanyId)) {
+                $query->where($table . '.company_id', $activeCompanyId);
+            } else {
+                $query->where($table . '.company_id', 0);
+            }
         }
+
         return $query;
     }
 
     /**
-     * Scope Filter Active Branch
+     * Scope Filter Active Branch (Strict Isolation PT vs Cabang)
      */
     public function scopeForActiveBranch($query)
     {
-        $branchId = session('active_branch_id');
-        if (!empty($branchId)) {
-            return $query->where(function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId)->orWhereNull('branch_id');
-            });
+        $activeBranchId = session('active_branch_id');
+        $table = $this->getTable();
+        if (!empty($activeBranchId)) {
+            return $query->where($table . '.branch_id', $activeBranchId);
         }
-        return $query;
+        return $query->whereNull($table . '.branch_id');
     }
 
     /**
@@ -115,6 +168,11 @@ class PettyCash extends Model
     public function jurnal()
     {
         return $this->belongsTo(Jurnal::class, 'jurnal_id');
+    }
+
+    public function reversalJurnal()
+    {
+        return $this->hasOne(Jurnal::class, 'referensi_id')->where('referensi_tipe', 'PettyCashReversal');
     }
 
     public function creator()

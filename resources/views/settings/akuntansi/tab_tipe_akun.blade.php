@@ -1,10 +1,16 @@
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
     <div>
-        <h5 class="fw-bold m-0 text-dark">Master Tipe Akun</h5>
-        <p class="text-muted small m-0">Kelola kategori tipe akun keuangan (Aset, Kewajiban, Ekuitas, Pendapatan, HPP, Beban).</p>
+        <h5 class="fw-bold m-0 text-body">Master Tipe Akun</h5>
+        <p class="text-body-secondary small m-0">Kelola kategori tipe akun keuangan khusus <strong>{{ session('active_company_name') ?? 'Perusahaan Aktif' }}</strong> (Aset, Kewajiban, Ekuitas, Pendapatan, HPP, Beban).</p>
     </div>
-    <div>
-        <button class="btn btn-primary btn-sm px-3 rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahMasterTipeAkun">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <a href="{{ route('master-tipe-akuns.export') }}" id="btnExportMasterTipeAkun" class="btn btn-outline-success btn-sm px-3 rounded-3 shadow-2xs fw-semibold no-loader" data-no-loader="true" title="Export Data ke Excel">
+            <i class="bi bi-file-earmark-excel me-1.5"></i> Export Excel
+        </a>
+        <button class="btn btn-outline-primary btn-sm px-3 rounded-3 shadow-2xs fw-semibold" data-bs-toggle="modal" data-bs-target="#modalImportMasterTipeAkun" title="Import Data dari Excel">
+            <i class="bi bi-cloud-arrow-up me-1.5"></i> Import Excel
+        </button>
+        <button class="btn btn-primary btn-sm px-3 rounded-3 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalTambahMasterTipeAkun">
             <i class="bi bi-plus-lg me-1"></i> Tambah Tipe Akun
         </button>
     </div>

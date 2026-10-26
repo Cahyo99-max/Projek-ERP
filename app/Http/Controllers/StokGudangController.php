@@ -10,6 +10,7 @@ use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
+use Shuchkin\SimpleXLSXGen;
 
 class StokGudangController extends Controller
 {
@@ -22,12 +23,15 @@ class StokGudangController extends Controller
     private function buildGudangQuery($entitas = null, $cabangId = null)
     {
         $activeBranchId  = session('active_branch_id');
-        $activeCompanyId = session('active_company_id');
+        $activeCompanyId = session('active_company_id') ?: (auth()->user()?->company_id ?? null);
 
         $query = MasterGudang::where('status', 'Active');
 
+        // Security fail-safe: pastikan company_id selalu terisi
         if ($activeCompanyId) {
             $query->where('company_id', $activeCompanyId);
+        } else {
+            return $query->whereRaw('1 = 0');
         }
 
         // 1. Sesi Cabang Aktif (Navbar Switcher ke Cabang) -> HANYA gudang milik cabang ini (tanpa PT)
@@ -37,7 +41,16 @@ class StokGudangController extends Controller
 
         // 2. Sesi PT Pusat Aktif
         if ($entitas === 'cabang' && !empty($cabangId)) {
-            // Pengguna di PT Pusat memilih tab Cabang tertentu
+            // Validasi keamanan: Pastikan cabang yang diminta benar-benar milik PT ini
+            $isBranchValid = Branch::where('id', $cabangId)
+                ->where('company_id', $activeCompanyId)
+                ->where('status', 'Active')
+                ->exists();
+
+            if (!$isBranchValid) {
+                return $query->whereRaw('1 = 0');
+            }
+
             return $query->where('cabang_id', $cabangId);
         }
 
@@ -63,7 +76,7 @@ class StokGudangController extends Controller
         $this->authorize('lihat-stok-aktual');
 
         $activeBranchId  = session('active_branch_id');
-        $activeCompanyId = session('active_company_id');
+        $activeCompanyId = session('active_company_id') ?: (auth()->user()?->company_id ?? null);
 
         $isBranchSession = !empty($activeBranchId);
         $entitas  = $request->input('entitas', $isBranchSession ? 'cabang' : 'pt');
@@ -109,6 +122,7 @@ class StokGudangController extends Controller
         // ── 3. Filters ─────────────────────────────────────────────────────
         $gudangId   = $request->input('gudang_id');
         $kategoriId = $request->input('kategori_id');
+        $barangId   = $request->input('barang_id');
         $status     = $request->input('status'); // 'Aman', 'Kritis', 'Kosong'
         $search     = $request->input('search');
 
@@ -130,6 +144,9 @@ class StokGudangController extends Controller
         }
         if ($kategoriId) {
             $query->where('master_barang.kategori_barang_id', $kategoriId);
+        }
+        if ($barangId) {
+            $query->where('stok_gudangs.barang_id', $barangId);
         }
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -157,6 +174,7 @@ class StokGudangController extends Controller
             ->whereIn('stok_gudangs.gudang_id', $activeGudangIds)
             ->when($gudangId, fn($q) => $q->where('stok_gudangs.gudang_id', $gudangId))
             ->when($kategoriId, fn($q) => $q->where('master_barang.kategori_barang_id', $kategoriId))
+            ->when($barangId, fn($q) => $q->where('stok_gudangs.barang_id', $barangId))
             ->when($search, function($q) use ($search) {
                 $q->where(function($sq) use ($search) {
                     $sq->where('master_barang.nama_barang', 'like', "%{$search}%")
@@ -211,14 +229,12 @@ class StokGudangController extends Controller
                 ->addColumn('warna', fn($s) => $s->barang?->warna?->nama_warna ?? '-')
                 ->addColumn('min_stok', function ($s) {
                     $min = (float) ($s->barang?->minimum_stok ?? 0);
-                    return number_format($min, 0, ',', '.');
+                    return $this->formatQty($min);
                 })
                 ->addColumn('stok_aktual_fmt', function ($s) {
                     $aktual = (float) $s->stok_aktual;
                     $satuan = $s->barang?->satuan?->nama_satuan ?? '';
-                    $formatted = (floor($aktual) == $aktual)
-                        ? number_format($aktual, 0, ',', '.')
-                        : rtrim(rtrim(number_format($aktual, 2, ',', '.'), '0'), ',');
+                    $formatted = $this->formatQty($aktual);
                     return $formatted . ' <small class="text-secondary fw-normal">' . e($satuan) . '</small>';
                 })
                 ->addColumn('harga_beli_sebelumnya_fmt', function ($s) use ($canSeeHpp) {
@@ -297,8 +313,8 @@ class StokGudangController extends Controller
                             data-kategori="' . $kategori . '"
                             data-gudang="' . $gudang . '"
                             data-warna="' . $warna . '"
-                            data-min-stok="' . number_format($minStokVal, 0, ',', '.') . ' ' . $satuan . '"
-                            data-stok-aktual="' . number_format($stokAktualVal, 0, ',', '.') . ' ' . $satuan . '"
+                            data-min-stok="' . $this->formatQty($minStokVal) . ' ' . $satuan . '"
+                            data-stok-aktual="' . $this->formatQty($stokAktualVal) . ' ' . $satuan . '"
                             data-hpp="' . ($canSeeHpp ? 'Rp ' . number_format($hppVal, 2, ',', '.') : '***') . '"
                             data-hpp-sebelumnya="' . ($canSeeHpp ? 'Rp ' . number_format($hppSebelumnyaVal, 2, ',', '.') : '***') . '"
                             data-harga-beli-terakhir="' . ($canSeeHpp ? ($beliTerakhirVal > 0 ? 'Rp ' . number_format($beliTerakhirVal, 2, ',', '.') : '-') : '***') . '"
@@ -318,7 +334,7 @@ class StokGudangController extends Controller
                 })
                 ->rawColumns(['nama_gudang', 'stok_aktual_fmt', 'harga_pokok_rata_rata_fmt', 'harga_beli_terakhir_fmt', 'harga_beli_sebelumnya_fmt', 'nilai_persediaan_fmt', 'safety_status_badge', 'action'])
                 ->with([
-                    'totalQty'            => number_format($totalQty, 0, ',', '.'),
+                    'totalQty'            => $this->formatQty($totalQty),
                     'totalAman'           => number_format($totalAman, 0, ',', '.'),
                     'totalKritis'         => number_format($totalKritis, 0, ',', '.'),
                     'totalKosong'         => number_format($totalKosong, 0, ',', '.'),
@@ -334,8 +350,10 @@ class StokGudangController extends Controller
         // Dummy collection for initial blade page load (rendered by ajax datatable)
         $mappedStock = collect();
 
-        // Do NOT load all barangs here — dropdown uses Select2 AJAX search instead.
-        $barangs = collect();
+        $barangs = MasterBarang::where('status', 'Active')
+            ->forActiveCompany()
+            ->orderBy('nama_barang')
+            ->get(['id', 'kode_barang', 'nama_barang']);
 
         return view('modul_inventori.stok_saatini.viewstok', compact(
             'mappedStock',
@@ -350,6 +368,7 @@ class StokGudangController extends Controller
             'activeEntityType',
             'gudangId',
             'kategoriId',
+            'barangId',
             'status',
             'search',
             'totalQty',
@@ -370,6 +389,9 @@ class StokGudangController extends Controller
         $gudangId   = $request->input('gudang_id');
         $kategoriId = $request->input('kategori_id');
         $barangId   = $request->input('barang_id');
+
+        $status     = $request->input('status');
+        $search     = $request->input('search');
 
         // Fetch all warehouses for active entity scope
         $activeGudangs = $this->buildGudangQuery($entitas, $cabangId)->pluck('id');
@@ -393,6 +415,23 @@ class StokGudangController extends Controller
         }
         if ($barangId) {
             $query->where('stok_gudangs.barang_id', $barangId);
+        }
+        if ($status) {
+            if ($status === 'Kosong') {
+                $query->where('stok_gudangs.stok_aktual', '<=', 0);
+            } elseif ($status === 'Kritis') {
+                $query->where('stok_gudangs.stok_aktual', '>', 0)
+                      ->whereRaw('stok_gudangs.stok_aktual <= master_barang.minimum_stok');
+            } elseif ($status === 'Aman') {
+                $query->where('stok_gudangs.stok_aktual', '>', 0)
+                      ->whereRaw('stok_gudangs.stok_aktual > master_barang.minimum_stok');
+            }
+        }
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('master_barang.nama_barang', 'like', "%{$search}%")
+                  ->orWhere('master_barang.kode_barang', 'like', "%{$search}%");
+            });
         }
 
         $items = $query->with(['barang.kategori', 'barang.satuan', 'barang.warna', 'barang.primaryFoto', 'barang.fotos', 'gudang'])
@@ -432,6 +471,332 @@ class StokGudangController extends Controller
             'canSeeHpp',
             'tampilkanFoto'
         ));
+    }
+
+    /**
+     * Export Excel (.xlsx) matching exact structure, columns, headers, and totals of PDF print
+     */
+    public function exportExcel(Request $request)
+    {
+        $this->authorize('lihat-stok-aktual');
+
+        $entitas    = $request->input('entitas');
+        $cabangId   = $request->input('cabang_id');
+        $gudangId   = $request->input('gudang_id');
+        $kategoriId = $request->input('kategori_id');
+        $barangId   = $request->input('barang_id');
+        $status     = $request->input('status');
+        $search     = $request->input('search');
+
+        // Fetch all warehouses for active entity scope
+        $activeGudangs = $this->buildGudangQuery($entitas, $cabangId)->pluck('id');
+
+        // Security: ensure selected gudang_id belongs to current user's scope
+        if ($gudangId && !$activeGudangs->contains((int)$gudangId)) {
+            $gudangId = null;
+        }
+
+        $query = StokGudang::query()
+            ->select('stok_gudangs.*')
+            ->join('master_barang', 'stok_gudangs.barang_id', '=', 'master_barang.id')
+            ->join('master_gudang', 'stok_gudangs.gudang_id', '=', 'master_gudang.id')
+            ->whereIn('stok_gudangs.gudang_id', $activeGudangs);
+
+        if ($gudangId) {
+            $query->where('stok_gudangs.gudang_id', $gudangId);
+        }
+        if ($kategoriId) {
+            $query->where('master_barang.kategori_barang_id', $kategoriId);
+        }
+        if ($barangId) {
+            $query->where('stok_gudangs.barang_id', $barangId);
+        }
+        if ($status) {
+            if ($status === 'Kosong') {
+                $query->where('stok_gudangs.stok_aktual', '<=', 0);
+            } elseif ($status === 'Kritis') {
+                $query->where('stok_gudangs.stok_aktual', '>', 0)
+                      ->whereRaw('stok_gudangs.stok_aktual <= master_barang.minimum_stok');
+            } elseif ($status === 'Aman') {
+                $query->where('stok_gudangs.stok_aktual', '>', 0)
+                      ->whereRaw('stok_gudangs.stok_aktual > master_barang.minimum_stok');
+            }
+        }
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('master_barang.nama_barang', 'like', "%{$search}%")
+                  ->orWhere('master_barang.kode_barang', 'like', "%{$search}%");
+            });
+        }
+
+        $items = $query->with(['barang.kategori', 'barang.satuan', 'barang.warna', 'gudang'])
+            ->orderBy('master_barang.nama_barang', 'asc')
+            ->get();
+
+        // Resolve display names safely — only from within user's accessible scope
+        $selectedGudangName   = $gudangId
+            ? ($this->buildGudangQuery($entitas, $cabangId)->where('id', $gudangId)->value('nama_gudang') ?? '-')
+            : 'Semua Gudang';
+        $selectedKategoriName = $kategoriId
+            ? (MasterKategoriBarang::find($kategoriId)?->nama_kategori ?? '-')
+            : 'Semua Kategori';
+        $selectedBarangName   = $barangId
+            ? (MasterBarang::find($barangId)?->nama_barang ?? '-')
+            : 'Semua Barang';
+
+        $activeBranchName = session('active_branch_name');
+        if ($activeBranchName) {
+            $entitasTitle = 'Cabang: ' . $activeBranchName;
+        } elseif ($entitas === 'cabang' && $cabangId) {
+            $branch = Branch::find($cabangId);
+            $entitasTitle = 'Cabang: ' . ($branch?->nama_cabang ?? 'Cabang');
+        } else {
+            $entitasTitle = 'PT: ' . (session('active_company_name') ?: 'Pusat') . ' (PT Pusat)';
+        }
+
+        $canSeeHpp = $this->canSeeHpp();
+        $tglCetak  = date('d/m/Y H:i:s') . ' WIB';
+
+        // Build Excel Rows
+        $rows = [];
+
+        // 1. Header Banner
+        $rows[] = ['<style bgcolor="#0F274A" color="#FFFFFF" font-size="14"><center><b>LAPORAN POSISI INVENTARIS STOK</b></center></style>'];
+
+        // 2. Subtitle / Entitas Badge
+        $subtitleBadge = $entitasTitle . (!$canSeeHpp ? ' | [Akses HPP Dibatasi]' : '');
+        $rows[] = ['<style bgcolor="#1E293B" color="#F8FAFC" font-size="10"><center><b>' . $subtitleBadge . '</b></center></style>'];
+
+        // 3. Metadata Table
+        $statusStr = $status ? $status : 'Semua Status';
+        $rows[] = [
+            '<style bgcolor="#F1F5F9" color="#334155" font-size="9.5"><b>Gudang:</b> ' . $selectedGudangName . 
+            ' | <b>Kategori:</b> ' . $selectedKategoriName . 
+            ' | <b>Barang:</b> ' . $selectedBarangName . 
+            ' | <b>Status:</b> ' . $statusStr . 
+            ' | <b>Tanggal Ekspor:</b> ' . $tglCetak . '</style>'
+        ];
+
+        $rows[] = []; // Spacer row
+
+        // 4. Table Columns Header (Exact match with PDF)
+        if ($canSeeHpp) {
+            $rows[] = [
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>NO</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>KODE BARANG</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><b>NAMA BARANG</b></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>GUDANG</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>KATEGORI</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>WARNA</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>STOK AKTUAL</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><right><b>HPP (AVG COST)</b></right></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><right><b>BELI TERAKHIR</b></right></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><right><b>NILAI PERSEDIAAN</b></right></style>'
+            ];
+        } else {
+            $rows[] = [
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>NO</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>KODE BARANG</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><b>NAMA BARANG</b></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>GUDANG</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>KATEGORI</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>WARNA</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>STOK AKTUAL</b></center></style>',
+                '<style bgcolor="#0F172A" color="#FFFFFF"><center><b>AKSES HPP</b></center></style>'
+            ];
+        }
+
+        // 5. Data Rows
+        $totalQty = 0;
+        $totalNilai = 0;
+
+        foreach ($items as $index => $item) {
+            $qty = floatval($item->stok_aktual);
+            $hpp = floatval($item->harga_pokok_rata_rata);
+            $beliTerakhir = floatval($item->harga_beli_terakhir);
+            $isStokItem = (!$item->barang || $item->barang->tipe_item === 'Stok');
+            $nilai = $isStokItem ? (floatval($item->nilai_persediaan) > 0 ? floatval($item->nilai_persediaan) : ($qty * $hpp)) : 0;
+
+            $totalQty += $qty;
+            $totalNilai += $nilai;
+
+            $satuan = ($item->barang && $item->barang->satuan) ? $item->barang->satuan->nama_satuan : '';
+            $warna  = ($item->barang && $item->barang->warna) ? $item->barang->warna->nama_warna : '-';
+
+            $roundedQty = round($qty, 2);
+            $formattedQty = (floor($roundedQty) == $roundedQty)
+                ? number_format($roundedQty, 0, ',', '.')
+                : rtrim(rtrim(number_format($roundedQty, 2, ',', '.'), '0'), ',');
+
+            $stokAktualStr = $formattedQty . ($satuan ? ' ' . $satuan : '');
+            $rowBg = ($index % 2 === 1) ? '#F8FAFC' : '#FFFFFF';
+
+            if ($canSeeHpp) {
+                $rows[] = [
+                    '<style bgcolor="' . $rowBg . '"><center>' . ($index + 1) . '</center></style>',
+                    '<style bgcolor="' . $rowBg . '"><center>' . ($item->barang ? $item->barang->kode_barang : '-') . '</center></style>',
+                    '<style bgcolor="' . $rowBg . '">' . ($item->barang ? $item->barang->nama_barang : '-') . '</style>',
+                    '<style bgcolor="' . $rowBg . '"><center>' . ($item->gudang ? $item->gudang->nama_gudang : '-') . '</center></style>',
+                    '<style bgcolor="' . $rowBg . '"><center>' . (($item->barang && $item->barang->kategori) ? $item->barang->kategori->nama_kategori : '-') . '</center></style>',
+                    '<style bgcolor="' . $rowBg . '"><center>' . $warna . '</center></style>',
+                    '<style bgcolor="' . $rowBg . '"><center><b>' . $stokAktualStr . '</b></center></style>',
+                    '<style bgcolor="' . $rowBg . '" color="#16A34A"><right>Rp ' . number_format($hpp, 2, ',', '.') . '</right></style>',
+                    '<style bgcolor="' . $rowBg . '"><right>Rp ' . number_format($beliTerakhir, 2, ',', '.') . '</right></style>',
+                    '<style bgcolor="' . $rowBg . '" color="#0F172A"><right><b>Rp ' . number_format($nilai, 2, ',', '.') . '</b></right></style>',
+                ];
+            } else {
+                $rows[] = [
+                    '<style bgcolor="' . $rowBg . '"><center>' . ($index + 1) . '</center></style>',
+                    '<style bgcolor="' . $rowBg . '"><center>' . ($item->barang ? $item->barang->kode_barang : '-') . '</center></style>',
+                    '<style bgcolor="' . $rowBg . '">' . ($item->barang ? $item->barang->nama_barang : '-') . '</style>',
+                    '<style bgcolor="' . $rowBg . '"><center>' . ($item->gudang ? $item->gudang->nama_gudang : '-') . '</center></style>',
+                    '<style bgcolor="' . $rowBg . '"><center>' . (($item->barang && $item->barang->kategori) ? $item->barang->kategori->nama_kategori : '-') . '</center></style>',
+                    '<style bgcolor="' . $rowBg . '"><center>' . $warna . '</center></style>',
+                    '<style bgcolor="' . $rowBg . '"><center><b>' . $stokAktualStr . '</b></center></style>',
+                    '<style bgcolor="' . $rowBg . '" color="#94A3B8"><center>*** Access Restricted ***</center></style>',
+                ];
+            }
+        }
+
+        // 6. Summary Footer Row (Matching PDF)
+        $roundedTotalQty = round($totalQty, 2);
+        $formattedTotalQty = (floor($roundedTotalQty) == $roundedTotalQty)
+            ? number_format($roundedTotalQty, 0, ',', '.')
+            : rtrim(rtrim(number_format($roundedTotalQty, 2, ',', '.'), '0'), ',');
+
+        if ($canSeeHpp) {
+            $rows[] = [
+                '<style bgcolor="#F1F5F9" color="#0F172A"><right><b>TOTAL RINGKASAN:</b></right></style>',
+                '<style bgcolor="#F1F5F9"></style>',
+                '<style bgcolor="#F1F5F9"></style>',
+                '<style bgcolor="#F1F5F9" color="#475569"><center>' . count($items) . ' Baris Item</center></style>',
+                '<style bgcolor="#F1F5F9"></style>',
+                '<style bgcolor="#F1F5F9"></style>',
+                '<style bgcolor="#F1F5F9" color="#0284C7"><center><b>' . $formattedTotalQty . '</b></center></style>',
+                '<style bgcolor="#F1F5F9" color="#475569"><right><b>Total Nilai Asset:</b></right></style>',
+                '<style bgcolor="#F1F5F9"></style>',
+                '<style bgcolor="#F1F5F9" color="#0284C7"><right><b>Rp ' . number_format($totalNilai, 2, ',', '.') . '</b></right></style>',
+            ];
+        } else {
+            $rows[] = [
+                '<style bgcolor="#F1F5F9" color="#0F172A"><right><b>TOTAL RINGKASAN:</b></right></style>',
+                '<style bgcolor="#F1F5F9"></style>',
+                '<style bgcolor="#F1F5F9"></style>',
+                '<style bgcolor="#F1F5F9" color="#475569"><center>' . count($items) . ' Baris Item</center></style>',
+                '<style bgcolor="#F1F5F9"></style>',
+                '<style bgcolor="#F1F5F9"></style>',
+                '<style bgcolor="#F1F5F9" color="#0284C7"><center><b>' . $formattedTotalQty . '</b></center></style>',
+                '<style bgcolor="#F1F5F9" color="#94A3B8"><center>*** Access Restricted ***</center></style>',
+            ];
+        }
+
+        // 7. Authorization Signatures (Matching PDF)
+        $rows[] = [];
+        $rows[] = [];
+        if ($canSeeHpp) {
+            $rows[] = [
+                '',
+                '<center><b>Dibuat Oleh,</b></center>',
+                '',
+                '<center><b>Diperiksa Oleh,</b></center>',
+                '',
+                '',
+                '<center><b>Disetujui Oleh,</b></center>',
+                '',
+                '',
+                ''
+            ];
+            $rows[] = [];
+            $rows[] = [];
+            $rows[] = [];
+            $rows[] = [
+                '',
+                '<center><b>( Staf Gudang )</b></center>',
+                '',
+                '<center><b>( Supervisor Gudang )</b></center>',
+                '',
+                '',
+                '<center><b>( Manajer Operasional )</b></center>',
+                '',
+                '',
+                ''
+            ];
+        } else {
+            $rows[] = [
+                '',
+                '<center><b>Dibuat Oleh,</b></center>',
+                '',
+                '<center><b>Diperiksa Oleh,</b></center>',
+                '',
+                '<center><b>Disetujui Oleh,</b></center>',
+                '',
+                ''
+            ];
+            $rows[] = [];
+            $rows[] = [];
+            $rows[] = [];
+            $rows[] = [
+                '',
+                '<center><b>( Staf Gudang )</b></center>',
+                '',
+                '<center><b>( Supervisor Gudang )</b></center>',
+                '',
+                '<center><b>( Manajer Operasional )</b></center>',
+                '',
+                ''
+            ];
+        }
+
+        $cleanTitle = \Illuminate\Support\Str::slug($entitasTitle, '_');
+        $filename   = 'Laporan_Posisi_Stok_' . ($cleanTitle ? $cleanTitle . '_' : '') . date('Ymd_His') . '.xlsx';
+
+        $xlsx = SimpleXLSXGen::fromArray($rows);
+
+        // Merge title & header banners
+        if ($canSeeHpp) {
+            $xlsx->mergeCells('A1:J1');
+            $xlsx->mergeCells('A2:J2');
+            $xlsx->mergeCells('A3:J3');
+
+            $footerRowIdx = count($items) + 6; // Rows: 1 title, 2 subtitle, 3 meta, 4 spacer, 5 header, then items, then footer
+            $xlsx->mergeCells('A' . $footerRowIdx . ':C' . $footerRowIdx);
+            $xlsx->mergeCells('D' . $footerRowIdx . ':F' . $footerRowIdx);
+            $xlsx->mergeCells('H' . $footerRowIdx . ':I' . $footerRowIdx);
+
+            $xlsx->setColWidth(1, 6);   // NO
+            $xlsx->setColWidth(2, 16);  // KODE BARANG
+            $xlsx->setColWidth(3, 32);  // NAMA BARANG
+            $xlsx->setColWidth(4, 18);  // GUDANG
+            $xlsx->setColWidth(5, 18);  // KATEGORI
+            $xlsx->setColWidth(6, 14);  // WARNA
+            $xlsx->setColWidth(7, 18);  // STOK AKTUAL
+            $xlsx->setColWidth(8, 22);  // HPP
+            $xlsx->setColWidth(9, 22);  // BELI TERAKHIR
+            $xlsx->setColWidth(10, 24); // NILAI PERSEDIAAN
+        } else {
+            $xlsx->mergeCells('A1:H1');
+            $xlsx->mergeCells('A2:H2');
+            $xlsx->mergeCells('A3:H3');
+
+            $footerRowIdx = count($items) + 6;
+            $xlsx->mergeCells('A' . $footerRowIdx . ':C' . $footerRowIdx);
+            $xlsx->mergeCells('D' . $footerRowIdx . ':F' . $footerRowIdx);
+
+            $xlsx->setColWidth(1, 6);   // NO
+            $xlsx->setColWidth(2, 16);  // KODE BARANG
+            $xlsx->setColWidth(3, 32);  // NAMA BARANG
+            $xlsx->setColWidth(4, 18);  // GUDANG
+            $xlsx->setColWidth(5, 18);  // KATEGORI
+            $xlsx->setColWidth(6, 14);  // WARNA
+            $xlsx->setColWidth(7, 18);  // STOK AKTUAL
+            $xlsx->setColWidth(8, 26);  // AKSES HPP
+        }
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+        $xlsx->downloadAs($filename);
+        exit();
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -485,14 +850,16 @@ class StokGudangController extends Controller
             return response()->json(['error' => 'Access denied'], 403);
         }
 
-        // Latest 2 actual purchase records (excluding opname/transfers/adjustments)
+        // Latest 2 actual purchase records (excluding opname/transfers/adjustments and landed cost allocations)
         $latestPurchases = \App\Models\KartuStok::where('barang_id', $barangId)
             ->where('gudang_id', $gudangId)
             ->where('tipe', 'Masuk')
+            ->where('jumlah', '>', 0)
             ->whereNotIn('referensi_jenis', [
                 'Stock Opname', 'Stok Opname', 
                 'Transfer Gudang', 'Transfer Internal', 'Transfer Inter-PT', 'Transfer Inter-Cabang',
-                'Stock Adjustment', 'Penyesuaian Stok'
+                'Stock Adjustment', 'Penyesuaian Stok',
+                'Alokasi Biaya', 'Alokasi Biaya (Batal)', 'Landed Cost'
             ])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -523,25 +890,53 @@ class StokGudangController extends Controller
         $canSeeHpp = $this->canSeeHpp();
         $stokGudang = StokGudang::where('barang_id', $barangId)->where('gudang_id', $gudangId)->first();
 
-        $hargaBeliTerakhir = (float) ($stokGudang?->harga_beli_terakhir ?? 0);
-        $hargaBeliSebelumnya = (float) ($stokGudang?->harga_beli_sebelumnya ?? 0);
-
-        if ($hargaBeliTerakhir <= 0 && $latestPurchases->count() > 0) {
+        // Ambil riil dari history KartuStok (prioritas utama agar tanggal dan harga selalu 100% konsisten berpasangan)
+        if ($latestPurchases->count() > 0) {
             $hargaBeliTerakhir = (float) ($latestPurchases[0]->harga_satuan ?? 0);
+            $tglBeliTerakhir   = $fmt($latestPurchases[0]->created_at ?? null);
+        } else {
+            $hargaBeliTerakhir = (float) ($stokGudang?->harga_beli_terakhir ?? 0);
+            $tglBeliTerakhir   = '-';
         }
-        if ($hargaBeliSebelumnya <= 0 && $latestPurchases->count() > 1) {
+
+        if ($latestPurchases->count() > 1) {
             $hargaBeliSebelumnya = (float) ($latestPurchases[1]->harga_satuan ?? 0);
+            $tglBeliSebelumnya   = $fmt($latestPurchases[1]->created_at ?? null);
+        } else {
+            $hargaBeliSebelumnya = (float) ($stokGudang?->harga_beli_sebelumnya ?? 0);
+            $tglBeliSebelumnya   = '-';
         }
+
+        // Cek apakah ada Alokasi Biaya Ekspedisi (Landed Cost) yang aktif (Posted) untuk barang ini
+        $activeAlokasi = \App\Models\AlokasiBiayaDetail::where('barang_id', $barangId)
+            ->whereHas('alokasiBiaya', function($q) use ($cabangId) {
+                $q->where('status', 'Posted');
+                if ($cabangId) {
+                    $q->where('branch_id', $cabangId);
+                }
+            })
+            ->whereHas('goodsReceipt', function($q) use ($gudangId) {
+                $q->where('gudang_id', $gudangId);
+            })
+            ->latest('id')
+            ->first();
+
+        $hasAlokasi = !empty($activeAlokasi);
+        $alokasiBiayaUnitStr = $hasAlokasi ? 'Rp ' . number_format((float) $activeAlokasi->biaya_per_unit, 2, ',', '.') : null;
+        $nomorAlokasiStr = $hasAlokasi ? ($activeAlokasi->alokasiBiaya?->nomor_alokasi ?? '-') : null;
 
         return response()->json([
             'stok_sebelumnya'           => $latestMutation !== null
-                ? number_format((float) $latestMutation, 0, ',', '.')
+                ? $this->formatQty($latestMutation)
                 : '-',
             'sumber_transaksi_terakhir' => $sumberTerakhir,
-            'tanggal_beli_terakhir'     => $fmt($latestPurchases[0]->created_at ?? null),
-            'tanggal_beli_sebelumnya'   => $fmt($latestPurchases[1]->created_at ?? null),
+            'tanggal_beli_terakhir'     => $tglBeliTerakhir,
+            'tanggal_beli_sebelumnya'   => $tglBeliSebelumnya,
             'harga_beli_terakhir'       => $canSeeHpp ? ($hargaBeliTerakhir > 0 ? 'Rp ' . number_format($hargaBeliTerakhir, 2, ',', '.') : '-') : '***',
             'harga_beli_sebelumnya'     => $canSeeHpp ? ($hargaBeliSebelumnya > 0 ? 'Rp ' . number_format($hargaBeliSebelumnya, 2, ',', '.') : '-') : '***',
+            'has_alokasi'               => $hasAlokasi,
+            'alokasi_biaya_unit'        => $canSeeHpp ? $alokasiBiayaUnitStr : '***',
+            'nomor_alokasi'             => $nomorAlokasiStr,
         ]);
     }
 
@@ -662,9 +1057,9 @@ class StokGudangController extends Controller
                 'referensi'       => $refStr,
                 'referensi_jenis' => $m->referensi_jenis,
                 'referensi_nomor' => $m->referensi_nomor,
-                'jumlah_fmt'      => number_format($jumlahVal, 0, ',', '.') . ' ' . $satuan,
-                'stok_awal_fmt'   => number_format($stokAwalVal, 0, ',', '.') . ' ' . $satuan,
-                'stok_akhir_fmt'  => number_format($stokAkhirVal, 0, ',', '.') . ' ' . $satuan,
+                'jumlah_fmt'      => $this->formatQty($jumlahVal) . ' ' . $satuan,
+                'stok_awal_fmt'   => $this->formatQty($stokAwalVal) . ' ' . $satuan,
+                'stok_akhir_fmt'  => $this->formatQty($stokAkhirVal) . ' ' . $satuan,
                 'harga_satuan_fmt'=> $canSeeHpp ? ('Rp ' . number_format($hargaVal, 2, ',', '.')) : '***',
                 'nilai_total_fmt' => $canSeeHpp ? ('Rp ' . number_format($nilaiVal, 2, ',', '.')) : '***',
                 'keterangan'      => $m->keterangan ?: '-',
@@ -708,5 +1103,30 @@ class StokGudangController extends Controller
         });
 
         return response()->json($results);
+    }
+
+    /**
+     * Format kuantitas stok untuk tampilan UI: integer jika bilangan bulat, maksimal 2 angka desimal jika pecahan.
+     * Dibulatkan (rounded) agar intuitif dan mudah dipahami pengguna (misal 0.256 m -> 0,26 m).
+     */
+    private function formatQty($val): string
+    {
+        $num = (float) $val;
+        if (abs($num) < 0.00001) {
+            return '0';
+        }
+        if (abs($num - round($num)) < 0.00001) {
+            return number_format(round($num), 0, ',', '.');
+        }
+
+        $rounded = round($num, 2);
+        if ($num > 0 && $rounded == 0) {
+            return '< 0,01';
+        }
+        if (floor($rounded) == $rounded) {
+            return number_format($rounded, 0, ',', '.');
+        }
+
+        return rtrim(rtrim(number_format($rounded, 2, ',', '.'), '0'), ',');
     }
 }

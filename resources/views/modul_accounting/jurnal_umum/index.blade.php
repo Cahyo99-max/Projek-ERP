@@ -24,14 +24,12 @@
                 
                 <!-- Tombol Action Header -->
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <button type="button" class="btn btn-sm rounded-pill px-3.5 py-2 fw-semibold d-flex align-items-center gap-2 ju-btn-glass shadow-sm" id="btn_print_period">
-                        <i class="bi bi-printer-fill text-white"></i>
-                        <span>Cetak Laporan Periode (PDF)</span>
-                    </button>
+                    @can('tambah-jurnal-umum')
                     <button type="button" class="btn btn-light text-primary btn-sm rounded-pill px-4 py-2 fw-bold shadow d-flex align-items-center gap-2 ju-btn-create" data-bs-toggle="modal" data-bs-target="#modalCreateJurnal">
                         <i class="bi bi-plus-circle-fill text-primary"></i>
                         <span>+ Buat Jurnal Manual</span>
                     </button>
+                    @endcan
                 </div>
             </div>
         </div>
@@ -88,17 +86,17 @@
 
             <!-- Card 4: Status Keseimbangan (Balance Status) -->
             <div class="col-xl-3 col-md-6">
-                <div class="card border-0 shadow-sm rounded-4 h-100 ju-stat-card {{ $isBalanced ? 'ju-stat-balanced' : 'ju-stat-unbalanced' }}">
+                <div class="card border-0 shadow-sm rounded-4 h-100 ju-stat-card {{ $isBalanced ? 'ju-stat-balanced' : 'ju-stat-unbalanced' }}" id="card_stat_balance">
                     <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
                         <div>
                             <div class="text-muted small fw-semibold text-uppercase mb-1" style="letter-spacing: 0.5px; font-size: 0.75rem;">Status Keseimbangan</div>
-                            <h4 class="fw-bold font-monospace mb-0 {{ $isBalanced ? 'text-success' : 'text-danger' }}">
-                                <i class="bi {{ $isBalanced ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' }} me-1"></i>
+                            <h4 class="fw-bold font-monospace mb-0 {{ $isBalanced ? 'text-success' : 'text-danger' }}" id="stat_balance_title">
+                                <i class="bi {{ $isBalanced ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' }} me-1" id="stat_balance_icon"></i>
                                 {{ $isBalanced ? '100% BALANCE' : 'ADA SELISIH' }}
                             </h4>
-                            <div class="small text-muted mt-1 font-monospace" style="font-size: 0.75rem;">Double-Entry Verification</div>
+                            <div class="small text-muted mt-1 font-monospace" style="font-size: 0.75rem;" id="stat_balance_sub">Double-Entry Verification</div>
                         </div>
-                        <div class="ju-icon-badge {{ $isBalanced ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} shadow-sm">
+                        <div class="ju-icon-badge {{ $isBalanced ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} shadow-sm" id="stat_balance_badge">
                             <i class="bi {{ $isBalanced ? 'bi-shield-check' : 'bi-shield-exclamation' }} fs-4"></i>
                         </div>
                     </div>
@@ -106,58 +104,28 @@
             </div>
         </div>
 
-        <!-- Section 2: Modern Filter Bar with Quick Presets -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 kb-card-section">
-            <div class="card-body p-3 p-md-4">
-                <div class="row g-3 align-items-end">
-                    
-                    <!-- Quick Presets -->
-                    <div class="col-12 d-flex flex-wrap align-items-center justify-content-between gap-2 pb-2 border-bottom">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-funnel-fill text-primary"></i>
-                            <span class="fw-bold text-body-emphasis small">Filter &amp; Periode Cepat:</span>
-                        </div>
-                        <div class="d-flex flex-wrap gap-1.5">
-                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold btn-quick-date" data-range="today">Hari Ini</button>
-                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold btn-quick-date {{ $startDate < now()->startOfMonth()->toDateString() ? 'active' : '' }}" data-range="30_days">30 Hari Terakhir</button>
-                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold btn-quick-date {{ $startDate >= now()->startOfMonth()->toDateString() ? 'active' : '' }}" data-range="this_month">Bulan Ini</button>
-                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold btn-quick-date" data-range="this_year">1 Tahun Ini ({{ date('Y') }})</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 fw-semibold btn-quick-date" data-range="all">Semua Waktu</button>
-                        </div>
-                    </div>
-
-                    <!-- Filter Rentang Tanggal -->
-                    <div class="col-md-5 col-sm-6">
-                        <label class="form-label small fw-semibold text-muted mb-1">Rentang Tanggal Jurnal</label>
-                        <div class="input-group input-group-sm">
-                            <input type="date" class="form-control kb-form-control rounded-start-3" id="filter_start_date" value="{{ $startDate }}">
-                            <span class="input-group-text bg-body-tertiary">s/d</span>
-                            <input type="date" class="form-control kb-form-control rounded-end-3" id="filter_end_date" value="{{ $endDate }}">
-                        </div>
-                    </div>
-
-                    <!-- Filter Sumber Transaksi -->
-                    <div class="col-md-4 col-sm-6">
-                        <label class="form-label small fw-semibold text-muted mb-1">Sumber / Tipe Transaksi</label>
-                        <select class="form-select form-select-sm kb-form-control rounded-3" id="filter_referensi_tipe">
-                            <option value="">Semua Sumber Transaksi</option>
-                            <option value="Purchase Payment">Pembayaran Utang (Purchase Payment)</option>
-                            <option value="KasBank">Kas &amp; Rekening Bank (Treasury)</option>
-                            <option value="KasMutasi">Mutasi Kas Masuk / Keluar</option>
-                            <option value="SalesOrder">Penjualan (Sales Order)</option>
-                            <option value="DeliveryOrder">Pengiriman Barang (Surat Jalan)</option>
-                            <option value="GoodsReceipt">Penerimaan Barang Gudang (GR)</option>
-                            <option value="Manual">Jurnal Manual / Penyesuaian</option>
-                        </select>
-                    </div>
-
-                    <!-- Button Reset Filter -->
-                    <div class="col-md-3 col-sm-12 d-flex gap-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill w-100 fw-semibold" id="btn_reset_filter">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Filter
-                        </button>
-                    </div>
-
+        <!-- Section 2: Active Filter Status Strip (Modern & Compact) -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body" id="active_filter_strip">
+            <div class="card-body py-2.5 px-3 px-md-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill font-monospace px-2.5 py-1">
+                        <i class="bi bi-funnel-fill me-1"></i> Filter Aktif
+                    </span>
+                    <span class="badge bg-body-tertiary border text-body-emphasis rounded-pill px-3 py-1 font-monospace" id="chip_active_period">
+                        <i class="bi bi-calendar3 me-1.5 text-primary"></i> <span id="label_active_period">{{ date('d/m/Y', strtotime($startDate)) }} s/d {{ date('d/m/Y', strtotime($endDate)) }}</span>
+                    </span>
+                    <span class="badge bg-body-tertiary border text-body-emphasis rounded-pill px-3 py-1 font-monospace" id="chip_active_source">
+                        <i class="bi bi-tags me-1.5 text-success"></i> <span id="label_active_source">Semua Sumber</span>
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3.5 py-1.5 fw-semibold d-flex align-items-center gap-1.5 shadow-sm" id="btn_open_filter_modal" data-bs-toggle="modal" data-bs-target="#modalFilterJurnal" title="Buka Pengaturan Filter Periode, Modul & Cetak Laporan">
+                        <i class="bi bi-funnel-fill text-primary"></i>
+                        <span>Filter</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-link text-secondary text-decoration-none px-2 py-1 fw-semibold d-none" id="btn_quick_reset_filter" title="Reset ke default (Bulan ini)">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </button>
                 </div>
             </div>
         </div>
@@ -174,9 +142,11 @@
                         <div class="text-muted small">Pencatatan pembukuan akuntansi otomatis dan memorial</div>
                     </div>
                 </div>
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill font-monospace px-3 py-1 fw-bold">
-                    <i class="bi bi-shield-lock-fill me-1"></i> Double-Entry Live
-                </span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill font-monospace px-3 py-1 fw-bold">
+                        <i class="bi bi-shield-lock-fill me-1"></i> Double-Entry Live
+                    </span>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive p-3">
@@ -205,11 +175,38 @@
     </div>
 
     <!-- Modals -->
+    @can('tambah-jurnal-umum')
     @include('modul_accounting.jurnal_umum._modal_create')
+    @endcan
     @include('modul_accounting.jurnal_umum._modal_detail')
+    @include('modul_accounting.jurnal_umum._modal_filter')
 
     @push('styles')
+    <!-- Select2 Searchable Dropdown CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
     <style>
+        /* Select2 Bootstrap-5 Customization for Modal */
+        .select2-container--bootstrap-5 .select2-selection {
+            border-radius: 0.5rem !important;
+            min-height: 38px !important;
+            padding: 0.35rem 0.75rem !important;
+            font-size: 0.85rem !important;
+            border-color: var(--bs-border-color) !important;
+        }
+        .select2-container--bootstrap-5 .select2-dropdown {
+            z-index: 1065 !important;
+            border-radius: 0.5rem !important;
+            font-size: 0.85rem !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+            border-color: var(--bs-border-color) !important;
+        }
+        .select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field {
+            border-radius: 0.375rem !important;
+            font-size: 0.85rem !important;
+        }
+
         /* Header Hero Card - Modern Royal Blue Gradient */
         .ju-header-card {
             background: linear-gradient(135deg, #0b192c 0%, #1e3a8a 50%, #2563eb 100%) !important;
@@ -379,18 +376,133 @@
             border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
         }
 
-        [data-bs-theme="dark"] .kb-form-control {
+        /* Modal Filter Pro FinTech Design */
+        .ju-modal-filter-content {
+            border: 1px solid rgba(59, 130, 246, 0.25) !important;
+            box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.35) !important;
+        }
+        .ju-modal-filter-header {
+            background: linear-gradient(135deg, #0b192c 0%, #1e3a8a 50%, #2563eb 100%) !important;
+        }
+        .ju-filter-header-icon {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(6px);
+        }
+        .ju-filter-section-card {
+            border: 1px solid var(--bs-border-color) !important;
+            transition: all 0.2s ease;
+        }
+        .ju-filter-section-card:hover {
+            border-color: rgba(37, 99, 235, 0.35) !important;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.06);
+        }
+        .btn-modal-preset {
+            transition: all 0.2s ease;
+            font-size: 0.78rem;
+            background-color: var(--bs-body-bg);
+            border-color: var(--bs-border-color);
+            color: var(--bs-body-color);
+        }
+        .btn-modal-preset:hover {
+            border-color: #2563eb;
+            color: #2563eb;
+            background-color: rgba(37, 99, 235, 0.06);
+            transform: translateY(-1px);
+        }
+        .btn-modal-preset.active {
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%) !important;
+            color: #ffffff !important;
+            border-color: #1d4ed8 !important;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+        .ju-stepper-btn {
+            transition: all 0.2s ease;
+        }
+        .ju-stepper-btn:hover {
+            background-color: rgba(37, 99, 235, 0.1) !important;
+            color: #2563eb;
+            transform: scale(1.05);
+        }
+        .ju-btn-apply {
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%) !important;
+            border: none !important;
+            transition: all 0.2s ease;
+        }
+        .ju-btn-apply:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4) !important;
+        }
+        [data-bs-theme="dark"] .ju-modal-filter-content {
+            background-color: #0f172a !important;
+            border-color: rgba(59, 130, 246, 0.3) !important;
+        }
+        [data-bs-theme="dark"] .ju-filter-section-card {
             background-color: #1e293b !important;
-            border: 1px solid rgba(255, 255, 255, 0.12) !important;
-            color: #f8fafc !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
         }
     </style>
     @endpush
 
     @push('scripts')
+    <!-- Select2 Searchable Dropdown JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
         $(document).ready(function() {
             
+            // Inisialisasi Searchable Select2 pada Dropdown Sumber Transaksi di dalam Modal
+            $('#modal_filter_referensi_tipe').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#modalFilterJurnal'),
+                placeholder: '-- Semua Sumber Transaksi --',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // State Filter Aktif
+            let currentFilter = {
+                start_date: $('#modal_filter_start_date').val() || '{{ $startDate }}',
+                end_date:   $('#modal_filter_end_date').val() || '{{ $endDate }}',
+                referensi_tipe: $('#modal_filter_referensi_tipe').val() || ''
+            };
+
+            const monthNames = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+
+            function pad2(n) {
+                return n < 10 ? '0' + n : n;
+            }
+
+            function formatDateYMD(d) {
+                return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+            }
+
+            function formatDateDMY(dStr) {
+                if (!dStr) return '-';
+                let p = dStr.split('-');
+                if (p.length === 3) return p[2] + '/' + p[1] + '/' + p[0];
+                return dStr;
+            }
+
+            function updateMonthStepperDisplay(d) {
+                let mName = monthNames[d.getMonth()] + ' ' + d.getFullYear();
+                let firstD = new Date(d.getFullYear(), d.getMonth(), 1);
+                let lastD  = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+                
+                $('#display_modal_stepper_month').text(mName);
+                $('#display_modal_stepper_range').text(formatDateDMY(formatDateYMD(firstD)) + ' s/d ' + formatDateDMY(formatDateYMD(lastD)));
+                $('#modal_month_input').val(d.getFullYear() + '-' + pad2(d.getMonth() + 1));
+            }
+
+            let stepperDate = new Date(currentFilter.start_date || new Date());
+            if (isNaN(stepperDate.getTime())) {
+                stepperDate = new Date();
+            }
+            updateMonthStepperDisplay(stepperDate);
+
             // Inisialisasi DataTables Jurnal Umum
             let tableJurnal = $('#tableJurnalUmum').DataTable({
                 processing: true,
@@ -398,9 +510,9 @@
                 ajax: {
                     url: "{{ route('accounting.jurnal-umum.data') }}",
                     data: function(d) {
-                        d.start_date = $('#filter_start_date').val();
-                        d.end_date   = $('#filter_end_date').val();
-                        d.referensi_tipe = $('#filter_referensi_tipe').val();
+                        d.start_date = currentFilter.start_date;
+                        d.end_date   = currentFilter.end_date;
+                        d.referensi_tipe = currentFilter.referensi_tipe;
                     }
                 },
                 columns: [
@@ -414,7 +526,7 @@
                     { data: 'status_balance', name: 'status_balance', className: 'text-center' },
                     { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
                 ],
-                order: [[1, 'desc']],
+                order: [[2, 'desc'], [1, 'desc']],
                 language: {
                     search: "Cari Jurnal:",
                     searchPlaceholder: "Nomor jurnal, keterangan...",
@@ -426,70 +538,225 @@
                 }
             });
 
-            // Quick Date Presets Handler
-            $('.btn-quick-date').on('click', function() {
-                $('.btn-quick-date').removeClass('active');
+            // Update Dynamic Stat Cards saat DataTables reload via XHR
+            tableJurnal.on('xhr.dt', function(e, settings, json) {
+                if (json && json.stats) {
+                    $('#stat_total_jurnal').text(json.stats.total_jurnal);
+                    $('#stat_total_debit').text(json.stats.total_debit);
+                    $('#stat_total_kredit').text(json.stats.total_kredit);
+
+                    const $card = $('#card_stat_balance');
+                    const $title = $('#stat_balance_title');
+                    const $sub = $('#stat_balance_sub');
+                    const $badge = $('#stat_balance_badge');
+
+                    if (json.stats.is_balanced) {
+                        $card.removeClass('ju-stat-unbalanced').addClass('ju-stat-balanced');
+                        $title.removeClass('text-danger').addClass('text-success').html('<i class="bi bi-check-circle-fill me-1" id="stat_balance_icon"></i>' + json.stats.balance_text);
+                        $sub.text(json.stats.balance_sub);
+                        $badge.removeClass('bg-danger-subtle text-danger').addClass('bg-success-subtle text-success').html('<i class="bi bi-shield-check fs-4"></i>');
+                    } else {
+                        $card.removeClass('ju-stat-balanced').addClass('ju-stat-unbalanced');
+                        $title.removeClass('text-success').addClass('text-danger').html('<i class="bi bi-exclamation-triangle-fill me-1" id="stat_balance_icon"></i>' + json.stats.balance_text);
+                        $sub.text(json.stats.balance_sub);
+                        $badge.removeClass('bg-success-subtle text-success').addClass('bg-danger-subtle text-danger').html('<i class="bi bi-shield-exclamation fs-4"></i>');
+                    }
+                }
+            });
+
+            // Handler Preset Tanggal Cepat pada Modal Filter
+            $(document).on('click', '.btn-modal-preset', function() {
+                $('.btn-modal-preset').removeClass('active');
                 $(this).addClass('active');
 
-                let range = $(this).data('range');
+                let preset = $(this).data('preset');
                 let now = new Date();
                 let startStr = '';
                 let endStr = '';
 
-                let pad = (n) => n < 10 ? '0' + n : n;
-                let formatDate = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-
-                if (range === 'today') {
-                    startStr = formatDate(now);
-                    endStr = formatDate(now);
-                } else if (range === '30_days') {
+                if (preset === 'today') {
+                    startStr = formatDateYMD(now);
+                    endStr   = formatDateYMD(now);
+                    stepperDate = new Date(now);
+                } else if (preset === 'last7') {
+                    let past7 = new Date();
+                    past7.setDate(past7.getDate() - 6);
+                    startStr = formatDateYMD(past7);
+                    endStr   = formatDateYMD(now);
+                    stepperDate = new Date(now);
+                } else if (preset === 'this_month') {
+                    let firstD = new Date(now.getFullYear(), now.getMonth(), 1);
+                    let lastD  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    startStr = formatDateYMD(firstD);
+                    endStr   = formatDateYMD(lastD);
+                    stepperDate = new Date(now);
+                } else if (preset === 'last_month') {
+                    let firstD = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    let lastD  = new Date(now.getFullYear(), now.getMonth(), 0);
+                    startStr = formatDateYMD(firstD);
+                    endStr   = formatDateYMD(lastD);
+                    stepperDate = new Date(firstD);
+                } else if (preset === '30_days') {
                     let past30 = new Date();
                     past30.setDate(past30.getDate() - 30);
-                    startStr = formatDate(past30);
-                    endStr = formatDate(now);
-                } else if (range === 'this_month') {
-                    let firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-                    let lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                    startStr = formatDate(firstDay);
-                    endStr = formatDate(lastDay);
-                } else if (range === 'this_year') {
-                    let firstDay = new Date(now.getFullYear(), 0, 1);
-                    let lastDay = new Date(now.getFullYear(), 11, 31);
-                    startStr = formatDate(firstDay);
-                    endStr = formatDate(lastDay);
-                } else if (range === 'all') {
+                    startStr = formatDateYMD(past30);
+                    endStr   = formatDateYMD(now);
+                    stepperDate = new Date(now);
+                } else if (preset === 'this_year') {
+                    let firstD = new Date(now.getFullYear(), 0, 1);
+                    let lastD  = new Date(now.getFullYear(), 11, 31);
+                    startStr = formatDateYMD(firstD);
+                    endStr   = formatDateYMD(lastD);
+                    stepperDate = new Date(now);
+                } else if (preset === 'all') {
                     startStr = '2020-01-01';
-                    endStr = '2030-12-31';
+                    endStr   = '2030-12-31';
+                    stepperDate = new Date(now);
                 }
 
-                $('#filter_start_date').val(startStr);
-                $('#filter_end_date').val(endStr);
-                tableJurnal.ajax.reload();
+                $('#modal_filter_start_date').val(startStr);
+                $('#modal_filter_end_date').val(endStr);
+                updateMonthStepperDisplay(stepperDate);
             });
 
-            // Filter Triggers
-            $('#filter_start_date, #filter_end_date, #filter_referensi_tipe').on('change', function() {
-                tableJurnal.ajax.reload();
+            // Handler Interactive Month Stepper Navigator
+            $('#btn_modal_month_prev').on('click', function() {
+                stepperDate.setMonth(stepperDate.getMonth() - 1);
+                let firstD = new Date(stepperDate.getFullYear(), stepperDate.getMonth(), 1);
+                let lastD  = new Date(stepperDate.getFullYear(), stepperDate.getMonth() + 1, 0);
+
+                $('#modal_filter_start_date').val(formatDateYMD(firstD));
+                $('#modal_filter_end_date').val(formatDateYMD(lastD));
+                updateMonthStepperDisplay(stepperDate);
+                $('.btn-modal-preset').removeClass('active');
             });
 
-            $('#btn_reset_filter').on('click', function() {
-                $('.btn-quick-date[data-range="this_month"]').trigger('click');
-                $('#filter_referensi_tipe').val('');
-                tableJurnal.ajax.reload();
+            $('#btn_modal_month_next').on('click', function() {
+                stepperDate.setMonth(stepperDate.getMonth() + 1);
+                let firstD = new Date(stepperDate.getFullYear(), stepperDate.getMonth(), 1);
+                let lastD  = new Date(stepperDate.getFullYear(), stepperDate.getMonth() + 1, 0);
+
+                $('#modal_filter_start_date').val(formatDateYMD(firstD));
+                $('#modal_filter_end_date').val(formatDateYMD(lastD));
+                updateMonthStepperDisplay(stepperDate);
+                $('.btn-modal-preset').removeClass('active');
             });
 
-            // Cetak Laporan Periode Jurnal Umum (PDF Full Period)
+            $('#modal_month_input').on('change', function() {
+                let val = $(this).val(); // 'YYYY-MM'
+                if (val) {
+                    let parts = val.split('-');
+                    let y = parseInt(parts[0]);
+                    let m = parseInt(parts[1]) - 1;
+                    stepperDate = new Date(y, m, 1);
+                    let firstD = new Date(y, m, 1);
+                    let lastD  = new Date(y, m + 1, 0);
+
+                    $('#modal_filter_start_date').val(formatDateYMD(firstD));
+                    $('#modal_filter_end_date').val(formatDateYMD(lastD));
+                    updateMonthStepperDisplay(stepperDate);
+                    $('.btn-modal-preset').removeClass('active');
+                }
+            });
+
+            // Terapkan Filter Button
+            $('#btn_modal_apply_filter').on('click', function() {
+                currentFilter.start_date = $('#modal_filter_start_date').val();
+                currentFilter.end_date   = $('#modal_filter_end_date').val();
+                currentFilter.referensi_tipe = $('#modal_filter_referensi_tipe').val();
+
+                // Update Active Filter Strip
+                let periodText = formatDateDMY(currentFilter.start_date) + ' s/d ' + formatDateDMY(currentFilter.end_date);
+                $('#label_active_period').text(periodText);
+
+                let sourceText = $('#modal_filter_referensi_tipe option:selected').text();
+                if (!currentFilter.referensi_tipe) {
+                    sourceText = 'Semua Sumber';
+                } else {
+                    sourceText = sourceText.replace(/^[^\w\s]+/, '').trim(); // clean leading emoji if any
+                }
+                $('#label_active_source').text(sourceText);
+
+                // Indicator badges
+                let now = new Date();
+                let thisMonthStart = formatDateYMD(new Date(now.getFullYear(), now.getMonth(), 1));
+                let thisMonthEnd   = formatDateYMD(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+                let isCustom = (currentFilter.start_date !== thisMonthStart || currentFilter.end_date !== thisMonthEnd || currentFilter.referensi_tipe !== '');
+
+                if (isCustom) {
+                    $('#badge_filter_indicator').removeClass('d-none');
+                    $('#btn_quick_reset_filter').removeClass('d-none');
+                } else {
+                    $('#badge_filter_indicator').addClass('d-none');
+                    $('#btn_quick_reset_filter').addClass('d-none');
+                }
+
+                tableJurnal.ajax.reload();
+                $('#modalFilterJurnal').modal('hide');
+            });
+
+            // Reset Filter Handler
+            function resetFilterToDefault() {
+                $('.btn-modal-preset[data-preset="this_month"]').trigger('click');
+                $('#modal_filter_referensi_tipe').val('').trigger('change');
+                $('#btn_modal_apply_filter').trigger('click');
+            }
+
+            $('#btn_modal_reset_filter').on('click', function() {
+                $('.btn-modal-preset[data-preset="this_month"]').trigger('click');
+                $('#modal_filter_referensi_tipe').val('').trigger('change');
+            });
+
+            $('#btn_quick_reset_filter').on('click', function() {
+                resetFilterToDefault();
+            });
+
+            // Cetak Laporan Periode Jurnal Umum (PDF Full Period) dari Strip Filter
             $('#btn_print_period').on('click', function() {
-                let startDate = $('#filter_start_date').val();
-                let endDate   = $('#filter_end_date').val();
-                let refTipe   = $('#filter_referensi_tipe').val();
-
-                let url = `{{ route('accounting.jurnal-umum.print-all') }}?start_date=${startDate}&end_date=${endDate}`;
-                if (refTipe) {
-                    url += `&referensi_tipe=${refTipe}`;
+                let url = `{{ route('accounting.jurnal-umum.print-all') }}?start_date=${currentFilter.start_date}&end_date=${currentFilter.end_date}`;
+                if (currentFilter.referensi_tipe) {
+                    url += `&referensi_tipe=${encodeURIComponent(currentFilter.referensi_tipe)}`;
                 }
 
                 window.open(url, '_blank');
+            });
+
+            // Cetak Laporan Periode Jurnal Umum Langsung dari dalam Modal Filter
+            $('#btn_modal_print_period').on('click', function() {
+                let sDate = $('#modal_filter_start_date').val() || currentFilter.start_date;
+                let eDate = $('#modal_filter_end_date').val() || currentFilter.end_date;
+                let refTipe = $('#modal_filter_referensi_tipe').val() || '';
+
+                let url = `{{ route('accounting.jurnal-umum.print-all') }}?start_date=${sDate}&end_date=${eDate}`;
+                if (refTipe) {
+                    url += `&referensi_tipe=${encodeURIComponent(refTipe)}`;
+                }
+
+                window.open(url, '_blank');
+            });
+
+            // Export Excel Laporan Periode Jurnal Umum dari Strip Filter
+            $('#btn_export_excel').on('click', function() {
+                let url = `{{ route('accounting.jurnal-umum.export-excel') }}?start_date=${currentFilter.start_date}&end_date=${currentFilter.end_date}`;
+                if (currentFilter.referensi_tipe) {
+                    url += `&referensi_tipe=${encodeURIComponent(currentFilter.referensi_tipe)}`;
+                }
+
+                window.location.href = url;
+            });
+
+            // Export Excel Laporan Periode Jurnal Umum Langsung dari dalam Modal Filter
+            $('#btn_modal_export_excel').on('click', function() {
+                let sDate = $('#modal_filter_start_date').val() || currentFilter.start_date;
+                let eDate = $('#modal_filter_end_date').val() || currentFilter.end_date;
+                let refTipe = $('#modal_filter_referensi_tipe').val() || '';
+
+                let url = `{{ route('accounting.jurnal-umum.export-excel') }}?start_date=${sDate}&end_date=${eDate}`;
+                if (refTipe) {
+                    url += `&referensi_tipe=${encodeURIComponent(refTipe)}`;
+                }
+
+                window.location.href = url;
             });
 
             // Helper Currency Formatter
@@ -591,8 +858,8 @@
                     totalKredit += kredit;
                 });
 
-                $('#calc_total_debit').text('Rp ' + formatRupiah(totalDebit.toString()));
-                $('#calc_total_kredit').text('Rp ' + formatRupiah(totalKredit.toString()));
+                $('#calc_total_debit').text('Rp ' + Number(totalDebit).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                $('#calc_total_kredit').text('Rp ' + Number(totalKredit).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
                 let badge = $('#badge_balance_status');
                 let btnSave = $('#btn_save_jurnal');
@@ -611,7 +878,7 @@
                     let selisih = Math.abs(totalDebit - totalKredit);
                     badge.removeClass('bg-secondary-subtle text-secondary border bg-success-subtle text-success border-success-subtle')
                         .addClass('bg-danger-subtle text-danger border border-danger-subtle')
-                        .html('<i class="bi bi-exclamation-triangle-fill me-1"></i> Selisih: Rp ' + formatRupiah(selisih.toString()));
+                        .html('<i class="bi bi-exclamation-triangle-fill me-1"></i> Selisih: Rp ' + Number(selisih).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                     btnSave.prop('disabled', true);
                 }
             }
@@ -658,7 +925,12 @@
                         $('#detail_nomor_jurnal').text(j.nomor_jurnal);
                         $('#detail_tanggal').text(j.tanggal_jurnal);
                         $('#detail_sumber').text(j.referensi_tipe || 'Manual');
-                        $('#detail_creator').text(j.creator ? j.creator.name : 'System Accounting');
+                        if (j.no_tender) {
+                            $('#detail_no_tender_box').html(`<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace px-2 py-0.5 rounded-pill"><i class="bi bi-briefcase me-1"></i>${j.no_tender}</span>`);
+                        } else {
+                            $('#detail_no_tender_box').html(`<span class="text-muted fst-italic">-</span>`);
+                        }
+                        $('#detail_creator').text(j.creator ? (j.creator.nama_lengkap || j.creator.username || j.creator.name) : 'System Accounting');
                         $('#detail_keterangan').text(j.keterangan || '-');
                         $('#btn_print_detail_jurnal').attr('href', `/accounting/jurnal-umum/${j.id}/print`);
 

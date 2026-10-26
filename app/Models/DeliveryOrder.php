@@ -34,6 +34,12 @@ class DeliveryOrder extends Model
         'biaya_ongkir',
         'catatan_pengiriman',
         'status',
+        'approved_by',
+        'approved_at',
+        'received_by',
+        'received_at',
+        'catatan_approval',
+        'catatan_penerimaan',
         'created_by',
         'updated_by',
         'deleted_by',
@@ -42,26 +48,35 @@ class DeliveryOrder extends Model
     protected $casts = [
         'tanggal_kirim' => 'date',
         'estimasi_tiba' => 'date',
-        'biaya_ongkir'   => 'decimal:2',
+        'approved_at'   => 'datetime',
+        'received_at'   => 'datetime',
+        'biaya_ongkir'  => 'decimal:2',
     ];
 
     protected static function booted(): void
     {
         static::creating(function ($model) {
             if (auth()->check()) {
-                $model->created_by = auth()->id();
+                $model->created_by = $model->created_by ?: auth()->id();
             }
-            if (empty($model->company_id) && session()->has('active_company_id')) {
-                $model->company_id = session('active_company_id');
-            }
-            if (empty($model->branch_id) && session()->has('active_branch_id')) {
-                $model->branch_id = session('active_branch_id');
+            $activeBranchId = session('active_branch_id');
+            if (!empty($model->branch_id) || !empty($activeBranchId)) {
+                $model->branch_id  = $model->branch_id ?: $activeBranchId;
+                $model->company_id = null;
+            } else {
+                $model->branch_id = null;
+                if (empty($model->company_id)) {
+                    $model->company_id = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
+                }
             }
         });
 
         static::updating(function ($model) {
             if (auth()->check()) {
                 $model->updated_by = auth()->id();
+            }
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
             }
         });
 
@@ -76,10 +91,24 @@ class DeliveryOrder extends Model
     // ── Scopes ─────────────────────────────────────────────────────────────
     public function scopeForActiveCompany($query)
     {
-        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
-        if (!empty($activeCompanyId)) {
-            $query->where('company_id', $activeCompanyId);
+        $activeCompanyId = session('active_company_id') ?: auth()->user()?->company_id;
+        $activeBranchId  = session('active_branch_id');
+        $table = $this->getTable();
+
+        if (!empty($activeBranchId)) {
+            // Aktif sebagai Cabang -> hanya data cabang ini (company_id NULL)
+            $query->where($table . '.branch_id', $activeBranchId)
+                  ->whereNull($table . '.company_id');
+        } else {
+            // Aktif sebagai PT Pusat -> hanya data level PT (branch_id NULL)
+            $query->whereNull($table . '.branch_id');
+            if (!empty($activeCompanyId)) {
+                $query->where($table . '.company_id', $activeCompanyId);
+            } else {
+                $query->where($table . '.company_id', 0);
+            }
         }
+
         return $query;
     }
 
@@ -87,11 +116,9 @@ class DeliveryOrder extends Model
     {
         $activeBranchId = session('active_branch_id');
         if (!empty($activeBranchId)) {
-            $query->where('branch_id', $activeBranchId);
-        } else {
-            $query->whereNull('branch_id');
+            return $query->where($this->getTable() . '.branch_id', $activeBranchId);
         }
-        return $query;
+        return $query->whereNull($this->getTable() . '.branch_id');
     }
 
     // ── Relationships ──────────────────────────────────────────────────────
@@ -125,8 +152,28 @@ class DeliveryOrder extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function receiver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'received_by');
+    }
+
     public function details(): HasMany
     {
         return $this->hasMany(DeliveryOrderDetail::class, 'delivery_order_id');
+    }
+
+    public function jurnal(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Jurnal::class, 'referensi_id')->where('referensi_tipe', 'Delivery Order');
+    }
+
+    public function salesInvoices(): HasMany
+    {
+        return $this->hasMany(SalesInvoice::class, 'delivery_order_id');
     }
 }

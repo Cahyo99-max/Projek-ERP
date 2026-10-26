@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class SalesQuotation extends Model
 {
@@ -88,11 +89,16 @@ class SalesQuotation extends Model
             if (auth()->check()) {
                 $model->created_by = auth()->id();
             }
-            if (empty($model->company_id) && session()->has('active_company_id')) {
-                $model->company_id = session('active_company_id');
-            }
-            if (!isset($model->branch_id) && session()->has('active_branch_id')) {
-                $model->branch_id = session('active_branch_id');
+            
+            $activeBranchId = $model->branch_id ?: session('active_branch_id');
+            if (!empty($activeBranchId)) {
+                $model->branch_id = $activeBranchId;
+                $model->company_id = null; // Cabang aktif -> company_id (PT) harus NULL
+            } else {
+                $model->branch_id = null;
+                if (empty($model->company_id) && session()->has('active_company_id')) {
+                    $model->company_id = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
+                }
             }
         });
 
@@ -100,31 +106,35 @@ class SalesQuotation extends Model
             if (auth()->check()) {
                 $model->updated_by = auth()->id();
             }
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            }
         });
     }
 
     /**
      * Scope for multi-company tenancy & branch isolation
+     * - Jika aktif sebagai Cabang (branch_id ada)  → branch_id = active_branch_id & company_id (PT) NULL.
+     * - Jika aktif sebagai PT Pusat (branch_id null) → branch_id (Cabang) NULL & company_id = active_company_id.
      */
     public function scopeForActiveCompany($query)
     {
-        $activeCompanyId = session('active_company_id') ?: (Auth::user()->company_id ?? 1);
+        $activeCompanyId = session('active_company_id') ?: Auth::user()?->company_id;
         $activeBranchId  = session('active_branch_id');
-
-        if (!empty($activeCompanyId)) {
-            $query->where(function ($q) use ($activeCompanyId) {
-                $q->where('sales_quotations.company_id', $activeCompanyId)
-                  ->orWhereNull('sales_quotations.company_id');
-            });
-        }
+        $table = $this->getTable();
 
         if (!empty($activeBranchId)) {
-            $query->where('sales_quotations.branch_id', $activeBranchId);
+            // Aktif sebagai Cabang -> hanya data cabang ini (company_id NULL)
+            $query->where($table . '.branch_id', $activeBranchId)
+                  ->whereNull($table . '.company_id');
         } else {
-            $query->where(function ($q) {
-                $q->whereNull('sales_quotations.branch_id')
-                  ->orWhere('sales_quotations.branch_id', 0);
-            });
+            // Aktif sebagai PT Pusat -> hanya data level PT (branch_id NULL)
+            $query->whereNull($table . '.branch_id');
+            if (!empty($activeCompanyId)) {
+                $query->where($table . '.company_id', $activeCompanyId);
+            } else {
+                $query->where($table . '.company_id', 0);
+            }
         }
 
         return $query;
@@ -202,30 +212,66 @@ class SalesQuotation extends Model
     }
 
     /**
-     * Auto generate Quotation Number: SQ/YYYY/MM/XXXX
+     * Auto generate Quotation Number: SQ/{PREFIX}/{YYYY}/{MM}/{XXXX}
+     * - Jika di Cabang: Prefix kode cabang (SQ/CBG001/2026/09/0001)
+     * - Jika di PT Pusat: Prefix kode PT (SQ/PT-MB/2026/09/0001)
+     * Dilengkapi MySQL Advisory Lock & while-loop fallback untuk mencegah duplikasi saat input bersamaan.
      */
-    public static function generateNomor($companyId = null)
+    public static function generateNomor($companyId = null, $branchId = null)
     {
-        $companyId = $companyId ?: (session('active_company_id') ?: (Auth::user()->company_id ?? 1));
-        $company = Company::find($companyId);
-        $prefixCompany = $company ? ($company->kode_perusahaan ?: 'CP') : 'CP';
-
+        $activeBranchId = $branchId !== null ? $branchId : session('active_branch_id');
         $year = date('Y');
         $month = date('m');
-        $prefix = "SQ/{$prefixCompany}/{$year}/{$month}/";
 
-        $lastQuotation = self::where('company_id', $companyId)
-            ->where('nomor_quotation', 'like', $prefix . '%')
-            ->orderBy('id', 'desc')
-            ->first();
-
-        $nextNum = 1;
-        if ($lastQuotation) {
-            $parts = explode('/', $lastQuotation->nomor_quotation);
-            $lastCode = end($parts);
-            $nextNum = intval($lastCode) + 1;
+        if (!empty($activeBranchId)) {
+            $branch = Branch::find($activeBranchId);
+            $prefixBranch = $branch ? ($branch->kode_cabang ?: 'CBG') : 'CBG';
+            $prefix = "SQ/{$prefixBranch}/{$year}/{$month}/";
+        } else {
+            $companyId = $companyId ?: (session('active_company_id') ?: (Auth::user()?->company_id ?? 1));
+            $company = Company::find($companyId);
+            $prefixCompany = $company ? ($company->kode_perusahaan ?: 'CP') : 'CP';
+            $prefix = "SQ/{$prefixCompany}/{$year}/{$month}/";
         }
 
-        return $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+        // Lock to ensure concurrency safety across simultaneous requests
+        $lockKey = 'sq_generate_lock_' . md5($prefix);
+        $gotLock = false;
+        try {
+            $lockRes = DB::select("SELECT GET_LOCK(?, 10) as lk", [$lockKey]);
+            $gotLock = !empty($lockRes) && $lockRes[0]->lk == 1;
+
+            // Find all existing records with this prefix (including soft-deleted)
+            $existingNumbers = self::withTrashed()
+                ->where('nomor_quotation', 'like', $prefix . '%')
+                ->pluck('nomor_quotation');
+
+            $maxSeq = 0;
+            foreach ($existingNumbers as $num) {
+                $parts = explode('/', $num);
+                $lastPart = end($parts);
+                if (is_numeric($lastPart)) {
+                    $val = (int)$lastPart;
+                    if ($val > $maxSeq) {
+                        $maxSeq = $val;
+                    }
+                }
+            }
+
+            $nextNum = $maxSeq + 1;
+            $candidate = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+
+            // Double check existence to guarantee 100% uniqueness
+            while (self::withTrashed()->where('nomor_quotation', $candidate)->exists()) {
+                $nextNum++;
+                $candidate = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+            }
+
+            return $candidate;
+        } finally {
+            if ($gotLock) {
+                DB::select("SELECT RELEASE_LOCK(?)", [$lockKey]);
+            }
+        }
     }
 }

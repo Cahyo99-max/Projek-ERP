@@ -341,7 +341,7 @@
                 function updateTambahDefaultBranchOptions() {
                     let select = $('#tambah_default_branch_id');
                     let currentDefault = select.val();
-                    select.empty().append('<option value="">Pilih Cabang Default...</option>');
+                    select.empty().append('<option value="">-- Tingkat Pusat / PT Induk (Tanpa Cabang) --</option>');
                     
                     $('.check-branch-tambah:checked').each(function() {
                         let id = $(this).val();
@@ -397,7 +397,7 @@
 
                 function updateEditDefaultBranchOptions(selectedDefaultId = null) {
                     let select = $('#edit_default_branch_id');
-                    select.empty().append('<option value="">Pilih Cabang Default...</option>');
+                    select.empty().append('<option value="">-- Tingkat Pusat / PT Induk (Tanpa Cabang) --</option>');
                     
                     $('.check-branch-edit:checked').each(function() {
                         let id = $(this).val();

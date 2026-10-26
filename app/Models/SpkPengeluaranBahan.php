@@ -33,42 +33,62 @@ class SpkPengeluaranBahan extends Model
     ];
 
     protected $casts = [
-        'tanggal_pengeluaran' => 'date',
+        'tanggal_pengeluaran' => 'date:Y-m-d',
         'created_at'          => 'datetime',
         'updated_at'          => 'datetime',
         'deleted_at'          => 'datetime',
     ];
 
-    protected static function booted()
+    /**
+     * Booted Model Event: Pastikan aturan pemisahan PT vs Cabang konsisten saat pembuatan transaksi.
+     * - Jika input Cabang (branch_id terisi) → company_id dipastikan NULL.
+     * - Jika input PT (branch_id kosong)    → branch_id dipastikan NULL & company_id terisi.
+     */
+    protected static function booted(): void
     {
         static::creating(function ($model) {
-            if (empty($model->company_id) && session()->has('active_company_id')) {
-                $model->company_id = session('active_company_id');
-            }
-            if (empty($model->branch_id) && session()->has('active_branch_id')) {
-                $model->branch_id = session('active_branch_id');
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            } elseif (empty($model->company_id)) {
+                $model->company_id = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
             }
         });
     }
 
+    /**
+     * Scope Filter Active Company: Strict Isolation PT Pusat vs Cabang
+     * - Sesi Cabang: branch_id = active_branch_id & company_id IS NULL
+     * - Sesi PT Pusat: branch_id IS NULL & company_id = active_company_id
+     */
     public function scopeForActiveCompany($query)
     {
         $activeCompanyId = session('active_company_id');
         $activeBranchId  = session('active_branch_id');
-
-        if (!empty($activeCompanyId)) {
-            $query->where('spk_pengeluaran_bahans.company_id', $activeCompanyId);
-        }
+        $table = $this->getTable();
 
         if (!empty($activeBranchId)) {
-            // Aktif sebagai Cabang → hanya transaksi milik Cabang ini
-            $query->where('spk_pengeluaran_bahans.branch_id', $activeBranchId);
+            // Aktif sebagai Cabang → hanya transaksi milik Cabang ini (company_id NULL)
+            $query->where($table . '.branch_id', $activeBranchId)
+                  ->whereNull($table . '.company_id');
         } else {
             // Aktif sebagai PT Pusat → hanya transaksi level PT Pusat (branch_id IS NULL)
-            $query->whereNull('spk_pengeluaran_bahans.branch_id');
+            $query->whereNull($table . '.branch_id');
+            if (!empty($activeCompanyId)) {
+                $query->where($table . '.company_id', $activeCompanyId);
+            } else {
+                $query->where($table . '.company_id', 0);
+            }
         }
 
         return $query;
+    }
+
+    /**
+     * Scope Filter Active Branch
+     */
+    public function scopeForActiveBranch($query)
+    {
+        return $this->scopeForActiveCompany($query);
     }
 
     public function company(): BelongsTo

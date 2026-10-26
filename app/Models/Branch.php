@@ -16,6 +16,7 @@ class Branch extends Model
         'kode_cabang',
         'nama_cabang',
         'nama_perusahaan',
+        'logo',
         'phone',
         'email',
         'address',
@@ -28,6 +29,20 @@ class Branch extends Model
         'updated_by',
         'deleted_by',
     ];
+
+    /**
+     * Accessor untuk URL Logo Cabang.
+     */
+    public function getLogoUrlAttribute(): ?string
+    {
+        if (empty($this->logo)) {
+            return null;
+        }
+        if (str_starts_with($this->logo, 'http://') || str_starts_with($this->logo, 'https://')) {
+            return $this->logo;
+        }
+        return asset('storage/' . $this->logo);
+    }
 
     /**
      * Relasi ke Perusahaan (PT Induk).

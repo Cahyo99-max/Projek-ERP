@@ -73,6 +73,39 @@
         color: #0f172a !important;
     }
 
+    /* VIBRANT HIGH CONTRAST BADGES IN TABLE (LIGHT & DARK MODE) */
+    html[data-bs-theme="dark"] .badge.spk-badge-amber,
+    [data-bs-theme="dark"] .badge.spk-badge-amber,
+    .dark-mode .badge.spk-badge-amber {
+        background: rgba(245, 158, 11, 0.2) !important;
+        color: #fbbf24 !important;
+        border: 1px solid rgba(251, 191, 36, 0.5) !important;
+    }
+
+    html[data-bs-theme="dark"] .badge.bg-warning-subtle,
+    [data-bs-theme="dark"] .badge.bg-warning-subtle,
+    .dark-mode .badge.bg-warning-subtle {
+        background: rgba(245, 158, 11, 0.2) !important;
+        color: #fbbf24 !important;
+        border: 1px solid rgba(251, 191, 36, 0.5) !important;
+    }
+
+    html[data-bs-theme="dark"] .badge.spk-badge-muted,
+    [data-bs-theme="dark"] .badge.spk-badge-muted,
+    .dark-mode .badge.spk-badge-muted {
+        background: rgba(148, 163, 184, 0.2) !important;
+        color: #f1f5f9 !important;
+        border: 1px solid rgba(148, 163, 184, 0.45) !important;
+    }
+
+    html[data-bs-theme="dark"] .badge.spk-badge-cyan,
+    [data-bs-theme="dark"] .badge.spk-badge-cyan,
+    .dark-mode .badge.spk-badge-cyan {
+        background: rgba(6, 182, 212, 0.2) !important;
+        color: #38bdf8 !important;
+        border: 1px solid rgba(56, 189, 248, 0.5) !important;
+    }
+
     .btn-emerald-vibrant {
         background: linear-gradient(135deg, #059669 0%, #10b981 100%);
         color: #ffffff !important;
@@ -166,10 +199,10 @@
         line-height: 1.1;
         font-family: var(--bs-font-monospace);
     }
-    .summary-card-sub {
-        font-size: 11.5px;
-        color: rgba(255, 255, 255, 0.78);
-        margin-top: 0.35rem;
+    /* Hide datatable processing overlay to prevent background polling flicker */
+    #table_barang_jadi_processing,
+    .dataTables_processing {
+        display: none !important;
     }
 </style>
 @endpush
@@ -178,19 +211,19 @@
     {{-- BREADCRUMB & HEADER TITLE --}}
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
-            <nav aria-label="breadcrumb">
+            <!-- <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1">
                     <li class="breadcrumb-item"><a href="/dashbord" class="text-decoration-none">Dashboard</a></li>
                     <li class="breadcrumb-item active">Modul Produksi</li>
                     <li class="breadcrumb-item active fw-bold">Penerimaan Barang Jadi</li>
                 </ol>
-            </nav>
+            </nav> -->
             <h4 class="fw-bold m-0 spk-text-contrast d-flex align-items-center gap-2.5">
                 <span class="p-2 rounded-3 text-white d-inline-flex align-items-center justify-content-center"
                       style="background: linear-gradient(135deg, #10b981, #059669); width: 42px; height: 42px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
                     <i class="bi bi-box-seam-fill fs-5"></i>
                 </span>
-                <span>Penerimaan Barang Jadi SPK (Hasil Produksi)</span>
+                <span>Penerimaan Barang Jadi </span>
             </h4>
         </div>
         <div class="d-flex align-items-center gap-2.5 flex-wrap">
@@ -382,16 +415,18 @@
 @include('modul_produksi.barang_jadi._modal_lookup_spk')
 @include('modul_produksi.barang_jadi._modal_lookup_gudang')
 @include('modul_produksi.barang_jadi._modal_lookup_rak')
-@include('modul_produksi.barang_jadi._modal_sesuaikan_hpp')
+@include('modul_produksi.barang_jadi._modal_approve_hpp')
 @include('modul_produksi.barang_jadi._modal_jurnal_spk')
+@include('modul_produksi.barang_jadi._modal_closing')
 
 @push('scripts')
 <script>
     let tableBarangJadi = null;
+    let _activeClosingFgData = null;
 
     $(document).ready(function () {
         tableBarangJadi = $('#table_barang_jadi').DataTable({
-            processing: true,
+            processing: false,
             serverSide: true,
             ajax: {
                 url: "{{ route('produksi.barang-jadi.index') }}",
@@ -423,6 +458,13 @@
             pageLength: 10,
             lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]]
         });
+
+        // Silent Live Background Polling (Every 4 seconds, without screen flickering)
+        setInterval(function () {
+            if (tableBarangJadi && !$('body').hasClass('modal-open') && !Swal.isVisible()) {
+                tableBarangJadi.ajax.reload(null, false);
+            }
+        }, 4000);
 
         $('#btn_apply_filter').on('click', function () {
             $('#modalFilterPenerimaanBarangJadi').modal('hide');
@@ -506,6 +548,29 @@
         }
     }
 
+    function warnSpkBelumSiap(alasan, nomorSpk) {
+        Swal.fire({
+            title: '<div class="d-flex align-items-center justify-content-center gap-2 text-warning fs-5 fw-bold"><i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i> SPK Belum Siap Diterima</div>',
+            html: `<div class="text-start mb-3" style="font-size: 0.93rem; line-height: 1.5;">
+                        Penerimaan Hasil Produksi untuk Dokumen <span class="badge spk-badge-cyan font-monospace px-2 py-1">#${nomorSpk || ''}</span> belum dapat diproses karena:
+                   </div>
+                   <div class="p-3 rounded-3 border mb-3 text-start shadow-xs" style="background-color: var(--spk-card-bg, rgba(245, 158, 11, 0.06)); border-color: rgba(245, 158, 11, 0.25) !important;">
+                       <div class="d-flex align-items-center gap-2 text-danger fw-bold font-monospace mb-1" style="font-size: 0.88rem;">
+                           <i class="bi bi-x-circle-fill text-danger"></i> ${alasan}
+                       </div>
+                       <div class="spk-text-muted mt-2" style="font-size: 0.84rem; line-height: 1.45;">
+                           Demi menjaga keakuratan <b>Harga Pokok Produksi (HPP)</b> dan konsistensi mutasi persediaan, penerimaan barang jadi baru dapat dicatat setelah <b>Pengeluaran Bahan Baku 100% Selesai</b> dan seluruh <b>Realisasi Tahapan Produksi 100% Selesai</b>.
+                       </div>
+                   </div>`,
+            confirmButtonColor: '#3b82f6',
+            confirmButtonText: '<i class="bi bi-check2-circle me-1"></i> Saya Mengerti',
+            customClass: {
+                popup: 'rounded-4 shadow-lg border border-secondary border-opacity-25',
+                confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-semibold'
+            }
+        });
+    }
+
     function warnBahanBelumKeluar(nomorSpk) {
         Swal.fire({
             title: 'Pengeluaran Bahan Belum Di-input!',
@@ -562,9 +627,6 @@
                 $('#adj_cost_tk').val(tkRaw > 0 ? tkRaw.toLocaleString('id-ID') : '');
                 $('#adj_cost_overhead').val(ohRaw > 0 ? ohRaw.toLocaleString('id-ID') : '');
 
-                // Set preview jurnal keterangan berdasarkan nomor SPK
-                // (tidak lagi dipakai — jurnal ada di modal terpisah)
-
                 recalculateAdjustmentHpp();
 
                 $('#modalSesuaikanHpp').modal('show');
@@ -585,9 +647,7 @@
         let raw = el.value.replace(/[^\d]/g, '');
         const num = parseInt(raw, 10) || 0;
         $('#' + hiddenId).val(num);
-        // Format dengan titik ribuan
         el.value = num > 0 ? num.toLocaleString('id-ID') : '';
-        // Pindahkan kursor ke akhir
         const len = el.value.length;
         el.setSelectionRange(len, len);
         recalculateAdjustmentHpp();
@@ -808,22 +868,21 @@
 
                     // Header sesi
                     html += `
-                    <div class="rounded-3 border overflow-hidden shadow-sm" style="border-color: rgba(99,102,241,0.25) !important;">
-                        <div class="d-flex align-items-center gap-3 px-3 py-2.5"
-                             style="background: linear-gradient(90deg, rgba(99,102,241,0.1) 0%, rgba(99,102,241,0.03) 100%); border-bottom: 1px solid rgba(99,102,241,0.15);">
+                    <div class="closing-table-card shadow-sm">
+                        <div class="d-flex align-items-center gap-3 px-3 py-2.5 closing-table-header">
                             <div class="flex-grow-1 d-flex align-items-center gap-2 flex-wrap">
                                 <i class="bi bi-receipt text-indigo-500" style="color: #6366f1;"></i>
-                                <span class="fw-bold font-monospace text-dark" style="font-size: 12.5px;">${j.nomor_jurnal || 'JRN-AUTO'}</span>
+                                <span class="fw-bold font-monospace spk-text-main" style="font-size: 12.5px;">${j.nomor_jurnal || 'JRN-AUTO'}</span>
                                 <span class="badge rounded-pill" style="background: rgba(16,185,129,0.15); color: #059669; font-size: 10px;">POSTED</span>
-                                <span class="text-muted" style="font-size: 11px;">| Ref: ${s.nomor_penerimaan}</span>
+                                <span class="spk-text-muted" style="font-size: 11px;">| Ref: ${s.nomor_penerimaan}</span>
                             </div>
-                            <span class="text-muted font-monospace" style="font-size: 11px;">${tgl}</span>
+                            <span class="spk-text-muted font-monospace" style="font-size: 11px;">${tgl}</span>
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-0" style="font-size: 12px;">
-                                <thead style="background: rgba(248,250,252,0.8);">
-                                    <tr class="text-muted" style="font-size: 10px; font-weight: 600;">
+                            <table class="table table-sm align-middle closing-custom-table mb-0" style="font-size: 12px;">
+                                <thead>
+                                    <tr>
                                         <th class="ps-3" style="width: 30px;">#</th>
                                         <th>KODE AKUN</th>
                                         <th>NAMA AKUN</th>
@@ -852,11 +911,11 @@
                                             <td class="ps-3 text-center">${badge}</td>
                                             <td class="font-monospace fw-semibold" style="font-size: 11px;">${kodeAkun}</td>
                                             <td style="font-size: 11.5px; max-width: 200px;">${namaAkun}</td>
-                                            <td class="text-muted" style="font-size: 11px;">${d.keterangan || '-'}</td>
-                                            <td class="text-end font-monospace ${isDebit ? 'fw-bold text-success' : 'text-muted'}" style="font-size: 11.5px;">
+                                            <td class="spk-text-muted" style="font-size: 11px;">${d.keterangan || '-'}</td>
+                                            <td class="text-end font-monospace ${isDebit ? 'fw-bold text-success' : 'spk-text-muted'}" style="font-size: 11.5px;">
                                                 ${debitVal > 0 ? 'Rp ' + debitVal.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                                             </td>
-                                            <td class="text-end pe-3 font-monospace ${isKredit ? 'fw-bold text-primary' : 'text-muted'}" style="font-size: 11.5px;">
+                                            <td class="text-end pe-3 font-monospace ${isKredit ? 'fw-bold text-primary' : 'spk-text-muted'}" style="font-size: 11.5px;">
                                                 ${kreditVal > 0 ? 'Rp ' + kreditVal.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                                             </td>
                                         </tr>`;
@@ -865,7 +924,7 @@
                     // Total row per sesi
                     html += `
                                 </tbody>
-                                <tfoot style="background:rgba(99,102,241,.05); border-top:2px solid rgba(99,102,241,.2);">
+                                <tfoot>
                                     <tr>
                                         <td colspan="4" class="ps-3 text-end fw-bold" style="font-size:11.5px;">TOTAL JURNAL INI</td>
                                         <td class="text-end fw-extrabold text-success font-monospace" style="font-size:12.5px;">Rp ${parseFloat(j.total_debit||0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -892,6 +951,772 @@
             }
         });
     }
+
+    /* ============================================================
+     * CLOSING WORKFLOW & HPP REVIEW PENERIMAAN BARANG JADI (FG)
+     * ============================================================ */
+
+    function bukaModalAjukanClosingFg(spkId, nomorSpk) {
+        $('#closing_fg_spk_id').val(spkId);
+        
+        // Reset state & UI to "Ajukan Closing" mode
+        $('#modalConfirmClosingFgLabel').text('Ajukan Penutupan (Closing) Hasil Produksi');
+        $('#modalConfirmClosingFgSubtitle').text(`SPK: #${nomorSpk || '—'}`);
+        $('#modalClosingFgHeader').css('background', 'linear-gradient(135deg, #059669 0%, #10b981 100%)');
+        $('#modalClosingFgIcon').attr('class', 'bi bi-box-seam-fill fs-5');
+        
+        $('#closing_fg_alert_box').css({
+            'background': 'rgba(16, 185, 129, 0.08)',
+            'border-color': 'rgba(16, 185, 129, 0.25)'
+        });
+        $('#closing_fg_alert_icon').attr('class', 'bi bi-info-circle-fill fs-4 mt-0.5 text-emerald').css('color', '#059669');
+        $('#closing_fg_alert_text').html(`
+            <b class="text-emerald d-block mb-0.5">Konfirmasi Penyelesaian Hasil Produksi SPK</b>
+            Pengajuan closing penerimaan barang jadi akan dikirimkan ke bagian Accounting untuk peninjauan biaya riil, perhitungan HPP aktual, dan penerbitan jurnal akuntansi persediaan.
+        `);
+
+        $('#sectionCatatanPengajuFg').removeClass('d-none');
+        $('#sectionReviewHitungHppFg').addClass('d-none');
+        $('#sectionInfoPengajuFg').addClass('d-none');
+        $('#btnRejectClosingFg').addClass('d-none').removeClass('d-inline-flex');
+        $('#btnSubmitClosingFg').addClass('d-none').removeClass('d-inline-flex');
+        $('#btnSubmitAjukanClosingFg').removeClass('d-none').addClass('d-inline-flex');
+        
+        $('#closing_fg_ajukan_catatan').val('');
+        $('#boxConfirmEarlyClosingFg').addClass('d-none');
+        $('#checkConfirmEarlyClosingFg').prop('checked', false);
+
+        $('#closing_fg_preview_loading').removeClass('d-none');
+        $('#closing_fg_preview_content').addClass('d-none');
+
+        $('#modalConfirmClosingFg').modal('show');
+
+        $.ajax({
+            url: `/produksi/barang-jadi/spk/${spkId}/preview-closing`,
+            method: 'GET',
+            success: function (res) {
+                $('#closing_fg_preview_loading').addClass('d-none');
+                if (!res.success) {
+                    Swal.fire('Perhatian', res.message || 'Gagal memuat pratinjau closing.', 'warning');
+                    $('#modalConfirmClosingFg').modal('hide');
+                    return;
+                }
+
+                _activeClosingFgData = res;
+                const spk = res.spk || {};
+                
+                const barangText = typeof spk.barang_jadi === 'string' 
+                    ? spk.barang_jadi 
+                    : (spk.barang_jadi ? `[${spk.barang_jadi.kode_barang || '-'}] ${spk.barang_jadi.nama_barang || '-'}` : '-');
+                $('#closing_fg_preview_barang').text(barangText);
+
+                const satName = typeof spk.satuan === 'string' ? spk.satuan : (spk.satuan?.nama_satuan || spk.barang_jadi?.satuan?.nama_satuan || 'Pcs');
+                $('#closing_fg_preview_satuan').text(`Satuan: ${satName}`);
+                
+                const targetQty = Number(res.target_qty !== undefined ? res.target_qty : (spk.target_qty || 0));
+                const totalSelesai = Number(res.total_selesai !== undefined ? res.total_selesai : (spk.total_selesai || 0));
+                const totalReject = Number(res.total_reject !== undefined ? res.total_reject : (spk.total_reject || 0));
+                const totalSesi = Number(res.total_sesi !== undefined ? res.total_sesi : (spk.total_sesi || 0));
+                const pctSelesai = res.persentase_selesai !== undefined ? res.persentase_selesai : (targetQty > 0 ? (totalSelesai / targetQty * 100).toFixed(1) : 0);
+
+                $('#closing_fg_preview_target').text(`${targetQty.toLocaleString('id-ID')} ${satName}`);
+                $('#closing_fg_preview_selesai').text(`${totalSelesai.toLocaleString('id-ID')} ${satName} (${pctSelesai}%)`);
+                $('#closing_fg_preview_reject').text(`${totalReject.toLocaleString('id-ID')} ${satName}`);
+                $('#closing_fg_preview_sesi').text(`${totalSesi} Sesi`);
+
+                if (res.is_early_closing) {
+                    $('#boxConfirmEarlyClosingFg').removeClass('d-none');
+                    $('#early_closing_fg_desc').html(`Jumlah penerimaan hasil produksi saat ini (<b>${Number(res.total_selesai || 0).toLocaleString('id-ID')} ${satName}</b>) masih kurang dari target SPK (<b>${Number(res.target_qty || 0).toLocaleString('id-ID')} ${satName}</b>). Pengajuan closing akan menyelesaikan SPK lebih awal (<i>Early Closing</i>).`);
+                } else {
+                    $('#boxConfirmEarlyClosingFg').addClass('d-none');
+                }
+
+                $('#closing_fg_preview_content').removeClass('d-none');
+            },
+            error: function (err) {
+                $('#closing_fg_preview_loading').addClass('d-none');
+                const msg = err.responseJSON?.message || 'Gagal memuat data pratinjau closing SPK.';
+                Swal.fire('Gagal!', msg, 'error');
+                $('#modalConfirmClosingFg').modal('hide');
+            }
+        });
+    }
+
+    function submitAjukanClosingFg() {
+        const spkId = $('#closing_fg_spk_id').val();
+        if (!spkId) return;
+
+        if (_activeClosingFgData && _activeClosingFgData.is_early_closing) {
+            if (!$('#checkConfirmEarlyClosingFg').is(':checked')) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Persetujuan Diperlukan',
+                    text: 'Harap beri centang pada persetujuan Early Closing (Penyelesaian Lebih Awal) sebelum mengajukan closing.',
+                    confirmButtonColor: '#059669'
+                });
+                return;
+            }
+        }
+
+        const btn = $('#btnSubmitAjukanClosingFg');
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Mengirim...');
+
+        $.ajax({
+            url: `/produksi/barang-jadi/spk/${spkId}/request-closing`,
+            method: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                catatan_pengajuan: $('#closing_fg_ajukan_catatan').val(),
+                is_early_closing: $('#checkConfirmEarlyClosingFg').is(':checked') ? 1 : 0
+            },
+            success: function (res) {
+                $('#modalConfirmClosingFg').modal('hide');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Pengajuan Berhasil Dikirim!',
+                    text: res.message || 'Pengajuan closing hasil produksi berhasil dikirimkan ke bagian Accounting.',
+                    timer: 2200,
+                    showConfirmButton: false
+                });
+                reloadTableBarangJadi();
+            },
+            error: function (err) {
+                const msg = err.responseJSON?.message || 'Gagal mengirim pengajuan closing.';
+                Swal.fire('Gagal!', msg, 'error');
+            },
+            complete: function () {
+                btn.prop('disabled', false).html('<i class="bi bi-send-check"></i> <span>Kirim Pengajuan Closing ke Accounting</span>');
+            }
+        });
+    }
+
+    function batalAjukanClosingFg(spkId, nomorSpk) {
+        Swal.fire({
+            title: 'Batalkan Pengajuan Closing?',
+            html: `Apakah Anda yakin ingin membatalkan pengajuan closing hasil produksi untuk SPK <b class="font-monospace text-primary">#${nomorSpk}</b>?<br><br><small class="text-muted">Status SPK akan dikembalikan ke 'Belum Closing' sehingga tim produksi dapat mencatat sesi penyerahan kembali.</small>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="bi bi-x-circle me-1"></i> Ya, Batalkan Pengajuan',
+            cancelButtonText: 'Kembali'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                $.ajax({
+                    url: `/produksi/barang-jadi/spk/${spkId}/cancel-closing-request`,
+                    method: 'POST',
+                    data: { _token: '{{ csrf_token() }}' },
+                    success: function (res) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Pengajuan Dibatalkan',
+                            text: res.message || 'Pengajuan closing berhasil dibatalkan.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        reloadTableBarangJadi();
+                    },
+                    error: function (err) {
+                        const msg = err.responseJSON?.message || 'Gagal membatalkan pengajuan closing.';
+                        Swal.fire('Gagal!', msg, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function bukaModalReviewClosingFg(spkId) {
+        $('#closing_fg_spk_id').val(spkId);
+
+        // Reset state & UI to "Review & Hitung HPP Final" mode
+        $('#modalConfirmClosingFgLabel').text('Review & Persetujuan Closing Hasil Produksi');
+        $('#modalClosingFgHeader').css('background', 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)');
+        $('#modalClosingFgIcon').attr('class', 'bi bi-calculator-fill fs-5');
+        
+        $('#closing_fg_alert_box').css({
+            'background': 'rgba(245, 158, 11, 0.08)',
+            'border-color': 'rgba(245, 158, 11, 0.3)'
+        });
+        $('#closing_fg_alert_icon').attr('class', 'bi bi-shield-check fs-4 mt-0.5 text-warning').css('color', '#d97706');
+        $('#closing_fg_alert_text').html(`
+            <b class="text-dark d-block mb-0.5">Peninjauan Biaya Produksi & Otorisasi Jurnal HPP</b>
+            Silakan periksa realisasi pemakaian bahan baku riil, masukkan alokasi biaya tenaga kerja dan biaya overhead pabrik, kemudian setujui untuk menerbitkan jurnal konsolidasi persediaan.
+        `);
+
+        $('#sectionCatatanPengajuFg').addClass('d-none');
+        $('#sectionReviewHitungHppFg').removeClass('d-none');
+        $('#btnRejectClosingFg').removeClass('d-none').addClass('d-inline-flex');
+        $('#btnSubmitClosingFg').removeClass('d-none').addClass('d-inline-flex');
+        $('#btnSubmitAjukanClosingFg').addClass('d-none').removeClass('d-inline-flex');
+
+        $('#closing_fg_preview_loading').removeClass('d-none');
+        $('#closing_fg_preview_content').addClass('d-none');
+
+        $('#modalConfirmClosingFg').modal('show');
+
+        $.ajax({
+            url: `/produksi/barang-jadi/spk/${spkId}/preview-closing`,
+            method: 'GET',
+            success: function (res) {
+                $('#closing_fg_preview_loading').addClass('d-none');
+                if (!res.success) {
+                    Swal.fire('Perhatian', res.message || 'Gagal memuat pratinjau closing.', 'warning');
+                    $('#modalConfirmClosingFg').modal('hide');
+                    return;
+                }
+
+                _activeClosingFgData = res;
+                const spk = res.spk || {};
+
+                $('#modalConfirmClosingFgSubtitle').text(`SPK: #${spk.nomor_spk || '—'}`);
+                
+                const barangText = typeof spk.barang_jadi === 'string' 
+                    ? spk.barang_jadi 
+                    : (spk.barang_jadi ? `[${spk.barang_jadi.kode_barang || '-'}] ${spk.barang_jadi.nama_barang || '-'}` : '-');
+                $('#closing_fg_preview_barang').text(barangText);
+
+                const satName = typeof spk.satuan === 'string' ? spk.satuan : (spk.satuan?.nama_satuan || spk.barang_jadi?.satuan?.nama_satuan || 'Pcs');
+                $('#closing_fg_preview_satuan').text(`Satuan: ${satName}`);
+                
+                const targetQty = Number(res.target_qty !== undefined ? res.target_qty : (spk.target_qty || 0));
+                const totalSelesai = Number(res.total_selesai !== undefined ? res.total_selesai : (spk.total_selesai || 0));
+                const totalReject = Number(res.total_reject !== undefined ? res.total_reject : (spk.total_reject || 0));
+                const totalSesi = Number(res.total_sesi !== undefined ? res.total_sesi : (spk.total_sesi || 0));
+                const pctSelesai = res.persentase_selesai !== undefined ? res.persentase_selesai : (targetQty > 0 ? (totalSelesai / targetQty * 100).toFixed(1) : 0);
+
+                $('#closing_fg_preview_target').text(`${targetQty.toLocaleString('id-ID')} ${satName}`);
+                $('#closing_fg_preview_selesai').text(`${totalSelesai.toLocaleString('id-ID')} ${satName} (${pctSelesai}%)`);
+                $('#closing_fg_preview_reject').text(`${totalReject.toLocaleString('id-ID')} ${satName}`);
+                $('#closing_fg_preview_sesi').text(`${totalSesi} Sesi`);
+
+                if (res.is_early_closing) {
+                    $('#boxConfirmEarlyClosingFg').removeClass('d-none');
+                    $('#early_closing_fg_desc').html(`Jumlah penerimaan hasil produksi saat ini (<b>${Number(res.total_selesai || 0).toLocaleString('id-ID')} ${satName}</b>) masih kurang dari target SPK (<b>${Number(res.target_qty || 0).toLocaleString('id-ID')} ${satName}</b>).`);
+                    $('#checkConfirmEarlyClosingFg').prop('checked', true);
+                } else {
+                    $('#boxConfirmEarlyClosingFg').addClass('d-none');
+                }
+
+                // Info Requester
+                if (res.closing_requested_by_name) {
+                    $('#sectionInfoPengajuFg').removeClass('d-none');
+                    $('#closing_fg_info_requester').text(res.closing_requested_by_name);
+                    $('#closing_fg_info_requested_at').text(res.closing_requested_at ? new Date(res.closing_requested_at).toLocaleString('id-ID') : '-');
+                    if (res.closing_note) {
+                        $('#closing_fg_info_note').text(res.closing_note);
+                        $('#closing_fg_info_note_wrapper').removeClass('d-none');
+                    } else {
+                        $('#closing_fg_info_note_wrapper').addClass('d-none');
+                    }
+                } else {
+                    $('#sectionInfoPengajuFg').addClass('d-none');
+                }
+
+                // Populate Biaya
+                const biaya = res.biaya || {};
+                const bahanVal = parseFloat(biaya.bahan_riil !== undefined ? biaya.bahan_riil : (res.total_biaya_bahan || 0));
+                $('#closing_fg_biaya_bahan').val(bahanVal.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })).data('raw-val', bahanVal);
+                
+                const tkVal = parseFloat(biaya.tenaga_kerja !== undefined ? biaya.tenaga_kerja : (res.estimasi_biaya_tk || 0));
+                const ohVal = parseFloat(biaya.overhead !== undefined ? biaya.overhead : (res.estimasi_biaya_overhead || 0));
+                $('#closing_fg_biaya_tk').val(tkVal > 0 ? tkVal.toLocaleString('id-ID') : '0').data('raw-val', tkVal);
+                $('#closing_fg_biaya_overhead').val(ohVal > 0 ? ohVal.toLocaleString('id-ID') : '0').data('raw-val', ohVal);
+
+                hitungSimulasiHppFg();
+
+                $('#closing_fg_preview_content').removeClass('d-none');
+            },
+            error: function (err) {
+                $('#closing_fg_preview_loading').addClass('d-none');
+                const msg = err.responseJSON?.message || 'Gagal memuat data review closing SPK.';
+                Swal.fire('Gagal!', msg, 'error');
+                $('#modalConfirmClosingFg').modal('hide');
+            }
+        });
+    }
+
+    function parseClosingNumber(val) {
+        if (typeof val === 'number') return val;
+        if (!val) return 0;
+        let cleaned = val.toString().replace(/\./g, '').replace(',', '.');
+        return parseFloat(cleaned) || 0;
+    }
+
+    function onClosingCostInput(el) {
+        let raw = el.value.replace(/[^\d]/g, '');
+        const num = parseInt(raw, 10) || 0;
+        $(el).data('raw-val', num);
+        el.value = num > 0 ? num.toLocaleString('id-ID') : '0';
+        hitungSimulasiHppFg();
+    }
+
+    function hitungSimulasiHppFg() {
+        if (!_activeClosingFgData) return;
+        const res = _activeClosingFgData;
+        const spk = res.spk || {};
+        const satName = typeof spk.satuan === 'string' ? spk.satuan : (spk.satuan?.nama_satuan || spk.barang_jadi?.satuan?.nama_satuan || 'Pcs');
+
+        const bahanCost = parseFloat($('#closing_fg_biaya_bahan').data('raw-val')) || 0;
+        const tkCost    = parseClosingNumber($('#closing_fg_biaya_tk').val());
+        const ohCost    = parseClosingNumber($('#closing_fg_biaya_overhead').val());
+
+        const totalCost = bahanCost + tkCost + ohCost;
+        const divisorQty = parseFloat(res.total_selesai) > 0 ? parseFloat(res.total_selesai) : (parseFloat(res.target_qty) > 0 ? parseFloat(res.target_qty) : 1);
+        const hppUnit = divisorQty > 0 ? (totalCost / divisorQty) : 0;
+
+        $('#closing_fg_total_biaya_simulasi').text('Rp ' + totalCost.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        $('#closing_fg_divisor_label').text(`${divisorQty.toLocaleString('id-ID')} ${satName}`);
+        $('#closing_fg_hpp_unit_simulasi').text('Rp ' + hppUnit.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' / ' + satName);
+    }
+
+    function submitClosingFg() {
+        const spkId = $('#closing_fg_spk_id').val();
+        if (!spkId) return;
+
+        const tgl = $('#closing_fg_tanggal').val();
+        if (!tgl) {
+            Swal.fire('Perhatian', 'Tanggal closing jurnal wajib diisi.', 'warning');
+            return;
+        }
+
+        if (_activeClosingFgData && _activeClosingFgData.is_early_closing) {
+            if (!$('#checkConfirmEarlyClosingFg').is(':checked')) {
+                Swal.fire('Perhatian', 'Harap konfirmasi persetujuan Early Closing terlebih dahulu.', 'warning');
+                return;
+            }
+        }
+
+        Swal.fire({
+            title: 'Setujui & Terbitkan Jurnal HPP?',
+            html: `Apakah Anda yakin ingin menyelesaikan proses closing untuk SPK ini?<br><br><span class="text-muted small">Jurnal konsolidasi persediaan Barang Jadi (Debit) vs WIP (Kredit) akan diterbitkan secara otomatis dan nilai HPP unit akan difinalisasi.</span>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#f59e0b',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="bi bi-lock-fill me-1"></i> Ya, Setujui & Terbitkan',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const btn = $('#btnSubmitClosingFg');
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
+
+                $.ajax({
+                    url: `/produksi/barang-jadi/spk/${spkId}/close`,
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        tanggal_closing: tgl,
+                        catatan: $('#closing_fg_catatan_approval').val(),
+                        biaya_tenaga_kerja: parseClosingNumber($('#closing_fg_biaya_tk').val()),
+                        biaya_tk: parseClosingNumber($('#closing_fg_biaya_tk').val()),
+                        biaya_overhead: parseClosingNumber($('#closing_fg_biaya_overhead').val()),
+                        is_early_closing: $('#checkConfirmEarlyClosingFg').is(':checked') ? 1 : 0
+                    },
+                    success: function (res) {
+                        $('#modalConfirmClosingFg').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Closing Berhasil Disetujui!',
+                            text: res.message || 'Closing hasil produksi & jurnal konsolidasi HPP berhasil diterbitkan.',
+                            timer: 2500,
+                            showConfirmButton: false
+                        });
+                        reloadTableBarangJadi();
+                    },
+                    error: function (err) {
+                        const msg = err.responseJSON?.message || 'Gagal memproses closing hasil produksi.';
+                        Swal.fire('Gagal!', msg, 'error');
+                    },
+                    complete: function () {
+                        btn.prop('disabled', false).html('<i class="bi bi-lock-fill"></i> <span>Setujui & Terbitkan Jurnal HPP</span>');
+                    }
+                });
+            }
+        });
+    }
+
+    function rejectClosingFg() {
+        const spkId = $('#closing_fg_spk_id').val();
+        if (!spkId) return;
+
+        Swal.fire({
+            title: 'Tolak Pengajuan Closing',
+            html: `Masukkan alasan penolakan pengajuan closing ini untuk diinformasikan kepada tim produksi:`,
+            input: 'textarea',
+            inputPlaceholder: 'Contoh: Masih ada sisa hasil produksi di jalur sortir atau biaya bahan belum lengkap...',
+            inputAttributes: {
+                'aria-label': 'Tuliskan alasan penolakan di sini'
+            },
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="bi bi-x-circle me-1"></i> Tolak Pengajuan',
+            cancelButtonText: 'Batal',
+            inputValidator: (value) => {
+                if (!value || !value.trim()) {
+                    return 'Alasan penolakan wajib diisi agar tim produksi mengetahui perbaikan yang diperlukan!';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses Penolakan...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                $.ajax({
+                    url: `/produksi/barang-jadi/spk/${spkId}/reject-closing`,
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        alasan_penolakan: result.value
+                    },
+                    success: function (res) {
+                        $('#modalConfirmClosingFg').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Pengajuan Ditolak',
+                            text: res.message || 'Pengajuan closing berhasil ditolak dan dikembalikan ke tim produksi.',
+                            timer: 2200,
+                            showConfirmButton: false
+                        });
+                        reloadTableBarangJadi();
+                    },
+                    error: function (err) {
+                        const msg = err.responseJSON?.message || 'Gagal menolak pengajuan closing.';
+                        Swal.fire('Gagal!', msg, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function konfirmasiReopenFg(spkId, nomorSpk) {
+        Swal.fire({
+            title: 'Buka Kembali Closing Hasil Produksi?',
+            html: `Apakah Anda yakin ingin membuka kembali status closing untuk SPK <b class="font-monospace text-primary">#${nomorSpk}</b>?<br><br>
+                   <div class="alert alert-warning text-start small mb-0">
+                       <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                       <b>Perhatian:</b> Tindakan ini akan membatalkan status closing, menghapus jurnal konsolidasi persediaan yang telah diterbitkan, serta mengembalikan SPK ke status 'Belum Closing'.
+                   </div>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#f59e0b',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="bi bi-unlock-fill me-1"></i> Ya, Buka Kembali Closing',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Membuka Kembali Closing...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                $.ajax({
+                    url: `/produksi/barang-jadi/spk/${spkId}/reopen`,
+                    method: 'POST',
+                    data: { _token: '{{ csrf_token() }}' },
+                    success: function (res) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Closing Berhasil Dibuka Kembali!',
+                            text: res.message || 'Status SPK telah dikembalikan ke Belum Closing.',
+                            timer: 2200,
+                            showConfirmButton: false
+                        });
+                        reloadTableBarangJadi();
+                    },
+                    error: function (err) {
+                        const msg = err.responseJSON?.message || 'Gagal membuka kembali closing SPK.';
+                        Swal.fire('Gagal!', msg, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function showSpkJurnalClosingFgModal(spkId, nomorSpk) {
+        $('#modalJurnalClosingFgSubtitle').text(`SPK: #${nomorSpk || '—'}`);
+        $('#jurnal_closing_fg_loading').removeClass('d-none');
+        $('#jurnal_closing_fg_content').addClass('d-none');
+
+        $('#modalDetailJurnalClosingFg').modal('show');
+
+        $.ajax({
+            url: `/produksi/barang-jadi/spk/${spkId}/jurnal-closing`,
+            method: 'GET',
+            success: function (res) {
+                $('#jurnal_closing_fg_loading').addClass('d-none');
+                if (!res.success || !res.jurnal) {
+                    Swal.fire('Informasi', res.message || 'Jurnal konsolidasi belum ditemukan.', 'info');
+                    $('#modalDetailJurnalClosingFg').modal('hide');
+                    return;
+                }
+
+                const j = res.jurnal;
+                $('#jurnal_closing_fg_nomor').text(j.nomor_jurnal || 'JRN-AUTO');
+                $('#jurnal_closing_fg_tanggal').text(j.tanggal_jurnal || '-');
+                $('#jurnal_closing_fg_user').text(`Ditutup oleh: ${res.spk?.closed_by || 'User'} (${res.spk?.closed_at || '-'})`);
+                $('#jurnal_closing_fg_keterangan').text(j.keterangan || '-');
+
+                let tbodyHtml = '';
+                (j.details || []).forEach(function (d) {
+                    const isDebit = parseFloat(d.debit || 0) > 0;
+                    tbodyHtml += `
+                        <tr>
+                            <td class="ps-3.5 font-monospace fw-semibold">${d.kode_akun}</td>
+                            <td>
+                                <div>${d.nama_akun}</div>
+                                ${d.keterangan ? `<small class="text-muted">${d.keterangan}</small>` : ''}
+                            </td>
+                            <td class="text-end font-monospace ${isDebit ? 'fw-bold text-success' : 'text-muted'}">
+                                ${parseFloat(d.debit || 0) > 0 ? 'Rp ' + parseFloat(d.debit).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                            </td>
+                            <td class="text-end pe-3.5 font-monospace ${!isDebit && parseFloat(d.kredit || 0) > 0 ? 'fw-bold text-primary' : 'text-muted'}">
+                                ${parseFloat(d.kredit || 0) > 0 ? 'Rp ' + parseFloat(d.kredit).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                $('#jurnal_closing_fg_tbody').html(tbodyHtml);
+                $('#jurnal_closing_fg_total_debit').text('Rp ' + parseFloat(j.total_debit || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                $('#jurnal_closing_fg_total_kredit').text('Rp ' + parseFloat(j.total_kredit || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+                $('#jurnal_closing_fg_content').removeClass('d-none');
+            },
+            error: function (err) {
+                $('#jurnal_closing_fg_loading').addClass('d-none');
+                const msg = err.responseJSON?.message || 'Gagal memuat detail jurnal closing.';
+                Swal.fire('Gagal!', msg, 'error');
+                $('#modalDetailJurnalClosingFg').modal('hide');
+            }
+        });
+    }
+
+    let _currentApprovePbjData = null;
+
+    function formatRibuanId(val) {
+        let clean = (val + '').replace(/[^0-9]/g, '');
+        if (!clean || clean === '0') return '0';
+        return Number(clean).toLocaleString('id-ID');
+    }
+
+    function parseRibuanId(val) {
+        let clean = (val + '').replace(/[^0-9]/g, '');
+        return parseFloat(clean) || 0;
+    }
+
+    $(document).on('input', '.appr-currency-input', function() {
+        let val = $(this).val();
+        let num = (val + '').replace(/[^0-9]/g, '');
+        if (num === '') {
+            $(this).val('0');
+        } else {
+            $(this).val(Number(num).toLocaleString('id-ID'));
+        }
+        recalculateHppPreview();
+    });
+
+    $(document).on('focus', '.appr-currency-input', function() {
+        if ($(this).val() === '0') {
+            $(this).select();
+        }
+    });
+
+    window.bukaModalApproveHppPbj = function(pbjId) {
+        Swal.fire({
+            title: 'Memuat Data Simulasi HPP...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        $.ajax({
+            url: `/produksi/barang-jadi/${pbjId}/preview-hpp`,
+            method: 'GET',
+            success: function(res) {
+                Swal.close();
+                if (!res.success) {
+                    Swal.fire('Gagal!', res.message || 'Gagal memuat data preview HPP.', 'error');
+                    return;
+                }
+
+                _currentApprovePbjData = res;
+                const p = res.penerimaan;
+                const spk = res.spk;
+                const satName = res.satuan || 'Pcs';
+
+                $('#appr_pbj_id').val(p.id);
+                $('#appr_info_nomor_pbj').text(p.nomor_penerimaan);
+                $('#appr_info_barang_jadi').text(`[${spk.barang_jadi ? spk.barang_jadi.kode_barang : '-'}] ${spk.barang_jadi ? spk.barang_jadi.nama_barang : '-'}`).attr('title', spk.barang_jadi ? spk.barang_jadi.nama_barang : '-');
+                $('#appr_info_qty_baik').text(`${Number(p.jumlah_hasil_baik).toLocaleString('id-ID')} ${satName}`);
+                $('#appr_info_gudang').text(p.gudang ? `[${p.gudang.kode_gudang}] ${p.gudang.nama_gudang}` : 'Gudang Utama');
+                $('#appr_alert_qty').text(`${Number(p.jumlah_hasil_baik).toLocaleString('id-ID')} ${satName}`);
+
+                $('#appr_display_biaya_bahan').text(`${Number(res.biaya_bahan_baku || 0).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+                $('#appr_biaya_bahan_val').val(res.biaya_bahan_baku || 0);
+
+                $('#appr_biaya_tk').val(formatRibuanId(res.biaya_tenaga_kerja || 0));
+                $('#appr_biaya_overhead').val(formatRibuanId(res.biaya_overhead || 0));
+
+                recalculateHppPreview();
+
+                $('#modalApproveHppPbj').modal('show');
+            },
+            error: function(err) {
+                Swal.close();
+                Swal.fire('Gagal!', err.responseJSON?.message || 'Gagal mengambil simulasi data HPP.', 'error');
+            }
+        });
+    };
+
+    window.recalculateHppPreview = function() {
+        if (!_currentApprovePbjData) return;
+
+        const biayaBahan = parseFloat($('#appr_biaya_bahan_val').val()) || 0;
+        const biayaTk = parseRibuanId($('#appr_biaya_tk').val());
+        const biayaOverhead = parseRibuanId($('#appr_biaya_overhead').val());
+
+        const totalBiaya = biayaBahan + biayaTk + biayaOverhead;
+        const targetQty = parseFloat(_currentApprovePbjData.spk.jumlah_rencana) || 1;
+        const hppSatuan = targetQty > 0 ? (totalBiaya / targetQty) : 0;
+        const satName = _currentApprovePbjData.satuan || 'Pcs';
+
+        $('#appr_total_biaya_display').text(`Rp ${totalBiaya.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+        $('#appr_hpp_satuan_display').text(`Rp ${hppSatuan.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} / ${satName}`);
+        $('#appr_formula_display').html(`<i class="bi bi-calculator me-1"></i>(Rp ${totalBiaya.toLocaleString('id-ID')} ÷ ${Number(targetQty).toLocaleString('id-ID')} ${satName})`);
+    };
+
+    window.submitApproveHppPbj = function() {
+        const pbjId = $('#appr_pbj_id').val();
+        if (!pbjId) return;
+
+        const biayaTk = parseRibuanId($('#appr_biaya_tk').val());
+        const biayaOverhead = parseRibuanId($('#appr_biaya_overhead').val());
+
+        Swal.fire({
+            title: 'Setujui & Terbitkan Mutasi Stok?',
+            html: `Apakah Anda yakin perhitungan HPP sudah sesuai?<br><br>
+                   <div class="alert alert-success text-start small mb-0">
+                       <i class="bi bi-check-circle-fill me-1"></i>
+                       Sistem akan memasukkan stok ke gudang, mencatat kartu stok, dan memposting Jurnal Akuntansi resmi.
+                   </div>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#059669',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="bi bi-check-circle-fill me-1"></i> Ya, Setujui & Simpan',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const btn = $('#btn_submit_approve_hpp');
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
+
+                $.ajax({
+                    url: `/produksi/barang-jadi/${pbjId}/approve-hpp`,
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        biaya_tenaga_kerja: biayaTk,
+                        biaya_overhead: biayaOverhead
+                    },
+                    success: function(res) {
+                        $('#modalApproveHppPbj').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil Disetujui!',
+                            text: res.message || 'Penerimaan barang jadi berhasil disetujui, stok bertambah, dan jurnal diposting.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                        if (_currentPbjSpkId) {
+                            showSpkHistoryModal(_currentPbjSpkId);
+                        }
+                        reloadTableBarangJadi();
+                    },
+                    error: function(err) {
+                        const msg = err.responseJSON?.message || 'Gagal memproses approval HPP penerimaan.';
+                        Swal.fire('Gagal!', msg, 'error');
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html('<i class="bi bi-check-circle-fill"></i> <span>Hitung HPP & Setujui Masuk Stok</span>');
+                    }
+                });
+            }
+        });
+    };
+
+    window.rejectPbjFromModal = function() {
+        const pbjId = $('#appr_pbj_id').val();
+        const nomorPbj = $('#appr_info_nomor_pbj').text();
+        if (!pbjId) return;
+
+        $('#modalApproveHppPbj').modal('hide');
+        bukaModalRejectPbj(pbjId, nomorPbj);
+    };
+
+    window.bukaModalRejectPbj = function(pbjId, nomorPbj) {
+        Swal.fire({
+            title: 'Tolak Pengajuan Penerimaan',
+            html: `Masukkan alasan penolakan untuk transaksi <b class="font-monospace text-primary">${nomorPbj}</b>:`,
+            input: 'textarea',
+            inputPlaceholder: 'Contoh: Jumlah fisik tidak sesuai surat jalan, QC reject belum dipisahkan...',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="bi bi-x-circle me-1"></i> Tolak Pengajuan',
+            cancelButtonText: 'Batal',
+            inputValidator: (value) => {
+                if (!value || !value.trim()) {
+                    return 'Alasan penolakan wajib diisi agar operator produksi dapat merevisi!';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses Penolakan...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                $.ajax({
+                    url: `/produksi/barang-jadi/${pbjId}/reject`,
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        reject_reason: result.value
+                    },
+                    success: function(res) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Pengajuan Ditolak',
+                            text: res.message || 'Pengajuan berhasil ditolak dan dikembalikan ke tim produksi.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                        if (_currentPbjSpkId) {
+                            showSpkHistoryModal(_currentPbjSpkId);
+                        }
+                        reloadTableBarangJadi();
+                    },
+                    error: function(err) {
+                        const msg = err.responseJSON?.message || 'Gagal menolak pengajuan.';
+                        Swal.fire('Gagal!', msg, 'error');
+                    }
+                });
+            }
+        });
+    };
 </script>
 @endpush
 </x-layouts>

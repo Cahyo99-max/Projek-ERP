@@ -73,15 +73,21 @@
                     </div>
                 </div>
 
+@php
+    $canSeeHpp = auth()->check() && (auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-hpp-stok-adjustment'));
+@endphp
+
                 <div class="table-responsive rounded-3 border mb-3 shadow-xs">
                     <table class="table table-bordered table-hover align-middle mb-0" id="tabelItemEdit" style="min-width: 820px;">
                         <thead class="small">
                             <tr class="text-uppercase text-nowrap">
-                                <th style="min-width: 290px; width: 34%;">BARANG / SPESIFIKASI <span class="text-danger">*</span></th>
-                                <th style="min-width: 105px; width: 12%;" class="text-center">STOK SAAT INI</th>
-                                <th style="min-width: 125px; width: 14%;" class="text-center">QTY ADJUSTMENT <span class="text-danger">*</span></th>
-                                <th style="min-width: 145px; width: 18%;" class="text-end">HPP SATUAN (RP)</th>
-                                <th style="min-width: 135px; width: 16%;" class="text-end">NILAI TOTAL (RP)</th>
+                                <th style="min-width: 290px; width: {{ $canSeeHpp ? '34%' : '60%' }};">BARANG / SPESIFIKASI <span class="text-danger">*</span></th>
+                                <th style="min-width: 105px; width: {{ $canSeeHpp ? '12%' : '18%' }};" class="text-center">STOK SAAT INI</th>
+                                <th style="min-width: 125px; width: {{ $canSeeHpp ? '14%' : '16%' }};" class="text-center">QTY ADJUSTMENT <span class="text-danger">*</span></th>
+                                @if($canSeeHpp)
+                                    <th style="min-width: 145px; width: 18%;" class="text-end">HPP SATUAN (RP)</th>
+                                    <th style="min-width: 135px; width: 16%;" class="text-end">NILAI TOTAL (RP)</th>
+                                @endif
                                 <th style="min-width: 45px; width: 6%;" class="text-center"><i class="bi bi-trash"></i></th>
                             </tr>
                         </thead>
@@ -94,10 +100,12 @@
                                 <td class="text-center">
                                     <span class="badge bg-warning bg-opacity-25 text-dark border border-warning border-opacity-50 px-2.5 py-1.5 rounded-pill fw-bold font-monospace" id="lblTotalQtyEdit">0 Qty</span>
                                 </td>
-                                <td class="text-end text-muted small text-uppercase pe-2">TOTAL NILAI:</td>
-                                <td class="text-end">
-                                    <span class="fw-bold text-success font-monospace fs-6" id="lblTotalNilaiEdit">Rp 0</span>
-                                </td>
+                                @if($canSeeHpp)
+                                    <td class="text-end text-muted small text-uppercase pe-2">TOTAL NILAI:</td>
+                                    <td class="text-end">
+                                        <span class="fw-bold text-success font-monospace fs-6" id="lblTotalNilaiEdit">Rp 0</span>
+                                    </td>
+                                @endif
                                 <td></td>
                             </tr>
                         </tfoot>
@@ -127,6 +135,7 @@
 <script>
     let editRowIndex = 0;
     let editGudangId = null;
+    const canSeeHppEdit = @json($canSeeHpp);
 
     function editAdjustment(id) {
         $('#btnDraftEditAdjustment, #btnPosEditAdjustment').prop('disabled', false);
@@ -196,6 +205,18 @@
         const bgClass      = isHppLocked ? 'bg-light' : '';
         const titleAttr    = isHppLocked ? 'HPP terkunci otomatis dari Master/Stok Gudang' : '';
 
+        const hppColsHtml = canSeeHppEdit ? `
+            <td class="text-end">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light text-muted px-2 small">Rp</span>
+                    <input type="text" name="items[${editRowIndex}][harga_satuan]" class="form-control form-control-sm text-end font-monospace fw-semibold inp-hpp-edit inp-hpp-formatted rounded-end-2 ${bgClass}" value="${hppFormatted}" placeholder="0" required data-row="${rowId}" ${readonlyAttr} title="${titleAttr}">
+                </div>
+            </td>
+            <td class="text-end fw-bold text-success font-monospace inp-total-${rowId}">Rp ${numberFormatID(nilaiNum)}</td>
+        ` : `
+            <input type="hidden" name="items[${editRowIndex}][harga_satuan]" class="inp-hpp-edit" value="${hppNum}" data-row="${rowId}">
+        `;
+
         const trHtml = `
             <tr id="${rowId}" data-stok="${stokAktual}">
                 <td>
@@ -226,13 +247,7 @@
                 <td>
                     <input type="number" step="any" min="0.0001" name="items[${editRowIndex}][jumlah]" class="form-control form-control-sm text-center fw-semibold inp-qty-edit rounded-2" value="${qtyNum || ''}" placeholder="0" required data-row="${rowId}">
                 </td>
-                <td class="text-end">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light text-muted px-2 small">Rp</span>
-                        <input type="text" name="items[${editRowIndex}][harga_satuan]" class="form-control form-control-sm text-end font-monospace fw-semibold inp-hpp-edit inp-hpp-formatted rounded-end-2 ${bgClass}" value="${hppFormatted}" placeholder="0" required data-row="${rowId}" ${readonlyAttr} title="${titleAttr}">
-                    </div>
-                </td>
-                <td class="text-end fw-bold text-success font-monospace inp-total-${rowId}">Rp ${numberFormatID(nilaiNum)}</td>
+                ${hppColsHtml}
                 <td class="text-center">
                     <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle p-1.5" onclick="hapusBarisItemEdit('${rowId}')" title="Hapus Baris">
                         <i class="bi bi-trash3-fill"></i>
@@ -385,12 +400,24 @@
             }
         }
 
+        let invalidHpp = false;
+        let invalidBarangName = '';
+
         $('#tbodyItemEdit tr').each(function() {
             const barangId = $(this).find('.inp-barang-id').val();
+            const barangName = $(this).find('.inp-barang-name').val() || 'Barang';
             const qty = parseFloat($(this).find('.inp-qty-edit').val()) || 0;
             const hpp = unformatNumberID($(this).find('.inp-hpp-edit').val());
 
             if (barangId && qty > 0) {
+                if (formData.tipe_adjustment === 'Penambahan' && canSeeHppEdit && hpp <= 0) {
+                    invalidHpp = true;
+                    invalidBarangName = barangName;
+                    $(this).find('.inp-hpp-edit').addClass('is-invalid border-danger');
+                } else {
+                    $(this).find('.inp-hpp-edit').removeClass('is-invalid border-danger');
+                }
+
                 formData.items.push({
                     barang_id: barangId,
                     jumlah: qty,
@@ -398,6 +425,18 @@
                 });
             }
         });
+
+        if (invalidHpp) {
+            $btnDraft.prop('disabled', false);
+            $btnPos.prop('disabled', false);
+            Swal.fire({
+                icon: 'warning',
+                title: 'HPP Wajib Diisi!',
+                text: `HPP untuk barang ${invalidBarangName} tidak boleh Rp 0 pada penambahan barang masuk. Silakan masukkan nilai HPP yang valid.`,
+                confirmButtonColor: '#f59e0b'
+            });
+            return;
+        }
 
         if (formData.items.length === 0) {
             $btnDraft.prop('disabled', false);

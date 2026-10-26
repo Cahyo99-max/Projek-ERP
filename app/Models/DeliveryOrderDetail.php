@@ -21,11 +21,13 @@ class DeliveryOrderDetail extends Model
         'qty_kirim',
         'nama_satuan',
         'catatan_item',
+        'serial_numbers',
     ];
 
     protected $casts = [
-        'qty_order' => 'decimal:2',
-        'qty_kirim' => 'decimal:2',
+        'qty_order'      => 'decimal:2',
+        'qty_kirim'      => 'decimal:2',
+        'serial_numbers' => 'array',
     ];
 
     public function deliveryOrder(): BelongsTo

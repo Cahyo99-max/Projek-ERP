@@ -51,7 +51,7 @@
                     </span>
                 </td>
                 <td>
-                    <span class="badge rounded-pill bg-light text-dark border">
+                    <span class="badge rounded-pill badge-account-type">
                         {{ $acc->type_label }}
                     </span>
                 </td>

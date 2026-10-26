@@ -182,6 +182,19 @@ class RealisasiProduksiController extends Controller
                     $completedTahap = $spk->tahapans->where('status', 'Selesai')->count();
                     $isCompleted = ($spk->status === 'Completed') || ($totalTahap > 0 && $completedTahap === $totalTahap);
 
+                    if (!in_array($spk->status, ['In Progress', 'Completed'])) {
+                        $nomorSpk = e($spk->nomor_spk);
+                        $statusText = e($spk->status);
+                        return '
+                            <div class="d-flex align-items-center justify-content-center text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-secondary border-dashed rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 opacity-75" onclick="alertSpkBelumDimulai(\'' . $nomorSpk . '\', \'' . $statusText . '\')" title="SPK Belum Dimulai">
+                                    <i class="bi bi-play-circle text-warning"></i>
+                                    <span>Belum Dimulai</span>
+                                </button>
+                            </div>
+                        ';
+                    }
+
                     if (!$hasBahan) {
                         $nomorSpk = e($spk->nomor_spk);
                         return '
@@ -273,6 +286,11 @@ class RealisasiProduksiController extends Controller
             ])
             ->findOrFail($id);
 
+        if (!in_array($spk->status, ['In Progress', 'Completed'])) {
+            return redirect()->route('produksi.realisasi.index')
+                ->with('warning', "Kontrol Tahapan ditolak! SPK {$spk->nomor_spk} belum dimulai (Status saat ini: {$spk->status}). Harap tekan tombol 'Mulai' / 'Mulai Produksi' pada Modul SPK terlebih dahulu.");
+        }
+
         if ($spk->pengeluaranBahans->isEmpty() && !$user->hasAnyRole(['Super Admin', 'Owner'])) {
             return redirect()->route('produksi.realisasi.index')
                 ->with('warning', "Bahan baku untuk SPK {$spk->nomor_spk} belum dikeluarkan dari gudang. Harap lakukan pengeluaran bahan baku terlebih dahulu!");
@@ -320,9 +338,10 @@ class RealisasiProduksiController extends Controller
         $tahap = SpkProduksiTahapan::with('spk')->findOrFail($tahapanId);
         $spk   = $tahap->spk;
 
-        if ($tahap->status === 'Menunggu' && !$request->boolean('mark_as_selesai')) {
+        if (!in_array($spk->status, ['In Progress', 'Completed'])) {
             return response()->json([
-                'message' => "Gagal: Pengerjaan tahapan '{$tahap->nama_tahapan}' belum dimulai! Klik tombol 'Mulai Pengerjaan' terlebih dahulu."
+                'success' => false,
+                'message' => "Pencatatan hasil harian ditolak! SPK {$spk->nomor_spk} belum dimulai (Status saat ini: {$spk->status}). Harap tekan tombol 'Mulai' / 'Mulai Produksi' pada Modul SPK terlebih dahulu!"
             ], 422);
         }
 
@@ -439,14 +458,6 @@ class RealisasiProduksiController extends Controller
         // IMPORTANT: Refresh model to get the newly updated status
         $tahap->refresh();
 
-        // Auto update SPK status to In Progress
-        if (in_array($spk->status, ['Approved', 'Draft'])) {
-            $spk->update([
-                'status'     => 'In Progress',
-                'updated_by' => auth()->id()
-            ]);
-        }
-
         // Auto activate next stage if current stage just became 'Selesai'
         if ($tahap->status === 'Selesai') {
             $nextTahapan = SpkProduksiTahapan::where('spk_id', $spk->id)
@@ -557,17 +568,17 @@ class RealisasiProduksiController extends Controller
         $tahap = SpkProduksiTahapan::with('spk')->findOrFail($tahapanId);
         $spk   = $tahap->spk;
 
+        if (!in_array($spk->status, ['In Progress', 'Completed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => "Mulai tahapan ditolak! SPK {$spk->nomor_spk} belum dimulai (Status saat ini: {$spk->status}). Harap tekan tombol 'Mulai' / 'Mulai Produksi' pada Modul SPK terlebih dahulu!"
+            ], 422);
+        }
+
         if ($tahap->status === 'Menunggu') {
             $tahap->update([
                 'status'      => 'Sedang Dikerjakan',
                 'waktu_mulai' => now(),
-            ]);
-        }
-
-        if ($spk && in_array($spk->status, ['Approved', 'Draft'])) {
-            $spk->update([
-                'status'     => 'In Progress',
-                'updated_by' => auth()->id()
             ]);
         }
 
@@ -601,6 +612,13 @@ class RealisasiProduksiController extends Controller
         $log = SpkProduksiLogHarian::with('tahapan.spk')->findOrFail($logId);
         $tahap = $log->tahapan;
         $spk = $tahap->spk;
+
+        if (!in_array($spk->status, ['In Progress', 'Completed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => "Penghapusan log harian ditolak! SPK {$spk->nomor_spk} belum dimulai (Status saat ini: {$spk->status})."
+            ], 422);
+        }
 
         if ($log->foto_bukti) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete($log->foto_bukti);
@@ -665,6 +683,13 @@ class RealisasiProduksiController extends Controller
         $log   = SpkProduksiLogHarian::with('tahapan.spk')->findOrFail($logId);
         $tahap = $log->tahapan;
         $spk   = $tahap->spk;
+
+        if (!in_array($spk->status, ['In Progress', 'Completed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => "Perubahan log harian ditolak! SPK {$spk->nomor_spk} belum dimulai (Status saat ini: {$spk->status})."
+            ], 422);
+        }
 
         $validated = $request->validate([
             'tanggal'              => 'required|date',

@@ -194,10 +194,10 @@ class KaryawanController extends Controller
             // 5. Sync Branches Access (if provided)
             $syncData = [];
             if ($request->filled('branch_ids') && is_array($request->branch_ids)) {
-                $defaultBranchId = $request->default_branch_id ?? ($request->branch_ids[0] ?? null);
+                $defaultBranchId = $request->filled('default_branch_id') ? $request->default_branch_id : null;
                 foreach ($request->branch_ids as $bId) {
                     $syncData[$bId] = [
-                        'is_default' => ($bId == $defaultBranchId)
+                        'is_default' => ($defaultBranchId && $bId == $defaultBranchId)
                     ];
                 }
             }
@@ -350,10 +350,10 @@ class KaryawanController extends Controller
             // Sync Branches Access (if provided)
             $syncData = [];
             if ($request->filled('branch_ids') && is_array($request->branch_ids)) {
-                $defaultBranchId = $request->default_branch_id ?? ($request->branch_ids[0] ?? null);
+                $defaultBranchId = $request->filled('default_branch_id') ? $request->default_branch_id : null;
                 foreach ($request->branch_ids as $bId) {
                     $syncData[$bId] = [
-                        'is_default' => ($bId == $defaultBranchId)
+                        'is_default' => ($defaultBranchId && $bId == $defaultBranchId)
                     ];
                 }
             }

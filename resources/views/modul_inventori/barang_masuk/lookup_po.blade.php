@@ -150,7 +150,7 @@
 <script>
     if (typeof window.escapeHtml !== 'function') {
         window.escapeHtml = function (str) {
-            if (!str) return '';
+            if (str === null || str === undefined) return '';
             return String(str)
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
@@ -218,13 +218,13 @@
 
         if ($('#modalEditGR').hasClass('show')) {
             $('#edit_po_display').val(no + ' (' + supplier + ')');
-            $('#edit_po_id').val(id);
+            $('#edit_po_id').val(id).trigger('change');
             if (typeof window.loadEditPODetails === 'function') {
                 window.loadEditPODetails(id);
             }
         } else {
             $('#po_display').val(no + ' (' + supplier + ')');
-            $('#po_id').val(id);
+            $('#po_id').val(id).trigger('change');
             if (typeof window.loadPODetails === 'function') {
                 window.loadPODetails(id);
             }
@@ -246,6 +246,7 @@
         `;
 
         $.get(SEARCH_URL, { search: search }, function (data) {
+            const escapeHtml = window.escapeHtml || function (s) { return s || ''; };
             if (!data || data.length === 0) {
                 resultsList.innerHTML = `
                     <div class="picker-empty text-center py-5">

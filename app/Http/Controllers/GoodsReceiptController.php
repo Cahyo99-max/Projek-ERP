@@ -26,17 +26,20 @@ class GoodsReceiptController extends Controller
         // Fetch Goods Receipts with company and branch relations
         $receipts = GoodsReceipt::forActiveCompany()
             ->forActiveBranch()
-            ->with(['po.supplier', 'po.currency', 'gudang', 'creator', 'company', 'branch', 'details.lokasiRak'])
+            ->with(['po.supplier', 'po.currency', 'po.tender', 'tender', 'gudang', 'creator', 'company', 'branch', 'details.lokasiRak'])
             ->orderBy('id', 'desc')
             ->take(1000)
             ->get();
 
         // Fetch active warehouses belonging to the active company & branch (if specified)
-        $gudangQuery = MasterGudang::where('status', 'Active')->forActiveCompany();
+        $gudangQuery = MasterGudang::where('status', 'Active');
         if (!empty($activeBranchId)) {
             $gudangQuery->where('cabang_id', $activeBranchId);
         } else {
             $gudangQuery->whereNull('cabang_id');
+            if ($activeCompanyId) {
+                $gudangQuery->where('company_id', $activeCompanyId);
+            }
         }
         $gudangs = $gudangQuery->orderBy('nama_gudang', 'asc')->get();
 
@@ -99,14 +102,13 @@ class GoodsReceiptController extends Controller
         $query = MasterGudang::where('status', 'Active')
             ->with(['company', 'cabang']);
 
-        if ($activeCompanyId) {
-            $query->where('company_id', $activeCompanyId);
-        }
-
         if (!empty($activeBranchId)) {
             $query->where('cabang_id', $activeBranchId);
         } else {
             $query->whereNull('cabang_id');
+            if ($activeCompanyId) {
+                $query->where('company_id', $activeCompanyId);
+            }
         }
 
         if ($search) {
@@ -137,6 +139,19 @@ class GoodsReceiptController extends Controller
     {
         $this->authorize('lihat-gr');
 
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
+
+        if (!empty($activeBranchId)) {
+            if ($gudang->cabang_id != $activeBranchId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke gudang cabang ini.'], 403);
+            }
+        } else {
+            if ($activeCompanyId && $gudang->company_id && $gudang->company_id != $activeCompanyId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke gudang perusahaan ini.'], 403);
+            }
+        }
+
         $raks = \App\Models\MasterLokasiRak::where('gudang_id', $gudang->id)
             ->where('status', 'Active')
             ->orderBy('kode_rak')
@@ -151,6 +166,20 @@ class GoodsReceiptController extends Controller
     public function getPoDetails(PurchaseOrder $po)
     {
         $this->authorize('lihat-gr');
+
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
+
+        if (!empty($activeBranchId)) {
+            if ($po->branch_id != $activeBranchId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke PO cabang ini.'], 403);
+            }
+        } else {
+            if ($activeCompanyId && $po->company_id && $po->company_id != $activeCompanyId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke PO perusahaan ini.'], 403);
+            }
+        }
+
         return response()->json($this->buildPoDetailsPayload($po));
     }
 
@@ -164,6 +193,8 @@ class GoodsReceiptController extends Controller
             'currency',
             'supplier',
             'pajak',
+            'pphPajak',
+            'pphCoa',
             'tender'
         ]);
 
@@ -250,23 +281,20 @@ class GoodsReceiptController extends Controller
             }
             $availableUnits = array_values($availableUnits);
 
-            // Calculate Effective Item Discount from PO (item level or header level)
+            // Calculate Effective Item Discount & PPN from PO (Per-Item)
             $hargaSatuan  = floatval($detail->harga_satuan);
             $diskonItem   = floatval($detail->diskon_item ?? 0);
-            $diskonPersen = 0;
+            $diskonPersen = floatval($detail->diskon_persen ?? 0);
+            $diskonTipe   = $detail->diskon_tipe ?? 'percent';
 
-            if ($diskonItem <= 0 && $po) {
-                if (floatval($po->total_diskon) > 0 && floatval($po->subtotal) > 0) {
-                    $diskonRatio  = floatval($po->total_diskon) / floatval($po->subtotal);
-                    $diskonItem   = $diskonRatio * $hargaSatuan;
-                    $diskonPersen = floatval($po->diskon_persen) > 0 ? floatval($po->diskon_persen) : ($diskonRatio * 100);
-                } elseif (floatval($po->diskon_persen) > 0) {
-                    $diskonPersen = floatval($po->diskon_persen);
-                    $diskonItem   = $hargaSatuan * ($diskonPersen / 100);
-                }
-            } elseif ($diskonItem > 0 && $hargaSatuan > 0) {
+            if ($diskonPersen <= 0 && $diskonItem > 0 && $hargaSatuan > 0) {
                 $diskonPersen = ($diskonItem / $hargaSatuan) * 100;
             }
+
+            $tarifPpn = floatval($detail->tarif_ppn ?? 0);
+            $ppnNominal = floatval($detail->ppn_nominal ?? 0);
+            $ppnPajakId = $detail->ppn_pajak_id;
+            $namaPpn = ($detail->pajak && $detail->pajak->nama_pajak) ? $detail->pajak->nama_pajak : ($tarifPpn > 0 ? 'PPN ' . $tarifPpn . '%' : 'Non PPN');
 
             return [
                 'po_detail_id'        => $detail->id,
@@ -297,6 +325,12 @@ class GoodsReceiptController extends Controller
                 'harga_satuan_dasar'  => $poFaktor > 0 ? ($hargaSatuan / $poFaktor) : $hargaSatuan,
                 'diskon_item'         => round($diskonItem, 2),
                 'diskon_persen'       => round($diskonPersen, 2),
+                'diskon_tipe'         => $diskonTipe,
+                'tarif_ppn'           => $tarifPpn,
+                'ppn_nominal'         => round($ppnNominal, 2),
+                'ppn_pajak_id'        => $ppnPajakId,
+                'nama_ppn'            => $namaPpn,
+                'subtotal'            => floatval($detail->subtotal ?? 0),
             ];
         });
 
@@ -317,6 +351,32 @@ class GoodsReceiptController extends Controller
             }
         }
 
+        $rates = [];
+        if ($po->details) {
+            foreach ($po->details as $d) {
+                $r = floatval($d->tarif_ppn ?? 0);
+                if ($r > 0) $rates[(string)$r] = true;
+            }
+        }
+        $rateKeys = array_keys($rates);
+        $summaryPajakTarif = 0;
+        $summaryPajakNama = 'Non PPN';
+        if (count($rateKeys) === 1) {
+            $summaryPajakTarif = floatval($rateKeys[0]);
+            $summaryPajakNama = 'PPN ' . $summaryPajakTarif . '%';
+        } elseif (count($rateKeys) > 1) {
+            $summaryPajakNama = 'PPN Campur';
+        } elseif ($po->pajak && floatval($po->pajak->tarif) > 0) {
+            $summaryPajakTarif = floatval($po->pajak->tarif);
+            $summaryPajakNama = $po->pajak->nama_pajak;
+        }
+
+        $pphTarif = floatval($po->tarif_pph ?? 0);
+        $pphNominal = floatval($po->pph_nominal ?? 0);
+        $totalPph = floatval($po->total_pph ?? $pphNominal);
+        $pphNama = $po->pphPajak ? $po->pphPajak->nama_pajak : ($pphTarif > 0 ? "PPh {$pphTarif}%" : 'Tanpa PPh');
+        $pphCoaNama = $po->pphCoa ? ($po->pphCoa->nomor_akun . ' - ' . $po->pphCoa->nama_akun) : null;
+
         return [
             'po' => [
                 'id' => $po->id,
@@ -330,9 +390,16 @@ class GoodsReceiptController extends Controller
                 'diskon_persen' => floatval($po->diskon_persen ?? 0),
                 'diskon_nominal' => floatval($po->diskon_nominal ?? 0),
                 'total_diskon' => floatval($po->total_diskon ?? 0),
-                'pajak_nama' => $po->pajak ? $po->pajak->nama_pajak : 'PPN',
-                'pajak_tarif' => $po->pajak ? floatval($po->pajak->tarif) : 0,
+                'pajak_nama' => $summaryPajakNama,
+                'pajak_tarif' => $summaryPajakTarif,
                 'total_pajak' => floatval($po->total_pajak ?? 0),
+                'pph_pajak_id' => $po->pph_pajak_id,
+                'pph_nama' => $pphNama,
+                'pph_tarif' => $pphTarif,
+                'pph_nominal' => $pphNominal,
+                'total_pph' => $totalPph,
+                'pph_coa_id' => $po->pph_coa_id,
+                'pph_coa_nama' => $pphCoaNama,
                 'down_payment' => floatval($po->down_payment ?? 0),
                 'tender_name' => $po->tender ? $po->tender->nama_tender : ($po->manual_pr_number ?? '-'),
                 'biaya_lain' => floatval($po->biaya_lain ?? 0),
@@ -387,16 +454,10 @@ class GoodsReceiptController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
 
-        $poQuery = PurchaseOrder::where('id', $request->po_id);
-        if ($activeCompanyId) {
-            $poQuery->where('company_id', $activeCompanyId);
-        }
-        if (!empty($activeBranchId)) {
-            $poQuery->where('branch_id', $activeBranchId);
-        } else {
-            $poQuery->whereNull('branch_id');
-        }
-        $po = $poQuery->first();
+        $po = PurchaseOrder::where('id', $request->po_id)
+            ->forActiveCompany()
+            ->forActiveBranch()
+            ->first();
 
         if (!$po) {
             return response()->json([
@@ -405,14 +466,12 @@ class GoodsReceiptController extends Controller
             ], 422);
         }
 
-        $gudangQuery = MasterGudang::where('id', $request->gudang_id)->where('status', 'Active');
-        if ($activeCompanyId) {
+        $gudangQuery = MasterGudang::where('id', $request->gudang_id)
+            ->where('status', 'Active')
+            ->forActiveBranch();
+
+        if (empty($activeBranchId) && $activeCompanyId) {
             $gudangQuery->where('company_id', $activeCompanyId);
-        }
-        if (!empty($activeBranchId)) {
-            $gudangQuery->where('cabang_id', $activeBranchId);
-        } else {
-            $gudangQuery->whereNull('cabang_id');
         }
         $gudang = $gudangQuery->first();
 
@@ -423,11 +482,9 @@ class GoodsReceiptController extends Controller
             ], 422);
         }
 
-        // Validate GR number uniqueness if manual
+        // Validate GR number uniqueness if manual (nomor_gr has unique constraint in database)
         if (!$request->auto_number) {
-            $exists = GoodsReceipt::where('nomor_gr', $request->nomor_gr)
-                ->when($activeCompanyId, fn($q) => $q->where('company_id', $activeCompanyId))
-                ->exists();
+            $exists = GoodsReceipt::withTrashed()->where('nomor_gr', $request->nomor_gr)->exists();
             if ($exists) {
                 return response()->json([
                     'message' => 'Validasi gagal!',
@@ -475,19 +532,36 @@ class GoodsReceiptController extends Controller
                 }
             }
 
-            // Auto generation of GR number
+            // Auto generation of GR number (Thread-safe & collision proof)
             if ($request->auto_number) {
                 $year = date('Y', strtotime($request->tanggal_gr));
                 $month = date('m', strtotime($request->tanggal_gr));
                 $prefix = "GR/{$year}/{$month}/";
+                $prefixLen = strlen($prefix);
 
-                $latest = GoodsReceipt::where('nomor_gr', 'like', $prefix . '%')
-                    ->when($activeCompanyId, fn($q) => $q->where('company_id', $activeCompanyId))
-                    ->orderBy('nomor_gr', 'desc')
-                    ->first();
+                $allGrs = GoodsReceipt::withTrashed()
+                    ->where('nomor_gr', 'like', $prefix . '%')
+                    ->lockForUpdate()
+                    ->pluck('nomor_gr');
 
-                $number = !$latest ? 1 : ((int) substr($latest->nomor_gr, strlen($prefix))) + 1;
+                $maxNum = 0;
+                foreach ($allGrs as $codeStr) {
+                    $suffix = substr($codeStr, $prefixLen);
+                    if (is_numeric($suffix)) {
+                        $val = (int) $suffix;
+                        if ($val > $maxNum) {
+                            $maxNum = $val;
+                        }
+                    }
+                }
+
+                $number = $maxNum + 1;
                 $nomorGr = $prefix . str_pad($number, 4, '0', STR_PAD_LEFT);
+
+                while (GoodsReceipt::withTrashed()->where('nomor_gr', $nomorGr)->exists()) {
+                    $number++;
+                    $nomorGr = $prefix . str_pad($number, 4, '0', STR_PAD_LEFT);
+                }
             } else {
                 $nomorGr = $request->nomor_gr;
             }
@@ -497,14 +571,16 @@ class GoodsReceiptController extends Controller
             // Kurs: pakai kurs dari form (bisa beda dari PO), fallback ke kurs PO
             $kursGr = floatval($request->input('kurs', 0));
             if ($kursGr <= 0) $kursGr = floatval($po->kurs ?? 1);
-            if ($kursGr <= 0) $kursGr = 1;
+            $targetBranchId  = !empty($activeBranchId) ? $activeBranchId : null;
+            $targetCompanyId = !empty($targetBranchId) ? null : $activeCompanyId;
 
             $gr = GoodsReceipt::create([
-                'company_id'        => $activeCompanyId,
-                'branch_id'         => !empty($activeBranchId) ? $activeBranchId : null,
+                'company_id'        => $targetCompanyId,
+                'branch_id'         => $targetBranchId,
                 'nomor_gr'          => $nomorGr,
                 'tanggal_gr'        => $request->tanggal_gr,
                 'po_id'             => $request->po_id,
+                'tender_id'         => $po->tender_id ?? null,
                 'gudang_id'         => $request->gudang_id,
                 'status'            => $isDraft ? 'Draft' : 'Posted',
                 'nomor_surat_jalan' => $request->nomor_surat_jalan,
@@ -583,10 +659,24 @@ class GoodsReceiptController extends Controller
             (property_exists(auth()->user(), 'role') && in_array(strtolower(strval(auth()->user()->role)), ['superadmin', 'admin']))
         );
 
-        if ($goodsReceipt->status !== 'Draft' && !$isAuthorizedAdmin) {
+        if ($goodsReceipt->status !== 'Draft') {
             return response()->json([
-                'message' => 'Hanya dokumen Penerimaan Barang dengan status Draft yang dapat diubah!'
-            ], 400);
+                'message' => 'Dokumen Penerimaan Barang yang telah diposting atau dibatalkan tidak dapat diedit langsung. Silakan gunakan fitur Batalkan Transaksi (Void) pada modal detail jika ingin merevisi!'
+            ], 422);
+        }
+
+        // Verify Goods Receipt belongs to active company and branch
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
+
+        if (!empty($activeBranchId)) {
+            if ($goodsReceipt->branch_id != $activeBranchId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data penerimaan barang cabang lain.'], 403);
+            }
+        } else {
+            if ($activeCompanyId && $goodsReceipt->company_id && $goodsReceipt->company_id != $activeCompanyId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data penerimaan barang perusahaan lain.'], 403);
+            }
         }
 
         try {
@@ -600,11 +690,14 @@ class GoodsReceiptController extends Controller
                 'nomor_gr'          => 'nullable|required_if:auto_number,0|string|max:50',
                 'items'             => 'required|array|min:1',
                 'items.*.po_detail_id' => 'required|exists:purchase_order_details,id',
-                'items.*.barang_id' => 'required|exists:master_barang,id',
-                'items.*.lokasi_rak_id' => 'nullable|exists:master_lokasi_rak,id',
-                'items.*.jumlah'    => 'required|numeric|min:0',
-                'items.*.serials'   => 'nullable|array',
-                'items.*.asset_codes' => 'nullable|array',
+                'items.*.barang_id'    => 'required|exists:master_barang,id',
+                'items.*.lokasi_rak_id'=> 'nullable|exists:master_lokasi_rak,id',
+                'items.*.satuan_id'    => 'nullable|exists:master_satuan,id',
+                'items.*.faktor_pengali' => 'nullable|numeric|min:0.0001',
+                'items.*.jumlah'       => 'required|numeric|min:0',
+                'items.*.jumlah_reject'=> 'nullable|numeric|min:0',
+                'items.*.serials'      => 'nullable|array',
+                'items.*.asset_codes'  => 'nullable|array',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -617,16 +710,10 @@ class GoodsReceiptController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
 
-        $poQuery = PurchaseOrder::where('id', $request->po_id);
-        if ($activeCompanyId) {
-            $poQuery->where('company_id', $activeCompanyId);
-        }
-        if (!empty($activeBranchId)) {
-            $poQuery->where('branch_id', $activeBranchId);
-        } else {
-            $poQuery->whereNull('branch_id');
-        }
-        $po = $poQuery->first();
+        $po = PurchaseOrder::where('id', $request->po_id)
+            ->forActiveCompany()
+            ->forActiveBranch()
+            ->first();
 
         if (!$po) {
             return response()->json([
@@ -635,14 +722,12 @@ class GoodsReceiptController extends Controller
             ], 422);
         }
 
-        $gudangQuery = MasterGudang::where('id', $request->gudang_id)->where('status', 'Active');
-        if ($activeCompanyId) {
+        $gudangQuery = MasterGudang::where('id', $request->gudang_id)
+            ->where('status', 'Active')
+            ->forActiveBranch();
+
+        if (empty($activeBranchId) && $activeCompanyId) {
             $gudangQuery->where('company_id', $activeCompanyId);
-        }
-        if (!empty($activeBranchId)) {
-            $gudangQuery->where('cabang_id', $activeBranchId);
-        } else {
-            $gudangQuery->whereNull('cabang_id');
         }
         $gudang = $gudangQuery->first();
 
@@ -654,7 +739,10 @@ class GoodsReceiptController extends Controller
         }
 
         if (!$request->auto_number && $request->nomor_gr !== $goodsReceipt->nomor_gr) {
-            $exists = GoodsReceipt::where('nomor_gr', $request->nomor_gr)->where('id', '!=', $goodsReceipt->id)->exists();
+            $exists = GoodsReceipt::withTrashed()
+                ->where('nomor_gr', $request->nomor_gr)
+                ->where('id', '!=', $goodsReceipt->id)
+                ->exists();
             if ($exists) {
                 return response()->json([
                     'message' => 'Validasi gagal!',
@@ -714,12 +802,16 @@ class GoodsReceiptController extends Controller
             if ($kursGr <= 0) $kursGr = floatval($po->kurs ?? 1);
             if ($kursGr <= 0) $kursGr = 1;
 
+            $targetBranchId  = !empty($activeBranchId) ? $activeBranchId : null;
+            $targetCompanyId = !empty($targetBranchId) ? null : $activeCompanyId;
+
             $goodsReceipt->update([
-                'company_id'        => $activeCompanyId,
-                'branch_id'         => !empty($activeBranchId) ? $activeBranchId : null,
+                'company_id'        => $targetCompanyId,
+                'branch_id'         => $targetBranchId,
                 'nomor_gr'          => $request->auto_number ? $goodsReceipt->nomor_gr : $request->nomor_gr,
                 'tanggal_gr'        => $request->tanggal_gr,
                 'po_id'             => $request->po_id,
+                'tender_id'         => $po->tender_id ?? null,
                 'gudang_id'         => $request->gudang_id,
                 'status'            => $isDraft ? 'Draft' : 'Posted',
                 'nomor_surat_jalan' => $request->nomor_surat_jalan,
@@ -793,12 +885,14 @@ class GoodsReceiptController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id');
 
-        if ($activeCompanyId && $goodsReceipt->company_id && $goodsReceipt->company_id != $activeCompanyId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
-        }
-
-        if (!empty($activeBranchId) && $goodsReceipt->branch_id && $goodsReceipt->branch_id != $activeBranchId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain.'], 403);
+        if (!empty($activeBranchId)) {
+            if ($goodsReceipt->branch_id != $activeBranchId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain.'], 403);
+            }
+        } else {
+            if ($activeCompanyId && $goodsReceipt->company_id && $goodsReceipt->company_id != $activeCompanyId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
+            }
         }
 
         if ($goodsReceipt->status !== 'Draft') {
@@ -809,6 +903,37 @@ class GoodsReceiptController extends Controller
 
         try {
             DB::beginTransaction();
+
+            // Re-validate remaining PO quantity before posting Draft (Thread-safe inside transaction with lock)
+            $goodsReceipt->load('details');
+            foreach ($goodsReceipt->details as $grDetail) {
+                $poDetail = PurchaseOrderDetail::where('id', $grDetail->po_detail_id)->lockForUpdate()->first();
+                if ($poDetail) {
+                    $poFaktor = floatval($poDetail->faktor_pengali) > 0 ? floatval($poDetail->faktor_pengali) : 1.0;
+                    $qtyDipesanDasar = floatval($poDetail->jumlah_dasar) > 0 
+                        ? floatval($poDetail->jumlah_dasar) 
+                        : (floatval($poDetail->jumlah) * $poFaktor);
+
+                    $alreadyReceivedDasar = GoodsReceiptDetail::where('po_detail_id', $grDetail->po_detail_id)
+                        ->where('gr_id', '!=', $goodsReceipt->id)
+                        ->whereHas('goodsReceipt', function($q) {
+                            $q->where('status', 'Posted');
+                        })->sum(DB::raw('COALESCE(NULLIF(jumlah_dasar, 0), jumlah * COALESCE(faktor_pengali, 1))'));
+
+                    $remainingDasar = max(0, $qtyDipesanDasar - $alreadyReceivedDasar);
+                    $grFaktor = floatval($grDetail->faktor_pengali) > 0 ? floatval($grDetail->faktor_pengali) : 1.0;
+                    $qtyDasar = floatval($grDetail->jumlah_dasar) > 0 ? floatval($grDetail->jumlah_dasar) : (floatval($grDetail->jumlah) * $grFaktor);
+
+                    if ($qtyDasar > ($remainingDasar + 0.0001)) {
+                        DB::rollBack();
+                        $namaBarang = ($poDetail->barang) ? $poDetail->barang->nama_barang : 'Barang';
+                        $satuanDasarNama = ($poDetail->barang && $poDetail->barang->satuan) ? $poDetail->barang->satuan->nama_satuan : 'Satuan Dasar';
+                        return response()->json([
+                            'message' => "Posting gagal! Kuantitas barang '{$namaBarang}' pada dokumen ini ({$qtyDasar} {$satuanDasarNama}) melebihi sisa PO yang belum diterima (Sisa: " . rtrim(rtrim(number_format($remainingDasar, 4, ',', '.'), '0'), ',') . " {$satuanDasarNama})!"
+                        ], 422);
+                    }
+                }
+            }
 
             $this->processPosting($goodsReceipt);
 
@@ -876,13 +1001,6 @@ class GoodsReceiptController extends Controller
                     if ($kurs <= 0) $kurs = 1;
 
                     if ($po) {
-                        if (floatval($po->diskon_persen) > 0) {
-                            $netPrice -= ($netPrice * (floatval($po->diskon_persen) / 100));
-                        } elseif (floatval($po->total_diskon) > 0 && floatval($po->subtotal) > 0) {
-                            $netPrice -= ((floatval($po->total_diskon) / floatval($po->subtotal)) * $netPrice);
-                        }
-                        if ($netPrice < 0) $netPrice = 0;
-
                         $alokasiBiayaPerUnit = $this->calculateItemHppAllocation($po, $poDetailForPrice);
                         $netPrice += $alokasiBiayaPerUnit;
                     }
@@ -950,8 +1068,28 @@ class GoodsReceiptController extends Controller
                 $itemPayload = $itemsMap[$grDetail->po_detail_id] ?? [];
                 $serials = isset($itemPayload['serials']) ? $itemPayload['serials'] : [];
                 $customCodes = isset($itemPayload['asset_codes']) ? $itemPayload['asset_codes'] : [];
-                $poDetail = PurchaseOrderDetail::find($grDetail->po_detail_id);
-                $hargaSatuan = $poDetail ? floatval($poDetail->harga_satuan) : 0;
+                $poDetail = PurchaseOrderDetail::with('po')->find($grDetail->po_detail_id);
+                $purchasePrice = 0;
+                if ($poDetail) {
+                    $hargaSatuan = floatval($poDetail->harga_satuan);
+                    $diskonItem = floatval($poDetail->diskon_item ?? 0);
+                    $netPrice = max(0, $hargaSatuan - $diskonItem);
+
+                    $po = $poDetail->po;
+                    $kurs = floatval($gr->kurs ?? 0);
+                    if ($kurs <= 0) $kurs = $po ? floatval($po->kurs) : 1;
+                    if ($kurs <= 0) $kurs = 1;
+
+                    if ($po) {
+                        $alokasiBiayaPerUnit = $this->calculateItemHppAllocation($po, $poDetail);
+                        $netPrice += $alokasiBiayaPerUnit;
+                    }
+
+                    $poFaktor = floatval($poDetail->faktor_pengali) > 0 ? floatval($poDetail->faktor_pengali) : 1.0;
+                    $purchasePrice = $poFaktor > 0 ? (($netPrice * $kurs) / $poFaktor) : ($netPrice * $kurs);
+                } else {
+                    $purchasePrice = floatval($grDetail->harga_satuan ?? 0);
+                }
 
                 $countAsset = intval(round($qtyDasar));
                 for ($i = 0; $i < $countAsset; $i++) {
@@ -977,10 +1115,10 @@ class GoodsReceiptController extends Controller
                         'kode_aset'           => $customCode,
                         'nomor_seri'          => $serialNum,
                         'tanggal_perolehan'   => $gr->tanggal_gr,
-                        'harga_perolehan'     => $hargaSatuan,
+                        'harga_perolehan'     => $purchasePrice,
                         'masa_manfaat'        => $barangModel->default_masa_manfaat ?? 0,
                         'nilai_residu'        => $barangModel->default_nilai_residu ?? 0,
-                        'nilai_buku_saat_ini' => $hargaSatuan,
+                        'nilai_buku_saat_ini' => $purchasePrice,
                         'status'              => 'Aktif',
                     ]);
                 }
@@ -1042,30 +1180,37 @@ class GoodsReceiptController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id');
 
-        if ($activeCompanyId && $goodsReceipt->company_id && $goodsReceipt->company_id != $activeCompanyId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
-        }
-
-        if (!empty($activeBranchId) && $goodsReceipt->branch_id && $goodsReceipt->branch_id != $activeBranchId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain.'], 403);
+        if (!empty($activeBranchId)) {
+            if ($goodsReceipt->branch_id != $activeBranchId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain.'], 403);
+            }
+        } else {
+            if ($activeCompanyId && $goodsReceipt->company_id && $goodsReceipt->company_id != $activeCompanyId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
+            }
         }
 
         $goodsReceipt->load([
             'company',
             'branch',
+            'tender',
             'po.company',
             'po.supplier',
             'po.currency',
             'po.branch',
             'po.pajak',
+            'po.pphPajak',
+            'po.pphCoa',
             'po.tender',
             'gudang',
             'creator',
+            'canceler',
             'details.barang.satuan',
             'details.barang.konversiSatuan.satuan',
             'details.satuan',
             'details.poDetail.satuan',
             'details.barang.primaryFoto',
+            'details.poDetail.pajak',
             'details.poDetail',
             'details.lokasiRak',
             'jurnal.details.account',
@@ -1112,11 +1257,14 @@ class GoodsReceiptController extends Controller
         $activeCompanyId = session('active_company_id');
         $activeBranchId  = session('active_branch_id');
 
-        if ($activeCompanyId && $goodsReceipt->company_id && $goodsReceipt->company_id != $activeCompanyId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
-        }
-        if (!empty($activeBranchId) && $goodsReceipt->branch_id && $goodsReceipt->branch_id != $activeBranchId) {
-            return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain.'], 403);
+        if (!empty($activeBranchId)) {
+            if ($goodsReceipt->branch_id != $activeBranchId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain.'], 403);
+            }
+        } else {
+            if ($activeCompanyId && $goodsReceipt->company_id && $goodsReceipt->company_id != $activeCompanyId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
+            }
         }
 
         $request->validate([
@@ -1158,9 +1306,25 @@ class GoodsReceiptController extends Controller
         }
     }
 
-    public function destroy(GoodsReceipt $goodsReceipt)
+    /**
+     * Batalkan Transaksi Penerimaan Barang (Void)
+     */
+    public function cancel(Request $request, GoodsReceipt $goodsReceipt)
     {
         $this->authorize('hapus-gr');
+
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
+
+        if (!empty($activeBranchId)) {
+            if ($goodsReceipt->branch_id != $activeBranchId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain.'], 403);
+            }
+        } else {
+            if ($activeCompanyId && $goodsReceipt->company_id && $goodsReceipt->company_id != $activeCompanyId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
+            }
+        }
 
         $isAuthorizedAdmin = auth()->check() && (
             auth()->user()->hasRole('Super Admin') || 
@@ -1171,10 +1335,173 @@ class GoodsReceiptController extends Controller
             (property_exists(auth()->user(), 'role') && in_array(strtolower(strval(auth()->user()->role)), ['superadmin', 'admin']))
         );
 
-        if ($goodsReceipt->status === 'Posted' && !$isAuthorizedAdmin) {
+        if (!$isAuthorizedAdmin) {
             return response()->json([
-                'message' => 'Hanya dokumen Penerimaan Barang berstatus Draft yang dapat dihapus. Dokumen status Posted hanya dapat dihapus oleh Admin / Super Admin!'
+                'message' => 'Pembatalan transaksi penerimaan barang hanya dapat dilakukan oleh Admin / Super Admin!'
+            ], 403);
+        }
+
+        if ($goodsReceipt->status === 'Dibatalkan') {
+            return response()->json([
+                'message' => 'Dokumen penerimaan barang ini sudah dibatalkan sebelumnya!'
             ], 400);
+        }
+
+        $request->validate([
+            'alasan_pembatalan' => 'required|string|min:5|max:40',
+        ], [
+            'alasan_pembatalan.required' => 'Alasan pembatalan wajib diisi.',
+            'alasan_pembatalan.min'      => 'Alasan pembatalan minimal 5 karakter.',
+            'alasan_pembatalan.max'      => 'Alasan pembatalan maksimal 40 karakter.',
+        ]);
+
+        $alasanPembatalan = trim(strip_tags($request->input('alasan_pembatalan')));
+
+        // Integrity guard 1: Check if already billed in Purchase Invoice
+        $activePi = \App\Models\PurchaseInvoice::where('gr_id', $goodsReceipt->id)
+            ->where(function($q) {
+                $q->whereNull('status')->orWhereNotIn('status', ['Dibatalkan', 'Rejected', 'Ditolak']);
+            })->first();
+
+        if ($activePi) {
+            return response()->json([
+                'message' => "Penerimaan barang tidak dapat dibatalkan karena sudah ditagihkan pada Faktur Pembelian (No. {$activePi->nomor_invoice})! Batalkan faktur pembelian terlebih dahulu."
+            ], 422);
+        }
+
+        // Integrity guard 2: Check if linked to Alokasi Biaya
+        $activeAbDetail = \App\Models\AlokasiBiayaDetail::where('gr_id', $goodsReceipt->id)
+            ->whereHas('alokasiBiaya', function($q) {
+                $q->whereNull('status')->orWhereNotIn('status', ['Dibatalkan', 'Ditolak', 'Batal']);
+            })->with('alokasiBiaya')->first();
+
+        if ($activeAbDetail && $activeAbDetail->alokasiBiaya) {
+            $nomorAlokasi = $activeAbDetail->alokasiBiaya->nomor_alokasi ?? ('#' . $activeAbDetail->alokasi_biaya_id);
+            return response()->json([
+                'message' => "Penerimaan barang tidak dapat dibatalkan karena terhubung dengan Alokasi Biaya (No. {$nomorAlokasi})! Batalkan alokasi biaya terlebih dahulu."
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Concurrency Guard: Lock GoodsReceipt row to guarantee concurrency safety and prevent double-cancel
+            $lockedGr = GoodsReceipt::where('id', $goodsReceipt->id)->lockForUpdate()->firstOrFail();
+            if ($lockedGr->status === 'Dibatalkan') {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Dokumen penerimaan barang ini sudah dibatalkan sebelumnya!'
+                ], 400);
+            }
+
+            if ($lockedGr->status !== 'Posted') {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Hanya dokumen berstatus Diposting yang dapat dibatalkan (void)!'
+                ], 400);
+            }
+
+            // Revert stock & void journal
+            $this->revertPosting($lockedGr, $alasanPembatalan);
+
+            // Update status to Dibatalkan with cancellation audit details
+            $lockedGr->update([
+                'status'            => 'Dibatalkan',
+                'alasan_pembatalan' => $alasanPembatalan,
+                'canceled_by'       => auth()->id(),
+                'canceled_at'       => now(),
+            ]);
+
+            // Recalculate PO status
+            $poId = $lockedGr->po_id;
+            $po = PurchaseOrder::where('id', $poId)->lockForUpdate()->first();
+            if ($po) {
+                $po->load('details');
+                
+                $receivedQuantitiesDasar = GoodsReceiptDetail::whereIn('po_detail_id', $po->details->pluck('id'))
+                    ->whereHas('goodsReceipt', function($q) {
+                        $q->where('status', 'Posted');
+                    })
+                    ->groupBy('po_detail_id')
+                    ->select('po_detail_id', DB::raw('SUM(COALESCE(NULLIF(jumlah_dasar, 0), jumlah * COALESCE(faktor_pengali, 1))) as total_received_dasar'))
+                    ->pluck('total_received_dasar', 'po_detail_id');
+
+                $isFullyReceived = true;
+                $hasSomeReceived = false;
+
+                foreach ($po->details as $poDetail) {
+                    $poFaktor = floatval($poDetail->faktor_pengali) > 0 ? floatval($poDetail->faktor_pengali) : 1.0;
+                    $qtyDipesanDasar = floatval($poDetail->jumlah_dasar) > 0 
+                        ? floatval($poDetail->jumlah_dasar) 
+                        : (floatval($poDetail->jumlah) * $poFaktor);
+
+                    $totalRec = floatval($receivedQuantitiesDasar[$poDetail->id] ?? 0);
+                    if ($totalRec < ($qtyDipesanDasar - 0.0001)) {
+                        $isFullyReceived = false;
+                    }
+                    if ($totalRec > 0) {
+                        $hasSomeReceived = true;
+                    }
+                }
+
+                if ($isFullyReceived && $hasSomeReceived) {
+                    $po->status = 'Received';
+                } elseif ($hasSomeReceived) {
+                    $po->status = 'Partially Received';
+                } else {
+                    $po->status = 'Ordered';
+                }
+                $po->save();
+            }
+
+            DB::commit();
+
+            Log::info("Goods Receipt {$lockedGr->nomor_gr} (ID: {$lockedGr->id}) voided by User ID: " . auth()->id() . " Reason: {$alasanPembatalan}");
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => "Penerimaan barang {$lockedGr->nomor_gr} berhasil dibatalkan dan stok telah disesuaikan kembali!"
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('GR Cancel Exception: ', ['msg' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'message' => 'Gagal membatalkan penerimaan barang: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroy(GoodsReceipt $goodsReceipt)
+    {
+        $this->authorize('hapus-gr');
+
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
+
+        if (!empty($activeBranchId)) {
+            if ($goodsReceipt->branch_id != $activeBranchId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data cabang lain.'], 403);
+            }
+        } else {
+            if ($activeCompanyId && $goodsReceipt->company_id && $goodsReceipt->company_id != $activeCompanyId) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke data perusahaan lain.'], 403);
+            }
+        }
+
+        $isAuthorizedAdmin = auth()->check() && (
+            auth()->user()->hasRole('Super Admin') || 
+            auth()->user()->hasRole('Superadmin') || 
+            auth()->user()->hasRole('superadmin') ||
+            auth()->user()->hasRole('Admin') || 
+            auth()->user()->hasRole('admin') || 
+            (property_exists(auth()->user(), 'role') && in_array(strtolower(strval(auth()->user()->role)), ['superadmin', 'admin']))
+        );
+
+        if ($goodsReceipt->status !== 'Draft') {
+            return response()->json([
+                'message' => 'Hanya dokumen Penerimaan Barang berstatus Draft yang dapat dihapus. Dokumen yang telah diposting atau dibatalkan disimpan sebagai arsip riwayat audit transaksi.'
+            ], 422);
         }
 
         try {
@@ -1266,28 +1593,36 @@ class GoodsReceiptController extends Controller
         $activeBranchId  = session('active_branch_id');
         $activeCompanyId = session('active_company_id');
 
-        if ($activeCompanyId && $goodsReceipt->company_id && $goodsReceipt->company_id != $activeCompanyId) {
-            abort(403, 'Anda tidak memiliki akses ke data perusahaan lain.');
-        }
-
-        if (!empty($activeBranchId) && $goodsReceipt->branch_id && $goodsReceipt->branch_id != $activeBranchId) {
-            abort(403, 'Anda tidak memiliki akses ke data cabang lain.');
+        if (!empty($activeBranchId)) {
+            if ($goodsReceipt->branch_id != $activeBranchId) {
+                abort(403, 'Anda tidak memiliki akses ke data cabang lain.');
+            }
+        } else {
+            if ($activeCompanyId && $goodsReceipt->company_id && $goodsReceipt->company_id != $activeCompanyId) {
+                abort(403, 'Anda tidak memiliki akses ke data perusahaan lain.');
+            }
         }
 
         $goodsReceipt->load([
             'company',
             'branch',
+            'tender',
             'po.company',
             'po.supplier',
             'po.branch',
             'po.currency',
             'po.pajak',
+            'po.pphPajak',
+            'po.pphCoa',
+            'po.tender',
             'gudang',
             'creator.activeSignature',
+            'canceler',
             'details.barang.satuan',
             'details.barang.primaryFoto',
             'details.lokasiRak',
-            'details.fixedAssets'
+            'details.fixedAssets',
+            'details.poDetail'
         ]);
 
         $activeBranch = \App\Models\Branch::find($activeBranchId);
@@ -1295,7 +1630,7 @@ class GoodsReceiptController extends Controller
         return view('modul_inventori.barang_masuk.printgr', compact('goodsReceipt', 'activeBranch'));
     }
 
-    protected function revertPosting(GoodsReceipt $goodsReceipt)
+    protected function revertPosting(GoodsReceipt $goodsReceipt, ?string $alasan = null)
     {
         $gudang = $goodsReceipt->gudang;
         if (!$gudang) return;
@@ -1360,13 +1695,6 @@ class GoodsReceiptController extends Controller
                         if ($kurs <= 0) $kurs = 1;
 
                         if ($po) {
-                            if (floatval($po->diskon_persen) > 0) {
-                                $netPrice -= ($netPrice * (floatval($po->diskon_persen) / 100));
-                            } elseif (floatval($po->total_diskon) > 0 && floatval($po->subtotal) > 0) {
-                                $netPrice -= ((floatval($po->total_diskon) / floatval($po->subtotal)) * $netPrice);
-                            }
-                            if ($netPrice < 0) $netPrice = 0;
-
                             $alokasiBiayaPerUnit = $this->calculateItemHppAllocation($po, $poDetailForPrice);
                             $netPrice += $alokasiBiayaPerUnit;
                         }
@@ -1404,7 +1732,18 @@ class GoodsReceiptController extends Controller
                         $hargaBeliSebelumnya = floatval($previousMasuks[1]->harga_satuan);
                     }
 
+                    $nilaiPersediaanLama = floatval($stokGudang->nilai_persediaan ?? ($stokAwal * $currentAvgCost));
+                    $nilaiReversal = $qtyToRevert * $purchasePrice;
+                    $nilaiPersediaanBaru = max(0, $nilaiPersediaanLama - $nilaiReversal);
+                    if ($stokAkhir <= 0) {
+                        $nilaiPersediaanBaru = 0;
+                        $newAvgCost = '0.000000';
+                    } else {
+                        $newAvgCost = DecimalHelper::div((string)$nilaiPersediaanBaru, (string)$stokAkhir, 6);
+                    }
+
                     $stokGudang->stok_aktual = $stokAkhir;
+                    $stokGudang->nilai_persediaan = (string) $nilaiPersediaanBaru;
                     $stokGudang->hpp_sebelumnya = $stokGudang->harga_pokok_rata_rata ?? 0.00;
                     $stokGudang->harga_pokok_rata_rata = $newAvgCost;
                     $stokGudang->harga_beli_terakhir = $hargaBeliTerakhir;
@@ -1423,10 +1762,12 @@ class GoodsReceiptController extends Controller
                         'stok_akhir'      => $stokAkhir,
                         'harga_satuan'    => $purchasePrice,
                         'nilai_total'     => $qtyToRevert * $purchasePrice,
-                        'referensi_jenis' => 'Goods Receipt Adjustment',
+                        'referensi_jenis' => $alasan ? 'Goods Receipt Void' : 'Goods Receipt Adjustment',
                         'referensi_id'    => $goodsReceipt->id,
                         'referensi_nomor' => $goodsReceipt->nomor_gr,
-                        'keterangan'      => "Penyesuaian / Revisi Penerimaan PO #{$goodsReceipt->po->nomor_po}",
+                        'keterangan'      => $alasan 
+                            ? "Pembatalan Penerimaan (Void) #{$goodsReceipt->nomor_gr}: {$alasan}" 
+                            : "Penyesuaian / Revisi Penerimaan PO #{$goodsReceipt->po->nomor_po}",
                     ]);
                 }
             } elseif ($tipeItem === 'Aset') {
@@ -1440,10 +1781,16 @@ class GoodsReceiptController extends Controller
             }
         }
 
-        // Delete / Void associated Journal entry
-        \App\Models\Jurnal::where('referensi_tipe', 'Goods Receipt')
+        // Delete / Void associated Journal entry completely with details (forceDelete to prevent orphan rows)
+        $existingJurnals = \App\Models\Jurnal::withTrashed()
+            ->where('referensi_tipe', 'Goods Receipt')
             ->where('referensi_id', $goodsReceipt->id)
-            ->delete();
+            ->get();
+
+        foreach ($existingJurnals as $exJnl) {
+            $exJnl->details()->delete();
+            $exJnl->forceDelete();
+        }
     }
 
     /**
@@ -1493,7 +1840,7 @@ class GoodsReceiptController extends Controller
                 $q->where('name', 'Persediaan')->orWhere('name', 'like', 'Persediaan Barang%')->orWhere('type', 'like', '%Persediaan%')->orWhere('type', 'Asset');
             })->value('id');
 
-        $gr->load(['details.barang.kategori', 'po.supplier', 'details.poDetail']);
+        $gr->load(['details.barang.kategori', 'po.supplier', 'details.poDetail', 'tender', 'po.tender']);
 
         // Group inventory value by COA ID
         $debitEntries = []; // coa_id => amount
@@ -1525,13 +1872,6 @@ class GoodsReceiptController extends Controller
                 if ($kurs <= 0) $kurs = 1;
 
                 if ($po) {
-                    if (floatval($po->diskon_persen) > 0) {
-                        $netPrice -= ($netPrice * (floatval($po->diskon_persen) / 100));
-                    } elseif (floatval($po->total_diskon) > 0 && floatval($po->subtotal) > 0) {
-                        $netPrice -= ((floatval($po->total_diskon) / floatval($po->subtotal)) * $netPrice);
-                    }
-                    if ($netPrice < 0) $netPrice = 0;
-
                     $alokasiBiayaPerUnit = $this->calculateItemHppAllocation($po, $poDetail);
                     $netPrice += $alokasiBiayaPerUnit;
                 }
@@ -1581,6 +1921,25 @@ class GoodsReceiptController extends Controller
             $nomorJurnal = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
         }
 
+        // Resolve associated tender (Goods Receipt direct tender or PO tender)
+        $tenderObj = $gr->tender ?? $gr->po?->tender;
+        if (!$tenderObj && ($gr->tender_id || $gr->po?->tender_id)) {
+            $tId = $gr->tender_id ?: $gr->po?->tender_id;
+            $tenderObj = \App\Models\Tender::find($tId);
+        }
+
+        $nomorTender = null;
+        if ($tenderObj) {
+            $nomorTender = !empty($tenderObj->nomor_kontrak) && $tenderObj->nomor_kontrak !== '-'
+                ? ($tenderObj->nomor_kontrak . (!empty($tenderObj->nama_tender) ? ' - ' . $tenderObj->nama_tender : ''))
+                : ($tenderObj->nomor_kontrak ?: ($tenderObj->nama_tender ?: ('Tender #' . $tenderObj->id)));
+
+            if (empty($gr->tender_id)) {
+                $gr->update(['tender_id' => $tenderObj->id]);
+            }
+        }
+
+        $tenderSuffix = $nomorTender ? " [Tender: {$nomorTender}]" : "";
         $supplierName = $gr->po?->supplier?->nama_supplier ?? 'Supplier';
 
         // Create Jurnal Header (Jika input Cabang: company_id = NULL. Jika input PT: branch_id = NULL)
@@ -1589,11 +1948,12 @@ class GoodsReceiptController extends Controller
             'tanggal_jurnal' => $gr->tanggal_gr,
             'referensi_tipe' => 'Goods Receipt',
             'referensi_id'   => $gr->id,
+            'no_tender'      => $nomorTender,
             'company_id'     => $jurnalCompanyId,
             'branch_id'      => $jurnalBranchId,
             'total_debit'    => $totalInventoryValue,
             'total_kredit'   => $totalInventoryValue,
-            'keterangan'     => "Jurnal Penerimaan Barang {$gr->nomor_gr} dari {$supplierName} (PO #{$gr->po?->nomor_po})",
+            'keterangan'     => "Jurnal Penerimaan Barang {$gr->nomor_gr} dari {$supplierName} (PO #{$gr->po?->nomor_po}){$tenderSuffix}",
             'created_by'     => auth()->id(),
         ]);
 
@@ -1632,7 +1992,7 @@ class GoodsReceiptController extends Controller
         $poSubtotal = floatval($po->subtotal);
         $poTotalQty = floatval($po->details ? $po->details->sum('jumlah') : 0);
         if ($poTotalQty <= 0) {
-            $poTotalQty = floatval(\App\Models\PurchaseOrderDetail::where('purchase_order_id', $po->id)->sum('jumlah'));
+            $poTotalQty = floatval(\App\Models\PurchaseOrderDetail::where('po_id', $po->id)->sum('jumlah'));
         }
 
         $poDetailSubtotal = floatval($poDetail->subtotal);

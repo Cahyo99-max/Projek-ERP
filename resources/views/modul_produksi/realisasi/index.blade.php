@@ -166,7 +166,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-lg-4 text-start text-lg-end">
+                <div class="col-12 col-lg-4 text-start text-lg-end d-flex flex-wrap align-items-center justify-content-lg-end gap-2">
+                    <a href="{{ asset('flowchart-realisasi-produksi.html') }}" target="_blank" class="btn btn-sm px-3 py-1.5 rounded-pill font-monospace fw-bold text-white shadow-sm border" style="background: rgba(2, 132, 199, 0.4); border-color: rgba(56, 189, 248, 0.5) !important; font-size: 12px; backdrop-filter: blur(8px); text-decoration: none;" title="Buka Flowchart Diagram Alur Realisasi Produksi">
+                        <i class="bi bi-diagram-3-fill text-info me-1.5"></i>Flowchart Alur
+                    </a>
                     <span class="badge px-3.5 py-2 rounded-pill font-monospace shadow-sm border" style="background: rgba(255, 255, 255, 0.25); border-color: rgba(255, 255, 255, 0.5) !important; color: #ffffff !important; font-size: 12px; font-weight: 800; letter-spacing: 0.6px; text-shadow: 0 1px 2px rgba(0,0,0,0.4); backdrop-filter: blur(8px);">
                         <i class="bi bi-shield-check text-warning me-1.5 fs-6"></i>KONTROL AREA PRODUKSI
                     </span>
@@ -406,6 +409,23 @@
                 $('#filter_active_indicator').addClass('d-none');
                 $('#active_filter_bar').addClass('d-none');
                 $('#active_filter_summary_text').text('');
+            }
+        }
+
+        function alertSpkBelumDimulai(nomorSpk, status) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'SPK Belum Dimulai!',
+                    html: '<div class="text-start">Surat Perintah Kerja <b>' + nomorSpk + '</b> saat ini berstatus <b>' + status + '</b>.<br><br>Pekerjaan produksi dan kontrol tahapan <b>belum dapat diinput</b> sebelum SPK resmi dimulai.<br><small class="text-body-secondary">Silakan buka <b>Modul SPK</b> dan tekan tombol <b>"Mulai" / "Mulai Produksi"</b> untuk memulai pengerjaan.</small></div>',
+                    confirmButtonText: 'Saya Mengerti',
+                    confirmButtonColor: '#0ea5e9',
+                    customClass: {
+                        popup: 'rounded-4 shadow-lg'
+                    }
+                });
+            } else {
+                alert('PERINGATAN: SPK ' + nomorSpk + ' belum dimulai (Status: ' + status + '). Harap mulai pengerjaan SPK terlebih dahulu pada Modul SPK.');
             }
         }
 

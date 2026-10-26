@@ -25,7 +25,7 @@
                 <div class="modal-body p-4" style="max-height: 80vh; overflow-y: auto;">
                     
                     {{-- SECTION I: INFORMASI UTAMA & FOTO PAKET BUNDLE --}}
-                    <div class="spk-card-section p-4 rounded-4 mb-3.5 border border-secondary border-opacity-15 shadow-sm" style="background: rgba(248, 250, 252, 0.5);">
+                    <div class="spk-card-section p-4 rounded-4 mb-4 border border-secondary border-opacity-15 shadow-sm" style="background: rgba(248, 250, 252, 0.5); margin-bottom: 1.75rem !important;">
                         <div class="d-flex align-items-center justify-content-between mb-3.5 border-bottom pb-2.5">
                             <div class="d-flex align-items-center gap-2 text-info fw-bold font-monospace" style="font-size: 0.92rem; letter-spacing: 0.3px;">
                                 <i class="bi bi-box-seam-fill"></i> I. INFORMASI UTAMA PAKET BUNDLE
@@ -75,14 +75,13 @@
 
                             <div class="col-12 col-md-3">
                                 <label class="form-label spk-input-label small fw-semibold mb-1">Tipe Barang <span class="text-danger">*</span></label>
-                                <select name="tipe_barang_id" id="tambah_bundle_tipe" class="form-select form-select-sm spk-form-input" required>
-                                    <option value="" selected disabled>-- Pilih Tipe --</option>
-                                    @foreach($tipes as $tipe)
-                                        <option value="{{ $tipe->id }}">
-                                            {{ $tipe->nama_tipe }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <div class="input-group input-group-sm">
+                                    <input type="hidden" name="tipe_barang_id" id="tambah_tipe_id" required>
+                                    <input type="text" class="form-control form-control-sm spk-form-input fw-bold" id="tambah_tipe_nama" placeholder="-- Pilih Tipe --" readonly onclick="openLookupTipe('tambah')" style="cursor: pointer;" required>
+                                    <button type="button" class="btn btn-outline-info px-2" onclick="openLookupTipe('tambah')" title="Cari Tipe Barang">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                </div>
                             </div>
 
                             <div class="col-12 col-md-3">
@@ -117,7 +116,7 @@
                                         <label class="form-label spk-input-label small fw-bold mb-0">
                                             <i class="bi bi-images text-info me-1"></i> Foto Paket Bundle
                                         </label>
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace" style="font-size: 0.68rem;">Maks. 4 Foto &bull; Urutan pertama jadi Cover</span>
+                                        <span class="badge rounded-pill px-2.5 py-1 font-monospace fw-bold shadow-xs" style="font-size: 0.78rem; background-color: #0369a1 !important; color: #ffffff !important; border: 1px solid #38bdf8 !important;"><i class="bi bi-info-circle-fill me-1" style="color: #38bdf8 !important;"></i>Maksimal 4 Foto Total &bull; Urutan #1 sebagai Cover</span>
                                     </div>
                                     <div class="d-flex align-items-center gap-2">
                                         <button type="button" class="btn btn-sm rounded-pill px-3.5 py-1.5 fw-bold text-white shadow-sm" id="btn_tambah_bundle_remove_bg" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%); font-size: 0.8rem; border: none; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);">
@@ -146,11 +145,43 @@
                         </div>
                     </div>
 
-                    {{-- SECTION II: SKEMA HARGA JUAL & REALTIME MARGIN --}}
-                    <div class="spk-card-section p-4 rounded-4 mb-3.5 border border-secondary border-opacity-15 shadow-sm" style="background: rgba(248, 250, 252, 0.5);">
+                    {{-- SECTION II: RINCIAN BARANG PENYUSUN PAKET (DYNAMIC ROWS) --}}
+                    <div class="spk-card-section p-4 rounded-4 mb-4 border border-secondary border-opacity-15 shadow-sm" style="background: rgba(248, 250, 252, 0.5); margin-bottom: 1.75rem !important;">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="d-flex align-items-center gap-2 text-warning fw-bold font-monospace" style="font-size: 0.92rem; letter-spacing: 0.3px;">
+                                <i class="bi bi-boxes"></i> II. KOMPOSISI BARANG PENYUSUN PAKET (CHILD ITEMS)
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3.5 py-1.5 font-monospace fw-semibold" id="btnTambahRowKomponen" style="font-size: 0.8rem;">
+                                <i class="bi bi-plus-circle me-1"></i> Tambah Barang Penyusun
+                            </button>
+                        </div>
+
+                        <div class="table-responsive rounded-3 border">
+                            <table class="table table-sm table-bordered align-middle mb-0" id="tableRowKomponenBundle">
+                                <thead>
+                                    <tr class="spk-table-header-custom small font-monospace" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white;">
+                                        <th style="width: 45px;" class="text-center py-2.5">NO</th>
+                                        <th class="py-2.5">BARANG JADI / PENYUSUN <span class="text-danger">*</span></th>
+                                        <th style="width: 180px;" class="text-center py-2.5">QTY / PAKET <span class="text-danger">*</span></th>
+                                        <th style="width: 60px;" class="text-center py-2.5">AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyRowKomponenBundle">
+                                    {{-- Row dimasukkan via JS --}}
+                                </tbody>
+                            </table>
+                        </div>
+                        <small class="spk-input-subtext mt-2.5 d-block text-muted" style="font-size: 11.5px;">
+                            <i class="bi bi-info-circle me-1 text-info"></i>Klik ikon cari / kolom barang penyusun untuk memilih item komponen (misal: Seragam, Celana, Rompi, Helm) beserta jumlahnya.
+                        </small>
+                    </div>
+
+                    {{-- SECTION III: SKEMA HARGA JUAL & REALTIME MARGIN --}}
+                    <div class="spk-card-section p-4 rounded-4 mb-2 border border-secondary border-opacity-15 shadow-sm" style="background: rgba(248, 250, 252, 0.5);">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                             <div class="d-flex align-items-center gap-2 text-info fw-bold font-monospace" style="font-size: 0.92rem; letter-spacing: 0.3px;">
-                                <i class="bi bi-tag-fill"></i> II. SKEMA HARGA JUAL &amp; KALKULASI MARGIN REAL-TIME
+                                <i class="bi bi-tag-fill"></i> III. SKEMA HARGA JUAL &amp; KALKULASI MARGIN REAL-TIME
                             </div>
                             <div class="d-flex flex-wrap align-items-center gap-2" id="tambah_margin_badges">
                                 <span class="badge bg-secondary rounded-pill font-monospace px-2.5 py-1" id="tambah_badge_margin_retail">Margin Retail: 0%</span>
@@ -170,7 +201,7 @@
                                         <span class="badge bg-info text-dark font-monospace fw-bold px-2 py-0.5" style="font-size: 0.68rem; letter-spacing: 0.5px;">REAL-TIME ENGINE</span>
                                         <span class="text-white fw-semibold small">Akumulasi HPP Gudang Komponen</span>
                                     </div>
-                                    <div class="text-white-50" style="font-size: 11.5px;">Dihitung otomatis dari stok gudang barang penyusun tanpa disimpan statis</div>
+                                    <div class="text-white-50" style="font-size: 11.5px;">Kalkulasi HPP real-time dihitung secara otomatis berdasarkan stok gudang komponen penyusun</div>
                                 </div>
                             </div>
                             <div class="text-end">
@@ -235,38 +266,6 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    {{-- SECTION III: RINCIAN BARANG PENYUSUN PAKET (DYNAMIC ROWS) --}}
-                    <div class="spk-card-section p-4 rounded-4 border border-secondary border-opacity-15 shadow-sm" style="background: rgba(248, 250, 252, 0.5);">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <div class="d-flex align-items-center gap-2 text-warning fw-bold font-monospace" style="font-size: 0.92rem; letter-spacing: 0.3px;">
-                                <i class="bi bi-boxes"></i> III. KOMPOSISI BARANG PENYUSUN PAKET (CHILD ITEMS)
-                            </div>
-
-                            <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3.5 py-1.5 font-monospace fw-semibold" id="btnTambahRowKomponen" style="font-size: 0.8rem;">
-                                <i class="bi bi-plus-circle me-1"></i> Tambah Barang Penyusun
-                            </button>
-                        </div>
-
-                        <div class="table-responsive rounded-3 border">
-                            <table class="table table-sm table-bordered align-middle mb-0" id="tableRowKomponenBundle">
-                                <thead>
-                                    <tr class="spk-table-header-custom small font-monospace" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white;">
-                                        <th style="width: 45px;" class="text-center py-2.5">NO</th>
-                                        <th class="py-2.5">BARANG JADI / PENYUSUN <span class="text-danger">*</span></th>
-                                        <th style="width: 180px;" class="text-center py-2.5">QTY / PAKET <span class="text-danger">*</span></th>
-                                        <th style="width: 60px;" class="text-center py-2.5">AKSI</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbodyRowKomponenBundle">
-                                    {{-- Row dimasukkan via JS --}}
-                                </tbody>
-                            </table>
-                        </div>
-                        <small class="spk-input-subtext mt-2.5 d-block text-muted" style="font-size: 11.5px;">
-                            <i class="bi bi-info-circle me-1 text-info"></i>Klik ikon cari / kolom barang penyusun untuk memilih item komponen (misal: Seragam, Celana, Rompi, Helm) beserta jumlahnya.
-                        </small>
                     </div>
 
                 </div>
@@ -402,13 +401,15 @@
 
             const profit = price - hpp;
             const marginPct = (profit / price) * 100;
-            const profitSign = profit >= 0 ? '+' : '';
+            const isRugi = profit < 0;
+            const profitSign = profit >= 0 ? '+' : '-';
             const colorClass = marginPct >= 20 ? 'text-success' : (marginPct >= 0 ? 'text-warning' : 'text-danger');
-            const badgeClass = marginPct >= 20 ? 'bg-success' : (marginPct >= 0 ? 'bg-warning text-dark' : 'bg-danger');
+            const badgeClass = marginPct >= 20 ? 'bg-success' : (marginPct >= 0 ? 'bg-warning text-dark' : 'bg-danger font-monospace px-2.5 py-1 text-white fw-bold');
 
             const formattedProfit = Math.abs(profit).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-            $(`#${profitElemId}`).text(`${profitSign}Rp ${formattedProfit}`).removeClass('text-success text-warning text-danger text-muted').addClass(colorClass);
-            $(`#${badgeElemId}`).attr('class', `badge ${badgeClass} rounded-pill font-monospace`).text(`Margin ${label}: ${marginPct.toFixed(2)}%`);
+            const rugiText = isRugi ? ' (RUGI)' : '';
+            $(`#${profitElemId}`).text(`${profitSign}Rp ${formattedProfit}${rugiText}`).removeClass('text-success text-warning text-danger text-muted').addClass(colorClass);
+            $(`#${badgeElemId}`).attr('class', `badge ${badgeClass} rounded-pill font-monospace`).text(`Margin ${label}: ${marginPct.toFixed(2)}%${rugiText}`);
         };
 
         updateTier(retail, 'tambah_profit_retail', 'tambah_badge_margin_retail', 'Retail');
@@ -425,7 +426,7 @@
                 maxFiles: 4,
                 maxTotalFileSize: '10MB',
                 acceptedFileTypes: ['image/*'],
-                labelIdle: `<i class="bi bi-cloud-arrow-up-fill text-primary" style="font-size: 1.75rem; display: block; margin-bottom: 2px; opacity: 0.85;"></i>Seret &amp; lepas foto paket atau <span class="filepond--label-action">Browse</span><br><span style="font-size: 0.78rem; color: #64748b;">Format PNG, JPG, WEBP &bull; Maks. 4 foto</span>`,
+                labelIdle: `<i class="bi bi-cloud-arrow-up-fill text-primary" style="font-size: 1.75rem; display: block; margin-bottom: 2px; opacity: 0.85;"></i>Seret &amp; lepas foto paket atau <span class="filepond--label-action">Browse</span><br><span style="font-size: 0.82rem; font-weight: 600; color: #475569;">Format PNG, JPG, WEBP &bull; Maksimal 4 Foto Total</span>`,
                 allowPaste: true,
                 allowDrop: true,
                 allowReorder: true,
@@ -517,9 +518,11 @@
         $('#tambah_kategori_nama').val('');
         $('#tambah_brand_id').val('');
         $('#tambah_brand_nama').val('');
+        $('#tambah_tipe_id').val('');
+        $('#tambah_tipe_nama').val('');
+        $('#tambah_bundle_tipe').val('');
         $('#tambah_satuan_id').val('');
         $('#tambah_satuan_nama').val('');
-        $('#tambah_bundle_tipe').val('');
 
         $('#tbodyRowKomponenBundle').empty();
         komponenIndex = 0;
@@ -541,6 +544,11 @@
             return;
         }
 
+        if (!$('#tambah_tipe_id').val() && !$('#tambah_bundle_tipe').val()) {
+            Swal.fire('Peringatan', 'Tipe barang WAJIB dipilih!', 'warning');
+            return;
+        }
+
         if (!$('#tambah_satuan_id').val()) {
             Swal.fire('Peringatan', 'Satuan dasar WAJIB dipilih!', 'warning');
             return;
@@ -553,6 +561,25 @@
 
         if (!hasValidItem) {
             Swal.fire('Peringatan', 'Silakan pilih minimal 1 barang penyusun paket!', 'warning');
+            return;
+        }
+
+        const hppVal = currentTambahHpp;
+        const retailVal = parseRupiahNumber($('#tambah_harga_jual_retail').val());
+        const grosirVal = parseRupiahNumber($('#tambah_harga_jual_grosir').val());
+        const tenderVal = parseRupiahNumber($('#tambah_harga_jual_tender').val());
+
+        const rugiList = [];
+        if (retailVal > 0 && retailVal < hppVal) rugiList.push(`Harga Retail (Rugi Rp ${(hppVal - retailVal).toLocaleString('id-ID')})`);
+        if (grosirVal > 0 && grosirVal < hppVal) rugiList.push(`Harga Grosir (Rugi Rp ${(hppVal - grosirVal).toLocaleString('id-ID')})`);
+        if (tenderVal > 0 && tenderVal < hppVal) rugiList.push(`Harga Tender (Rugi Rp ${(hppVal - tenderVal).toLocaleString('id-ID')})`);
+
+        if (rugiList.length > 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal Simpan: Terdeteksi Margin Rugi!',
+                html: `<div class="text-start small">Total HPP Bundle: <b>Rp ${hppVal.toLocaleString('id-ID')}</b><br>Skema berikut lebih murah dari HPP:<br><ul class="mt-2 mb-0"><li>${rugiList.join('</li><li>')}</li></ul><br>Silakan naikkan harga jual sebelum menyimpan!</div>`
+            });
             return;
         }
 

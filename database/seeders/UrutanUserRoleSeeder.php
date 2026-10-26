@@ -38,10 +38,15 @@ class UrutanUserRoleSeeder extends Seeder
             'Super Admin',
             'Owner',
             'Director',
+            'Director Produksi',
+            'Director Accounting',
+            'Director Sales',
             'Admin',
             'Purchasing',
+            'Manager Purchasing',
             'Warehouse',
             'Supervisor Warehouse',
+            'Staf Gudang',
             'Produksi',
             'Manager Produksi',
             'QC',
@@ -50,6 +55,11 @@ class UrutanUserRoleSeeder extends Seeder
             'Manager Finance',
             'HRD',
             'Sales',
+            'Manager Sales',
+            'Keuangan',
+            'PIC Helm',
+            'PIC Garmen',
+            'Ruang Meeting',
         ];
 
         foreach ($roles as $roleName) {
@@ -64,15 +74,21 @@ class UrutanUserRoleSeeder extends Seeder
         // 4. Buat Akun Master Super Admin untuk Testing Login
         $superAdminRole = Role::findByName('Super Admin');
 
-        $user = User::where('username', 'superadmin')->orWhere('email', 'admin@gmail.com')->first();
+        $user = User::where('username', 'superadmin')->orWhere('email', 'Pastacerp828.pas@gmail.com')->orWhere('email', 'admin@gmail.com')->first();
         if (!$user) {
             $user = User::create([
                 'kode_karyawan' => 'SA-001',
-                'nama_lengkap' => 'Soni Super Admin',
-                'username' => 'superadmin',      // <-- Buat login via username
-                'email' => 'admin@gmail.com', // <-- Buat login via email
-                'password' => Hash::make('password123'),
-                'status' => 'Aktif',
+                'nama_lengkap'  => 'Pastactical828',
+                'username'      => 'superadmin',      // <-- Buat login via username
+                'email'         => 'Pastacerp828.pas@gmail.com', // <-- Buat login via email
+                'password'      => Hash::make('Pastacerp828#*'),
+                'status'        => 'Aktif',
+            ]);
+        } else {
+            $user->update([
+                'nama_lengkap' => 'Pastactical828',
+                'email'        => 'Pastacerp828.pas@gmail.com',
+                'password'     => Hash::make('Pastacerp828#*'),
             ]);
         }
 

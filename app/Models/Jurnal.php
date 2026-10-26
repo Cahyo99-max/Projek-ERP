@@ -17,6 +17,7 @@ class Jurnal extends Model
         'tanggal_jurnal',
         'referensi_tipe',
         'referensi_id',
+        'no_tender',
         'company_id',
         'branch_id',
         'total_debit',
@@ -27,26 +28,51 @@ class Jurnal extends Model
     ];
 
     protected $casts = [
-        'tanggal_jurnal' => 'date',
+        'tanggal_jurnal' => 'date:Y-m-d',
         'total_debit'    => 'decimal:2',
         'total_kredit'   => 'decimal:2',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function ($model) {
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            } elseif (empty($model->company_id)) {
+                $model->company_id = session('active_company_id') ?: (auth()->user()?->company_id ?? 1);
+            }
+        });
+
+        static::updating(function ($model) {
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            }
+        });
+    }
 
     /**
      * Scope Filter Active Company (Jika di Cabang, company_id adalah NULL)
      */
     public function scopeForActiveCompany($query)
     {
-        $branchId = session('active_branch_id');
+        $branchId  = session('active_branch_id');
+        $companyId = session('active_company_id') ?: auth()->user()?->company_id;
+        $table = $this->getTable();
+
         if (!empty($branchId)) {
-            // Ketika sesi aktif adalah Cabang, jurnal cabang memiliki company_id = NULL
-            return $query->whereNull('company_id');
+            // Ketika sesi aktif adalah Cabang -> branch_id = active & company_id = NULL
+            $query->where($table . '.branch_id', $branchId)
+                  ->whereNull($table . '.company_id');
+        } else {
+            // Ketika sesi aktif adalah PT -> branch_id = NULL & company_id = active
+            $query->whereNull($table . '.branch_id');
+            if (!empty($companyId)) {
+                $query->where($table . '.company_id', $companyId);
+            } else {
+                $query->where($table . '.company_id', 0);
+            }
         }
 
-        $companyId = session('active_company_id') ?? auth()->user()?->company_id;
-        if (!empty($companyId)) {
-            return $query->where('company_id', $companyId);
-        }
         return $query;
     }
 

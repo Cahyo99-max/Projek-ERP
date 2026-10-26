@@ -77,13 +77,13 @@
                         <span class="picker-badge bg-secondary-subtle text-secondary">0%</span>
                     </div>
                     @foreach($pajaks as $pj)
-                        <div class="picker-item" data-id="{{ $pj->id }}" data-tarif="{{ $pj->tarif }}" data-name="{{ $pj->nama_pajak }} ({{ number_format($pj->tarif, 0) }}%)">
+                        <div class="picker-item" data-id="{{ $pj->id }}" data-tarif="{{ $pj->tarif }}" data-name="{{ $pj->nama_pajak }} ({{ rtrim(rtrim(number_format($pj->tarif, 2, ',', '.'), '0'), ',') }}%)">
                             <div class="picker-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;"><i class="bi bi-percent"></i></div>
                             <div class="picker-meta">
-                                <div class="picker-name">{{ $pj->nama_pajak }} ({{ number_format($pj->tarif, 0) }}%)</div>
-                                <div class="picker-sub">Kode: {{ $pj->kode_pajak }} | Tarif: {{ number_format($pj->tarif, 0) }}%</div>
+                                <div class="picker-name">{{ $pj->nama_pajak }} ({{ rtrim(rtrim(number_format($pj->tarif, 2, ',', '.'), '0'), ',') }}%)</div>
+                                <div class="picker-sub">Kode: {{ $pj->kode_pajak }} | Tarif: {{ rtrim(rtrim(number_format($pj->tarif, 2, ',', '.'), '0'), ',') }}%</div>
                             </div>
-                            <span class="picker-badge bg-warning-subtle text-warning">{{ number_format($pj->tarif, 0) }}%</span>
+                            <span class="picker-badge bg-warning-subtle text-warning">{{ rtrim(rtrim(number_format($pj->tarif, 2, ',', '.'), '0'), ',') }}%</span>
                         </div>
                     @endforeach
                 </div>

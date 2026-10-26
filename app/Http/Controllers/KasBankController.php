@@ -9,9 +9,12 @@ use App\Models\Jurnal;
 use App\Models\JurnalDetail;
 use App\Models\Company;
 use App\Models\Branch;
+use App\Models\KasKategoriMapping;
+use App\Models\Tender;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 
 class KasBankController extends Controller
@@ -21,6 +24,8 @@ class KasBankController extends Controller
      */
     public function index()
     {
+        $this->authorize('lihat-kas-bank');
+
         $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
         $activeBranchId  = session('active_branch_id');
         $activeBranch    = $activeBranchId ? Branch::find($activeBranchId) : null;
@@ -60,6 +65,7 @@ class KasBankController extends Controller
             ->where('status', 'Disetujui')
             ->where('tipe', 'Masuk')
             ->where('kategori', '!=', 'Transfer Antar Rekening')
+            ->where('kategori', '!=', 'Saldo Awal Rekening')
             ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
             ->sum('jumlah');
 
@@ -79,6 +85,30 @@ class KasBankController extends Controller
             ->take(8)
             ->get();
 
+        // Kategori Kas Masuk & Kas Keluar Mapped
+        $kasMasukCategories = KasKategoriMapping::forActiveCompany()
+            ->active()
+            ->masuk()
+            ->with('coa')
+            ->orderBy('nama_kategori', 'asc')
+            ->get();
+
+        $kasKeluarCategories = KasKategoriMapping::forActiveCompany()
+            ->active()
+            ->keluar()
+            ->with('coa')
+            ->orderBy('nama_kategori', 'asc')
+            ->get();
+
+        // Master Tender Aktif (Strict Entity Isolation: PT Pusat vs Cabang)
+        $tenderQuery = Tender::with(['branch:id,nama_cabang', 'company:id,nama_perusahaan']);
+        if (!empty($activeBranchId)) {
+            $tenderQuery->where('branch_id', $activeBranchId);
+        } else {
+            $tenderQuery->where('company_id', $activeCompanyId)->whereNull('branch_id');
+        }
+        $tenders = $tenderQuery->orderBy('nomor_kontrak', 'desc')->get();
+
         return view('modul_accounting.kas&bank.index', compact(
             'accounts',
             'coaAccounts',
@@ -90,8 +120,109 @@ class KasBankController extends Controller
             'recentMutasis',
             'activeBranch',
             'company',
-            'branches'
+            'branches',
+            'kasMasukCategories',
+            'kasKeluarCategories',
+            'tenders'
         ));
+    }
+
+    /**
+     * Real-time Live Sync Polling (< 1 Detik)
+     * Endpoint sangat ringan untuk sinkronisasi otomatis di latar belakang tanpa reload halaman.
+     */
+    public function liveSync(Request $request)
+    {
+        $this->authorize('lihat-kas-bank');
+
+        $clientFingerprint = $request->query('fingerprint');
+
+        // Query metadata sangat cepat (O(1) Indexed) untuk cek apakah ada mutasi baru atau perubahan saldo
+        $maxMutasiId = KasMutasi::forActiveCompany()
+            ->forActiveBranch()
+            ->max('id') ?? 0;
+
+        $accountMeta = KasBank::forActiveCompany()
+            ->forActiveBranch()
+            ->where('is_active', true)
+            ->selectRaw('MAX(updated_at) as last_updated, SUM(saldo_berjalan) as total_saldo, COUNT(id) as total_acc')
+            ->first();
+
+        $currentFingerprint = md5(
+            $maxMutasiId . '_' .
+            ($accountMeta->total_saldo ?? 0) . '_' .
+            ($accountMeta->last_updated ?? '0') . '_' .
+            ($accountMeta->total_acc ?? 0)
+        );
+
+        // Jika fingerprint sama persis, tidak ada mutasi baru -> return langsung < 3ms
+        if ($clientFingerprint && $clientFingerprint === $currentFingerprint) {
+            return response()->json([
+                'changed' => false,
+                'fingerprint' => $currentFingerprint,
+            ]);
+        }
+
+        // Ambil data terbaru untuk di-render client-side secara halus
+        $accounts = KasBank::with(['coa:id,code,name', 'branch:id,kode_cabang,nama_cabang'])
+            ->forActiveCompany()
+            ->forActiveBranch()
+            ->where('is_active', true)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $totalKas = $accounts->where('tipe', 'Kas Tunai')->sum('saldo_berjalan');
+        $totalBank = $accounts->where('tipe', '!=', 'Kas Tunai')->sum('saldo_berjalan');
+        $totalSemua = $totalKas + $totalBank;
+
+        $startOfMonth = now()->startOfMonth()->toDateString();
+        $endOfMonth   = now()->endOfMonth()->toDateString();
+
+        $cashInThisMonth = KasMutasi::forActiveCompany()
+            ->forActiveBranch()
+            ->where('status', 'Disetujui')
+            ->where('tipe', 'Masuk')
+            ->where('kategori', '!=', 'Transfer Antar Rekening')
+            ->where('kategori', '!=', 'Saldo Awal Rekening')
+            ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
+            ->sum('jumlah');
+
+        $cashOutThisMonth = KasMutasi::forActiveCompany()
+            ->forActiveBranch()
+            ->where('status', 'Disetujui')
+            ->where('tipe', 'Keluar')
+            ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
+            ->sum('jumlah');
+
+        $fmt = fn($val) => number_format((float)$val, 2, ',', '.');
+
+        $accountsData = $accounts->map(function($acc) use ($fmt) {
+            return [
+                'id' => $acc->id,
+                'nama_akun' => $acc->nama_akun,
+                'kode_akun' => $acc->kode_akun ?: ('KB-' . $acc->id),
+                'tipe' => $acc->tipe,
+                'saldo_berjalan' => (float)$acc->saldo_berjalan,
+                'formatted_saldo' => 'Rp ' . $fmt($acc->saldo_berjalan),
+                'raw_saldo' => (float)$acc->saldo_berjalan,
+                'entitas_label' => $acc->entitas_label,
+            ];
+        });
+
+        return response()->json([
+            'changed' => true,
+            'fingerprint' => $currentFingerprint,
+            'stats' => [
+                'total_kas' => 'Rp ' . $fmt($totalKas),
+                'total_bank' => 'Rp ' . $fmt($totalBank),
+                'total_semua' => 'Rp ' . $fmt($totalSemua),
+                'cash_in' => '+ Rp ' . $fmt($cashInThisMonth),
+                'cash_out' => '- Rp ' . $fmt($cashOutThisMonth),
+                'kas_count' => $accounts->where('tipe', 'Kas Tunai')->count(),
+                'bank_count' => $accounts->where('tipe', '!=', 'Kas Tunai')->count(),
+            ],
+            'accounts' => $accountsData,
+        ]);
     }
 
     /**
@@ -99,6 +230,8 @@ class KasBankController extends Controller
      */
     public function ledger(Request $request, $accountId = null)
     {
+        $this->authorize('lihat-mutasi-kas-bank');
+
         $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
         $activeBranchId  = session('active_branch_id');
         $activeBranch    = $activeBranchId ? Branch::find($activeBranchId) : null;
@@ -134,25 +267,42 @@ class KasBankController extends Controller
         $startDate = $request->start_date ?: now()->startOfMonth()->toDateString();
         $endDate   = $request->end_date ?: now()->toDateString();
 
-        // Hitung Ringkasan untuk Akun yang Dipilih (atau Semua)
-        $summaryQuery = KasMutasi::forActiveCompany()
-            ->forActiveBranch()
-            ->where('status', 'Disetujui')
-            ->whereBetween('tanggal', [$startDate, $endDate]);
-
-        if ($selectedAccount) {
-            $summaryQuery->where('kas_bank_id', $selectedAccount->id);
-        }
-
-        $totalMasuk  = (clone $summaryQuery)->where('tipe', 'Masuk')->sum('jumlah');
-        // Total keluar mencakup tipe Keluar dan tipe Transfer (pengeluaran dari rekening asal)
-        $totalKeluar = (clone $summaryQuery)->whereIn('tipe', ['Keluar', 'Transfer'])->sum('jumlah');
-        $netMutasi   = $totalMasuk - $totalKeluar;
+        // Hitung Ringkasan Saldo Periode (Saldo Awal, Masuk, Keluar, Saldo Akhir)
+        $summary = $this->calculateLedgerPeriodSummary($selectedAccount?->id, $startDate, $endDate);
+        $totalMasuk        = $summary['total_masuk'];
+        $totalKeluar       = $summary['total_keluar'];
+        $netMutasi         = $summary['net_mutasi'];
+        $saldoAwalPeriode  = $summary['saldo_awal'];
+        $saldoAkhirPeriode = $summary['saldo_akhir'];
 
         $coaAccounts = ChartOfAccount::forActiveCompany()
             ->where('is_header', false)
             ->orderBy('code', 'asc')
             ->get();
+
+        // Kategori Kas Masuk & Kas Keluar Mapped
+        $kasMasukCategories = KasKategoriMapping::forActiveCompany()
+            ->active()
+            ->masuk()
+            ->with('coa')
+            ->orderBy('nama_kategori', 'asc')
+            ->get();
+
+        $kasKeluarCategories = KasKategoriMapping::forActiveCompany()
+            ->active()
+            ->keluar()
+            ->with('coa')
+            ->orderBy('nama_kategori', 'asc')
+            ->get();
+
+        // Master Tender Aktif (Strict Entity Isolation: PT Pusat vs Cabang)
+        $tenderQuery = Tender::with(['branch:id,nama_cabang', 'company:id,nama_perusahaan']);
+        if (!empty($activeBranchId)) {
+            $tenderQuery->where('branch_id', $activeBranchId);
+        } else {
+            $tenderQuery->where('company_id', $activeCompanyId)->whereNull('branch_id');
+        }
+        $tenders = $tenderQuery->orderBy('nomor_kontrak', 'desc')->get();
 
         return view('modul_accounting.kas&bank.ledger', compact(
             'accounts',
@@ -160,12 +310,18 @@ class KasBankController extends Controller
             'selectedAccount',
             'startDate',
             'endDate',
+            'summary',
+            'saldoAwalPeriode',
+            'saldoAkhirPeriode',
             'totalMasuk',
             'totalKeluar',
             'netMutasi',
             'activeBranch',
             'company',
-            'branches'
+            'branches',
+            'kasMasukCategories',
+            'kasKeluarCategories',
+            'tenders'
         ));
     }
 
@@ -174,6 +330,10 @@ class KasBankController extends Controller
      */
     public function printLedger(Request $request, $accountId = null)
     {
+        if (!auth()->user()->can('cetak-rekening-koran') && !auth()->user()->can('lihat-mutasi-kas-bank') && !auth()->user()->hasRole('Super Admin')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mencetak rekening koran.');
+        }
+
         $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
         $activeBranchId  = session('active_branch_id');
         $activeBranch    = $activeBranchId ? Branch::find($activeBranchId) : null;
@@ -185,18 +345,37 @@ class KasBankController extends Controller
                 ->forActiveCompany()
                 ->forActiveBranch()
                 ->find($accountId);
+            if (!$selectedAccount) {
+                abort(404, 'Rekening Kas & Bank tidak ditemukan atau Anda tidak memiliki akses ke rekening ini.');
+            }
         } elseif ($request->filled('kas_bank_id') || $request->filled('account_id')) {
             $targetId = $request->kas_bank_id ?: $request->account_id;
             $selectedAccount = KasBank::with(['coa', 'branch'])
                 ->forActiveCompany()
                 ->forActiveBranch()
                 ->find($targetId);
+            if (!$selectedAccount) {
+                abort(404, 'Rekening Kas & Bank tidak ditemukan atau Anda tidak memiliki akses ke rekening ini.');
+            }
         }
 
         $startDate = $request->start_date ?: now()->startOfMonth()->toDateString();
         $endDate   = $request->end_date ?: now()->toDateString();
 
-        $query = KasMutasi::with(['kasBank.coa', 'transferToKasBank.coa', 'lawanCoa', 'creator', 'branch'])
+        // Validasi urutan tanggal jika terbalik
+        if ($startDate > $endDate) {
+            $temp = $startDate;
+            $startDate = $endDate;
+            $endDate = $temp;
+        }
+
+        // Optimasi skala data besar: Select kolom esensial saja untuk hemat memori
+        $query = KasMutasi::with(['tender:id,nomor_kontrak,nama_tender'])
+            ->select([
+                'id', 'nomor_transaksi', 'kas_bank_id', 'tipe', 'kategori',
+                'jumlah', 'saldo_sebelum', 'saldo_sesudah', 'tanggal',
+                'nama_kontak', 'keterangan', 'tender_id', 'status', 'company_id', 'branch_id'
+            ])
             ->forActiveCompany()
             ->forActiveBranch()
             ->whereBetween('tanggal', [$startDate, $endDate])
@@ -211,21 +390,155 @@ class KasBankController extends Controller
             $query->where('tipe', $request->tipe);
         }
 
+        // Safety Limit Proteksi Memori & Anti-Lag Browser untuk Skala Jutaan Data:
+        // Dokumen cetak HTML wajar dibatasi maksimal 3.000 transaksi agar tab browser tidak crash/freeze.
+        $maxPrintRows = 3000;
+        $totalRowsCount = (clone $query)->count();
+        $isTruncated = false;
+        if ($totalRowsCount > $maxPrintRows) {
+            $query->limit($maxPrintRows);
+            $isTruncated = true;
+        }
+
         $mutasis = $query->get();
 
-        $totalMasuk  = $mutasis->where('tipe', 'Masuk')->where('status', 'Disetujui')->sum('jumlah');
-        $totalKeluar = $mutasis->whereIn('tipe', ['Keluar', 'Transfer'])->where('status', 'Disetujui')->sum('jumlah');
+        // Ringkasan Periode untuk Rekening Koran (Saldo Awal, Masuk, Keluar, Saldo Akhir)
+        $summary = $this->calculateLedgerPeriodSummary($selectedAccount?->id, $startDate, $endDate);
+        $totalMasuk        = $summary['total_masuk'];
+        $totalKeluar       = $summary['total_keluar'];
+        $saldoAwalPeriode  = $summary['saldo_awal'];
+        $saldoAkhirPeriode = $summary['saldo_akhir'];
 
         return view('modul_accounting.kas&bank.print_ledger', compact(
             'selectedAccount',
             'startDate',
             'endDate',
             'mutasis',
+            'summary',
+            'saldoAwalPeriode',
+            'saldoAkhirPeriode',
             'totalMasuk',
             'totalKeluar',
             'company',
-            'activeBranch'
+            'activeBranch',
+            'isTruncated',
+            'totalRowsCount',
+            'maxPrintRows'
         ));
+    }
+
+    /**
+     * Cetak / Print Daftar Rekening Kas & Bank (PDF / Printable View)
+     */
+    public function printAccountsReport(Request $request)
+    {
+        $this->authorize('lihat-kas-bank');
+
+        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
+        $activeBranchId  = session('active_branch_id');
+        $activeBranch    = $activeBranchId ? Branch::find($activeBranchId) : null;
+        $company         = Company::find($activeCompanyId);
+
+        $accounts = KasBank::with(['coa', 'branch'])
+            ->forActiveCompany()
+            ->forActiveBranch()
+            ->where('is_active', true)
+            ->orderBy('tipe', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $totalSaldoAwal  = $accounts->sum('saldo_awal');
+        $totalSaldoAkhir = $accounts->sum('saldo_berjalan');
+
+        return view('modul_accounting.kas&bank.print_accounts', compact(
+            'accounts',
+            'company',
+            'activeBranch',
+            'totalSaldoAwal',
+            'totalSaldoAkhir'
+        ));
+    }
+
+    /**
+     * Export Daftar Rekening Kas & Bank ke File Excel (.xlsx)
+     */
+    public function exportAccountsExcel()
+    {
+        $this->authorize('lihat-kas-bank');
+
+        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
+        $activeBranchId  = session('active_branch_id');
+        $activeBranch    = $activeBranchId ? Branch::find($activeBranchId) : null;
+        $company         = Company::find($activeCompanyId);
+
+        $accounts = KasBank::with(['coa', 'branch'])
+            ->forActiveCompany()
+            ->forActiveBranch()
+            ->where('is_active', true)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $entitasTitle = $activeBranch ? "CABANG: " . strtoupper($activeBranch->nama_cabang) : "PT PUSAT: " . strtoupper($company?->nama_perusahaan ?: 'PERUSAHAAN');
+
+        $excelData = [
+            ['<center><b>LAPORAN DAFTAR REKENING KAS & BANK</b></center>'],
+            ['<center><b>' . $entitasTitle . '</b></center>'],
+            ['<center>Tanggal Cetak: ' . date('d/m/Y H:i') . '</center>'],
+            [],
+            [
+                '<b>NO</b>',
+                '<b>KODE AKUN</b>',
+                '<b>NAMA REKENING / BUKU KAS</b>',
+                '<b>ENTITAS</b>',
+                '<b>TIPE</b>',
+                '<b>BANK & NO. REKENING</b>',
+                '<b>ATAS NAMA</b>',
+                '<b>AKUN COA TERHUBUNG</b>',
+                '<b>SALDO AWAL (RP)</b>',
+                '<b>SALDO SAAT INI (RP)</b>',
+                '<b>STATUS</b>'
+            ]
+        ];
+
+        $totalSaldoAwal  = 0;
+        $totalSaldoAkhir = 0;
+
+        foreach ($accounts as $idx => $acc) {
+            $totalSaldoAwal += $acc->saldo_awal;
+            $totalSaldoAkhir += $acc->saldo_berjalan;
+
+            $rekText = $acc->nomor_rekening ? ($acc->nama_bank . ' - ' . $acc->nomor_rekening) : 'Kas Tunai Fisik';
+            $coaText = $acc->coa ? ($acc->coa->code . ' - ' . $acc->coa->name) : '-';
+
+            $excelData[] = [
+                $idx + 1,
+                $acc->kode_akun ?: ('KB-' . $acc->id),
+                $acc->nama_akun,
+                $acc->branch ? $acc->branch->nama_cabang : 'PT Pusat',
+                $acc->tipe,
+                $rekText,
+                $acc->atas_nama ?: '-',
+                $coaText,
+                $acc->saldo_awal,
+                $acc->saldo_berjalan,
+                $acc->is_active ? 'Aktif' : 'Non-Aktif'
+            ];
+        }
+
+        $excelData[] = [
+            '<b>TOTAL</b>',
+            '', '', '', '', '', '', '',
+            '<b>' . $totalSaldoAwal . '</b>',
+            '<b>' . $totalSaldoAkhir . '</b>',
+            ''
+        ];
+
+        $xlsx = \Shuchkin\SimpleXLSXGen::fromArray($excelData);
+        $fileName = 'Daftar_Rekening_Kas_Bank_' . date('Ymd_His') . '.xlsx';
+        return response($xlsx->output(), 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+        ]);
     }
 
     /**
@@ -233,7 +546,11 @@ class KasBankController extends Controller
      */
     public function getData(Request $request)
     {
-        $query = KasMutasi::with(['kasBank.coa', 'kasBank.branch', 'transferToKasBank.coa', 'lawanCoa', 'creator:id,nama_lengkap,username', 'branch:id,nama_cabang,kode_cabang'])
+        if (!auth()->user()->can('lihat-kas-bank') && !auth()->user()->can('lihat-mutasi-kas-bank') && !auth()->user()->hasRole('Super Admin')) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki wewenang untuk melihat mutasi kas & bank.');
+        }
+
+        $query = KasMutasi::with(['kasBank.coa', 'kasBank.branch', 'transferToKasBank.coa', 'lawanCoa', 'tender:id,nomor_kontrak,nama_tender', 'creator:id,nama_lengkap,username', 'branch:id,nama_cabang,kode_cabang'])
             ->forActiveCompany()
             ->forActiveBranch();
 
@@ -242,9 +559,31 @@ class KasBankController extends Controller
             $query->where('kas_bank_id', $request->kas_bank_id);
         }
 
-        // Filter Tipe Transaksi
+        // Filter Tipe Transaksi (Cerdas & Cepat: Memanfaatkan Index B-Tree Tanpa Full-Scan LIKE)
         if ($request->filled('tipe')) {
-            $query->where('tipe', $request->tipe);
+            $tipeFilter = trim($request->tipe);
+            if (strcasecmp($tipeFilter, 'Transfer') === 0) {
+                $query->where(function ($q) {
+                    $q->where('tipe', 'Transfer')
+                      ->orWhere('kategori', 'Transfer Antar Rekening')
+                      ->orWhere('nomor_transaksi', 'LIKE', 'TR-%');
+                });
+            } elseif (strcasecmp($tipeFilter, 'Masuk') === 0) {
+                $query->where('tipe', 'Masuk')
+                      ->where(function ($q) {
+                          $q->where('kategori', '!=', 'Transfer Antar Rekening')
+                            ->orWhereNull('kategori');
+                      })
+                      ->where('nomor_transaksi', 'NOT LIKE', 'TR-%');
+            } elseif (strcasecmp($tipeFilter, 'Keluar') === 0) {
+                $query->where('tipe', 'Keluar')
+                      ->where(function ($q) {
+                          $q->where('kategori', '!=', 'Transfer Antar Rekening')
+                            ->orWhereNull('kategori');
+                      });
+            } else {
+                $query->where('tipe', $tipeFilter);
+            }
         }
 
         // Filter Rentang Tanggal
@@ -256,14 +595,104 @@ class KasBankController extends Controller
             $query->where('tanggal', '<=', $request->end_date);
         }
 
+        // Hitung Ringkasan Saldo Berdasarkan Filter Aktif (Live Balance Follows Filter)
+        $activeAccount = null;
+        if ($request->filled('kas_bank_id')) {
+            $activeAccount = KasBank::find($request->kas_bank_id);
+        }
+
+        $hasCustomFilter = $request->filled('tipe') || $request->filled('start_date') || $request->filled('end_date');
+        $filteredSum = 0;
+        if ($hasCustomFilter || !$activeAccount) {
+            $sumQuery = (clone $query)->where('kas_mutasis.status', 'Disetujui');
+            $filteredSum = (float) $sumQuery->sum('kas_mutasis.jumlah');
+        }
+
+        $statLabel = 'SALDO BERJALAN SAAT INI';
+        $statValue = $activeAccount ? ('Rp ' . $this->formatRupiah($activeAccount->saldo_berjalan)) : ('Rp ' . $this->formatRupiah($filteredSum));
+        $statColor = 'text-success';
+
+        if ($request->filled('tipe')) {
+            $t = strtolower(trim($request->tipe));
+            if ($t === 'masuk') {
+                $statLabel = 'TOTAL KAS MASUK (FILTER)';
+                $statValue = '+ Rp ' . $this->formatRupiah($filteredSum);
+                $statColor = 'text-success';
+            } elseif ($t === 'keluar') {
+                $statLabel = 'TOTAL KAS KELUAR (FILTER)';
+                $statValue = '- Rp ' . $this->formatRupiah($filteredSum);
+                $statColor = 'text-danger';
+            } elseif ($t === 'transfer') {
+                $statLabel = 'TOTAL TRANSFER (FILTER)';
+                $statValue = 'Rp ' . $this->formatRupiah($filteredSum);
+                $statColor = 'text-info';
+            }
+        } elseif ($request->filled('start_date') || $request->filled('end_date')) {
+            $statLabel = 'TOTAL MUTASI (PERIODE FILTER)';
+            $statValue = 'Rp ' . $this->formatRupiah($filteredSum);
+            $statColor = 'text-success';
+        }
+
+        // Ringkasan Periode untuk Card Bento (Saldo Awal, Masuk, Keluar, Saldo Akhir)
+        $periodSummary = $this->calculateLedgerPeriodSummary($request->kas_bank_id, $request->start_date, $request->end_date);
+
+        // Pre-check permission untuk performa tinggi pada DataTables (Cegah N+1 Auth Check)
+        $canCancel = auth()->user()?->can('batalkan-mutasi-kas-bank') || auth()->user()?->hasRole('Super Admin');
+
         return DataTables::of($query)
+            ->with([
+                'summary' => $periodSummary,
+                'period_summary' => $periodSummary,
+                'filter_summary' => [
+                    'label'     => $statLabel,
+                    'value'     => $statValue,
+                    'color'     => $statColor,
+                    'raw_total' => $filteredSum,
+                ]
+            ])
+            ->order(function ($q) use ($request) {
+                if ($request->has('order')) {
+                    $orders = $request->input('order');
+                    $columns = $request->input('columns');
+                    if (!empty($orders) && is_array($orders)) {
+                        foreach ($orders as $ord) {
+                            $colIdx = $ord['column'] ?? null;
+                            $colDir = strtolower($ord['dir'] ?? 'desc');
+                            if ($colIdx !== null && isset($columns[$colIdx])) {
+                                $colData = $columns[$colIdx]['data'] ?? null;
+                                $colName = $columns[$colIdx]['name'] ?? null;
+                                $target = $colName ?: $colData;
+                                if ($target === 'tanggal') {
+                                    $q->orderBy('kas_mutasis.tanggal', $colDir)
+                                      ->orderBy('kas_mutasis.id', $colDir);
+                                    return;
+                                } elseif ($target && in_array($target, ['nomor_transaksi', 'tipe', 'jumlah', 'saldo_sesudah', 'status', 'created_at'])) {
+                                    $q->orderBy("kas_mutasis.{$target}", $colDir);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+                $q->orderBy('kas_mutasis.tanggal', 'desc')->orderBy('kas_mutasis.id', 'desc');
+            })
             ->addIndexColumn()
             ->editColumn('nomor_transaksi', function ($m) {
                 $icon = $m->tipe === 'Masuk' ? 'bi-arrow-down-left text-success' : ($m->tipe === 'Keluar' ? 'bi-arrow-up-right text-danger' : 'bi-arrow-left-right text-info');
+                $lampiranBadge = '';
+                if ($m->lampiran) {
+                    $lampiranUrl = asset('storage/' . $m->lampiran);
+                    $nomFmt = ($m->tipe === 'Masuk' ? '+ ' : '- ') . 'Rp ' . $this->formatRupiah($m->jumlah);
+                    $accName = $m->kasBank ? $m->kasBank->nama_akun : '-';
+                    $lampiranBadge = '<button type="button" class="btn btn-xs badge bg-success-subtle text-success border border-success-subtle rounded-pill font-monospace ms-1 px-2 py-0.5 btn-preview-bukti-kb" data-url="' . $lampiranUrl . '" data-nomor="' . e($m->nomor_transaksi) . '" data-nominal="' . $nomFmt . '" data-tipe="' . e($m->tipe) . '" data-kategori="' . e($m->kategori) . '" data-akun="' . e($accName) . '" title="Lihat Foto Bukti"><i class="bi bi-paperclip me-0.5"></i> Bukti</button>';
+                }
                 return '<div class="d-flex align-items-center gap-2">
                             <span class="p-1 rounded-2 bg-body-tertiary border d-inline-flex"><i class="bi ' . $icon . '"></i></span>
                             <div>
-                                <span class="fw-bold font-monospace text-body-emphasis">' . e($m->nomor_transaksi) . '</span>
+                                <div class="d-flex align-items-center flex-wrap">
+                                    <span class="fw-bold font-monospace text-body-emphasis">' . e($m->nomor_transaksi) . '</span>
+                                    ' . $lampiranBadge . '
+                                </div>
                                 <div class="text-muted small">' . e($m->kategori) . '</div>
                             </div>
                         </div>';
@@ -295,19 +724,21 @@ class KasBankController extends Controller
                     return '<span class="text-success fw-semibold"><i class="bi bi-arrow-left me-1"></i> Dari: ' . e($m->transferToKasBank->nama_akun) . '</span>' . ($m->keterangan ? '<div class="text-muted small">' . e($m->keterangan) . '</div>' : '');
                 }
                 $lawanText = $m->lawanCoa ? '<div class="text-muted small font-monospace"><i class="bi bi-link-45deg"></i> COA: ' . e($m->lawanCoa->code . ' - ' . $m->lawanCoa->name) . '</div>' : '';
-                return '<span class="text-body-emphasis fw-semibold">' . e($m->nama_kontak ?: '-') . '</span>' . ($m->nomor_referensi ? '<div class="text-muted small font-monospace">Ref: ' . e($m->nomor_referensi) . '</div>' : '') . $lawanText;
+                $tenderBadge = $m->tender ? '<div class="mt-1"><span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace" style="font-size: 0.68rem;" title="Terhubung ke Tender Proyek"><i class="bi bi-briefcase-fill me-1"></i>' . e($m->tender->nomor_kontrak . ' - ' . $m->tender->nama_tender) . '</span></div>' : '';
+                return '<span class="text-body-emphasis fw-semibold">' . e($m->nama_kontak ?: '-') . '</span>' . ($m->nomor_referensi ? '<div class="text-muted small font-monospace">Ref: ' . e($m->nomor_referensi) . '</div>' : '') . $lawanText . $tenderBadge;
             })
             ->editColumn('jumlah', function ($m) {
+                $valFmt = $this->formatRupiah($m->jumlah);
                 if ($m->tipe === 'Masuk') {
-                    return '<span class="fw-bold text-success font-monospace">+ Rp ' . number_format($m->jumlah, 0, ',', '.') . '</span>';
+                    return '<span class="fw-bold text-success font-monospace">+ Rp ' . $valFmt . '</span>';
                 } elseif ($m->tipe === 'Keluar') {
-                    return '<span class="fw-bold text-danger font-monospace">- Rp ' . number_format($m->jumlah, 0, ',', '.') . '</span>';
+                    return '<span class="fw-bold text-danger font-monospace">- Rp ' . $valFmt . '</span>';
                 } else {
-                    return '<span class="fw-bold text-danger font-monospace">- Rp ' . number_format($m->jumlah, 0, ',', '.') . ' <span class="badge bg-info-subtle text-info font-monospace" style="font-size:0.68rem;">TRF</span></span>';
+                    return '<span class="fw-bold text-danger font-monospace">- Rp ' . $valFmt . ' <span class="badge bg-info-subtle text-info font-monospace" style="font-size:0.68rem;">TRF</span></span>';
                 }
             })
             ->editColumn('saldo_sesudah', function ($m) {
-                return '<span class="font-monospace fw-semibold text-body small">Rp ' . number_format($m->saldo_sesudah, 0, ',', '.') . '</span>';
+                return '<span class="font-monospace fw-semibold text-body small">Rp ' . $this->formatRupiah($m->saldo_sesudah) . '</span>';
             })
             ->editColumn('status', function ($m) {
                 if ($m->status === 'Disetujui') {
@@ -315,14 +746,17 @@ class KasBankController extends Controller
                 }
                 return '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill font-monospace px-2.5 py-1">Dibatalkan</span>';
             })
-            ->addColumn('action', function ($m) {
+            ->addColumn('action', function ($m) use ($canCancel) {
                 $btns = '<div class="d-flex align-items-center justify-content-center gap-1.5">';
                 $btns .= '<button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-2.5 py-1 btn-detail-mutasi" data-id="' . $m->id . '" title="Rincian Bukti Transaksi">
                             <i class="bi bi-eye"></i>
                           </button>';
-                if ($m->status === 'Disetujui') {
-                    $btns .= '<button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1 btn-cancel-mutasi" data-id="' . $m->id . '" data-nomor="' . e($m->nomor_transaksi) . '" title="Batalkan Transaksi">
-                                <i class="bi bi-x-circle"></i>
+                if ($m->lampiran) {
+                    $lampiranUrl = asset('storage/' . $m->lampiran);
+                    $nomFmt = ($m->tipe === 'Masuk' ? '+ ' : '- ') . 'Rp ' . $this->formatRupiah($m->jumlah);
+                    $accName = $m->kasBank ? $m->kasBank->nama_akun : '-';
+                    $btns .= '<button type="button" class="btn btn-outline-success btn-sm rounded-pill px-2.5 py-1 btn-preview-bukti-kb" data-url="' . $lampiranUrl . '" data-nomor="' . e($m->nomor_transaksi) . '" data-nominal="' . $nomFmt . '" data-tipe="' . e($m->tipe) . '" data-kategori="' . e($m->kategori) . '" data-akun="' . e($accName) . '" title="Pratinjau Foto Bukti di Modal">
+                                <i class="bi bi-image"></i>
                               </button>';
                 }
                 $btns .= '</div>';
@@ -337,6 +771,8 @@ class KasBankController extends Controller
      */
     public function storeAccount(Request $request)
     {
+        $this->authorize('tambah-kas-bank');
+
         // Bersihkan format currency Rupiah (titik pemisah ribuan)
         if ($request->has('saldo_awal')) {
             $request->merge(['saldo_awal' => $this->cleanNominal($request->saldo_awal)]);
@@ -347,6 +783,7 @@ class KasBankController extends Controller
             'tipe'           => 'required|in:Kas Tunai,Bank,E-Wallet / Giro',
             'coa_id'         => 'required|exists:chart_of_accounts,id',
             'saldo_awal'     => 'nullable|numeric|min:0',
+            'lawan_coa_id'   => 'nullable|exists:chart_of_accounts,id',
             'nomor_rekening' => 'nullable|string|max:100',
             'atas_nama'      => 'nullable|string|max:100',
             'nama_bank'      => 'nullable|string|max:100',
@@ -358,26 +795,34 @@ class KasBankController extends Controller
         $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
         $activeBranchId  = session('active_branch_id');
 
-        // Otomatis sesuai sesi entitas yang sedang aktif (NULL jika di PT Pusat, ID jika di Cabang)
-        $targetBranchId  = !empty($activeBranchId) ? $activeBranchId : null;
+        // Otomatis sesuai sesi entitas yang sedang aktif:
+        // Jika Cabang: branch_id terisi, company_id = NULL
+        // Jika PT Pusat: branch_id = NULL, company_id terisi
+        $targetBranchId  = !empty($activeBranchId) ? $activeBranchId : ($request->filled('branch_id') ? $request->branch_id : null);
+        $targetCompanyId = !empty($targetBranchId) ? null : $activeCompanyId;
 
         $saldoAwal = (float) ($request->saldo_awal ?: 0);
 
         DB::beginTransaction();
         try {
-            // Jika coa_id kosong, cari akun COA default berdasarkan tipe
-            $coaId = $request->coa_id;
-            if (!$coaId) {
-                $defaultCoa = ChartOfAccount::forActiveCompany()
-                    ->where('name', 'LIKE', $request->tipe === 'Kas Tunai' ? '%Kas%' : '%Bank%')
-                    ->where('is_header', false)
-                    ->first();
-                $coaId = $defaultCoa?->id;
-            }
+            // Validasi akun COA utama (wajib milik entitas aktif, aktif, & bukan header)
+            $mainCoa = ChartOfAccount::forActiveCompany()
+                ->where('id', $request->coa_id)
+                ->where('is_active', true)
+                ->where('is_header', false)
+                ->first();
 
-            // Generate Kode Akun jika kosong
+            if (!$mainCoa) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun COA kas/bank yang dipilih tidak aktif, berupa header, atau tidak ditemukan di entitas perusahaan ini.',
+                ], 422);
+            }
+            $coaId = $mainCoa->id;
+
+            // Generate Kode Akun jika kosong (O(1) Indexed Scan)
             $prefixCode = 'KB-';
-            $lastAccount = DB::table('kas_banks')->where('kode_akun', 'LIKE', $prefixCode . '%')->orderByRaw('CAST(SUBSTRING_INDEX(kode_akun, "-", -1) AS UNSIGNED) DESC')->first();
+            $lastAccount = DB::table('kas_banks')->where('kode_akun', 'LIKE', $prefixCode . '%')->orderBy('id', 'desc')->first();
             $nextAccNum = 1;
             if ($lastAccount) {
                 $parts = explode('-', $lastAccount->kode_akun);
@@ -403,7 +848,7 @@ class KasBankController extends Controller
                 'saldo_berjalan' => $saldoAwal,
                 'deskripsi'      => $request->deskripsi,
                 'is_active'      => true,
-                'company_id'     => $activeCompanyId,
+                'company_id'     => $targetCompanyId,
                 'branch_id'      => $targetBranchId,
                 'created_by'     => auth()->id(),
             ]);
@@ -411,7 +856,7 @@ class KasBankController extends Controller
             // Jika ada saldo awal > 0, catat mutasi saldo awal dan auto journal
             if ($saldoAwal > 0) {
                 $prefixSA = 'SA-' . date('ym') . '-';
-                $lastSA = DB::table('kas_mutasis')->where('nomor_transaksi', 'LIKE', $prefixSA . '%')->orderByRaw('CAST(SUBSTRING_INDEX(nomor_transaksi, "-", -1) AS UNSIGNED) DESC')->first();
+                $lastSA = DB::table('kas_mutasis')->where('nomor_transaksi', 'LIKE', $prefixSA . '%')->orderBy('id', 'desc')->first();
                 $nextSANum = 1;
                 if ($lastSA) {
                     $parts = explode('-', $lastSA->nomor_transaksi);
@@ -425,30 +870,63 @@ class KasBankController extends Controller
                     }
                 } while ($exists);
                 
-                // Cari akun Ekuitas / Modal untuk lawan saldo awal
-                $modalCoa = ChartOfAccount::forActiveCompany()
-                    ->where(function($q) {
-                        $q->where('name', 'LIKE', '%Modal%')->orWhere('name', 'LIKE', '%Ekuitas%')->orWhere('code', 'LIKE', '3%');
-                    })
-                    ->where('is_header', false)
-                    ->first();
+                // Cari atau validasi akun lawan saldo awal
+                $lawanCoa = null;
+                if ($request->filled('lawan_coa_id')) {
+                    $lawanCoa = ChartOfAccount::forActiveCompany()
+                        ->where('id', $request->lawan_coa_id)
+                        ->where('is_active', true)
+                        ->where('is_header', false)
+                        ->first();
+
+                    if (!$lawanCoa) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Akun lawan saldo awal tidak valid, nonaktif, atau merupakan header.',
+                        ], 422);
+                    }
+
+                    if ($lawanCoa->id == $coaId) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Akun lawan saldo awal tidak boleh sama dengan akun COA kas/bank itu sendiri.',
+                        ], 422);
+                    }
+                }
+
+                // Jika user tidak memilih akun lawan, fallback ke akun Ekuitas / Modal default
+                if (!$lawanCoa) {
+                    $lawanCoa = ChartOfAccount::forActiveCompany()
+                        ->where(function($q) {
+                            $q->where('name', 'LIKE', '%Modal%')
+                              ->orWhere('name', 'LIKE', '%Ekuitas%')
+                              ->orWhere('name', 'LIKE', '%Saldo Awal%')
+                              ->orWhere('code', 'LIKE', '3%');
+                        })
+                        ->where('is_header', false)
+                        ->where('is_active', true)
+                        ->where('id', '!=', $coaId)
+                        ->first();
+                }
+
+                $lawanCoaId = $lawanCoa?->id;
 
                 $jurnalId = $this->postJurnal(
                     $nomorTransaksi,
                     now()->toDateString(),
                     'Saldo Awal Kas: ' . $account->nama_akun,
                     $account->coa_id,
-                    $modalCoa?->id,
+                    $lawanCoaId,
                     $saldoAwal,
                     $targetBranchId
                 );
 
-                KasMutasi::create([
+                $mutasi = KasMutasi::create([
                     'nomor_transaksi' => $nomorTransaksi,
                     'kas_bank_id'     => $account->id,
                     'tipe'            => 'Masuk',
                     'kategori'        => 'Saldo Awal Rekening',
-                    'lawan_coa_id'    => $modalCoa?->id,
+                    'lawan_coa_id'    => $lawanCoaId,
                     'jumlah'          => $saldoAwal,
                     'saldo_sebelum'   => 0,
                     'saldo_sesudah'   => $saldoAwal,
@@ -456,10 +934,15 @@ class KasBankController extends Controller
                     'keterangan'      => 'Pencatatan saldo awal saat pembuatan akun rekening.',
                     'status'          => 'Disetujui',
                     'jurnal_id'       => $jurnalId,
-                    'company_id'      => $activeCompanyId,
+                    'company_id'      => $targetCompanyId,
                     'branch_id'       => $targetBranchId,
                     'created_by'      => auth()->id(),
                 ]);
+
+                // Update referensi_id pada jurnal agar bidirectional
+                if ($jurnalId) {
+                    DB::table('jurnals')->where('id', $jurnalId)->update(['referensi_id' => $mutasi->id]);
+                }
             }
 
             DB::commit();
@@ -478,13 +961,52 @@ class KasBankController extends Controller
     }
 
     /**
+     * Ambil data Rincian Rekening Kas & Bank (Detail JSON & Statistik Mutasi)
+     */
+    public function showAccount(KasBank $account)
+    {
+        $this->authorize('detail-kas-bank');
+
+        if (!$this->checkAccountEntityAccess($account)) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak: Rekening bukan milik entitas aktif.'], 403);
+        }
+
+        $account->load(['branch', 'company', 'coa', 'creator']);
+
+        // Ringkasan transaksi rekening (1 query cepat dengan conditional aggregation)
+        $statsAgg = $account->mutasis()
+            ->selectRaw("
+                COUNT(id) as total_mutasi,
+                COALESCE(SUM(CASE WHEN tipe = 'Masuk' AND kategori != 'Saldo Awal Rekening' AND status = 'Disetujui' THEN jumlah ELSE 0 END), 0) as total_masuk,
+                COALESCE(SUM(CASE WHEN tipe IN ('Keluar', 'Transfer') AND status = 'Disetujui' THEN jumlah ELSE 0 END), 0) as total_keluar
+            ")
+            ->first();
+
+        $totalMutasi = (int) ($statsAgg?->total_mutasi ?? 0);
+        $totalMasuk  = (float) ($statsAgg?->total_masuk ?? 0);
+        $totalKeluar = (float) ($statsAgg?->total_keluar ?? 0);
+
+        return response()->json([
+            'success'        => true,
+            'account'        => $account,
+            'entitas_label'  => $account->entitas_label,
+            'stats'          => [
+                'total_mutasi' => $totalMutasi,
+                'total_masuk'  => $totalMasuk,
+                'total_keluar' => $totalKeluar,
+            ],
+        ]);
+    }
+
+    /**
      * Ambil data Akun Rekening Kas & Bank untuk form Edit (JSON)
      */
     public function editAccount(KasBank $account)
     {
-        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
-        if ($account->company_id && $account->company_id != $activeCompanyId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak: Rekening bukan milik perusahaan aktif.'], 403);
+        $this->authorize('edit-kas-bank');
+
+        if (!$this->checkAccountEntityAccess($account)) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak: Rekening bukan milik entitas aktif.'], 403);
         }
 
         $account->load('branch');
@@ -499,9 +1021,10 @@ class KasBankController extends Controller
      */
     public function updateAccount(Request $request, KasBank $account)
     {
-        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
-        if ($account->company_id && $account->company_id != $activeCompanyId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak: Rekening bukan milik perusahaan aktif.'], 403);
+        $this->authorize('edit-kas-bank');
+
+        if (!$this->checkAccountEntityAccess($account)) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak: Rekening bukan milik entitas aktif.'], 403);
         }
 
         $request->validate([
@@ -516,9 +1039,25 @@ class KasBankController extends Controller
             'coa_id.required' => 'Akun COA wajib dipilih untuk integrasi pembukuan akuntansi.',
         ]);
 
+        // Validasi akun COA utama (wajib milik entitas aktif, aktif, & bukan header)
+        $mainCoa = ChartOfAccount::forActiveCompany()
+            ->where('id', $request->coa_id)
+            ->where('is_active', true)
+            ->where('is_header', false)
+            ->first();
+
+        if (!$mainCoa) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun COA kas/bank yang dipilih tidak aktif, berupa header, atau tidak ditemukan di entitas perusahaan ini.',
+            ], 422);
+        }
+
         try {
-            $activeBranchId = session('active_branch_id');
-            $targetBranchId = !empty($activeBranchId) ? $activeBranchId : ($request->has('branch_id') ? $request->branch_id : $account->branch_id);
+            $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
+            $activeBranchId  = session('active_branch_id');
+            $targetBranchId  = !empty($activeBranchId) ? $activeBranchId : ($request->has('branch_id') ? $request->branch_id : $account->branch_id);
+            $targetCompanyId = !empty($targetBranchId) ? null : $activeCompanyId;
 
             $account->update([
                 'nama_akun'      => $request->nama_akun,
@@ -529,6 +1068,7 @@ class KasBankController extends Controller
                 'nomor_rekening' => $request->nomor_rekening,
                 'atas_nama'      => $request->atas_nama,
                 'deskripsi'      => $request->deskripsi,
+                'company_id'     => $targetCompanyId,
                 'branch_id'      => $targetBranchId,
             ]);
 
@@ -547,21 +1087,39 @@ class KasBankController extends Controller
      */
     public function storeCashIn(Request $request)
     {
-        // Bersihkan format currency Rupiah (titik pemisah ribuan)
+        $this->authorize('tambah-kas-masuk');
+
+        // Validasi batas maksimal 26 karakter input jumlah (mendukung hingga ratusan triliun Rupiah beserta sen)
         if ($request->has('jumlah')) {
+            if (strlen((string) $request->jumlah) > 26) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nominal Jumlah tidak boleh lebih dari 26 karakter.',
+                ], 422);
+            }
             $request->merge(['jumlah' => $this->cleanNominal($request->jumlah)]);
         }
 
         $request->validate([
-            'kas_bank_id'  => 'required|exists:kas_banks,id',
-            'lawan_coa_id' => 'required|exists:chart_of_accounts,id',
-            'tanggal'      => 'required|date',
-            'kategori'     => 'required|string|max:100',
-            'jumlah'       => 'required|numeric|min:1',
-            'nama_kontak'  => 'nullable|string|max:150',
-            'keterangan'   => 'nullable|string',
+            'kas_bank_id'      => 'required|exists:kas_banks,id',
+            'lawan_coa_id'     => 'required|exists:chart_of_accounts,id',
+            'tanggal'          => 'required|date',
+            'kategori'         => 'required|string|max:100',
+            'jumlah'           => 'required|numeric|min:1',
+            'nama_kontak'      => 'nullable|string|max:40',
+            'nomor_referensi'  => 'nullable|string|max:50',
+            'tender_id'        => 'nullable|exists:tenders,id',
+            'keterangan'       => 'nullable|string|max:40',
+            'lampiran'         => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
         ], [
-            'lawan_coa_id.required' => 'Akun Lawan COA (Kredit) wajib dipilih untuk integrasi jurnal.',
+            'lawan_coa_id.required'    => 'Akun Lawan COA (Kredit) wajib dipilih untuk integrasi jurnal.',
+            'nama_kontak.max'          => 'Nama pembayar maksimal 40 karakter.',
+            'nomor_referensi.max'      => 'Nomor referensi maksimal 50 karakter.',
+            'keterangan.max'           => 'Keterangan maksimal 40 karakter.',
+            'lampiran.required'        => 'Foto / bukti transaksi penerimaan kas wajib dilampirkan.',
+            'lampiran.file'            => 'Berkas bukti transaksi harus berupa file yang valid.',
+            'lampiran.mimes'           => 'Format bukti transaksi harus berupa JPG, JPEG, PNG, WEBP, atau PDF.',
+            'lampiran.max'             => 'Ukuran file bukti transaksi maksimal 10 MB.',
         ]);
 
         $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
@@ -569,14 +1127,75 @@ class KasBankController extends Controller
         DB::beginTransaction();
         try {
             $account = KasBank::lockForUpdate()->find($request->kas_bank_id);
+            if (!$account || !$this->checkAccountEntityAccess($account)) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Rekening kas bukan milik entitas aktif.'], 403);
+            }
+
+            if (!$account->is_active) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => "Rekening kas/bank \"{$account->nama_akun}\" berstatus non-aktif. Tidak dapat menerima mutasi."], 422);
+            }
+
+            if (!$account->coa_id) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => "Rekening kas/bank \"{$account->nama_akun}\" belum dihubungkan dengan Akun COA di pembukuan akuntansi. Harap hubungkan COA terlebih dahulu."], 422);
+            }
+
+            // Validasi Akun Lawan COA (Strict Anti-IDOR, Non-Header, Aktif)
+            $lawanCoa = ChartOfAccount::forActiveCompany()
+                ->where('id', $request->lawan_coa_id)
+                ->where('is_active', true)
+                ->where('is_header', false)
+                ->first();
+
+            if (!$lawanCoa) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Lawan COA tidak valid, berstatus header, non-aktif, atau bukan milik perusahaan aktif.'
+                ], 422);
+            }
+
+            if ((int) $account->coa_id === (int) $lawanCoa->id) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Lawan COA tidak boleh sama dengan Akun COA dari Rekening Kas/Bank yang dipilih.'
+                ], 422);
+            }
+
+            $lawanCoaId = $lawanCoa->id;
             $saldoSebelum = (float) $account->saldo_berjalan;
             $jumlah = (float) $request->jumlah;
-            $saldoSesudah = $saldoSebelum + $jumlah;
+            $saldoSesudah = round($saldoSebelum + $jumlah, 2);
+
+            // Validasi kepemilikan tender (Strict Entity Isolation: PT vs Cabang)
+            $tenderId = null;
+            if ($request->filled('tender_id')) {
+                $tender = Tender::find($request->tender_id);
+                if ($tender) {
+                    $activeBranchId = session('active_branch_id');
+                    if (!empty($activeBranchId)) {
+                        if ((int)$tender->branch_id !== (int)$activeBranchId) {
+                            DB::rollBack();
+                            return response()->json(['success' => false, 'message' => 'Akses ditolak: Tender yang dipilih bukan milik Cabang aktif ini.'], 403);
+                        }
+                    } else {
+                        if ((int)$tender->company_id !== (int)$activeCompanyId || !empty($tender->branch_id)) {
+                            DB::rollBack();
+                            return response()->json(['success' => false, 'message' => 'Akses ditolak: Tender yang dipilih bukan milik PT Pusat aktif ini.'], 403);
+                        }
+                    }
+                    $tenderId = $tender->id;
+                }
+            }
 
             $branchId = $account->branch_id;
+            $companyId = !empty($branchId) ? null : $activeCompanyId;
 
             $prefix = 'KM-' . date('ym', strtotime($request->tanggal)) . '-';
-            $lastMutasi = DB::table('kas_mutasis')->where('nomor_transaksi', 'LIKE', $prefix . '%')->orderByRaw('CAST(SUBSTRING_INDEX(nomor_transaksi, "-", -1) AS UNSIGNED) DESC')->first();
+            $lastMutasi = DB::table('kas_mutasis')->where('nomor_transaksi', 'LIKE', $prefix . '%')->orderBy('id', 'desc')->first();
             $nextNum = 1;
             if ($lastMutasi) {
                 $parts = explode('-', $lastMutasi->nomor_transaksi);
@@ -591,17 +1210,6 @@ class KasBankController extends Controller
             } while ($exists);
 
             // Auto Journal: Debit Kas/Bank, Kredit Akun Lawan (Pendapatan/Piutang)
-            $lawanCoaId = $request->lawan_coa_id;
-            if (!$lawanCoaId) {
-                $defaultLawan = ChartOfAccount::forActiveCompany()
-                    ->where(function($q) {
-                        $q->where('code', 'LIKE', '4%')->orWhere('name', 'LIKE', '%Pendapatan%')->orWhere('name', 'LIKE', '%Penjualan%');
-                    })
-                    ->where('is_header', false)
-                    ->first();
-                $lawanCoaId = $defaultLawan?->id;
-            }
-
             $jurnalId = $this->postJurnal(
                 $nomorTransaksi,
                 $request->tanggal,
@@ -611,6 +1219,9 @@ class KasBankController extends Controller
                 $jumlah,
                 $branchId
             );
+
+            // Simpan bukti foto yang otomatis dikompres ke ukuran KB
+            $lampiranPath = $this->handleReceiptUpload($request->file('lampiran'));
 
             $mutasi = KasMutasi::create([
                 'nomor_transaksi' => $nomorTransaksi,
@@ -623,14 +1234,20 @@ class KasBankController extends Controller
                 'saldo_sesudah'   => $saldoSesudah,
                 'tanggal'         => $request->tanggal,
                 'nomor_referensi' => $request->nomor_referensi,
+                'tender_id'       => $tenderId,
                 'nama_kontak'     => $request->nama_kontak,
                 'keterangan'      => $request->keterangan,
+                'lampiran'        => $lampiranPath,
                 'status'          => 'Disetujui',
                 'jurnal_id'       => $jurnalId,
-                'company_id'      => $activeCompanyId,
+                'company_id'      => $companyId,
                 'branch_id'       => $branchId,
                 'created_by'      => auth()->id(),
             ]);
+
+            if ($jurnalId) {
+                Jurnal::where('id', $jurnalId)->update(['referensi_id' => $mutasi->id]);
+            }
 
             $account->saldo_berjalan = $saldoSesudah;
             $account->save();
@@ -639,7 +1256,7 @@ class KasBankController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Penerimaan kas sebesar Rp " . number_format($jumlah, 0, ',', '.') . " berhasil dicatat dan diposting ke Jurnal Akuntansi ({$nomorTransaksi}).",
+                'message' => "Penerimaan kas sebesar Rp " . number_format($jumlah, 2, ',', '.') . " berhasil dicatat dan diposting ke Jurnal Akuntansi ({$nomorTransaksi}).",
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -653,21 +1270,39 @@ class KasBankController extends Controller
      */
     public function storeCashOut(Request $request)
     {
-        // Bersihkan format currency Rupiah (titik pemisah ribuan)
+        $this->authorize('tambah-kas-keluar');
+
+        // Validasi batas maksimal 26 karakter input jumlah (mendukung hingga ratusan triliun Rupiah beserta sen)
         if ($request->has('jumlah')) {
+            if (strlen((string) $request->jumlah) > 26) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nominal Jumlah tidak boleh lebih dari 26 karakter.',
+                ], 422);
+            }
             $request->merge(['jumlah' => $this->cleanNominal($request->jumlah)]);
         }
 
         $request->validate([
-            'kas_bank_id'  => 'required|exists:kas_banks,id',
-            'lawan_coa_id' => 'required|exists:chart_of_accounts,id',
-            'tanggal'      => 'required|date',
-            'kategori'     => 'required|string|max:100',
-            'jumlah'       => 'required|numeric|min:1',
-            'nama_kontak'  => 'nullable|string|max:150',
-            'keterangan'   => 'nullable|string',
+            'kas_bank_id'      => 'required|exists:kas_banks,id',
+            'lawan_coa_id'     => 'required|exists:chart_of_accounts,id',
+            'tanggal'          => 'required|date',
+            'kategori'         => 'required|string|max:100',
+            'jumlah'           => 'required|numeric|min:1',
+            'nama_kontak'      => 'nullable|string|max:40',
+            'nomor_referensi'  => 'nullable|string|max:50',
+            'tender_id'        => 'nullable|exists:tenders,id',
+            'keterangan'       => 'nullable|string|max:40',
+            'lampiran'         => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
         ], [
-            'lawan_coa_id.required' => 'Akun Lawan COA (Debit Beban/Hutang) wajib dipilih untuk integrasi jurnal.',
+            'lawan_coa_id.required'    => 'Akun Lawan COA (Debit Beban/Hutang) wajib dipilih untuk integrasi jurnal.',
+            'nama_kontak.max'          => 'Nama penerima maksimal 40 karakter.',
+            'nomor_referensi.max'      => 'Nomor referensi maksimal 50 karakter.',
+            'keterangan.max'           => 'Keterangan maksimal 40 karakter.',
+            'lampiran.required'        => 'Foto / bukti pengeluaran kas (kuitansi/nota) wajib dilampirkan.',
+            'lampiran.file'            => 'Berkas bukti transaksi harus berupa file yang valid.',
+            'lampiran.mimes'           => 'Format bukti transaksi harus berupa JPG, JPEG, PNG, WEBP, atau PDF.',
+            'lampiran.max'             => 'Ukuran file bukti transaksi maksimal 10 MB.',
         ]);
 
         $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
@@ -675,6 +1310,45 @@ class KasBankController extends Controller
         DB::beginTransaction();
         try {
             $account = KasBank::lockForUpdate()->find($request->kas_bank_id);
+            if (!$account || !$this->checkAccountEntityAccess($account)) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Rekening kas bukan milik entitas aktif.'], 403);
+            }
+
+            if (!$account->is_active) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => "Rekening kas/bank \"{$account->nama_akun}\" berstatus non-aktif. Tidak dapat memproses pengeluaran."], 422);
+            }
+
+            if (!$account->coa_id) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => "Rekening kas/bank \"{$account->nama_akun}\" belum dihubungkan dengan Akun COA di pembukuan akuntansi. Harap hubungkan COA terlebih dahulu."], 422);
+            }
+
+            // Validasi Akun Lawan COA (Strict Anti-IDOR, Non-Header, Aktif)
+            $lawanCoa = ChartOfAccount::forActiveCompany()
+                ->where('id', $request->lawan_coa_id)
+                ->where('is_active', true)
+                ->where('is_header', false)
+                ->first();
+
+            if (!$lawanCoa) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Lawan COA tidak valid, berstatus header, non-aktif, atau bukan milik perusahaan aktif.'
+                ], 422);
+            }
+
+            if ((int) $account->coa_id === (int) $lawanCoa->id) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Lawan COA tidak boleh sama dengan Akun COA dari Rekening Kas/Bank yang dipilih.'
+                ], 422);
+            }
+
+            $lawanCoaId = $lawanCoa->id;
             $saldoSebelum = (float) $account->saldo_berjalan;
             $jumlah = (float) $request->jumlah;
 
@@ -683,15 +1357,37 @@ class KasBankController extends Controller
                 DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => "Saldo kas \"{$account->nama_akun}\" tidak mencukupi! Saldo saat ini: Rp " . number_format($saldoSebelum, 0, ',', '.') . ", pengeluaran yang diminta: Rp " . number_format($jumlah, 0, ',', '.') . ".",
+                    'message' => "Saldo kas \"{$account->nama_akun}\" tidak mencukupi! Saldo saat ini: Rp " . number_format($saldoSebelum, 2, ',', '.') . ", pengeluaran yang diminta: Rp " . number_format($jumlah, 2, ',', '.') . ".",
                 ], 422);
             }
 
-            $saldoSesudah = $saldoSebelum - $jumlah;
+            $saldoSesudah = round($saldoSebelum - $jumlah, 2);
             $branchId = $account->branch_id;
+            $companyId = !empty($branchId) ? null : $activeCompanyId;
+
+            // Validasi kepemilikan tender (Strict Entity Isolation: PT vs Cabang)
+            $tenderId = null;
+            if ($request->filled('tender_id')) {
+                $tender = Tender::find($request->tender_id);
+                if ($tender) {
+                    $activeBranchId = session('active_branch_id');
+                    if (!empty($activeBranchId)) {
+                        if ((int)$tender->branch_id !== (int)$activeBranchId) {
+                            DB::rollBack();
+                            return response()->json(['success' => false, 'message' => 'Akses ditolak: Tender yang dipilih bukan milik Cabang aktif ini.'], 403);
+                        }
+                    } else {
+                        if ((int)$tender->company_id !== (int)$activeCompanyId || !empty($tender->branch_id)) {
+                            DB::rollBack();
+                            return response()->json(['success' => false, 'message' => 'Akses ditolak: Tender yang dipilih bukan milik PT Pusat aktif ini.'], 403);
+                        }
+                    }
+                    $tenderId = $tender->id;
+                }
+            }
 
             $prefix = 'KK-' . date('ym', strtotime($request->tanggal)) . '-';
-            $lastMutasi = DB::table('kas_mutasis')->where('nomor_transaksi', 'LIKE', $prefix . '%')->orderByRaw('CAST(SUBSTRING_INDEX(nomor_transaksi, "-", -1) AS UNSIGNED) DESC')->first();
+            $lastMutasi = DB::table('kas_mutasis')->where('nomor_transaksi', 'LIKE', $prefix . '%')->orderBy('id', 'desc')->first();
             $nextNum = 1;
             if ($lastMutasi) {
                 $parts = explode('-', $lastMutasi->nomor_transaksi);
@@ -706,17 +1402,6 @@ class KasBankController extends Controller
             } while ($exists);
 
             // Auto Journal: Debit Beban/Hutang (Akun Lawan), Kredit Kas/Bank
-            $lawanCoaId = $request->lawan_coa_id;
-            if (!$lawanCoaId) {
-                $defaultBeban = ChartOfAccount::forActiveCompany()
-                    ->where(function($q) {
-                        $q->where('code', 'LIKE', '6%')->orWhere('code', 'LIKE', '5%')->orWhere('name', 'LIKE', '%Beban%')->orWhere('name', 'LIKE', '%Biaya%');
-                    })
-                    ->where('is_header', false)
-                    ->first();
-                $lawanCoaId = $defaultBeban?->id;
-            }
-
             $jurnalId = $this->postJurnal(
                 $nomorTransaksi,
                 $request->tanggal,
@@ -726,6 +1411,9 @@ class KasBankController extends Controller
                 $jumlah,
                 $branchId
             );
+
+            // Simpan bukti foto yang otomatis dikompres ke ukuran KB
+            $lampiranPath = $this->handleReceiptUpload($request->file('lampiran'));
 
             $mutasi = KasMutasi::create([
                 'nomor_transaksi' => $nomorTransaksi,
@@ -738,14 +1426,20 @@ class KasBankController extends Controller
                 'saldo_sesudah'   => $saldoSesudah,
                 'tanggal'         => $request->tanggal,
                 'nomor_referensi' => $request->nomor_referensi,
+                'tender_id'       => $tenderId,
                 'nama_kontak'     => $request->nama_kontak,
                 'keterangan'      => $request->keterangan,
+                'lampiran'        => $lampiranPath,
                 'status'          => 'Disetujui',
                 'jurnal_id'       => $jurnalId,
-                'company_id'      => $activeCompanyId,
+                'company_id'      => $companyId,
                 'branch_id'       => $branchId,
                 'created_by'      => auth()->id(),
             ]);
+
+            if ($jurnalId) {
+                Jurnal::where('id', $jurnalId)->update(['referensi_id' => $mutasi->id]);
+            }
 
             $account->saldo_berjalan = $saldoSesudah;
             $account->save();
@@ -754,7 +1448,7 @@ class KasBankController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Pengeluaran kas sebesar Rp " . number_format($jumlah, 0, ',', '.') . " berhasil dicatat dan diposting ke Jurnal Akuntansi ({$nomorTransaksi}).",
+                'message' => "Pengeluaran kas sebesar Rp " . number_format($jumlah, 2, ',', '.') . " berhasil dicatat dan diposting ke Jurnal Akuntansi ({$nomorTransaksi}).",
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -768,17 +1462,54 @@ class KasBankController extends Controller
      */
     public function storeTransfer(Request $request)
     {
+        $this->authorize('transfer-kas-bank');
+
+        // Validasi panjang karakter nominal mentah sebelum di-clean (keamanan: max 20 karakter)
+        $rawJumlah = (string) $request->input('jumlah', '');
+        if (strlen($rawJumlah) > 20) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nominal jumlah transfer maksimal 20 karakter!'
+            ], 422);
+        }
+
         // Bersihkan format currency Rupiah (titik pemisah ribuan)
         if ($request->has('jumlah')) {
-            $request->merge(['jumlah' => $this->cleanNominal($request->jumlah)]);
+            $cleaned = $this->cleanNominal($request->jumlah);
+            if (strlen((string) $cleaned) > 20) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nominal jumlah transfer maksimal 20 karakter!'
+                ], 422);
+            }
+            $request->merge(['jumlah' => $cleaned]);
         }
+
+        // Sanitasi teks keterangan (cegah XSS & batasi max 40 karakter)
+        $keterangan = $request->keterangan ? strip_tags(trim($request->keterangan)) : null;
+        if ($keterangan && mb_strlen($keterangan) > 40) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Keterangan transfer maksimal 40 karakter!'
+            ], 422);
+        }
+        $request->merge(['keterangan' => $keterangan]);
 
         $request->validate([
             'from_kas_bank_id' => 'required|exists:kas_banks,id|different:to_kas_bank_id',
             'to_kas_bank_id'   => 'required|exists:kas_banks,id',
             'tanggal'          => 'required|date',
-            'jumlah'           => 'required|numeric|min:1',
-            'keterangan'       => 'nullable|string',
+            'jumlah'           => 'required|numeric|min:1|max_digits:20',
+            'keterangan'       => 'nullable|string|max:40',
+        ], [
+            'from_kas_bank_id.different' => 'Rekening asal dan rekening tujuan tidak boleh sama!',
+            'from_kas_bank_id.required'  => 'Rekening asal wajib dipilih.',
+            'to_kas_bank_id.required'    => 'Rekening tujuan wajib dipilih.',
+            'jumlah.required'            => 'Nominal jumlah transfer wajib diisi.',
+            'jumlah.numeric'             => 'Nominal jumlah transfer harus berupa angka yang valid.',
+            'jumlah.min'                 => 'Nominal jumlah transfer minimal Rp 1.',
+            'jumlah.max_digits'          => 'Nominal jumlah transfer maksimal 20 digit!',
+            'keterangan.max'             => 'Keterangan transfer maksimal 40 karakter!',
         ]);
 
         $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
@@ -788,18 +1519,38 @@ class KasBankController extends Controller
             $fromAcc = KasBank::lockForUpdate()->find($request->from_kas_bank_id);
             $toAcc   = KasBank::lockForUpdate()->find($request->to_kas_bank_id);
 
+            if (!$fromAcc || !$this->checkAccountEntityAccess($fromAcc)) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Rekening pengirim bukan milik entitas aktif.'], 403);
+            }
+
+            if (!$toAcc || !$this->checkAccountEntityAccess($toAcc)) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Akses ditolak: Rekening penerima bukan milik entitas aktif.'], 403);
+            }
+
+            if (!$toAcc->is_active || !$fromAcc->is_active) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Salah satu rekening kas/bank berstatus non-aktif atau tidak ditemukan.'], 422);
+            }
+
+            if ($fromAcc->id === $toAcc->id) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Rekening asal dan tujuan tidak boleh sama.'], 422);
+            }
+
             $jumlah = (float) $request->jumlah;
 
             if ($jumlah > (float) $fromAcc->saldo_berjalan) {
                 DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => "Saldo pada rekening asal \"{$fromAcc->nama_akun}\" tidak mencukupi untuk transfer! Saldo tersedia: Rp " . number_format($fromAcc->saldo_berjalan, 0, ',', '.') . ".",
+                    'message' => "Saldo pada rekening asal \"{$fromAcc->nama_akun}\" tidak mencukupi untuk transfer! Saldo tersedia: Rp " . number_format($fromAcc->saldo_berjalan, 2, ',', '.') . ".",
                 ], 422);
             }
 
             $prefix = 'TR-' . date('ym', strtotime($request->tanggal)) . '-';
-            $lastMutasi = DB::table('kas_mutasis')->where('nomor_transaksi', 'LIKE', $prefix . '%')->orderByRaw('CAST(SUBSTRING_INDEX(nomor_transaksi, "-", -1) AS UNSIGNED) DESC')->first();
+            $lastMutasi = DB::table('kas_mutasis')->where('nomor_transaksi', 'LIKE', $prefix . '%')->orderBy('id', 'desc')->first();
             $nextNum = 1;
             if ($lastMutasi) {
                 $parts = explode('-', $lastMutasi->nomor_transaksi);
@@ -824,13 +1575,19 @@ class KasBankController extends Controller
                 $fromAcc->branch_id
             );
 
-            // Mutasi Keluar pada Akun Asal
+            // Mutasi Keluar pada Akun Asal (Presisi Round 2 Desimal)
             $fromSaldoSebelum = (float) $fromAcc->saldo_berjalan;
-            $fromSaldoSesudah = $fromSaldoSebelum - $jumlah;
+            $fromSaldoSesudah = round($fromSaldoSebelum - $jumlah, 2);
             $fromAcc->saldo_berjalan = $fromSaldoSesudah;
             $fromAcc->save();
 
-            KasMutasi::create([
+            $fromBranchId  = $fromAcc->branch_id ?: null;
+            $fromCompanyId = !empty($fromBranchId) ? null : $activeCompanyId;
+
+            $toBranchId    = $toAcc->branch_id ?: null;
+            $toCompanyId   = !empty($toBranchId) ? null : $activeCompanyId;
+
+            $fromMutasi = KasMutasi::create([
                 'nomor_transaksi'        => $nomorTransaksi,
                 'kas_bank_id'            => $fromAcc->id,
                 'transfer_to_kas_bank_id'=> $toAcc->id,
@@ -844,14 +1601,18 @@ class KasBankController extends Controller
                 'keterangan'             => $request->keterangan ?: "Transfer saldo ke {$toAcc->nama_akun}",
                 'status'                 => 'Disetujui',
                 'jurnal_id'              => $jurnalId,
-                'company_id'             => $activeCompanyId,
-                'branch_id'              => $fromAcc->branch_id,
+                'company_id'             => $fromCompanyId,
+                'branch_id'              => $fromBranchId,
                 'created_by'             => auth()->id(),
             ]);
 
-            // Mutasi Masuk pada Akun Tujuan
+            if ($jurnalId) {
+                Jurnal::where('id', $jurnalId)->update(['referensi_id' => $fromMutasi->id]);
+            }
+
+            // Mutasi Masuk pada Akun Tujuan (Presisi Round 2 Desimal)
             $toSaldoSebelum = (float) $toAcc->saldo_berjalan;
-            $toSaldoSesudah = $toSaldoSebelum + $jumlah;
+            $toSaldoSesudah = round($toSaldoSebelum + $jumlah, 2);
             $toAcc->saldo_berjalan = $toSaldoSesudah;
             $toAcc->save();
 
@@ -869,8 +1630,8 @@ class KasBankController extends Controller
                 'keterangan'             => "Penerimaan transfer dari {$fromAcc->nama_akun}",
                 'status'                 => 'Disetujui',
                 'jurnal_id'              => $jurnalId,
-                'company_id'             => $activeCompanyId,
-                'branch_id'              => $toAcc->branch_id,
+                'company_id'             => $toCompanyId,
+                'branch_id'              => $toBranchId,
                 'created_by'             => auth()->id(),
             ]);
 
@@ -878,7 +1639,7 @@ class KasBankController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Transfer saldo sebesar Rp " . number_format($jumlah, 0, ',', '.') . " dari {$fromAcc->nama_akun} ke {$toAcc->nama_akun} berhasil diproses dan dijurnal.",
+                'message' => "Transfer saldo sebesar Rp " . number_format($jumlah, 2, ',', '.') . " dari {$fromAcc->nama_akun} ke {$toAcc->nama_akun} berhasil diproses dan dijurnal.",
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -892,9 +1653,8 @@ class KasBankController extends Controller
      */
     public function show(KasMutasi $mutasi)
     {
-        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
-        if ($mutasi->company_id && $mutasi->company_id != $activeCompanyId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak: Bukti mutasi bukan milik perusahaan aktif.'], 403);
+        if (!$this->checkMutasiEntityAccess($mutasi)) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak: Bukti mutasi bukan milik entitas aktif.'], 403);
         }
 
         $mutasi->load([
@@ -905,13 +1665,25 @@ class KasBankController extends Controller
             'jurnal.details.account', 
             'company', 
             'branch', 
+            'tender:id,nomor_kontrak,nama_tender,status,branch_id,company_id',
+            'tender.branch:id,nama_cabang',
+            'tender.company:id,nama_perusahaan',
             'creator:id,nama_lengkap,username',
             'canceler:id,nama_lengkap,username'
         ]);
 
+        $lampiranUrl = $mutasi->lampiran ? asset('storage/' . $mutasi->lampiran) : null;
+
+        $canCancel = (auth()->user()?->can('batalkan-mutasi-kas-bank') || auth()->user()?->hasRole('Super Admin'))
+            && $mutasi->status === 'Disetujui'
+            && $mutasi->kategori !== 'Saldo Awal Rekening'
+            && !str_starts_with($mutasi->nomor_transaksi, 'SA-');
+
         return response()->json([
-            'success' => true,
-            'mutasi'  => $mutasi,
+            'success'      => true,
+            'mutasi'       => $mutasi,
+            'lampiran_url' => $lampiranUrl,
+            'can_cancel'   => $canCancel,
         ]);
     }
 
@@ -920,13 +1692,21 @@ class KasBankController extends Controller
      */
     public function cancel(Request $request, KasMutasi $mutasi)
     {
-        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
-        if ($mutasi->company_id && $mutasi->company_id != $activeCompanyId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak: Mutasi bukan milik perusahaan aktif.'], 403);
+        $this->authorize('batalkan-mutasi-kas-bank');
+
+        if (!$this->checkMutasiEntityAccess($mutasi)) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak: Mutasi bukan milik entitas aktif.'], 403);
         }
 
         if ($mutasi->status === 'Dibatalkan') {
             return response()->json(['success' => false, 'message' => 'Transaksi sudah berstatus Dibatalkan.'], 400);
+        }
+
+        if ($mutasi->kategori === 'Saldo Awal Rekening' || str_starts_with($mutasi->nomor_transaksi, 'SA-')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mutasi Saldo Awal pembukaan rekening tidak dapat dibatalkan melalui fitur ini. Silakan ubah data rekening jika diperlukan.',
+            ], 422);
         }
 
         $request->validate([
@@ -952,12 +1732,21 @@ class KasBankController extends Controller
             ];
 
             // Kasus 1: Transaksi Transfer Antar Rekening
-            if ($mutasi->tipe === 'Transfer' || str_ends_with($mutasi->nomor_transaksi, '-IN') && $mutasi->kategori === 'Transfer Antar Rekening') {
+            if ($mutasi->tipe === 'Transfer' || (str_ends_with($mutasi->nomor_transaksi, '-IN') && $mutasi->kategori === 'Transfer Antar Rekening')) {
                 $baseNo = str_replace('-IN', '', $mutasi->nomor_transaksi);
                 $outMutasi = KasMutasi::where('nomor_transaksi', $baseNo)->first();
                 $inMutasi  = KasMutasi::where('nomor_transaksi', $baseNo . '-IN')->first();
 
                 if ($outMutasi && $inMutasi) {
+                    // Cegah double-reversal jika salah satu atau keduanya sudah berstatus Dibatalkan
+                    if ($outMutasi->status === 'Dibatalkan' || $inMutasi->status === 'Dibatalkan') {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Transaksi transfer ini sudah pernah dibatalkan sebelumnya.',
+                        ], 400);
+                    }
+
                     $fromAcc = KasBank::lockForUpdate()->find($outMutasi->kas_bank_id);
                     $toAcc   = KasBank::lockForUpdate()->find($inMutasi->kas_bank_id);
 
@@ -966,15 +1755,15 @@ class KasBankController extends Controller
                         DB::rollBack();
                         return response()->json([
                             'success' => false,
-                            'message' => "Saldo rekening tujuan \"{$toAcc->nama_akun}\" tidak mencukupi untuk membatalkan transfer ini (Saldo: Rp " . number_format($toAcc->saldo_berjalan, 0, ',', '.') . ").",
+                            'message' => "Saldo rekening tujuan \"{$toAcc->nama_akun}\" tidak mencukupi untuk membatalkan transfer ini (Saldo: Rp " . number_format($toAcc->saldo_berjalan, 2, ',', '.') . ").",
                         ], 422);
                     }
 
-                    // Revert Saldo: Kembalikan ke pengirim, kurangi dari penerima
-                    $fromAcc->saldo_berjalan += $jumlah;
+                    // Revert Saldo: Kembalikan ke pengirim, kurangi dari penerima (Presisi Round 2 Desimal)
+                    $fromAcc->saldo_berjalan = round((float) $fromAcc->saldo_berjalan + $jumlah, 2);
                     $fromAcc->save();
 
-                    $toAcc->saldo_berjalan -= $jumlah;
+                    $toAcc->saldo_berjalan = round((float) $toAcc->saldo_berjalan - $jumlah, 2);
                     $toAcc->save();
 
                     // Set Status Dibatalkan untuk kedua record mutasi
@@ -985,7 +1774,7 @@ class KasBankController extends Controller
                     if ($fromAcc->coa_id && $toAcc->coa_id) {
                         // Original Transfer: Debit ToAccount (Penerima), Kredit FromAccount (Pengirim)
                         // Reversal Transfer: Debit FromAccount (Pengirim), Kredit ToAccount (Penerima)
-                        $this->postJurnal(
+                        $revJurnalId = $this->postJurnal(
                             $baseNo,
                             $today,
                             "[REVERSAL: {$alasan}] Pembatalan Transfer Saldo {$baseNo}: {$fromAcc->nama_akun} -> {$toAcc->nama_akun}",
@@ -995,18 +1784,21 @@ class KasBankController extends Controller
                             $outMutasi->branch_id,
                             'Kas Mutasi Reversal'
                         );
+                        if ($revJurnalId) {
+                            Jurnal::where('id', $revJurnalId)->update(['referensi_id' => $outMutasi->id]);
+                        }
                     }
                 } else {
                     // Fallback jika salah satu record tidak ditemukan
                     $account = KasBank::lockForUpdate()->find($mutasi->kas_bank_id);
                     if ($mutasi->tipe === 'Transfer') {
-                        $account->saldo_berjalan += $jumlah;
+                        $account->saldo_berjalan = round((float) $account->saldo_berjalan + $jumlah, 2);
                     } else {
                         if ($jumlah > (float) $account->saldo_berjalan) {
                             DB::rollBack();
                             return response()->json(['success' => false, 'message' => 'Saldo saat ini tidak mencukupi untuk membatalkan transaksi.'], 422);
                         }
-                        $account->saldo_berjalan -= $jumlah;
+                        $account->saldo_berjalan = round((float) $account->saldo_berjalan - $jumlah, 2);
                     }
                     $account->save();
                     $mutasi->update($cancelData);
@@ -1019,7 +1811,7 @@ class KasBankController extends Controller
                     DB::rollBack();
                     return response()->json(['success' => false, 'message' => 'Saldo saat ini tidak mencukupi untuk membatalkan penerimaan kas ini.'], 422);
                 }
-                $account->saldo_berjalan -= $jumlah;
+                $account->saldo_berjalan = round((float) $account->saldo_berjalan - $jumlah, 2);
                 $account->save();
                 $mutasi->update($cancelData);
 
@@ -1027,7 +1819,7 @@ class KasBankController extends Controller
                 if ($account->coa_id && $mutasi->lawan_coa_id) {
                     // Original Masuk: Debit Kas/Bank, Kredit Lawan COA
                     // Reversal Masuk: Debit Lawan COA, Kredit Kas/Bank
-                    $this->postJurnal(
+                    $revJurnalId = $this->postJurnal(
                         $mutasi->nomor_transaksi,
                         $today,
                         "[REVERSAL: {$alasan}] Pembatalan Kas Masuk {$mutasi->nomor_transaksi}: " . ($mutasi->keterangan ?: $mutasi->kategori),
@@ -1037,12 +1829,15 @@ class KasBankController extends Controller
                         $mutasi->branch_id,
                         'Kas Mutasi Reversal'
                     );
+                    if ($revJurnalId) {
+                        Jurnal::where('id', $revJurnalId)->update(['referensi_id' => $mutasi->id]);
+                    }
                 }
 
             // Kasus 3: Kas Keluar Biasa
             } elseif ($mutasi->tipe === 'Keluar') {
                 $account = KasBank::lockForUpdate()->find($mutasi->kas_bank_id);
-                $account->saldo_berjalan += $jumlah;
+                $account->saldo_berjalan = round((float) $account->saldo_berjalan + $jumlah, 2);
                 $account->save();
                 $mutasi->update($cancelData);
 
@@ -1050,7 +1845,7 @@ class KasBankController extends Controller
                 if ($account->coa_id && $mutasi->lawan_coa_id) {
                     // Original Keluar: Debit Lawan COA, Kredit Kas/Bank
                     // Reversal Keluar: Debit Kas/Bank, Kredit Lawan COA
-                    $this->postJurnal(
+                    $revJurnalId = $this->postJurnal(
                         $mutasi->nomor_transaksi,
                         $today,
                         "[REVERSAL: {$alasan}] Pembatalan Kas Keluar {$mutasi->nomor_transaksi}: " . ($mutasi->keterangan ?: $mutasi->kategori),
@@ -1060,6 +1855,9 @@ class KasBankController extends Controller
                         $mutasi->branch_id,
                         'Kas Mutasi Reversal'
                     );
+                    if ($revJurnalId) {
+                        Jurnal::where('id', $revJurnalId)->update(['referensi_id' => $mutasi->id]);
+                    }
                 }
             }
 
@@ -1088,7 +1886,7 @@ class KasBankController extends Controller
         $prefixJurnal = 'JU-' . date('ym', strtotime($tanggal)) . '-';
         $lastJurnal = DB::table('jurnals')
             ->where('nomor_jurnal', 'LIKE', $prefixJurnal . '%')
-            ->orderByRaw('CAST(SUBSTRING_INDEX(nomor_jurnal, "-", -1) AS UNSIGNED) DESC')
+            ->orderBy('id', 'desc')
             ->first();
         $nextJurnalNum = 1;
         if ($lastJurnal) {
@@ -1103,15 +1901,17 @@ class KasBankController extends Controller
             }
         } while ($exists);
 
-        $companyId = session('active_company_id') ?? auth()->user()?->company_id;
+        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
+        $jurnalCompanyId = !empty($branchId) ? null : ($activeCompanyId ?: 1);
+        $jurnalBranchId  = !empty($branchId) ? $branchId : null;
 
         $jurnal = Jurnal::create([
             'nomor_jurnal'   => $nomorJurnal,
             'tanggal_jurnal' => $tanggal,
             'referensi_tipe' => $refTipe,
             'referensi_id'   => null,
-            'company_id'     => $companyId,
-            'branch_id'      => $branchId,
+            'company_id'     => $jurnalCompanyId,
+            'branch_id'      => $jurnalBranchId,
             'total_debit'    => $nominal,
             'total_kredit'   => $nominal,
             'keterangan'     => $keterangan,
@@ -1140,8 +1940,54 @@ class KasBankController extends Controller
     }
 
     /**
+     * Helper: Validasi kepemilikan / isolasi entitas untuk KasBank (Anti-IDOR)
+     */
+    private function checkAccountEntityAccess(KasBank $account): bool
+    {
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
+
+        if (!empty($activeBranchId)) {
+            // Sesi Cabang: Hanya boleh akses rekening milik cabang aktif
+            return (int) $account->branch_id === (int) $activeBranchId;
+        } else {
+            // Sesi PT Pusat: Hanya boleh akses rekening PT Pusat (branch_id IS NULL)
+            if (!empty($account->branch_id)) {
+                return false;
+            }
+            if ($account->company_id && (int) $account->company_id !== (int) $activeCompanyId) {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    /**
+     * Helper: Validasi kepemilikan / isolasi entitas untuk KasMutasi (Anti-IDOR)
+     */
+    private function checkMutasiEntityAccess(KasMutasi $mutasi): bool
+    {
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id') ?? auth()->user()?->company_id;
+
+        if (!empty($activeBranchId)) {
+            // Sesi Cabang: Hanya boleh akses mutasi milik cabang aktif
+            return (int) $mutasi->branch_id === (int) $activeBranchId;
+        } else {
+            // Sesi PT Pusat: Hanya boleh akses mutasi PT Pusat (branch_id IS NULL)
+            if (!empty($mutasi->branch_id)) {
+                return false;
+            }
+            if ($mutasi->company_id && (int) $mutasi->company_id !== (int) $activeCompanyId) {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    /**
      * Helper: Bersihkan format Rupiah / Currency Indonesia menjadi float murni
-     * Contoh: "500.000" -> 500000, "1.500.000,50" -> 1500000.50
+     * Contoh: "500.000" -> 500000, "1.500.000,50" -> 1500000.50, "1500000.50" -> 1500000.50
      */
     private function cleanNominal($value)
     {
@@ -1152,12 +1998,291 @@ class KasBankController extends Controller
             return (float) $value;
         }
         $str = trim((string) $value);
-        // Hapus 'Rp', 'rp', spasi, dan titik pemisah ribuan
-        $str = str_ireplace(['rp', ' ', '.'], '', $str);
-        // Ubah koma desimal menjadi titik
-        $str = str_replace(',', '.', $str);
-        // Hapus sisa karakter non-numerik selain minus dan titik
+        $str = str_ireplace(['rp', ' '], '', $str);
+
+        // Jika ada koma dan titik (e.g. 1.500.000,50): titik = ribuan, koma = desimal
+        if (str_contains($str, '.') && str_contains($str, ',')) {
+            $str = str_replace('.', '', $str);
+            $str = str_replace(',', '.', $str);
+        } elseif (str_contains($str, ',')) {
+            if (substr_count($str, ',') > 1) {
+                $str = str_replace(',', '', $str);
+            } else {
+                $str = str_replace(',', '.', $str);
+            }
+        } elseif (str_contains($str, '.')) {
+            if (substr_count($str, '.') > 1) {
+                // Lebih dari satu titik, pasti pemisah ribuan (1.500.000)
+                $str = str_replace('.', '', $str);
+            } else {
+                // Tepat satu titik: jika diikuti tepat 3 digit (format ribuan 500.000), buang titik
+                $parts = explode('.', $str);
+                if (isset($parts[1]) && strlen($parts[1]) === 3) {
+                    $str = str_replace('.', '', $str);
+                }
+            }
+        }
+
         $str = preg_replace('/[^0-9.-]/', '', $str);
         return (float) $str;
+    }
+
+    /**
+     * Helper: Format angka moneter Rupiah presisi dengan 2 desimal di belakang koma
+     */
+    private function formatRupiah($val): string
+    {
+        return number_format((float) $val, 2, ',', '.');
+    }
+
+    /**
+     * Hitung Ringkasan Saldo Periode Ledger: Saldo Awal, Total Masuk, Total Keluar, Saldo Akhir
+     */
+    public function calculateLedgerPeriodSummary($accountId = null, $startDate = null, $endDate = null): array
+    {
+        $accountsQuery = KasBank::forActiveCompany()->forActiveBranch()->where('is_active', true);
+        if ($accountId) {
+            $accountsQuery->where('id', $accountId);
+        }
+        $accounts = $accountsQuery->get();
+        $accountIds = $accounts->pluck('id')->toArray();
+
+        if (empty($accountIds)) {
+            return [
+                'saldo_awal'             => 0,
+                'total_masuk'            => 0,
+                'total_keluar'           => 0,
+                'saldo_akhir'            => 0,
+                'net_mutasi'             => 0,
+                'formatted_saldo_awal'   => 'Rp ' . $this->formatRupiah(0),
+                'formatted_total_masuk'  => '+ Rp ' . $this->formatRupiah(0),
+                'formatted_total_keluar' => '- Rp ' . $this->formatRupiah(0),
+                'formatted_saldo_akhir'  => 'Rp ' . $this->formatRupiah(0),
+                'label_saldo_awal'       => 'Saldo awal per ' . ($startDate ? date('d/m/Y', strtotime($startDate)) : '-'),
+                'label_saldo_akhir'      => 'Saldo akhir per ' . ($endDate ? date('d/m/Y', strtotime($endDate)) : '-'),
+            ];
+        }
+
+        // Akun-akun yang memiliki saldo_awal > 0 tapi belum memiliki transaksi SA- (Optimasi 1 Query Tanpa N+1)
+        $baseOpeningBalance = 0;
+        $accountsWithOpening = $accounts->where('saldo_awal', '>', 0);
+        if ($accountsWithOpening->isNotEmpty()) {
+            $existingSaAccountIds = KasMutasi::forActiveCompany()->forActiveBranch()
+                ->whereIn('kas_bank_id', $accountsWithOpening->pluck('id'))
+                ->where(function($q) {
+                    $q->where('kategori', 'Saldo Awal Rekening')
+                      ->orWhere('nomor_transaksi', 'LIKE', 'SA-%');
+                })
+                ->pluck('kas_bank_id')
+                ->unique()
+                ->toArray();
+
+            foreach ($accountsWithOpening as $acc) {
+                if (!in_array($acc->id, $existingSaAccountIds)) {
+                    $baseOpeningBalance += (float) $acc->saldo_awal;
+                }
+            }
+        }
+
+        // 1. Saldo Awal Periode: Semua mutasi sebelum $startDate (1 query efisien dengan conditional aggregation)
+        $saldoAwalPeriode = $baseOpeningBalance;
+        if ($startDate) {
+            $beforeAgg = KasMutasi::forActiveCompany()->forActiveBranch()
+                ->whereIn('kas_bank_id', $accountIds)
+                ->where('status', 'Disetujui')
+                ->where('tanggal', '<', $startDate)
+                ->selectRaw("
+                    COALESCE(SUM(CASE WHEN tipe = 'Masuk' THEN jumlah ELSE 0 END), 0) as total_masuk,
+                    COALESCE(SUM(CASE WHEN tipe IN ('Keluar', 'Transfer') THEN jumlah ELSE 0 END), 0) as total_keluar
+                ")
+                ->first();
+
+            $saldoAwalPeriode += ((float) ($beforeAgg?->total_masuk ?? 0) - (float) ($beforeAgg?->total_keluar ?? 0));
+        }
+
+        // 2. Mutasi Dalam Periode [$startDate s/d $endDate] (1 query efisien dengan conditional aggregation)
+        $mutasiPeriodQuery = KasMutasi::forActiveCompany()->forActiveBranch()
+            ->whereIn('kas_bank_id', $accountIds)
+            ->where('status', 'Disetujui');
+
+        if ($startDate && $endDate) {
+            $mutasiPeriodQuery->whereBetween('tanggal', [$startDate, $endDate]);
+        } elseif ($startDate) {
+            $mutasiPeriodQuery->where('tanggal', '>=', $startDate);
+        } elseif ($endDate) {
+            $mutasiPeriodQuery->where('tanggal', '<=', $endDate);
+        }
+
+        $periodAgg = (clone $mutasiPeriodQuery)->selectRaw("
+            COALESCE(SUM(CASE WHEN tipe = 'Masuk' THEN jumlah ELSE 0 END), 0) as total_masuk,
+            COALESCE(SUM(CASE WHEN tipe IN ('Keluar', 'Transfer') THEN jumlah ELSE 0 END), 0) as total_keluar
+        ")->first();
+
+        $totalMasuk = (float) ($periodAgg?->total_masuk ?? 0);
+        $totalKeluar = (float) ($periodAgg?->total_keluar ?? 0);
+        $netMutasi = $totalMasuk - $totalKeluar;
+
+        // 3. Saldo Akhir Periode = Saldo Awal Periode + Total Masuk - Total Keluar
+        $saldoAkhirPeriode = $saldoAwalPeriode + $totalMasuk - $totalKeluar;
+
+        $labelAwal = $startDate ? ('Per ' . date('d/m/Y', strtotime($startDate))) : 'Awal Pembukuan';
+        $labelAkhir = $endDate ? ('Per ' . date('d/m/Y', strtotime($endDate))) : 'Posisi Saat Ini';
+
+        return [
+            'saldo_awal'             => $saldoAwalPeriode,
+            'total_masuk'            => $totalMasuk,
+            'total_keluar'           => $totalKeluar,
+            'saldo_akhir'            => $saldoAkhirPeriode,
+            'net_mutasi'             => $netMutasi,
+            'formatted_saldo_awal'   => 'Rp ' . $this->formatRupiah($saldoAwalPeriode),
+            'formatted_total_masuk'  => '+ Rp ' . $this->formatRupiah($totalMasuk),
+            'formatted_total_keluar' => '- Rp ' . $this->formatRupiah($totalKeluar),
+            'formatted_saldo_akhir'  => 'Rp ' . $this->formatRupiah($saldoAkhirPeriode),
+            'label_saldo_awal'       => $labelAwal,
+            'label_saldo_akhir'      => $labelAkhir,
+        ];
+    }
+
+    /**
+     * Helper: Kompresi Gambar Bukti / Kuitansi Kas Masuk & Kas Keluar ke Ukuran KB (WebP/JPEG)
+     * Mengurangi ukuran foto kamera HP/struk (misal 3-10 MB) menjadi berukuran KB (~60-200 KB)
+     * dengan tetap menjaga teks dan angka bukti transaksi tajam dan terbaca jelas.
+     */
+    private function handleReceiptUpload($file, $oldPath = null): ?string
+    {
+        if (!$file || !$file->isValid()) {
+            return $oldPath;
+        }
+
+        // Hapus file lama jika ada (saat update)
+        if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        $mime = $file->getMimeType();
+        $realExt = strtolower($file->guessExtension() ?: $file->getClientOriginalExtension());
+
+        // Jika berupa dokumen PDF, verifikasi magic header %PDF-
+        if ($realExt === 'pdf' || $mime === 'application/pdf') {
+            $header = @file_get_contents($file->getRealPath(), false, null, 0, 5);
+            if ($header !== '%PDF-') {
+                throw new \InvalidArgumentException('Berkas PDF tidak valid atau rusak.');
+            }
+            $filename = 'bukti_kb_' . date('Ymd_His') . '_' . bin2hex(random_bytes(8)) . '.pdf';
+            return $file->storeAs('kas_bank_receipts', $filename, 'public');
+        }
+
+        $directory = 'kas_bank_receipts';
+        $fullDirPath = storage_path('app/public/' . $directory);
+
+        if (!file_exists($fullDirPath)) {
+            @mkdir($fullDirPath, 0755, true);
+        }
+
+        $filename = 'bukti_kb_' . date('Ymd_His') . '_' . bin2hex(random_bytes(8)) . '.webp';
+        $targetPath = $fullDirPath . '/' . $filename;
+        $relativePath = $directory . '/' . $filename;
+
+        // Cek dimensi & validitas gambar dengan getimagesize
+        $imageInfo = @getimagesize($file->getRealPath());
+        if (!$imageInfo) {
+            throw new \InvalidArgumentException('Format gambar tidak valid atau berkas rusak.');
+        }
+
+        $imageMime = $imageInfo['mime'];
+        $srcImage = null;
+
+        switch ($imageMime) {
+            case 'image/jpeg':
+            case 'image/jpg':
+                $srcImage = @imagecreatefromjpeg($file->getRealPath());
+                break;
+            case 'image/png':
+                $srcImage = @imagecreatefrompng($file->getRealPath());
+                break;
+            case 'image/webp':
+                $srcImage = @imagecreatefromwebp($file->getRealPath());
+                break;
+            case 'image/gif':
+                $srcImage = @imagecreatefromgif($file->getRealPath());
+                break;
+            default:
+                throw new \InvalidArgumentException('Tipe gambar tidak didukung untuk kompresi bukti transaksi.');
+        }
+
+        if (!$srcImage) {
+            throw new \InvalidArgumentException('Gagal memproses gambar bukti transaksi.');
+        }
+
+        // Koreksi orientasi foto smartphone via metadata EXIF agar tidak terbalik / miring
+        if (function_exists('exif_read_data') && ($imageMime === 'image/jpeg' || $imageMime === 'image/jpg')) {
+            try {
+                $exif = @exif_read_data($file->getRealPath());
+                if (!empty($exif['Orientation'])) {
+                    switch ($exif['Orientation']) {
+                        case 3:
+                            $srcImage = imagerotate($srcImage, 180, 0);
+                            break;
+                        case 6:
+                            $srcImage = imagerotate($srcImage, -90, 0);
+                            break;
+                        case 8:
+                            $srcImage = imagerotate($srcImage, 90, 0);
+                            break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore failure in reading EXIF metadata
+            }
+        }
+
+        $origWidth = imagesx($srcImage);
+        $origHeight = imagesy($srcImage);
+
+        // Resize proporsional: batas maksimal sisi terpanjang 1600px (sangat tajam untuk teks nota dan angka)
+        $maxDimension = 1600;
+        if ($origWidth > $maxDimension || $origHeight > $maxDimension) {
+            if ($origWidth >= $origHeight) {
+                $newWidth = $maxDimension;
+                $newHeight = (int) round(($origHeight / $origWidth) * $maxDimension);
+            } else {
+                $newHeight = $maxDimension;
+                $newWidth = (int) round(($origWidth / $origHeight) * $maxDimension);
+            }
+
+            $dstImage = imagecreatetruecolor($newWidth, $newHeight);
+
+            // Pertahankan transparansi bila ada (PNG/WebP)
+            imagealphablending($dstImage, false);
+            imagesavealpha($dstImage, true);
+            $transparent = imagecolorallocatealpha($dstImage, 255, 255, 255, 127);
+            imagefilledrectangle($dstImage, 0, 0, $newWidth, $newHeight, $transparent);
+
+            imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+            imagedestroy($srcImage);
+            $srcImage = $dstImage;
+        }
+
+        // Simpan kompresi berkualitas tinggi dalam format WebP (Quality 80)
+        $saved = false;
+        if (function_exists('imagewebp')) {
+            $saved = @imagewebp($srcImage, $targetPath, 80);
+        }
+
+        // Fallback JPEG jika imagewebp gagal atau tidak tersedia di modul GD
+        if (!$saved) {
+            $filename = 'bukti_kb_' . date('Ymd_His') . '_' . bin2hex(random_bytes(8)) . '.jpg';
+            $targetPath = $fullDirPath . '/' . $filename;
+            $relativePath = $directory . '/' . $filename;
+            $saved = @imagejpeg($srcImage, $targetPath, 82);
+        }
+
+        imagedestroy($srcImage);
+
+        if (!$saved || !file_exists($targetPath)) {
+            throw new \RuntimeException('Gagal menyimpan berkas gambar terkompresi.');
+        }
+
+        return $relativePath;
     }
 }

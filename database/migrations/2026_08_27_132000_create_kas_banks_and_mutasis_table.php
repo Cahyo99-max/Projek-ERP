@@ -20,8 +20,8 @@ return new class extends Migration
             $table->string('nama_bank', 100)->nullable(); // BCA, Mandiri, BRI, BNI
             $table->string('nomor_rekening', 100)->nullable();
             $table->string('atas_nama', 100)->nullable();
-            $table->decimal('saldo_awal', 18, 2)->default(0);
-            $table->decimal('saldo_berjalan', 18, 2)->default(0);
+            $table->decimal('saldo_awal', 20, 2)->default(0);
+            $table->decimal('saldo_berjalan', 20, 2)->default(0);
             $table->text('deskripsi')->nullable();
             $table->boolean('is_active')->default(true);
             $table->unsignedBigInteger('company_id')->nullable();
@@ -42,9 +42,9 @@ return new class extends Migration
             $table->unsignedBigInteger('kas_bank_id');
             $table->enum('tipe', ['Masuk', 'Keluar', 'Transfer'])->default('Masuk');
             $table->string('kategori', 100); // Pembayaran Pelanggan, Pembayaran Supplier, Operasional, Biaya Gaji, Transfer Antar Kas, dll.
-            $table->decimal('jumlah', 18, 2);
-            $table->decimal('saldo_sebelum', 18, 2)->default(0);
-            $table->decimal('saldo_sesudah', 18, 2)->default(0);
+            $table->decimal('jumlah', 20, 2);
+            $table->decimal('saldo_sebelum', 20, 2)->default(0);
+            $table->decimal('saldo_sesudah', 20, 2)->default(0);
             $table->date('tanggal');
             $table->string('nomor_referensi', 100)->nullable(); // No SO, No DO, No PO, No Invoice
             $table->string('kontak_tipe', 50)->nullable(); // Customer, Supplier, Karyawan, Umum

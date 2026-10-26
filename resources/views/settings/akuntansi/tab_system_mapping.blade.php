@@ -14,7 +14,8 @@
     @csrf
     @php
         $defaultKeys = [
-            'default_inventory' => ['label' => 'Default Persediaan Barang', 'desc' => 'Akun persediaan bawaan untuk transaksi Gudang & Purchasing'],
+            'default_inventory' => ['label' => 'Default Persediaan Barang (Bahan Baku / Produk)', 'desc' => 'Akun persediaan bawaan untuk transaksi Gudang & Purchasing'],
+            'default_wip' => ['label' => 'Default Barang Dalam Proses (WIP)', 'desc' => 'Akun penampung biaya produksi/WIP saat closing bahan baku & produksi SPK'],
             'default_cogs' => ['label' => 'Default HPP (Cost of Goods Sold)', 'desc' => 'Akun modal pokok bawaan saat penjualan/pengeluaran barang'],
             'default_sales' => ['label' => 'Default Penjualan (Revenue)', 'desc' => 'Akun pendapatan bawaan penjualan produk'],
             'default_ap' => ['label' => 'Default Utang Dagang (Accounts Payable)', 'desc' => 'Akun kewajiban utang ke supplier'],
@@ -22,6 +23,8 @@
             'default_gr_clearing' => ['label' => 'Default GR/IR Clearing (Goods Receipt)', 'desc' => 'Akun penampung penerimaan barang sebelum invoice terbit'],
             'default_stock_adjustment' => ['label' => 'Default Selisih Stok (Stock Opname)', 'desc' => 'Akun penyesuaian selisih stok opname'],
             'default_opening_balance' => ['label' => 'Default Ekuitas Saldo Awal (Modal)', 'desc' => 'Akun ekuitas/modal kredit saat konfirmasi Saldo Awal Stok'],
+            'realized_forex_gain' => ['label' => 'Keuntungan Selisih Kurs (Realized Forex Gain)', 'desc' => 'Akun pendapatan selisih kurs saat pelunasan utang/piutang valas (Pendapatan Lain-lain)'],
+            'realized_forex_loss' => ['label' => 'Kerugian Selisih Kurs (Realized Forex Loss)', 'desc' => 'Akun beban selisih kurs saat pelunasan utang/piutang valas (Beban Lain-lain)'],
         ];
 
         $freightKeys = [
@@ -41,11 +44,11 @@
                     <input type="hidden" name="mappings[{{ $key }}][group]" value="default">
                     <input type="hidden" name="mappings[{{ $key }}][mapping_key]" value="{{ $key }}">
                     <input type="hidden" name="mappings[{{ $key }}][description]" value="{{ $meta['label'] }}">
-                    <select class="form-select form-select-sm rounded-3" name="mappings[{{ $key }}][coa_id]">
+                    <select class="form-select form-select-sm rounded-3 select-system-coa" name="mappings[{{ $key }}][coa_id]">
                         <option value="">-- Pilih Akun COA --</option>
                         @foreach($detailCoas as $coa)
                             <option value="{{ $coa->id }}" {{ $sel == $coa->id ? 'selected' : '' }}>
-                                {{ $coa->code }} - {{ $coa->name }}
+                                [{{ $coa->code }}] {{ $coa->name }}
                             </option>
                         @endforeach
                     </select>
@@ -65,11 +68,11 @@
                     <input type="hidden" name="mappings[freight_{{ $key }}][group]" value="freight">
                     <input type="hidden" name="mappings[freight_{{ $key }}][mapping_key]" value="{{ $key }}">
                     <input type="hidden" name="mappings[freight_{{ $key }}][description]" value="{{ $meta['label'] }}">
-                    <select class="form-select form-select-sm rounded-3" name="mappings[freight_{{ $key }}][coa_id]">
+                    <select class="form-select form-select-sm rounded-3 select-system-coa" name="mappings[freight_{{ $key }}][coa_id]">
                         <option value="">-- Pilih Akun COA --</option>
                         @foreach($detailCoas as $coa)
                             <option value="{{ $coa->id }}" {{ $sel == $coa->id ? 'selected' : '' }}>
-                                {{ $coa->code }} - {{ $coa->name }}
+                                [{{ $coa->code }}] {{ $coa->name }}
                             </option>
                         @endforeach
                     </select>
@@ -103,20 +106,20 @@
                         <td>
                             <input type="hidden" name="mappings[{{ $keyIn }}][group]" value="tax">
                             <input type="hidden" name="mappings[{{ $keyIn }}][mapping_key]" value="{{ $keyIn }}">
-                            <select class="form-select form-select-sm rounded-2" name="mappings[{{ $keyIn }}][coa_id]">
+                            <select class="form-select form-select-sm rounded-2 select-system-coa" name="mappings[{{ $keyIn }}][coa_id]">
                                 <option value="">-- Pilih Akun PPN Masukan --</option>
                                 @foreach($detailCoas as $coa)
-                                    <option value="{{ $coa->id }}" {{ $selIn == $coa->id ? 'selected' : '' }}>{{ $coa->code }} - {{ $coa->name }}</option>
+                                    <option value="{{ $coa->id }}" {{ $selIn == $coa->id ? 'selected' : '' }}>[{{ $coa->code }}] {{ $coa->name }}</option>
                                 @endforeach
                             </select>
                         </td>
                         <td>
                             <input type="hidden" name="mappings[{{ $keyOut }}][group]" value="tax">
                             <input type="hidden" name="mappings[{{ $keyOut }}][mapping_key]" value="{{ $keyOut }}">
-                            <select class="form-select form-select-sm rounded-2" name="mappings[{{ $keyOut }}][coa_id]">
+                            <select class="form-select form-select-sm rounded-2 select-system-coa" name="mappings[{{ $keyOut }}][coa_id]">
                                 <option value="">-- Pilih Akun PPN Keluaran --</option>
                                 @foreach($detailCoas as $coa)
-                                    <option value="{{ $coa->id }}" {{ $selOut == $coa->id ? 'selected' : '' }}>{{ $coa->code }} - {{ $coa->name }}</option>
+                                    <option value="{{ $coa->id }}" {{ $selOut == $coa->id ? 'selected' : '' }}>[{{ $coa->code }}] {{ $coa->name }}</option>
                                 @endforeach
                             </select>
                         </td>
@@ -150,10 +153,10 @@
                         <td>
                             <input type="hidden" name="mappings[{{ $keyPm }}][group]" value="payment_method">
                             <input type="hidden" name="mappings[{{ $keyPm }}][mapping_key]" value="{{ $keyPm }}">
-                            <select class="form-select form-select-sm rounded-2" name="mappings[{{ $keyPm }}][coa_id]">
+                            <select class="form-select form-select-sm rounded-2 select-system-coa" name="mappings[{{ $keyPm }}][coa_id]">
                                 <option value="">-- Pilih Akun Kas / Bank --</option>
                                 @foreach($detailCoas as $coa)
-                                    <option value="{{ $coa->id }}" {{ $selPm == $coa->id ? 'selected' : '' }}>{{ $coa->code }} - {{ $coa->name }}</option>
+                                    <option value="{{ $coa->id }}" {{ $selPm == $coa->id ? 'selected' : '' }}>[{{ $coa->code }}] {{ $coa->name }}</option>
                                 @endforeach
                             </select>
                         </td>
@@ -193,11 +196,11 @@
                     <input type="hidden" name="mappings[wt_{{ $key }}][group]" value="{{ $meta['group'] }}">
                     <input type="hidden" name="mappings[wt_{{ $key }}][mapping_key]" value="{{ $key }}">
                     <input type="hidden" name="mappings[wt_{{ $key }}][description]" value="{{ $meta['label'] }}">
-                    <select class="form-select form-select-sm rounded-3" name="mappings[wt_{{ $key }}][coa_id]">
+                    <select class="form-select form-select-sm rounded-3 select-system-coa" name="mappings[wt_{{ $key }}][coa_id]">
                         <option value="">{{ $meta['placeholder'] }}</option>
                         @foreach($detailCoas as $coa)
                             <option value="{{ $coa->id }}" {{ $sel == $coa->id ? 'selected' : '' }}>
-                                {{ $coa->code }} - {{ $coa->name }}
+                                [{{ $coa->code }}] {{ $coa->name }}
                             </option>
                         @endforeach
                     </select>

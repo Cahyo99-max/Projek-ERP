@@ -49,17 +49,28 @@ class StockOpname extends Model
             if (auth()->check()) {
                 $model->created_by = auth()->id();
             }
-            if (empty($model->company_id) && session()->has('active_company_id')) {
-                $model->company_id = session('active_company_id');
-            }
-            if (empty($model->branch_id) && session()->has('active_branch_id')) {
-                $model->branch_id = session('active_branch_id');
+
+            $branchId  = $model->branch_id ?: session('active_branch_id');
+            $companyId = $model->company_id ?: session('active_company_id');
+
+            if (!empty($branchId)) {
+                $model->branch_id  = $branchId;
+                $model->company_id = null;
+            } else {
+                $model->branch_id  = null;
+                $model->company_id = $companyId;
             }
         });
 
         static::updating(function ($model) {
             if (auth()->check()) {
                 $model->updated_by = auth()->id();
+            }
+
+            if (!empty($model->branch_id)) {
+                $model->company_id = null;
+            } else if (!empty($model->company_id)) {
+                $model->branch_id = null;
             }
         });
 
@@ -75,8 +86,19 @@ class StockOpname extends Model
     public function scopeForActiveCompany($query)
     {
         $activeCompanyId = session('active_company_id');
-        if ($activeCompanyId) {
-            return $query->where($this->getTable() . '.company_id', $activeCompanyId);
+        $activeBranchId  = session('active_branch_id');
+
+        if (!empty($activeBranchId)) {
+            return $query;
+        }
+
+        if (!empty($activeCompanyId)) {
+            return $query->where(function ($q) use ($activeCompanyId) {
+                $q->where($this->getTable() . '.company_id', $activeCompanyId)
+                  ->orWhereHas('gudang', function ($sq) use ($activeCompanyId) {
+                      $sq->where('company_id', $activeCompanyId);
+                  });
+            });
         }
         return $query;
     }
@@ -84,7 +106,7 @@ class StockOpname extends Model
     public function scopeForActiveBranch($query)
     {
         $activeBranchId = session('active_branch_id');
-        if ($activeBranchId) {
+        if (!empty($activeBranchId)) {
             return $query->where($this->getTable() . '.branch_id', $activeBranchId);
         } else {
             return $query->whereNull($this->getTable() . '.branch_id');

@@ -1,0 +1,2154 @@
+/* ==========================================================================
+   MODUL SMD / MARKETING - MANAJEMEN PROYEK TENDER & KONTRAK
+   Modern Cinematic & Dual Theme (Light / Dark Mode) Stylesheet
+   ========================================================================== */
+
+:root {
+    --tender-bg-surface: #ffffff;
+    --tender-border: #e2e8f0;
+    --tender-text-main: #1e293b;
+    --tender-text-muted: #64748b;
+    --tender-primary: #10b981;
+    --tender-primary-hover: #059669;
+}
+
+[data-bs-theme="dark"],
+.dark,
+body.dark-mode {
+    --tender-bg-surface: #1e293b;
+    --tender-border: rgba(255, 255, 255, 0.09);
+    --tender-text-main: #f8fafc;
+    --tender-text-muted: #94a3b8;
+}
+
+/* ==========================================================================
+   1. FROSTED GLASS KPI METRICS CARDS
+   ========================================================================== */
+.tender-kpi-card {
+    background: var(--tender-bg-surface);
+    border: 1px solid var(--tender-border);
+    border-radius: 18px;
+    padding: 1.25rem 1.4rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+[data-bs-theme="dark"] .tender-kpi-card,
+.dark .tender-kpi-card,
+body.dark-mode .tender-kpi-card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+}
+
+.tender-kpi-card:hover {
+    transform: translateY(-3px);
+    border-color: #10b981;
+    box-shadow: 0 12px 30px rgba(16, 185, 129, 0.12);
+}
+
+.tender-kpi-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   2. VIEW SWITCHER PILLS (KANBAN / TABLE)
+   ========================================================================== */
+.tender-view-pills {
+    background: rgba(0, 0, 0, 0.04);
+    padding: 4px;
+    border-radius: 14px;
+    display: inline-flex;
+    border: 1px solid var(--tender-border);
+}
+
+[data-bs-theme="dark"] .tender-view-pills,
+.dark .tender-view-pills,
+body.dark-mode .tender-view-pills {
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.tender-view-btn {
+    border: none;
+    background: transparent;
+    color: var(--tender-text-muted);
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.tender-view-btn.active {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+/* ==========================================================================
+   3. KANBAN PIPELINE BOARD & CARDS
+   ========================================================================== */
+.kanban-board-wrapper {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 20px;
+    scrollbar-width: thin;
+    min-height: 550px;
+}
+
+.kanban-column {
+    flex: 0 0 320px;
+    background: rgba(241, 245, 249, 0.6);
+    border: 1px solid var(--tender-border);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 260px);
+}
+
+[data-bs-theme="dark"] .kanban-column,
+.dark .kanban-column,
+body.dark-mode .kanban-column {
+    background: rgba(15, 23, 42, 0.5);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+.kanban-col-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--tender-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.kanban-col-body {
+    padding: 12px;
+    overflow-y: auto;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scrollbar-width: thin;
+}
+
+.kanban-card {
+    background: var(--tender-bg-surface);
+    border: 1px solid var(--tender-border);
+    border-radius: 14px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+[data-bs-theme="dark"] .kanban-card,
+.dark .kanban-card,
+body.dark-mode .kanban-card {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.kanban-card:hover {
+    transform: translateY(-3px) scale(1.01);
+    border-color: #10b981;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.18);
+}
+
+.kanban-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--tender-text-main);
+    margin-bottom: 6px;
+}
+
+.kanban-card-value {
+    font-size: 1.05rem;
+    font-weight: 800;
+    font-family: var(--bs-font-monospace);
+}
+
+/* ==========================================================================
+   4. PRIORITY & ENTITAS & KATEGORI BADGES
+   ========================================================================== */
+/* Priority Dot Badges */
+.badge-priority-high {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-priority-medium {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-priority-low {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* Contract Badge */
+.badge-kontrak-tender {
+    background: rgba(37, 99, 235, 0.08);
+    color: #2563eb;
+    border: 1px solid rgba(37, 99, 235, 0.25);
+    font-family: var(--bs-font-monospace);
+    font-size: 0.74rem;
+    padding: 5px 10px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.badge-kontrak-tender:hover {
+    background: #2563eb;
+    color: #ffffff !important;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+}
+
+[data-bs-theme="dark"] .badge-kontrak-tender,
+.dark .badge-kontrak-tender,
+body.dark-mode .badge-kontrak-tender {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border-color: rgba(147, 197, 253, 0.3);
+}
+
+[data-bs-theme="dark"] .badge-kontrak-tender:hover,
+.dark .badge-kontrak-tender:hover,
+body.dark-mode .badge-kontrak-tender:hover {
+    background: #3b82f6;
+    color: #ffffff !important;
+    box-shadow: 0 3px 10px rgba(59, 130, 246, 0.35);
+}
+
+/* Entitas Badges (Cabang vs PT Pusat) */
+.badge-entitas-cabang {
+    background: rgba(245, 158, 11, 0.12) !important;
+    color: #b45309 !important;
+    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+[data-bs-theme="dark"] .badge-entitas-cabang,
+.dark .badge-entitas-cabang,
+body.dark-mode .badge-entitas-cabang {
+    background: rgba(245, 158, 11, 0.22) !important;
+    color: #fcd34d !important;
+    border-color: rgba(251, 191, 36, 0.35) !important;
+}
+
+.badge-entitas-pt {
+    background: rgba(99, 102, 241, 0.1) !important;
+    color: #4f46e5 !important;
+    border: 1px solid rgba(99, 102, 241, 0.25) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+[data-bs-theme="dark"] .badge-entitas-pt,
+.dark .badge-entitas-pt,
+body.dark-mode .badge-entitas-pt {
+    background: rgba(99, 102, 241, 0.22) !important;
+    color: #c7d2fe !important;
+    border-color: rgba(165, 180, 252, 0.35) !important;
+}
+
+/* Category Badges */
+.badge-kategori-b2g {
+    background: rgba(14, 165, 233, 0.12);
+    color: #0284c7;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+[data-bs-theme="dark"] .badge-kategori-b2g,
+.dark .badge-kategori-b2g,
+body.dark-mode .badge-kategori-b2g {
+    background: rgba(14, 165, 233, 0.2);
+    color: #7dd3fc;
+    border-color: rgba(56, 189, 248, 0.35);
+}
+
+.badge-kategori-tni {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+[data-bs-theme="dark"] .badge-kategori-tni,
+.dark .badge-kategori-tni,
+body.dark-mode .badge-kategori-tni {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+    border-color: rgba(52, 211, 153, 0.35);
+}
+
+.badge-kategori-bumn {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+[data-bs-theme="dark"] .badge-kategori-bumn,
+.dark .badge-kategori-bumn,
+body.dark-mode .badge-kategori-bumn {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+    border-color: rgba(251, 191, 36, 0.35);
+}
+
+.badge-kategori-b2b {
+    background: rgba(168, 85, 247, 0.12);
+    color: #9333ea;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+[data-bs-theme="dark"] .badge-kategori-b2b,
+.dark .badge-kategori-b2b,
+body.dark-mode .badge-kategori-b2b {
+    background: rgba(168, 85, 247, 0.2);
+    color: #d8b4fe;
+    border-color: rgba(192, 132, 252, 0.35);
+}
+
+/* Category Filter Chips in Lookup Modal */
+.btn-kategori-tender-chip {
+    border: 1px solid var(--tender-border);
+    color: var(--tender-text-muted);
+    background: transparent;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.btn-kategori-tender-chip:hover {
+    border-color: #10b981;
+    color: #10b981;
+}
+
+.btn-kategori-tender-chip.active {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.35);
+}
+
+/* ==========================================================================
+   5. TABLE & DATATABLES CINEMATIC STYLING
+   ========================================================================== */
+.tender-table-card {
+    background: var(--tender-bg-surface);
+    border: 1px solid var(--tender-border);
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+}
+
+[data-bs-theme="dark"] .tender-table-card,
+.dark .tender-table-card,
+body.dark-mode .tender-table-card {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+.tender-table-header {
+    background: #f8fafc;
+    border-bottom: 1px solid var(--tender-border);
+    padding: 1.25rem 1.5rem;
+}
+
+[data-bs-theme="dark"] .tender-table-header,
+.dark .tender-table-header,
+body.dark-mode .tender-table-header {
+    background: rgba(15, 23, 42, 0.65);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   5.1 MODERN FILTER CONTROLS & DROPDOWNS (CINEMATIC DUAL-THEME)
+   ========================================================================== */
+.tender-filter-box {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    border-radius: 12px;
+    padding: 5px 12px;
+    transition: all 0.2s ease;
+}
+
+.tender-filter-box:focus-within {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+[data-bs-theme="dark"] .tender-filter-box,
+.dark .tender-filter-box,
+body.dark-mode .tender-filter-box {
+    background: #0f172a;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f8fafc;
+}
+
+[data-bs-theme="dark"] .tender-filter-box:focus-within,
+.dark .tender-filter-box:focus-within,
+body.dark-mode .tender-filter-box:focus-within {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+}
+
+/* Quick Filter Pills Group */
+.tender-filter-pills-group {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--tender-border);
+    padding: 3px;
+    border-radius: 13px;
+    gap: 3px;
+}
+
+[data-bs-theme="dark"] .tender-filter-pills-group,
+.dark .tender-filter-pills-group,
+body.dark-mode .tender-filter-pills-group {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.tender-quick-filter-btn {
+    border: none;
+    background: transparent;
+    color: var(--tender-text-muted);
+    padding: 5px 11px;
+    border-radius: 9px;
+    font-weight: 700;
+    font-size: 0.76rem;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.tender-quick-filter-btn:hover {
+    color: var(--tender-text-main);
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-bs-theme="dark"] .tender-quick-filter-btn:hover,
+.dark .tender-quick-filter-btn:hover,
+body.dark-mode .tender-quick-filter-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #f8fafc;
+}
+
+.tender-quick-filter-btn.active {
+    background: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
+/* Modern Filter Pill Buttons (Dropdown Trigger) */
+.tender-modern-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--tender-text-main);
+    background: #ffffff;
+    border: 1px solid var(--tender-border);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    text-decoration: none;
+    user-select: none;
+}
+
+.tender-modern-filter-btn::after {
+    display: none !important;
+}
+
+.tender-modern-filter-btn .chevron-icon {
+    font-size: 0.72rem;
+    opacity: 0.6;
+    transition: transform 0.2s ease;
+}
+
+.tender-modern-filter-btn:hover {
+    border-color: #10b981;
+    color: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.12);
+}
+
+.dropdown.show .tender-modern-filter-btn,
+.tender-modern-filter-btn.active-filtered {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.dropdown.show .tender-modern-filter-btn .chevron-icon {
+    transform: rotate(180deg);
+}
+
+[data-bs-theme="dark"] .tender-modern-filter-btn,
+.dark .tender-modern-filter-btn,
+body.dark-mode .tender-modern-filter-btn {
+    background: rgba(15, 23, 42, 0.75);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f8fafc;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+[data-bs-theme="dark"] .tender-modern-filter-btn:hover,
+.dark .tender-modern-filter-btn:hover,
+body.dark-mode .tender-modern-filter-btn:hover {
+    border-color: #10b981;
+    color: #34d399;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
+}
+
+[data-bs-theme="dark"] .dropdown.show .tender-modern-filter-btn,
+.dark .dropdown.show .tender-modern-filter-btn,
+body.dark-mode .dropdown.show .tender-modern-filter-btn,
+[data-bs-theme="dark"] .tender-modern-filter-btn.active-filtered,
+.dark .tender-modern-filter-btn.active-filtered,
+body.dark-mode .tender-modern-filter-btn.active-filtered {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+}
+
+/* Custom Glassmorphic Dropdown Menu */
+.tender-custom-dropdown-menu {
+    border-radius: 16px !important;
+    padding: 8px !important;
+    min-width: 250px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.12), 0 0 15px rgba(0, 0, 0, 0.04) !important;
+    margin-top: 6px !important;
+    animation: tenderDropdownSlideIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-bs-theme="dark"] .tender-custom-dropdown-menu,
+.dark .tender-custom-dropdown-menu,
+body.dark-mode .tender-custom-dropdown-menu {
+    background: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 20px 45px -5px rgba(0, 0, 0, 0.65), 0 0 25px rgba(16, 185, 129, 0.08) !important;
+}
+
+@keyframes tenderDropdownSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.tender-custom-dropdown-menu .dropdown-header {
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.08em !important;
+    padding: 6px 12px 6px 12px !important;
+    color: var(--tender-text-muted) !important;
+}
+
+.tender-custom-dropdown-menu .dropdown-divider {
+    margin: 4px 0 !important;
+    border-color: var(--tender-border) !important;
+}
+
+.tender-filter-item {
+    border-radius: 10px !important;
+    padding: 7px 12px !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    color: var(--tender-text-main) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    transition: all 0.15s ease !important;
+    cursor: pointer !important;
+}
+
+.tender-filter-item:hover {
+    background: rgba(16, 185, 129, 0.08) !important;
+    color: #10b981 !important;
+    transform: translateX(2px);
+}
+
+[data-bs-theme="dark"] .tender-filter-item,
+.dark .tender-filter-item,
+body.dark-mode .tender-filter-item {
+    color: #f8fafc !important;
+}
+
+[data-bs-theme="dark"] .tender-filter-item:hover,
+.dark .tender-filter-item:hover,
+body.dark-mode .tender-filter-item:hover {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #34d399 !important;
+}
+
+.tender-filter-item.active {
+    background: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
+}
+
+.tender-filter-item .check-icon {
+    display: none;
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.tender-filter-item.active .check-icon {
+    display: inline-block !important;
+}
+
+/* Reset Filter Button */
+.btn-tender-filter-reset {
+    border-radius: 11px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+}
+
+.btn-tender-filter-reset:hover {
+    background: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Status Indicator Dots */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.dot-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.dot-draft { background: #94a3b8; box-shadow: 0 0 6px rgba(148, 163, 184, 0.6); }
+.dot-review { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.6); }
+.dot-approved { background: #3b82f6; box-shadow: 0 0 6px rgba(59, 130, 246, 0.6); }
+.dot-rejected { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+.dot-sent { background: #06b6d4; box-shadow: 0 0 6px rgba(6, 182, 212, 0.6); }
+.dot-negotiation { background: #8b5cf6; box-shadow: 0 0 6px rgba(139, 92, 246, 0.6); }
+.dot-won { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6); }
+.dot-lost { background: #dc2626; box-shadow: 0 0 6px rgba(220, 38, 38, 0.6); }
+
+/* Global Native Select Option Dark Theme Fix */
+[data-bs-theme="dark"] select option,
+.dark select option,
+body.dark-mode select option {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+}
+
+.tender-table-wrapper {
+    padding: 1.25rem 1.5rem 1.5rem 1.5rem;
+}
+
+.tender-table-inner {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+[data-bs-theme="dark"] .tender-table-inner,
+.dark .tender-table-inner,
+body.dark-mode .tender-table-inner {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: #1e293b;
+}
+
+/* Modern Table Aesthetics */
+.tender-modern-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: 100% !important;
+    margin-bottom: 0 !important;
+}
+
+.tender-modern-table thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    font-size: 0.73rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    padding: 0.95rem 1rem !important;
+    border-top: none !important;
+    border-bottom: 1.5px solid #e2e8f0 !important;
+    white-space: nowrap !important;
+}
+
+[data-bs-theme="dark"] .tender-modern-table thead th,
+.dark .tender-modern-table thead th,
+body.dark-mode .tender-modern-table thead th {
+    background: #0f172a !important;
+    color: #94a3b8 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.tender-modern-table tbody tr {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    background: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .tender-modern-table tbody tr,
+.dark .tender-modern-table tbody tr,
+body.dark-mode .tender-modern-table tbody tr {
+    background: #1e293b !important;
+}
+
+.tender-modern-table tbody tr:hover {
+    background: rgba(16, 185, 129, 0.04) !important;
+}
+
+[data-bs-theme="dark"] .tender-modern-table tbody tr:hover,
+.dark .tender-modern-table tbody tr:hover,
+body.dark-mode .tender-modern-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.035) !important;
+}
+
+.tender-modern-table tbody td {
+    padding: 1rem 1rem !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    border-top: none !important;
+    color: #1e293b;
+}
+
+[data-bs-theme="dark"] .tender-modern-table tbody td,
+.dark .tender-modern-table tbody td,
+body.dark-mode .tender-modern-table tbody td {
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    color: #f8fafc;
+}
+
+.table-no-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 800;
+    font-family: var(--bs-font-monospace);
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+}
+
+[data-bs-theme="dark"] .table-no-badge,
+.dark .table-no-badge,
+body.dark-mode .table-no-badge {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+}
+
+/* Action Buttons */
+.btn-table-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid transparent;
+}
+
+.btn-table-action:hover {
+    transform: translateY(-2px) scale(1.08);
+}
+
+.btn-action-print {
+    background: rgba(6, 182, 212, 0.12);
+    color: #0891b2;
+    border-color: rgba(6, 182, 212, 0.25);
+}
+
+.btn-action-print:hover {
+    background: #0891b2;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(8, 145, 178, 0.35);
+}
+
+[data-bs-theme="dark"] .btn-action-print,
+.dark .btn-action-print,
+body.dark-mode .btn-action-print {
+    background: rgba(6, 182, 212, 0.18);
+    color: #67e8f9;
+    border-color: rgba(103, 232, 249, 0.25);
+}
+
+[data-bs-theme="dark"] .btn-action-print:hover,
+.dark .btn-action-print:hover,
+body.dark-mode .btn-action-print:hover {
+    background: #06b6d4;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+}
+
+.btn-action-view {
+    background: rgba(59, 130, 246, 0.12);
+    color: #2563eb;
+    border-color: rgba(59, 130, 246, 0.25);
+}
+
+.btn-action-view:hover {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+[data-bs-theme="dark"] .btn-action-view,
+.dark .btn-action-view,
+body.dark-mode .btn-action-view {
+    background: rgba(59, 130, 246, 0.18);
+    color: #93c5fd;
+    border-color: rgba(147, 197, 253, 0.25);
+}
+
+[data-bs-theme="dark"] .btn-action-view:hover,
+.dark .btn-action-view:hover,
+body.dark-mode .btn-action-view:hover {
+    background: #3b82f6;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-action-edit {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+    border-color: rgba(245, 158, 11, 0.25);
+}
+
+.btn-action-edit:hover {
+    background: #d97706;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+}
+
+[data-bs-theme="dark"] .btn-action-edit,
+.dark .btn-action-edit,
+body.dark-mode .btn-action-edit {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fcd34d;
+    border-color: rgba(252, 211, 77, 0.25);
+}
+
+[data-bs-theme="dark"] .btn-action-edit:hover,
+.dark .btn-action-edit:hover,
+body.dark-mode .btn-action-edit:hover {
+    background: #f59e0b;
+    color: #0f172a;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+/* DataTables Controls Integration */
+.dataTables_wrapper {
+    padding: 0 !important;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 1.1rem;
+}
+
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_filter label {
+    color: var(--tender-text-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dataTables_wrapper .dataTables_length select {
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    padding: 6px 30px 6px 12px !important;
+    font-size: 0.82rem !important;
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    outline: none !important;
+}
+
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_length select,
+.dark .dataTables_wrapper .dataTables_length select,
+body.dark-mode .dataTables_wrapper .dataTables_length select {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+    padding: 7px 16px !important;
+    font-size: 0.82rem !important;
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    outline: none !important;
+    min-width: 220px;
+    transition: all 0.2s ease !important;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18) !important;
+}
+
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_filter input,
+.dark .dataTables_wrapper .dataTables_filter input,
+body.dark-mode .dataTables_wrapper .dataTables_filter input {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_filter input:focus,
+.dark .dataTables_wrapper .dataTables_filter input:focus,
+body.dark-mode .dataTables_wrapper .dataTables_filter input:focus {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+}
+
+.dataTables_wrapper .dataTables_info {
+    color: var(--tender-text-muted) !important;
+    font-size: 0.82rem !important;
+    padding-top: 1.1rem !important;
+    font-weight: 500 !important;
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    padding-top: 1rem !important;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 10px !important;
+    border: 1px solid #e2e8f0 !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    padding: 6px 14px !important;
+    color: #64748b !important;
+    background: #ffffff !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    border-color: #cbd5e1 !important;
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+}
+
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button,
+.dark .dataTables_wrapper .dataTables_paginate .paginate_button,
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    background: #0f172a !important;
+    color: #94a3b8 !important;
+}
+
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button:hover,
+.dark .dataTables_wrapper .dataTables_paginate .paginate_button:hover,
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    background: #1e293b !important;
+    color: #f8fafc !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.35) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+    background: transparent !important;
+    border-color: transparent !important;
+}
+
+.dataTables_wrapper .dataTables_processing {
+    display: none !important;
+}
+
+/* ==========================================================================
+   6. MODAL SIZING & GLOBAL DIALOGS
+   ========================================================================== */
+.modal-custom-xl {
+    max-width: 1540px !important;
+    width: 96vw !important;
+}
+
+.modal-custom-xxl {
+    max-width: 1580px !important;
+    width: 96vw !important;
+}
+
+@media (min-width: 1600px) {
+    .modal-custom-xl {
+        max-width: 1580px !important;
+    }
+    .modal-custom-xxl {
+        max-width: 1640px !important;
+    }
+}
+
+/* Nav Tabs in Modals */
+.nav-tabs-custom .nav-link {
+    border: none;
+    color: var(--tender-text-muted);
+    font-weight: 700;
+    padding: 0.75rem 1.25rem;
+    position: relative;
+    background: transparent;
+    transition: all 0.2s ease;
+}
+
+.nav-tabs-custom .nav-link.active {
+    color: #10b981;
+    background: transparent;
+}
+
+.nav-tabs-custom .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #10b981;
+    border-radius: 3px;
+}
+
+/* ==========================================================================
+   7. CUSTOMER LOOKUP MODAL
+   ========================================================================== */
+.modal-customer-cinematic {
+    border-radius: 24px !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25) !important;
+}
+
+[data-bs-theme="dark"] .modal-customer-cinematic,
+.dark .modal-customer-cinematic,
+body.dark-mode .modal-customer-cinematic {
+    background: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6) !important;
+}
+
+.customer-lookup-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 12px 16px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    position: relative;
+}
+
+.customer-lookup-card.is-hidden {
+    display: none !important;
+}
+
+.customer-lookup-card:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.03);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.1);
+}
+
+[data-bs-theme="dark"] .customer-lookup-card,
+.dark .customer-lookup-card,
+body.dark-mode .customer-lookup-card {
+    background: rgba(15, 23, 42, 0.5);
+    border-color: rgba(255, 255, 255, 0.07);
+}
+
+[data-bs-theme="dark"] .customer-lookup-card:hover,
+.dark .customer-lookup-card:hover,
+body.dark-mode .customer-lookup-card:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+}
+
+.customer-avatar-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.92rem;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.25) 100%);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+[data-bs-theme="dark"] .customer-avatar-badge,
+.dark .customer-avatar-badge,
+body.dark-mode .customer-avatar-badge {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(29, 78, 216, 0.3) 100%);
+    color: #93c5fd;
+    border-color: rgba(147, 197, 253, 0.25);
+}
+
+.customer-lookup-scroll {
+    max-height: 440px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(150, 150, 150, 0.3) transparent;
+}
+
+.customer-lookup-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.customer-lookup-scroll::-webkit-scrollbar-thumb {
+    background: rgba(150, 150, 150, 0.3);
+    border-radius: 10px;
+}
+
+/* ==========================================================================
+   8. FORM, INPUTS & MODAL TABS (TAMBAH & EDIT MODALS)
+   ========================================================================== */
+.tender-modal-content {
+    border-radius: 24px !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25) !important;
+    transition: all 0.3s ease;
+}
+
+.tender-modal-title {
+    color: #0f172a !important;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.tender-modal-subtitle {
+    color: #64748b !important;
+}
+
+/* Cinematic Segmented Navigation Tabs */
+.tender-tabs-container {
+    background: #f1f5f9 !important;
+    padding: 6px;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.tender-tabs-container::-webkit-scrollbar {
+    display: none;
+}
+
+.tender-nav-pills {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-bottom: 0;
+}
+
+.tender-nav-pills .nav-item {
+    flex: 1 1 0;
+    min-width: max-content;
+}
+
+.tender-nav-pills .tender-tab-btn {
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.84rem;
+    color: #64748b !important;
+    padding: 10px 18px;
+    border: none;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+}
+
+.tender-nav-pills .tender-tab-btn:hover {
+    color: #0f172a !important;
+    background: rgba(255, 255, 255, 0.7);
+    transform: translateY(-1px);
+}
+
+.tender-nav-pills .tender-tab-btn.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35) !important;
+}
+
+/* Section Form Cards */
+.tender-form-card {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 18px !important;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.tender-form-card:hover {
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+}
+
+.tender-card-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tender-form-label {
+    color: #334155 !important;
+    font-weight: 600;
+    font-size: 0.82rem;
+    margin-bottom: 5px;
+}
+
+.tender-input {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    transition: all 0.2s ease;
+}
+
+.tender-input:focus {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
+}
+
+.tender-input-addon {
+    background: #f1f5f9 !important;
+    color: #10b981 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 10px 0 0 10px !important;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+/* Modal Table & Dynamic Items Styling */
+.tender-table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.tender-table-responsive::-webkit-scrollbar {
+    height: 6px;
+}
+
+.tender-table-responsive::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.25);
+    border-radius: 10px;
+}
+
+.tender-modal-table {
+    min-width: 780px !important;
+}
+
+.tender-modal-table thead th {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #64748b;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.tender-modal-table tbody tr {
+    transition: background-color 0.15s ease;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.tender-modal-table tbody tr:hover {
+    background-color: rgba(241, 245, 249, 0.6);
+}
+
+.tender-modal-doc-table {
+    min-width: 520px !important;
+}
+
+.tender-modal-doc-table thead th {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #64748b;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.tender-product-img-frame {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(100, 116, 139, 0.08);
+    border: 1px solid rgba(100, 116, 139, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tender-product-img-frame:hover {
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Modal Footer */
+.tender-modal-footer {
+    border-top: 1px solid #e2e8f0 !important;
+    background: var(--tender-bg-surface);
+    padding: 1.25rem 1.5rem !important;
+    border-bottom-left-radius: 24px;
+    border-bottom-right-radius: 24px;
+}
+
+.btn-tender-cancel {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-tender-cancel:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* ==========================================================================
+   9. DARK THEME FORM & MODAL OVERRIDES
+   ========================================================================== */
+[data-bs-theme="dark"] .tender-modal-content,
+.dark .tender-modal-content,
+body.dark-mode .tender-modal-content {
+    background: radial-gradient(130% 120% at 50% 0%, #1e293b 0%, #0f172a 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(16, 185, 129, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .tender-modal-title,
+.dark .tender-modal-title,
+body.dark-mode .tender-modal-title {
+    color: #f8fafc !important;
+}
+
+[data-bs-theme="dark"] .tender-modal-subtitle,
+.dark .tender-modal-subtitle,
+body.dark-mode .tender-modal-subtitle {
+    color: #94a3b8 !important;
+}
+
+[data-bs-theme="dark"] .tender-tabs-container,
+.dark .tender-tabs-container,
+body.dark-mode .tender-tabs-container {
+    background: rgba(15, 23, 42, 0.85) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .tender-nav-pills .tender-tab-btn,
+.dark .tender-nav-pills .tender-tab-btn,
+body.dark-mode .tender-nav-pills .tender-tab-btn {
+    color: #94a3b8 !important;
+}
+
+[data-bs-theme="dark"] .tender-nav-pills .tender-tab-btn:hover,
+.dark .tender-nav-pills .tender-tab-btn:hover,
+body.dark-mode .tender-nav-pills .tender-tab-btn:hover {
+    color: #f8fafc !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-bs-theme="dark"] .tender-nav-pills .tender-tab-btn.active,
+.dark .tender-nav-pills .tender-tab-btn.active,
+body.dark-mode .tender-nav-pills .tender-tab-btn.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.45) !important;
+}
+
+[data-bs-theme="dark"] .tender-form-card,
+.dark .tender-form-card,
+body.dark-mode .tender-form-card {
+    background: rgba(30, 41, 59, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(14px);
+}
+
+[data-bs-theme="dark"] .tender-form-card:hover,
+.dark .tender-form-card:hover,
+body.dark-mode .tender-form-card:hover {
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+}
+
+[data-bs-theme="dark"] .tender-form-label,
+.dark .tender-form-label,
+body.dark-mode .tender-form-label {
+    color: #e2e8f0 !important;
+}
+
+[data-bs-theme="dark"] .tender-input,
+.dark .tender-input,
+body.dark-mode .tender-input {
+    background: #0f172a !important;
+    color: #f8fafc !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+[data-bs-theme="dark"] .tender-input:focus,
+.dark .tender-input:focus,
+body.dark-mode .tender-input:focus {
+    background: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3) !important;
+}
+
+[data-bs-theme="dark"] .tender-input-addon,
+.dark .tender-input-addon,
+body.dark-mode .tender-input-addon {
+    background: #1e293b !important;
+    color: #34d399 !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+[data-bs-theme="dark"] .tender-table-responsive,
+.dark .tender-table-responsive,
+body.dark-mode .tender-table-responsive {
+    background: rgba(15, 23, 42, 0.4);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-bs-theme="dark"] .tender-table-responsive::-webkit-scrollbar-thumb,
+.dark .tender-table-responsive::-webkit-scrollbar-thumb,
+body.dark-mode .tender-table-responsive::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+[data-bs-theme="dark"] .tender-modal-table thead th,
+.dark .tender-modal-table thead th,
+body.dark-mode .tender-modal-table thead th,
+[data-bs-theme="dark"] .tender-modal-doc-table thead th,
+.dark .tender-modal-doc-table thead th,
+body.dark-mode .tender-modal-doc-table thead th {
+    color: #94a3b8;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-bs-theme="dark"] .tender-modal-table tbody tr,
+.dark .tender-modal-table tbody tr,
+body.dark-mode .tender-modal-table tbody tr {
+    border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-bs-theme="dark"] .tender-modal-table tbody tr:hover,
+.dark .tender-modal-table tbody tr:hover,
+body.dark-mode .tender-modal-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-bs-theme="dark"] .tender-product-img-frame,
+.dark .tender-product-img-frame,
+body.dark-mode .tender-product-img-frame {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-bs-theme="dark"] .tender-modal-footer,
+.dark .tender-modal-footer,
+body.dark-mode .tender-modal-footer {
+    border-top-color: rgba(255, 255, 255, 0.08) !important;
+    background: #0f172a !important;
+}
+
+[data-bs-theme="dark"] .btn-tender-cancel,
+.dark .btn-tender-cancel,
+body.dark-mode .btn-tender-cancel {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #cbd5e1 !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-bs-theme="dark"] .btn-tender-cancel:hover,
+.dark .btn-tender-cancel:hover,
+body.dark-mode .btn-tender-cancel:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #f8fafc !important;
+}
+
+/* Edit Modal Distinct Accent Overrides (Amber Glow) */
+[data-bs-theme="dark"] #modalEditTender .tender-modal-content,
+.dark #modalEditTender .tender-modal-content,
+body.dark-mode #modalEditTender .tender-modal-content {
+    background: radial-gradient(130% 120% at 50% 0%, #1e293b 0%, #0f172a 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(245, 158, 11, 0.08) !important;
+}
+
+[data-bs-theme="dark"] #modalEditTender .tender-nav-pills .tender-tab-btn.active,
+.dark #modalEditTender .tender-nav-pills .tender-tab-btn.active,
+body.dark-mode #modalEditTender .tender-nav-pills .tender-tab-btn.active {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.45) !important;
+}
+
+/* Glow Tags */
+.glow-tag-indigo {
+    color: #818cf8 !important;
+    background: rgba(99, 102, 241, 0.12);
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.glow-tag-emerald {
+    color: #34d399 !important;
+    background: rgba(16, 185, 129, 0.12);
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.glow-tag-amber {
+    color: #fbbf24 !important;
+    background: rgba(245, 158, 11, 0.12);
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.glow-tag-purple {
+    color: #c084fc !important;
+    background: rgba(168, 85, 247, 0.12);
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+/* ==========================================================================
+   10. MODAL DETAIL TENDER (CINEMATIC DUAL-THEME)
+   ========================================================================== */
+.tender-modal-cinematic {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.15), 0 0 30px rgba(59, 130, 246, 0.06) !important;
+    color: #0f172a !important;
+}
+
+.tender-modal-cinematic .modal-header,
+.tender-modal-cinematic .modal-footer {
+    background: #ffffff !important;
+    border-color: #f1f5f9 !important;
+}
+
+.tender-banner-cinematic {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 18px !important;
+}
+
+.tender-banner-cinematic h3,
+.tender-banner-cinematic .tender-title {
+    color: #0f172a !important;
+}
+
+.tender-banner-cinematic .tender-customer-text {
+    color: #334155 !important;
+}
+
+.tender-card-metric {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    padding: 16px 20px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+    transition: all 0.25s ease;
+}
+
+.tender-card-metric:hover {
+    transform: translateY(-2px);
+    border-color: #93c5fd !important;
+    box-shadow: 0 8px 24px -4px rgba(59, 130, 246, 0.12) !important;
+}
+
+.tender-card-metric .metric-label {
+    color: #64748b !important;
+}
+
+.tender-card-metric .metric-value {
+    color: #0f172a !important;
+}
+
+.tender-workflow-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+}
+
+.tender-pagu-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.tender-rab-table-cinematic {
+    background: #ffffff !important;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.tender-rab-table-cinematic th {
+    background: #f8fafc !important;
+    text-transform: uppercase;
+    font-size: 0.73rem;
+    letter-spacing: 0.06em;
+    padding: 14px 16px;
+    color: #475569 !important;
+    font-weight: 700;
+    border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.tender-rab-table-cinematic td {
+    padding: 14px 16px;
+    color: #1e293b !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    background: transparent !important;
+}
+
+.tender-rab-table-cinematic tr:hover td {
+    background: #f8fafc !important;
+}
+
+/* Detail Dark Mode */
+[data-bs-theme="dark"] .tender-modal-cinematic,
+.dark .tender-modal-cinematic,
+body.dark-mode .tender-modal-cinematic {
+    background: radial-gradient(120% 120% at 50% 0%, #171f2e 0%, #0d121c 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(59, 130, 246, 0.12) !important;
+    color: #f8fafc !important;
+}
+
+[data-bs-theme="dark"] .tender-modal-cinematic .modal-header,
+[data-bs-theme="dark"] .tender-modal-cinematic .modal-footer,
+.dark .tender-modal-cinematic .modal-header,
+.dark .tender-modal-cinematic .modal-footer,
+body.dark-mode .tender-modal-cinematic .modal-header,
+body.dark-mode .tender-modal-cinematic .modal-footer {
+    background: transparent !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .tender-banner-cinematic,
+.dark .tender-banner-cinematic,
+body.dark-mode .tender-banner-cinematic {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    backdrop-filter: blur(12px);
+}
+
+[data-bs-theme="dark"] .tender-banner-cinematic h3,
+[data-bs-theme="dark"] .tender-banner-cinematic .tender-title,
+.dark .tender-banner-cinematic h3,
+.dark .tender-banner-cinematic .tender-title,
+body.dark-mode .tender-banner-cinematic h3,
+body.dark-mode .tender-banner-cinematic .tender-title {
+    color: #ffffff !important;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+[data-bs-theme="dark"] .tender-banner-cinematic .tender-customer-text,
+.dark .tender-banner-cinematic .tender-customer-text,
+body.dark-mode .tender-banner-cinematic .tender-customer-text {
+    color: #e2e8f0 !important;
+}
+
+[data-bs-theme="dark"] .tender-card-metric,
+.dark .tender-card-metric,
+body.dark-mode .tender-card-metric {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-bs-theme="dark"] .tender-card-metric:hover,
+.dark .tender-card-metric:hover,
+body.dark-mode .tender-card-metric:hover {
+    border-color: rgba(96, 165, 250, 0.45) !important;
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-bs-theme="dark"] .tender-card-metric .metric-label,
+.dark .tender-card-metric .metric-label,
+body.dark-mode .tender-card-metric .metric-label {
+    color: #94a3b8 !important;
+}
+
+[data-bs-theme="dark"] .tender-card-metric .metric-value,
+.dark .tender-card-metric .metric-value,
+body.dark-mode .tender-card-metric .metric-value {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .tender-workflow-card,
+.dark .tender-workflow-card,
+body.dark-mode .tender-workflow-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+[data-bs-theme="dark"] .tender-pagu-card,
+.dark .tender-pagu-card,
+body.dark-mode .tender-pagu-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-bs-theme="dark"] .tender-rab-table-cinematic,
+.dark .tender-rab-table-cinematic,
+body.dark-mode .tender-rab-table-cinematic {
+    background: transparent !important;
+}
+
+[data-bs-theme="dark"] .tender-rab-table-cinematic th,
+.dark .tender-rab-table-cinematic th,
+body.dark-mode .tender-rab-table-cinematic th {
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: #cbd5e1 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-bs-theme="dark"] .tender-rab-table-cinematic td,
+.dark .tender-rab-table-cinematic td,
+body.dark-mode .tender-rab-table-cinematic td {
+    color: #f1f5f9 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-bs-theme="dark"] .tender-rab-table-cinematic tr:hover td,
+.dark .tender-rab-table-cinematic tr:hover td,
+body.dark-mode .tender-rab-table-cinematic tr:hover td {
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* ==========================================================================
+   11. STEPPER NODES
+   ========================================================================== */
+.stepper-node {
+    opacity: 0.45;
+    transition: all 0.25s ease;
+}
+
+.stepper-node.active {
+    opacity: 1;
+}
+
+.stepper-node.completed {
+    opacity: 0.95;
+}
+
+.stepper-text {
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
+.stepper-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    background: rgba(100, 116, 139, 0.12);
+    color: #64748b;
+    border: 1.5px solid rgba(100, 116, 139, 0.25);
+}
+
+[data-bs-theme="dark"] .stepper-dot,
+.dark .stepper-dot,
+body.dark-mode .stepper-dot {
+    background: rgba(255, 255, 255, 0.06);
+    color: #94a3b8;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.stepper-node.active .stepper-dot {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 14px rgba(37, 99, 235, 0.5) !important;
+}
+
+.stepper-node.completed .stepper-dot {
+    background: #10b981 !important;
+    color: #ffffff !important;
+    border-color: #34d399 !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.35) !important;
+}
+
+.stepper-node.rejected .stepper-dot {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #f87171 !important;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.35) !important;
+}
+
+/* ==========================================================================
+   12. ACTIVITY LOG & FOLLOW-UP CARD STYLES
+   ========================================================================== */
+.tender-log-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #3b82f6;
+    border-radius: 14px;
+    padding: 1.15rem 1.4rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.tender-log-card:hover {
+    transform: translateY(-2px);
+    border-color: #cbd5e1;
+    border-left-color: #2563eb;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.08);
+}
+
+[data-bs-theme="dark"] .tender-log-card,
+.dark .tender-log-card,
+body.dark-mode .tender-log-card {
+    background: linear-gradient(145deg, #1e293b 0%, #151d2a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 4px solid #3b82f6;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+[data-bs-theme="dark"] .tender-log-card:hover,
+.dark .tender-log-card:hover,
+body.dark-mode .tender-log-card:hover {
+    border-color: rgba(96, 165, 250, 0.3);
+    border-left-color: #60a5fa;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+.tender-log-badge {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    font-size: 0.8rem;
+}
+
+[data-bs-theme="dark"] .tender-log-badge,
+.dark .tender-log-badge,
+body.dark-mode .tender-log-badge {
+    background: rgba(59, 130, 246, 0.18);
+    color: #93c5fd;
+    border-color: rgba(147, 197, 253, 0.25);
+}
+
+.tender-log-date {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    font-size: 0.76rem;
+}
+
+[data-bs-theme="dark"] .tender-log-date,
+.dark .tender-log-date,
+body.dark-mode .tender-log-date {
+    background: rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.tender-log-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #1e293b;
+    word-break: break-word;
+}
+
+[data-bs-theme="dark"] .tender-log-text,
+.dark .tender-log-text,
+body.dark-mode .tender-log-text {
+    color: #f1f5f9;
+}
+
+.tender-log-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.3) 100%);
+    color: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 800;
+    font-family: var(--bs-font-monospace);
+}
+
+[data-bs-theme="dark"] .tender-log-avatar,
+.dark .tender-log-avatar,
+body.dark-mode .tender-log-avatar {
+    color: #93c5fd;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(29, 78, 216, 0.4) 100%);
+}
+
+.tender-log-footer {
+    border-color: #f1f5f9 !important;
+}
+
+[data-bs-theme="dark"] .tender-log-footer,
+.dark .tender-log-footer,
+body.dark-mode .tender-log-footer {
+    border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ==========================================================================
+   13. UTILITIES & ANIMATIONS
+   ========================================================================== */
+.hover-scale {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-scale:hover {
+    transform: scale(1.04);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* ==========================================================================
+   14. MOBILE & RESPONSIVE PERFECTION (SMARTPHONES & TABLETS)
+   ========================================================================== */
+@media (max-width: 767.98px) {
+    /* Header & View Switcher */
+    .tender-header-actions {
+        width: 100% !important;
+    }
+    .tender-view-pills {
+        width: 100% !important;
+        display: flex !important;
+    }
+    .tender-view-btn {
+        flex: 1 1 50% !important;
+        justify-content: center !important;
+        padding: 8px 10px !important;
+        font-size: 0.8rem !important;
+        white-space: nowrap !important;
+    }
+    .btn-tambah-tender-main {
+        width: 100% !important;
+        padding: 9px 16px !important;
+        font-size: 0.84rem !important;
+        justify-content: center !important;
+    }
+
+    /* Table Header & Filter Dropdowns on Mobile */
+    .tender-table-header {
+        padding: 1rem !important;
+    }
+    .tender-filter-container {
+        width: 100% !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+    }
+    .tender-filter-container .dropdown {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 130px;
+    }
+    .tender-modern-filter-btn {
+        width: 100% !important;
+        justify-content: space-between !important;
+        padding: 7px 10px !important;
+        font-size: 0.78rem !important;
+    }
+    .btn-tender-filter-reset {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+    .tender-custom-dropdown-menu {
+        max-width: calc(100vw - 2rem) !important;
+    }
+
+    /* KPI Cards on Mobile */
+    .tender-kpi-card {
+        padding: 1rem 1.15rem !important;
+        border-radius: 16px !important;
+    }
+    .tender-kpi-card .fs-2 {
+        font-size: 1.55rem !important;
+    }
+    .tender-kpi-card .fs-4 {
+        font-size: 1.25rem !important;
+    }
+    .tender-kpi-icon {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 1.35rem !important;
+        border-radius: 12px !important;
+    }
+
+    /* Kanban Board Mobile Swiping */
+    .kanban-board-wrapper {
+        min-height: 480px !important;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        padding: 0 4px 16px 4px !important;
+        gap: 12px !important;
+    }
+    .kanban-column {
+        flex: 0 0 84vw !important;
+        scroll-snap-align: center;
+        border-radius: 16px !important;
+        max-height: calc(100vh - 220px) !important;
+    }
+
+    /* Modals & Input Form on Mobile */
+    .modal-dialog {
+        margin: 0.5rem !important;
+    }
+    .tender-modal-content {
+        border-radius: 20px !important;
+    }
+    .tender-banner-cinematic {
+        padding: 1.25rem 1rem !important;
+    }
+    .tender-tabs-container {
+        padding: 4px !important;
+    }
+    .tender-nav-pills .tender-tab-btn {
+        padding: 8px 12px !important;
+        font-size: 0.78rem !important;
+    }
+    .tender-form-card {
+        padding: 14px 14px !important;
+        border-radius: 16px !important;
+    }
+    .tender-modal-footer {
+        flex-direction: column-reverse !important;
+        gap: 10px !important;
+        padding: 1rem 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px)) 1rem !important;
+        align-items: stretch !important;
+    }
+    .tender-modal-footer > div {
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 8px !important;
+    }
+    .tender-modal-footer .btn {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 11px 16px !important;
+        font-size: 0.88rem !important;
+        border-radius: 14px !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .container-fluid {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+    .tender-filter-container .dropdown {
+        flex: 1 1 100% !important;
+    }
+    .kanban-column {
+        flex: 0 0 88vw !important;
+    }
+}

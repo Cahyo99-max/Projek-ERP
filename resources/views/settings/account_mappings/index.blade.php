@@ -1,8 +1,117 @@
 <x-layouts title="Pengaturan Account Mapping - ">
 
     @push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{{ asset('css/barang_dashboard.css?v=' . time()) }}">
     <style>
+        /* ─── Select2 Custom & Scrollable (Display ~5 items) ─── */
+        .select2-container--bootstrap-5 .select2-selection {
+            border-radius: 8px !important;
+            padding: 3px 8px !important;
+            min-height: 36px !important;
+            font-size: 0.82rem !important;
+            font-weight: 500;
+            display: flex !important;
+            align-items: center !important;
+            border-color: #cbd5e1;
+            transition: all 0.2s ease;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            padding-left: 4px !important;
+            padding-right: 24px !important;
+            color: inherit;
+            font-family: var(--bs-font-monospace);
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
+            font-size: 1.15rem !important;
+            line-height: 1 !important;
+            margin-right: 22px !important;
+            color: #94a3b8 !important;
+            position: absolute !important;
+            right: 0 !important;
+            cursor: pointer !important;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear:hover {
+            color: #ef4444 !important;
+        }
+        .select2-dropdown {
+            border-radius: 12px !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+            border: 1px solid #cbd5e1 !important;
+            overflow: hidden !important;
+            z-index: 99999 !important;
+        }
+        .select2-container--bootstrap-5 .select2-dropdown .select2-results__options,
+        .select2-results__options {
+            max-height: 195px !important;
+            overflow-y: auto !important;
+            padding: 4px !important;
+        }
+        .select2-container--bootstrap-5 .select2-results__option {
+            padding: 6px 10px !important;
+            font-size: 0.78rem !important;
+            border-radius: 6px !important;
+            margin-bottom: 2px !important;
+            font-family: var(--bs-font-monospace);
+            transition: all 0.15s ease;
+        }
+        .select2-container--bootstrap-5 .select2-search__field {
+            border-radius: 8px !important;
+            padding: 5px 10px !important;
+            font-size: 0.78rem !important;
+            margin: 4px !important;
+            width: calc(100% - 8px) !important;
+        }
+        .select2-results__options::-webkit-scrollbar {
+            width: 5px;
+        }
+        .select2-results__options::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: 10px;
+        }
+        .select2-results__options::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+        
+        /* Dark Mode Select2 */
+        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection,
+        .dark-mode .select2-container--bootstrap-5 .select2-selection {
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+        .dark-mode .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            color: #f8fafc !important;
+        }
+        [data-bs-theme="dark"] .select2-dropdown,
+        .dark-mode .select2-dropdown {
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-search__field,
+        .dark-mode .select2-container--bootstrap-5 .select2-search__field {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-bs-theme="dark"] .select2-results__options::-webkit-scrollbar-thumb,
+        .dark-mode .select2-results__options::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        [data-bs-theme="dark"] .select2-results__option,
+        .dark-mode .select2-results__option {
+            color: #cbd5e1 !important;
+        }
+        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option--highlighted,
+        .dark-mode .select2-container--bootstrap-5 .select2-results__option--highlighted {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+        }
+
         .nav-tabs-akuntansi {
             border-bottom: 1px solid #e2e8f0;
         }
@@ -287,6 +396,8 @@
                                     'default_gr_clearing' => ['label' => 'Default GR/IR Clearing (Goods Receipt)', 'desc' => 'Akun penampung penerimaan barang sebelum invoice terbit'],
                                     'default_stock_adjustment' => ['label' => 'Default Selisih Stok (Stock Opname)', 'desc' => 'Akun penyesuaian selisih stok opname'],
                                     'default_opening_balance' => ['label' => 'Default Ekuitas Saldo Awal (Modal)', 'desc' => 'Akun ekuitas/modal kredit saat konfirmasi Saldo Awal Stok'],
+                                    'realized_forex_gain' => ['label' => 'Keuntungan Selisih Kurs (Realized Forex Gain)', 'desc' => 'Akun pendapatan selisih kurs saat pelunasan utang/piutang valas (Pendapatan Lain-lain)'],
+                                    'realized_forex_loss' => ['label' => 'Kerugian Selisih Kurs (Realized Forex Loss)', 'desc' => 'Akun beban selisih kurs saat pelunasan utang/piutang valas (Beban Lain-lain)'],
                                 ];
                             @endphp
 
@@ -594,6 +705,7 @@
     </div>
 
     @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
             // Matikan Autocomplete Browser Secara Total
@@ -602,6 +714,30 @@
                 $(this).attr('autocorrect', 'off');
                 $(this).attr('autocapitalize', 'off');
                 $(this).attr('spellcheck', 'false');
+            });
+
+            // Initialize Select2 with Search
+            function initSelect2() {
+                if ($.fn.select2) {
+                    $('.select-coa').each(function() {
+                        if (!$(this).hasClass('select2-hidden-accessible')) {
+                            const placeholder = $(this).find('option[value=""]').first().text().trim() || '-- Pilih Akun COA --';
+                            $(this).select2({
+                                theme: 'bootstrap-5',
+                                width: '100%',
+                                placeholder: placeholder,
+                                allowClear: true,
+                                dropdownParent: $(document.body)
+                            });
+                        }
+                    });
+                }
+            }
+            initSelect2();
+
+            // Re-initialize / adjust on tab switch
+            $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function() {
+                initSelect2();
             });
 
             $('#btnSaveAllMappings').on('click', function() {

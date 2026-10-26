@@ -12,6 +12,7 @@ use App\Models\MasterBarang;
 use App\Models\MasterKategoriBarang;
 use App\Models\MasterCurrency;
 use App\Models\MasterPajak;
+use App\Models\MasterGudang;
 use App\Models\PaymentTerm;
 use App\Models\Company;
 use App\Models\Branch;
@@ -38,20 +39,15 @@ class TenderController extends Controller
         $activeBranch = session('active_branch_id') ? Branch::find(session('active_branch_id')) : null;
 
         $user = Auth::user();
-        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-tender') || $user->can('lihat-hpp-stok') || $user->can('akses-accounting')) : false;
+        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-stok') || $user->can('akses-accounting')) : false;
 
         $currencies = MasterCurrency::where('status', 'Active')->get();
         $customers = MasterCustomer::forActiveCompany()->where('status', 'Active')->orderBy('nama_customer', 'asc')->get();
         $salesList = Karyawan::forActiveCompany()
+            ->with(['department', 'position'])
             ->where('status', 'Aktif')
-            ->whereHas('department', function ($q) {
-                $q->where('department_name', 'LIKE', '%Sales%')
-                  ->orWhere('department_name', 'LIKE', '%Marketing%');
-            })->get();
-
-        if ($salesList->isEmpty()) {
-            $salesList = Karyawan::forActiveCompany()->where('status', 'Aktif')->get();
-        }
+            ->orderBy('nama_lengkap', 'asc')
+            ->get();
         
         // Active Category Filter for Tender according to Setting Visibilitas Kategori
         $kategoriList = MasterKategoriBarang::forActiveCompany()
@@ -130,13 +126,20 @@ class TenderController extends Controller
         $branches = Branch::where('company_id', $activeCompanyId)->where('status', 'Active')->orderBy('nama_cabang', 'asc')->get();
 
         // Summary KPI Metrics
+        $isSuperOrOwner = $user ? $user->hasAnyRole(['Super Admin', 'Owner']) : false;
         $tenderQuery = Tender::forActiveCompany();
+        if (!$isSuperOrOwner && $user) {
+            $tenderQuery->where(function ($q) use ($user) {
+                $q->where('status', '!=', 'Draft')
+                  ->orWhere('created_by', $user->id);
+            });
+        }
         $countTotal = (clone $tenderQuery)->count();
         $countWon = (clone $tenderQuery)->where('status', 'Won')->count();
         $countLost = (clone $tenderQuery)->where('status', 'Lost')->count();
         $countActive = (clone $tenderQuery)->whereIn('status', ['Draft', 'Sent', 'Negotiation'])->count();
         
-        $valueWon = (clone $tenderQuery)->where('status', 'Won')->sum('nilai_estimasi');
+        $valueWon = (clone $tenderQuery)->where('status', 'Won')->sum(DB::raw('CASE WHEN nilai_deal > 0 THEN nilai_deal ELSE nilai_estimasi END'));
         $valuePipeline = (clone $tenderQuery)->whereIn('status', ['Draft', 'Sent', 'Negotiation'])->sum('nilai_estimasi');
         $winRate = ($countTotal > 0) ? round(($countWon / $countTotal) * 100, 1) : 0;
 
@@ -168,32 +171,21 @@ class TenderController extends Controller
     {
         $this->authorize('lihat-tender');
 
-        $activeCompanyId = session('active_company_id');
-        $activeBranchId  = session('active_branch_id');
+        $user = Auth::user();
+        $isSuperOrOwner = $user ? $user->hasAnyRole(['Super Admin', 'Owner']) : false;
 
-        $query = Tender::query()
+        // Strict Separation: forActiveCompany isolates PT (branch_id null) vs Active Branch (branch_id = active_branch_id)
+        $query = Tender::forActiveCompany()
             ->with(['customer', 'sales', 'salesOrder', 'items.barang', 'company', 'branch', 'approvals' => function ($q) {
                 $q->latest();
             }])->latest();
 
-        if (!empty($activeCompanyId)) {
-            $query->where('tenders.company_id', $activeCompanyId);
-        }
-
-        // Filter Entitas: 'all' (Pusat & Seluruh Cabang), 'pusat' (branch_id is null), or specific branch_id
-        if ($request->filled('filter_entitas') && $request->filter_entitas !== 'all') {
-            if ($request->filter_entitas === 'pusat') {
-                $query->whereNull('tenders.branch_id');
-            } else {
-                $query->where('tenders.branch_id', $request->filter_entitas);
-            }
-        } elseif (!$request->filled('filter_entitas')) {
-            // Default based on current session
-            if (!empty($activeBranchId)) {
-                $query->where('tenders.branch_id', $activeBranchId);
-            } else {
-                $query->whereNull('tenders.branch_id');
-            }
+        // Draft Privacy: Hanya tampilkan status Draft jika dibuat oleh user yang login (kecuali Super Admin / Owner)
+        if (!$isSuperOrOwner && $user) {
+            $query->where(function ($q) use ($user) {
+                $q->where('status', '!=', 'Draft')
+                  ->orWhere('created_by', $user->id);
+            });
         }
 
         // Status Filter
@@ -222,9 +214,9 @@ class TenderController extends Controller
             })
             ->addColumn('entitas_badge', function ($row) {
                 if ($row->branch) {
-                    return '<span class="badge badge-soft-emerald fs-9 px-2.5 py-1 rounded-pill fw-semibold"><i class="bi bi-shop me-1"></i>' . e($row->branch->nama_cabang) . '</span>';
+                    return '<span class="badge badge-entitas-cabang px-2.5 py-1 rounded-pill fw-semibold" style="font-size:0.75rem;"><i class="bi bi-shop me-1"></i>' . e($row->branch->nama_cabang) . '</span>';
                 }
-                return '<span class="badge badge-soft-indigo fs-9 px-2.5 py-1 rounded-pill fw-semibold"><i class="bi bi-building me-1"></i>PT (Pusat)</span>';
+                return '<span class="badge badge-entitas-pt px-2.5 py-1 rounded-pill fw-semibold" style="font-size:0.75rem;"><i class="bi bi-building me-1"></i>PT (Pusat)</span>';
             })
             ->addColumn('entitas_name', function ($row) {
                 return $row->branch ? 'Cabang ' . $row->branch->nama_cabang : 'PT (Pusat)';
@@ -244,8 +236,11 @@ class TenderController extends Controller
             ->addColumn('has_sales_order', function ($row) {
                 return !empty($row->sales_order_id);
             })
+            ->addColumn('nilai_deal', function ($row) {
+                return (float)($row->nilai_deal ?? 0);
+            })
             ->editColumn('nilai_estimasi', function ($row) {
-                return (float)($row->nilai_estimasi ?? 0);
+                return (float)(($row->status === 'Won' && $row->nilai_deal > 0) ? $row->nilai_deal : ($row->nilai_estimasi ?? 0));
             })
             ->rawColumns(['entitas_badge'])
             ->make(true);
@@ -258,30 +253,38 @@ class TenderController extends Controller
     {
         $this->authorize('lihat-tender');
 
-        $activeCompanyId = session('active_company_id');
-        $activeBranchId  = session('active_branch_id');
+        $user = Auth::user();
+        $isSuperOrOwner = $user ? $user->hasAnyRole(['Super Admin', 'Owner']) : false;
 
-        $query = Tender::query()
+        // Strict Separation: forActiveCompany isolates PT (branch_id null) vs Active Branch (branch_id = active_branch_id)
+        $query = Tender::forActiveCompany()
             ->with(['customer', 'sales', 'salesOrder', 'items.barang', 'company', 'branch'])
             ->orderBy('deadline', 'asc');
 
-        if (!empty($activeCompanyId)) {
-            $query->where('tenders.company_id', $activeCompanyId);
+        // Draft Privacy: Hanya tampilkan status Draft jika dibuat oleh user yang login (kecuali Super Admin / Owner)
+        if (!$isSuperOrOwner && $user) {
+            $query->where(function ($q) use ($user) {
+                $q->where('status', '!=', 'Draft')
+                  ->orWhere('created_by', $user->id);
+            });
         }
 
-        if ($request->filled('filter_entitas') && $request->filter_entitas !== 'all') {
-            if ($request->filter_entitas === 'pusat') {
-                $query->whereNull('tenders.branch_id');
-            } else {
-                $query->where('tenders.branch_id', $request->filter_entitas);
-            }
-        } elseif (!$request->filled('filter_entitas')) {
-            if (!empty($activeBranchId)) {
-                $query->where('tenders.branch_id', $activeBranchId);
-            } else {
-                $query->whereNull('tenders.branch_id');
-            }
+        // Filter Status & Priority
+        if ($request->filled('filter_status') && $request->filter_status !== 'all') {
+            $query->where('status', $request->filter_status);
         }
+        if ($request->filled('filter_priority') && $request->filter_priority !== 'all') {
+            $query->where('priority', $request->filter_priority);
+        }
+
+        // Summary KPI Metrics Realtime
+        $countTotal = (clone $query)->count();
+        $countWon = (clone $query)->where('status', 'Won')->count();
+        $countLost = (clone $query)->where('status', 'Lost')->count();
+        $countActive = (clone $query)->whereIn('status', ['Draft', 'Sent', 'Negotiation'])->count();
+        $valueWon = (clone $query)->where('status', 'Won')->sum(DB::raw('CASE WHEN nilai_deal > 0 THEN nilai_deal ELSE nilai_estimasi END'));
+        $valuePipeline = (clone $query)->whereIn('status', ['Draft', 'Sent', 'Negotiation'])->sum('nilai_estimasi');
+        $winRate = ($countTotal > 0) ? round(($countWon / $countTotal) * 100, 1) : 0;
 
         $tenders = $query->get();
 
@@ -299,7 +302,7 @@ class TenderController extends Controller
                 'items' => []
             ],
             'Approved' => [
-                'label' => 'Disetujui (Siap Kirim)',
+                'label' => 'Disetujui',
                 'badge_class' => 'bg-primary-subtle text-primary border border-primary-subtle',
                 'color' => '#3b82f6',
                 'items' => []
@@ -317,7 +320,7 @@ class TenderController extends Controller
                 'items' => []
             ],
             'Won' => [
-                'label' => 'Menang (SPK Terbit)',
+                'label' => 'Pemenang (SPK Terbit)',
                 'badge_class' => 'bg-success-subtle text-success border border-success-subtle',
                 'color' => '#10b981',
                 'items' => []
@@ -336,7 +339,7 @@ class TenderController extends Controller
                 $statusKey = 'Lost';
             }
             
-            $daysToDeadline = now()->startOfDay()->diffInDays($t->deadline->startOfDay(), false);
+            $daysToDeadline = $t->deadline ? now()->startOfDay()->diffInDays($t->deadline->startOfDay(), false) : 0;
 
             $stages[$statusKey]['items'][] = [
                 'id' => $t->id,
@@ -346,19 +349,32 @@ class TenderController extends Controller
                 'entitas_label' => $t->branch ? 'Cabang ' . $t->branch->nama_cabang : 'PT (Pusat)',
                 'branch_id' => $t->branch_id,
                 'customer_name' => $t->customer ? ($t->customer->nama_perusahaan ?: $t->customer->nama_customer) : '-',
-                'nilai_estimasi' => (float)($t->nilai_estimasi ?? 0),
-                'deadline' => $t->deadline->format('d M Y'),
+                'nilai_estimasi' => (float)(($t->status === 'Won' && $t->nilai_deal > 0) ? $t->nilai_deal : ($t->nilai_estimasi ?? 0)),
+                'nilai_deal' => (float)($t->nilai_deal ?? 0),
+                'pagu_awal' => (float)($t->nilai_estimasi ?? 0),
+                'deadline' => $t->deadline ? $t->deadline->format('d M Y') : '-',
                 'days_to_deadline' => $daysToDeadline,
                 'priority' => $t->priority,
                 'status' => $t->status,
                 'sales_name' => $t->sales ? $t->sales->nama_lengkap : '-',
-                'items_count' => $t->items->count(),
+                'items_count' => $t->items ? $t->items->count() : 0,
                 'sales_order_id' => $t->sales_order_id,
             ];
         }
 
         return response()->json([
-            'stages' => $stages
+            'stages' => $stages,
+            'metrics' => [
+                'count_total' => $countTotal,
+                'count_won' => $countWon,
+                'count_lost' => $countLost,
+                'count_active' => $countActive,
+                'value_won' => $valueWon,
+                'value_won_formatted' => 'Rp ' . number_format($valueWon, 0, ',', '.'),
+                'value_pipeline' => $valuePipeline,
+                'value_pipeline_formatted' => 'Rp ' . number_format($valuePipeline, 0, ',', '.'),
+                'win_rate' => $winRate,
+            ]
         ]);
     }
 
@@ -395,9 +411,9 @@ class TenderController extends Controller
             'biaya_ekstra'          => 'nullable|numeric|min:0',
             'catatan_biaya_ekstra'  => 'nullable|string|max:255',
             'catatan'               => 'nullable|string|max:50',
-            'items'                 => 'nullable|array',
-            'items.*.barang_id'     => 'nullable',
-            'items.*.qty'           => 'nullable|numeric|min:0.01',
+            'items'                 => 'required|array|min:1',
+            'items.*.barang_id'     => 'required',
+            'items.*.qty'           => 'required|numeric|min:0.01',
             'items.*.satuan'        => 'nullable|string|max:50',
             'items.*.harga'         => 'nullable|numeric|min:0',
             'documents'             => 'nullable|array|max:30',
@@ -410,17 +426,38 @@ class TenderController extends Controller
             'nomor_kontrak.max'      => 'Nomor Tender / Registrasi Proyek maksimal 40 karakter.',
             'catatan.max'            => 'Catatan Tender maksimal 50 karakter.',
             'nilai_estimasi.max_digits' => 'Nilai Pagu Anggaran maksimal 20 digit.',
-            'documents.*.max'       => 'Ukuran berkas lampiran tidak boleh melebihi 10 MB.',
-            'documents.*.mimes'     => 'Format berkas lampiran harus berupa PDF, Word, Excel, atau ZIP/RAR.',
-            'documents.max'         => 'Maksimal 30 berkas dokumen yang dapat dilampirkan.',
+            'items.required'         => 'Daftar Barang yang diajukan wajib diisi minimal 1 item.',
+            'items.min'              => 'Daftar Barang yang diajukan wajib diisi minimal 1 item.',
+            'items.*.barang_id.required' => 'Barang / Jasa pada setiap baris wajib dipilih.',
+            'items.*.qty.required'   => 'Jumlah / Kuantitas barang wajib diisi.',
+            'items.*.qty.min'        => 'Jumlah / Kuantitas barang minimal 0.01.',
+            'documents.*.max'        => 'Ukuran berkas lampiran tidak boleh melebihi 10 MB.',
+            'documents.*.mimes'      => 'Format berkas lampiran harus berupa PDF, Word, Excel, atau ZIP/RAR.',
+            'documents.max'          => 'Maksimal 30 berkas dokumen yang dapat dilampirkan.',
         ]);
+
+        // Validate Customer belongs to active company/branch
+        $customer = MasterCustomer::forActiveCompany()->find($request->customer_id);
+        if (!$customer) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Customer / Instansi yang dipilih tidak valid atau tidak terdaftar pada perusahaan aktif.'
+            ], 422);
+        }
+
+        // Validate Sales PIC belongs to active company
+        $sales = Karyawan::forActiveCompany()->find($request->sales_id);
+        if (!$sales) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Sales PIC yang dipilih tidak valid atau tidak aktif pada perusahaan ini.'
+            ], 422);
+        }
 
         try {
             DB::beginTransaction();
 
             $nomor = trim($request->nomor_kontrak);
-
-            $paguNilai = (float)($request->nilai_estimasi ?: 0);
 
             $branchId = null;
             if ($request->filled('branch_id')) {
@@ -429,9 +466,24 @@ class TenderController extends Controller
                 $branchId = session('active_branch_id');
             }
 
+            $companyId = $branchId ? null : $activeCompanyId;
+
+            // Check duplicate nomor_kontrak in same entity scope
+            $existingTender = Tender::where('nomor_kontrak', $nomor)
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId), fn($q) => $q->where('company_id', $companyId)->whereNull('branch_id'))
+                ->first();
+            if ($existingTender) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Nomor Kontrak / Registrasi Tender "' . $nomor . '" sudah terdaftar pada entitas ini. Harap gunakan nomor lain.'
+                ], 422);
+            }
+
+            $paguNilai = (float)($request->nilai_estimasi ?: 0);
+
             // Create Tender
             $tender = Tender::create([
-                'company_id'            => $activeCompanyId,
+                'company_id'            => $companyId,
                 'branch_id'             => $branchId,
                 'nomor_kontrak'         => $nomor,
                 'customer_id'           => $request->customer_id,
@@ -475,37 +527,49 @@ class TenderController extends Controller
                 }
             }
 
-            // Save Documents
+            // Save Documents with secure extension & filename sanitization
             if ($request->hasFile('documents')) {
                 $uploadDir = public_path('uploads/tenders');
                 if (!File::exists($uploadDir)) {
                     File::makeDirectory($uploadDir, 0755, true);
                 }
 
+                $allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
+
                 foreach ($request->file('documents') as $index => $file) {
                     if (!$file || !$file->isValid()) continue;
                     
+                    $ext = strtolower($file->getClientOriginalExtension());
+                    if (!in_array($ext, $allowedExtensions)) continue;
+
                     $docName = $request->input("document_names.{$index}") ?: $request->input("document_types.{$index}", 'Lainnya');
                     $docName = mb_substr(trim($docName), 0, 40);
 
-                    $filename = 'tnd_' . $tender->id . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $cleanOriginalName = preg_replace('/[^a-zA-Z0-9_\-\. ]/', '', $file->getClientOriginalName());
+                    $filename = 'tnd_' . $tender->id . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
                     $file->move($uploadDir, $filename);
 
                     TenderDocument::create([
                         'tender_id'     => $tender->id,
-                        'nama_file'     => $file->getClientOriginalName(),
+                        'nama_file'     => $cleanOriginalName ?: ('Dokumen_' . ($index + 1) . '.' . $ext),
                         'jenis_dokumen' => $docName,
                         'path'          => 'uploads/tenders/' . $filename,
                     ]);
                 }
             }
 
-            // Init initial Approval
-            $salesUser = User::where('karyawan_id', $request->sales_id)->first();
+            // Init initial Approval Audit Log
+            $initStatus = ($tender->status === 'Pending Approval') ? 'Pending Approval' : 'Draft';
+            $initCatatan = ($tender->status === 'Pending Approval') 
+                ? 'Proposal tender dibuat dan langsung diajukan untuk persetujuan (approval) atasan.' 
+                : 'Proposal tender dibuat dan disimpan sebagai Draft.';
+
             TenderApproval::create([
-                'tender_id' => $tender->id,
-                'user_id'   => $salesUser ? $salesUser->id : auth()->id(),
-                'status'    => 'Pending',
+                'tender_id'   => $tender->id,
+                'user_id'     => auth()->id(),
+                'status'      => $initStatus,
+                'approved_at' => now(),
+                'catatan'     => $initCatatan,
             ]);
 
             if ($tender->status === 'Pending Approval') {
@@ -545,16 +609,30 @@ class TenderController extends Controller
             return;
         }
 
-        if ($activeCompanyId && $tender->company_id && $tender->company_id != $activeCompanyId) {
+        // Tentukan company_id sebenarnya dari tender (baik langsung atau via branch)
+        $tenderCompanyId = $tender->company_id;
+        if (empty($tenderCompanyId) && $tender->branch_id) {
+            $tenderCompanyId = $tender->branch ? $tender->branch->company_id : Branch::where('id', $tender->branch_id)->value('company_id');
+        }
+
+        // 1. Cek kepemilikan Perusahaan (Cross-Company IDOR Protection)
+        if ($activeCompanyId && $tenderCompanyId && $tenderCompanyId != $activeCompanyId) {
             abort(403, 'Akses ditolak. Anda tidak memiliki wewenang mengakses data tender perusahaan lain.');
         }
 
+        // 2. Cek kepemilikan Cabang vs PT Pusat (Strict Multi-Branch Isolation)
         if (!empty($activeBranchId) && $tender->branch_id != $activeBranchId) {
             abort(403, 'Akses ditolak. Anda tidak memiliki wewenang mengakses data tender milik cabang lain atau PT Pusat.');
         }
 
         if (empty($activeBranchId) && !empty($tender->branch_id)) {
             abort(403, 'Akses ditolak. Anda sedang aktif di PT Pusat dan tidak dapat mengelola langsung data tender milik cabang.');
+        }
+
+        // 3. Cek Kebocoran Data Draft (Draft Privacy Rule)
+        // Proposal berstatus Draft hanya boleh diakses oleh pembuatnya (created_by)
+        if ($tender->status === 'Draft' && $tender->created_by && $tender->created_by != $user?->id) {
+            abort(403, 'Akses ditolak. Proposal tender berstatus Draft hanya dapat diakses oleh pengguna yang membuatnya.');
         }
     }
 
@@ -578,7 +656,7 @@ class TenderController extends Controller
         ]);
 
         $user = Auth::user();
-        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-tender') || $user->can('lihat-hpp-stok') || $user->can('akses-accounting')) : false;
+        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-stok') || $user->can('akses-accounting')) : false;
 
         if (!$canSeeHpp) {
             $tender->total_hpp = null;
@@ -599,7 +677,7 @@ class TenderController extends Controller
         $this->authorizeCompanyAccess($tender);
 
         $user = Auth::user();
-        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-tender') || $user->can('lihat-hpp-stok') || $user->can('akses-accounting')) : false;
+        $canSeeHpp = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('lihat-hpp-stok') || $user->can('akses-accounting')) : false;
 
         $tender->load([
             'customer',
@@ -623,6 +701,11 @@ class TenderController extends Controller
         if ($tender->items) {
             foreach ($tender->items as $item) {
                 if ($item->barang) {
+                    // Sembunyikan HPP jika tidak berwenang
+                    if (!$canSeeHpp) {
+                        $item->barang->makeHidden(['harga_beli', 'harga_pokok', 'hpp', 'harga_pokok_rata_rata']);
+                    }
+
                     $item->barang->resolved_photo_url = $this->resolvePhotoUrl($item->barang->primaryFoto ? $item->barang->primaryFoto->foto_path : null);
                     
                     $photos = [];
@@ -640,6 +723,10 @@ class TenderController extends Controller
                     if ($item->barang->bundleComponents) {
                         foreach ($item->barang->bundleComponents as $comp) {
                             if ($comp->childBarang) {
+                                if (!$canSeeHpp) {
+                                    $comp->childBarang->makeHidden(['harga_beli', 'harga_pokok', 'hpp', 'harga_pokok_rata_rata']);
+                                }
+
                                 $comp->childBarang->resolved_photo_url = $this->resolvePhotoUrl($comp->childBarang->primaryFoto ? $comp->childBarang->primaryFoto->foto_path : null);
                                 $cPhotos = [];
                                 if ($comp->childBarang->fotos && $comp->childBarang->fotos->isNotEmpty()) {
@@ -659,14 +746,22 @@ class TenderController extends Controller
             }
         }
 
-        $canApprove = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('approve-tender')) : false;
-        $canEdit = $user ? ($user->hasAnyRole(['Super Admin', 'Owner']) || $user->can('edit-tender')) : false;
+        $isSuperOrOwner = $user ? $user->hasAnyRole(['Super Admin', 'Owner']) : false;
+
+        $canApprove        = $isSuperOrOwner || ($user && $user->can('approve-tender'));
+        $canEdit           = $isSuperOrOwner || ($user && $user->can('edit-tender'));
+        $canKirimLelang    = $isSuperOrOwner || ($user && $user->can('kirim-lelang-tender'));
+        $canNegosiasi      = $isSuperOrOwner || ($user && $user->can('negosiasi-tender'));
+        $canKeputusanFinal = $isSuperOrOwner || ($user && $user->can('keputusan-final-tender'));
 
         return response()->json([
-            'tender'      => $tender,
-            'can_see_hpp' => $canSeeHpp,
-            'can_approve' => $canApprove,
-            'can_edit'    => $canEdit,
+            'tender'              => $tender,
+            'can_see_hpp'         => $canSeeHpp,
+            'can_approve'         => $canApprove,
+            'can_edit'            => $canEdit,
+            'can_kirim_lelang'    => $canKirimLelang,
+            'can_negosiasi'       => $canNegosiasi,
+            'can_keputusan_final' => $canKeputusanFinal,
         ]);
     }
 
@@ -695,6 +790,13 @@ class TenderController extends Controller
         $this->authorize('edit-tender');
         $this->authorizeCompanyAccess($tender);
 
+        if (!empty($tender->sales_order_id)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Tender ini sudah resmi dikonversi menjadi Sales Order (SPK). Rincian item dan status terkunci demi menjaga integritas data akuntansi dan logistik.'
+            ], 422);
+        }
+
         $request->validate([
             'nomor_kontrak'         => 'required|string|max:40',
             'customer_id'           => 'required|exists:master_customers,id',
@@ -709,9 +811,9 @@ class TenderController extends Controller
             'nilai_deal'            => 'nullable|numeric|min:0',
             'nilai_estimasi'        => 'nullable|numeric|min:0|max_digits:20',
             'catatan'               => 'nullable|string|max:50',
-            'items'                 => 'nullable|array',
-            'items.*.barang_id'     => 'nullable',
-            'items.*.qty'           => 'nullable|numeric|min:0.01',
+            'items'                 => 'required|array|min:1',
+            'items.*.barang_id'     => 'required',
+            'items.*.qty'           => 'required|numeric|min:0.01',
             'items.*.harga'         => 'nullable|numeric|min:0',
             'documents'             => 'nullable|array|max:30',
             'documents.*'           => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,zip,rar',
@@ -723,10 +825,52 @@ class TenderController extends Controller
             'nomor_kontrak.max'      => 'Nomor Tender / Registrasi Proyek maksimal 40 karakter.',
             'catatan.max'            => 'Catatan Tender maksimal 50 karakter.',
             'nilai_estimasi.max_digits' => 'Nilai Pagu Anggaran maksimal 20 digit.',
+            'items.required'         => 'Daftar Barang yang diajukan wajib diisi minimal 1 item.',
+            'items.min'              => 'Daftar Barang yang diajukan wajib diisi minimal 1 item.',
+            'items.*.barang_id.required' => 'Barang / Jasa pada setiap baris wajib dipilih.',
+            'items.*.qty.required'   => 'Jumlah / Kuantitas barang wajib diisi.',
+            'items.*.qty.min'        => 'Jumlah / Kuantitas barang minimal 0.01.',
             'documents.*.max'        => 'Ukuran berkas lampiran tidak boleh melebihi 10 MB.',
             'documents.*.mimes'      => 'Format berkas lampiran harus berupa PDF, Word, Excel, atau ZIP/RAR.',
             'documents.max'          => 'Maksimal 30 berkas dokumen yang dapat dilampirkan.',
         ]);
+
+        // Validate Customer belongs to active company/branch
+        $customer = MasterCustomer::forActiveCompany()->find($request->customer_id);
+        if (!$customer) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Customer / Instansi yang dipilih tidak valid atau tidak terdaftar pada perusahaan aktif.'
+            ], 422);
+        }
+
+        // Validate Sales PIC belongs to active company
+        $sales = Karyawan::forActiveCompany()->find($request->sales_id);
+        if (!$sales) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Sales PIC yang dipilih tidak valid atau tidak aktif pada perusahaan ini.'
+            ], 422);
+        }
+
+        $nomor = trim($request->nomor_kontrak);
+        $branchId = $tender->branch_id;
+        if ($request->filled('branch_id')) {
+            $branchId = ($request->branch_id === 'pusat' || empty($request->branch_id)) ? null : (int)$request->branch_id;
+        }
+        $companyId = $branchId ? null : ($tender->company_id ?: session('active_company_id', 1));
+
+        // Check duplicate nomor_kontrak with another tender
+        $duplicate = Tender::where('nomor_kontrak', $nomor)
+            ->where('id', '!=', $tender->id)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId), fn($q) => $q->where('company_id', $companyId)->whereNull('branch_id'))
+            ->first();
+        if ($duplicate) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Nomor Kontrak / Registrasi Tender "' . $nomor . '" sudah digunakan oleh proyek tender lain pada entitas ini.'
+            ], 422);
+        }
 
         $existingDocCount = $tender->documents()->count();
         $newDocCount = $request->hasFile('documents') ? count($request->file('documents')) : 0;
@@ -741,14 +885,13 @@ class TenderController extends Controller
         try {
             $paguNilai = (float)($request->nilai_estimasi ?: $tender->nilai_estimasi);
 
-            $branchId = $tender->branch_id;
-            if ($request->filled('branch_id')) {
-                $branchId = ($request->branch_id === 'pusat' || empty($request->branch_id)) ? null : (int)$request->branch_id;
-            }
+            $oldStatus = $tender->status;
+            $newStatus = $request->filled('status') ? $request->status : $tender->status;
 
             $tender->update([
+                'company_id'            => $companyId,
                 'branch_id'             => $branchId,
-                'nomor_kontrak'         => $request->nomor_kontrak ?: $tender->nomor_kontrak,
+                'nomor_kontrak'         => $nomor,
                 'customer_id'           => $request->customer_id,
                 'sales_id'              => $request->sales_id,
                 'nama_tender'           => $request->nama_tender,
@@ -757,13 +900,25 @@ class TenderController extends Controller
                 'deadline'              => $request->deadline,
                 'estimasi_closing'      => $request->estimasi_closing,
                 'currency'              => $request->currency ?? $tender->currency,
-                'status'                => $request->filled('status') ? $request->status : $tender->status,
-                'tahap_tender'          => $this->getStageLabel($request->filled('status') ? $request->status : $tender->status),
+                'status'                => $newStatus,
+                'tahap_tender'          => $this->getStageLabel($newStatus),
                 'priority'              => $request->priority,
                 'nilai_estimasi'        => $paguNilai,
                 'catatan'               => $request->catatan,
                 'updated_by'            => auth()->id(),
             ]);
+
+            if ($oldStatus !== $newStatus) {
+                try {
+                    $stageLabel = $this->getStageLabel($newStatus);
+                    $tender->approvals()->create([
+                        'user_id'     => auth()->id(),
+                        'status'      => $newStatus,
+                        'approved_at' => now(),
+                        'catatan'     => 'Status diperbarui dari Form Edit menjadi ' . $stageLabel . '.',
+                    ]);
+                } catch (\Exception $e) {}
+            }
 
             // Sync Items
             if (is_array($request->items)) {
@@ -790,25 +945,31 @@ class TenderController extends Controller
                 }
             }
 
-            // Upload additional documents
+            // Upload additional documents with secure extension & filename sanitization
             if ($request->hasFile('documents')) {
                 $uploadDir = public_path('uploads/tenders');
                 if (!File::exists($uploadDir)) {
                     File::makeDirectory($uploadDir, 0755, true);
                 }
 
+                $allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
+
                 foreach ($request->file('documents') as $index => $file) {
                     if (!$file || !$file->isValid()) continue;
                     
+                    $ext = strtolower($file->getClientOriginalExtension());
+                    if (!in_array($ext, $allowedExtensions)) continue;
+
                     $docName = $request->input("document_names.{$index}") ?: $request->input("document_types.{$index}", 'Lainnya');
                     $docName = mb_substr(trim($docName), 0, 40);
 
-                    $filename = 'tnd_' . $tender->id . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $cleanOriginalName = preg_replace('/[^a-zA-Z0-9_\-\. ]/', '', $file->getClientOriginalName());
+                    $filename = 'tnd_' . $tender->id . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
                     $file->move($uploadDir, $filename);
 
                     TenderDocument::create([
                         'tender_id'     => $tender->id,
-                        'nama_file'     => $file->getClientOriginalName(),
+                        'nama_file'     => $cleanOriginalName ?: ('Dokumen_' . ($index + 1) . '.' . $ext),
                         'jenis_dokumen' => $docName,
                         'path'          => 'uploads/tenders/' . $filename,
                     ]);
@@ -846,6 +1007,15 @@ class TenderController extends Controller
             'updated_by'   => auth()->id(),
         ]);
 
+        try {
+            $tender->approvals()->create([
+                'user_id'     => auth()->id(),
+                'status'      => 'Pending Approval',
+                'approved_at' => now(),
+                'catatan'     => $request->input('catatan', 'Diajukan untuk persetujuan (approval) atasan.'),
+            ]);
+        } catch (\Exception $e) {}
+
         // Send WhatsApp Notification Async
         WhatsAppGatewayController::runAsync(fn() =>
             WhatsAppGatewayController::sendTenderSubmissionNotification($tender)
@@ -875,7 +1045,7 @@ class TenderController extends Controller
 
         $tender->update([
             'status'          => 'Approved',
-            'tahap_tender'    => 'Disetujui (Siap Kirim)',
+            'tahap_tender'    => 'Disetujui',
             'approved_by'     => auth()->id(),
             'approved_at'     => now(),
             'rejected_by'     => null,
@@ -887,9 +1057,10 @@ class TenderController extends Controller
         // Log Approval to tender_approvals table if exists
         try {
             $tender->approvals()->create([
-                'user_id' => auth()->id(),
-                'status'  => 'Approved',
-                'catatan' => $request->input('catatan', 'Disetujui oleh atasan / manager.'),
+                'user_id'     => auth()->id(),
+                'status'      => 'Approved',
+                'approved_at' => now(),
+                'catatan'     => $request->input('catatan', 'Disetujui oleh atasan / manager. Dokumen penawaran siap diserahkan ke klien.'),
             ]);
         } catch (\Exception $e) {}
 
@@ -940,9 +1111,10 @@ class TenderController extends Controller
 
         try {
             $tender->approvals()->create([
-                'user_id' => auth()->id(),
-                'status'  => 'Rejected',
-                'catatan' => $alasan,
+                'user_id'     => auth()->id(),
+                'status'      => 'Rejected',
+                'approved_at' => now(),
+                'catatan'     => 'Ditolak: ' . $alasan,
             ]);
         } catch (\Exception $e) {}
 
@@ -967,6 +1139,14 @@ class TenderController extends Controller
         $this->authorize('edit-tender');
         $this->authorizeCompanyAccess($tender);
 
+        $user = auth()->user();
+        if ($user && !$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('keputusan-final-tender')) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Akses ditolak: Anda tidak memiliki hak akses untuk menetapkan Keputusan Final Tender (keputusan-final-tender).'
+            ], 403);
+        }
+
         $request->validate([
             'nilai_deal' => 'nullable|numeric|min:0',
         ]);
@@ -979,6 +1159,15 @@ class TenderController extends Controller
             'nilai_deal'   => $nilaiDeal,
             'updated_by'   => auth()->id(),
         ]);
+
+        try {
+            $tender->approvals()->create([
+                'user_id'     => auth()->id(),
+                'status'      => 'Won',
+                'approved_at' => now(),
+                'catatan'     => 'Ditetapkan sebagai Pemenang Tender (Won) dengan nilai deal final Rp ' . number_format($nilaiDeal, 0, ',', '.') . '.',
+            ]);
+        } catch (\Exception $e) {}
 
         // Send WhatsApp Broadcast
         WhatsAppGatewayController::runAsync(fn() =>
@@ -1000,6 +1189,14 @@ class TenderController extends Controller
         $this->authorize('edit-tender');
         $this->authorizeCompanyAccess($tender);
 
+        $user = auth()->user();
+        if ($user && !$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('keputusan-final-tender')) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Akses ditolak: Anda tidak memiliki hak akses untuk menetapkan Keputusan Final Tender (keputusan-final-tender).'
+            ], 403);
+        }
+
         $request->validate([
             'lost_reason'        => 'required|string|max:500',
             'winning_competitor' => 'nullable|string|max:200',
@@ -1014,6 +1211,19 @@ class TenderController extends Controller
             'winning_competitor' => $request->winning_competitor,
             'updated_by'         => auth()->id(),
         ]);
+
+        try {
+            $catatanLost = 'Ditetapkan Kalah Lelang (Lost). Alasan: ' . $request->lost_reason;
+            if ($request->filled('winning_competitor')) {
+                $catatanLost .= ' (Pemenang: ' . $request->winning_competitor . ')';
+            }
+            $tender->approvals()->create([
+                'user_id'     => auth()->id(),
+                'status'      => 'Lost',
+                'approved_at' => now(),
+                'catatan'     => $catatanLost,
+            ]);
+        } catch (\Exception $e) {}
 
         return response()->json([
             'success' => true,
@@ -1035,6 +1245,25 @@ class TenderController extends Controller
         ]);
 
         $status = $request->status;
+        $user = auth()->user();
+        $isSuperOrOwner = $user ? $user->hasAnyRole(['Super Admin', 'Owner']) : false;
+
+        // Strict Role Permission Validation per Stage
+        if ($status === 'Pending Approval' && !$isSuperOrOwner && !$user->can('edit-tender')) {
+            return response()->json(['message' => 'Akses ditolak: Anda tidak memiliki wewenang untuk mengajukan persetujuan tender.'], 403);
+        }
+        if (in_array($status, ['Approved', 'Rejected']) && !$isSuperOrOwner && !$user->can('approve-tender')) {
+            return response()->json(['message' => 'Akses ditolak: Anda tidak memiliki hak akses Approval Atasan (approve-tender).'], 403);
+        }
+        if ($status === 'Sent' && !$isSuperOrOwner && !$user->can('kirim-lelang-tender')) {
+            return response()->json(['message' => 'Akses ditolak: Anda tidak memiliki hak akses untuk Kirim Penawaran Lelang (kirim-lelang-tender).'], 403);
+        }
+        if ($status === 'Negotiation' && !$isSuperOrOwner && !$user->can('negosiasi-tender')) {
+            return response()->json(['message' => 'Akses ditolak: Anda tidak memiliki hak akses untuk tahap Aanwijzing & Negosiasi (negosiasi-tender).'], 403);
+        }
+        if (in_array($status, ['Won', 'Lost']) && !$isSuperOrOwner && !$user->can('keputusan-final-tender')) {
+            return response()->json(['message' => 'Akses ditolak: Anda tidak memiliki hak akses untuk menetapkan Keputusan Final Tender (keputusan-final-tender).'], 403);
+        }
 
         // Extra check: If transitioning to Won, broadcast WA
         if ($status === 'Won' && $tender->status !== 'Won') {
@@ -1048,6 +1277,25 @@ class TenderController extends Controller
             'tahap_tender' => $this->getStageLabel($status),
             'updated_by'   => auth()->id(),
         ]);
+
+        try {
+            $stageLabel = $this->getStageLabel($status);
+            $stageCatatan = match ($status) {
+                'Sent'        => 'Dokumen penawaran resmi telah dikirim/diserahkan ke panitia lelang/klien.',
+                'Negotiation' => 'Tahap Aanwijzing dan negosiasi harga dimulai.',
+                'Won'         => 'Tender ditetapkan sebagai Pemenang (Won).',
+                'Lost'        => 'Tender dinyatakan Kalah (Lost).',
+                'Draft'       => 'Status tender dikembalikan ke Draft.',
+                default       => 'Status tahapan tender diperbarui ke ' . $stageLabel . '.'
+            };
+
+            $tender->approvals()->create([
+                'user_id'     => auth()->id(),
+                'status'      => $status,
+                'approved_at' => now(),
+                'catatan'     => $stageCatatan,
+            ]);
+        } catch (\Exception $e) {}
 
         return response()->json([
             'success'      => true,
@@ -1065,7 +1313,7 @@ class TenderController extends Controller
         return match ($status) {
             'Draft'            => 'Draft Proposal',
             'Pending Approval' => 'Review & Persetujuan Atasan',
-            'Approved'         => 'Disetujui (Siap Kirim)',
+            'Approved'         => 'Disetujui',
             'Rejected'         => 'Ditolak (Perlu Revisi)',
             'Sent'             => 'Terkirim ke Panitia/Klien',
             'Negotiation'      => 'Aanwijzing / Negosiasi',
@@ -1265,31 +1513,37 @@ class TenderController extends Controller
         try {
             $tender->load(['items.barang.satuan', 'customer', 'sales']);
 
-            $nomorSo = 'SO/' . date('Ymd') . '/' . str_pad(SalesOrder::withTrashed()->count() + 1, 4, '0', STR_PAD_LEFT);
+            $targetBranchId = $tender->branch_id;
+            $targetCompanyId = $targetBranchId ? null : ($tender->company_id ?: session('active_company_id', 1));
+            $nomorSo = SalesOrder::generateNomorSo($targetCompanyId, $targetBranchId);
+
+            $soTotal = ($tender->nilai_deal > 0) ? (float)$tender->nilai_deal : (float)($tender->nilai_estimasi ?: 0);
 
             $salesOrder = SalesOrder::create([
-                'company_id'          => $tender->company_id ?: session('active_company_id', 1),
-                'branch_id'           => session('active_branch_id'),
+                'company_id'          => $targetCompanyId,
+                'branch_id'           => $targetBranchId,
                 'nomor_so'            => $nomorSo,
                 'tanggal_so'          => now()->toDateString(),
                 'customer_id'         => $tender->customer_id,
                 'tender_id'           => $tender->id,
                 'pricing_tier'        => 'Tender',
                 'status'              => 'Confirmed',
-                'subtotal'            => $tender->nilai_estimasi ?: 0,
+                'subtotal'            => $soTotal,
                 'diskon_tipe'         => 'Nominal',
                 'diskon_nilai'        => 0,
                 'diskon_nominal'      => 0,
                 'pajak_tipe'          => 'None',
                 'pajak_persen'        => 0,
                 'pajak_nominal'       => 0,
-                'total'               => $tender->nilai_estimasi ?: 0,
+                'total'               => $soTotal,
                 'catatan'             => 'Ditarik dari Proposal Tender: ' . $tender->nama_tender . ' (' . ($tender->nomor_kontrak ?: 'TND-'.$tender->id) . ')',
                 'created_by'          => auth()->id(),
             ]);
 
             foreach ($tender->items as $item) {
-                $itemHarga = $item->barang ? (float)($item->barang->harga_tender ?: $item->barang->harga_grosir ?: $item->barang->harga_retail ?: 0) : 0;
+                $itemHarga = $item->barang 
+                    ? (float)($item->barang->harga_jual_tender ?: $item->barang->harga_jual_grosir ?: $item->barang->harga_jual_retail ?: 0) 
+                    : 0;
                 $itemQty = (float)($item->qty ?: 1);
                 $itemSubtotal = $itemQty * $itemHarga;
 
@@ -1314,6 +1568,15 @@ class TenderController extends Controller
                 'tahap_tender'   => $this->getStageLabel('Won'),
             ]);
 
+            try {
+                $tender->approvals()->create([
+                    'user_id'     => auth()->id(),
+                    'status'      => 'Converted to SO',
+                    'approved_at' => now(),
+                    'catatan'     => 'Tender resmi dikonversi menjadi dokumen Order Penjualan (' . $nomorSo . ').',
+                ]);
+            } catch (\Exception $e) {}
+
             DB::commit();
 
             return response()->json([
@@ -1335,6 +1598,13 @@ class TenderController extends Controller
         $this->authorize('hapus-tender');
         $this->authorizeCompanyAccess($tender);
 
+        if (!empty($tender->sales_order_id)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Tender yang sudah dikonversi ke Sales Order (SPK) tidak dapat dihapus.'
+            ], 422);
+        }
+
         try {
             $tender->delete();
             return response()->json(['success' => true, 'message' => 'Tender berhasil dihapus!']);
@@ -1350,29 +1620,35 @@ class TenderController extends Controller
         $this->authorizeCompanyAccess($tender);
 
         $request->validate([
-            'tanggal'    => 'required|date',
-            'aktivitas'  => 'required|string|max:100',
-            'keterangan' => 'required|string',
+            'tanggal'    => 'nullable|date',
+            'aktivitas'  => 'required|string|max:60',
+            'keterangan' => 'required|string|max:80',
+        ], [
+            'aktivitas.required'  => 'Nama aktivitas / kegiatan wajib diisi.',
+            'aktivitas.max'       => 'Nama aktivitas / kegiatan maksimal 60 karakter.',
+            'keterangan.required' => 'Catatan / keterangan follow-up wajib diisi.',
+            'keterangan.max'      => 'Catatan / keterangan follow-up maksimal 80 karakter.',
         ]);
 
         try {
-            TenderFollowup::create([
+            $followup = TenderFollowup::create([
                 'tender_id'  => $tender->id,
-                'tanggal'    => $request->tanggal,
+                'tanggal'    => $request->tanggal ?: now()->toDateString(),
                 'aktivitas'  => $request->aktivitas,
                 'keterangan' => $request->keterangan,
                 'user_id'    => auth()->id(),
             ]);
 
-            return response()->json(['success' => true, 'message' => 'Follow-up berhasil ditambahkan!']);
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Catatan aktivitas follow-up berhasil ditambahkan!',
+                'followup' => $followup->load('user')
+            ]);
         } catch (\Exception $e) {
             Log::error('Error store followup: ' . $e->getMessage());
-            return response()->json(['message' => 'Gagal menyimpan follow-up.'], 500);
+            return response()->json(['message' => 'Gagal menyimpan catatan follow-up: ' . $e->getMessage()], 500);
         }
     }
-
-
-
 
     public function printPenawaran(Request $request, Tender $tender)
     {
@@ -1394,9 +1670,10 @@ class TenderController extends Controller
             'approvals.user'
         ]);
 
-        $companies = \App\Models\Company::active()->get();
-        $selectedCompanyId = $request->query('company_id', $tender->company_id ?? session('active_company_id'));
-        $company = $companies->firstWhere('id', $selectedCompanyId) ?? $tender->company ?? $companies->first() ?? \App\Models\Company::first();
+        // Secure company resolution: only companies belonging to the current tenant context
+        $activeCompanyId = session('active_company_id') ?: ($tender->company_id ?: ($tender->branch ? $tender->branch->company_id : 1));
+        $companies = \App\Models\Company::active()->where('id', $activeCompanyId)->get();
+        $company = $tender->company ?? $companies->first() ?? \App\Models\Company::find($activeCompanyId);
 
         $appLogo = ($company && $company->logo && file_exists(public_path('storage/' . $company->logo)))
             ? asset('storage/' . $company->logo)
@@ -1442,38 +1719,102 @@ class TenderController extends Controller
     /**
      * Helper to resolve HPP across stok_gudangs, kartu_stoks, opening_stocks, and bundle components
      */
-    private function resolveBarangHppMap(array $barangIds, bool $canSeeHpp): array
+    private function resolveBarangHppMap(array $barangIds, bool $canSeeHpp, ?int $companyId = null, ?int $branchId = null): array
     {
         if (!$canSeeHpp || empty($barangIds)) {
             return [];
         }
 
-        // 1. Stok Gudang (Moving Average & Nilai/Stok)
-        $stokInfoMap = DB::table('stok_gudangs')
-            ->whereIn('barang_id', $barangIds)
-            ->groupBy('barang_id')
-            ->selectRaw('barang_id, SUM(stok_aktual) as total_stok, SUM(nilai_persediaan) as total_nilai, AVG(CASE WHEN harga_pokok_rata_rata > 0 THEN harga_pokok_rata_rata END) as avg_hpp, MAX(harga_beli_terakhir) as last_buy')
-            ->get()
-            ->keyBy('barang_id');
+        $companyId = $companyId ?: (session('active_company_id') ?: (Auth::user()?->company_id ?? 1));
+        $branchId  = $branchId !== null ? $branchId : session('active_branch_id');
 
-        // 2. Kartu Stok latest transaction with price
-        $kartuStokMap = DB::table('kartu_stoks')
-            ->whereIn('barang_id', $barangIds)
-            ->where('harga_satuan', '>', 0)
-            ->orderBy('id', 'desc')
-            ->get()
-            ->groupBy('barang_id')
-            ->map(fn($group) => (float)$group->first()->harga_satuan);
+        // 1. Gudang Utama Entity Aktif
+        $primaryGudangIds = MasterGudang::where('status', 'Active')
+            ->when($branchId, function ($q) use ($branchId) {
+                $q->where('cabang_id', $branchId);
+            }, function ($q) use ($companyId) {
+                $q->whereNull('cabang_id');
+                if ($companyId) {
+                    $q->where('company_id', $companyId);
+                }
+            })
+            ->pluck('id')
+            ->toArray();
 
-        // 3. Opening Stock details
-        $openingMap = DB::table('opening_stock_details')
-            ->whereIn('barang_id', $barangIds)
-            ->where('harga_pokok', '>', 0)
-            ->get()
-            ->groupBy('barang_id')
-            ->map(fn($group) => (float)$group->first()->harga_pokok);
+        // 2. Gudang Fallback
+        $fallbackGudangIds = MasterGudang::where('status', 'Active')
+            ->when($branchId, function ($q) use ($companyId) {
+                $q->whereNull('cabang_id');
+                if ($companyId) {
+                    $q->where('company_id', $companyId);
+                }
+            }, function ($q) use ($companyId, $primaryGudangIds) {
+                if ($companyId) {
+                    $q->where('company_id', $companyId);
+                }
+                if (!empty($primaryGudangIds)) {
+                    $q->whereNotIn('id', $primaryGudangIds);
+                }
+            })
+            ->pluck('id')
+            ->toArray();
 
-        // 4. Bundle Components
+        $fetchHppForGudangs = function(array $targetBarangIds, array $targetGudangIds) {
+            if (empty($targetBarangIds) || empty($targetGudangIds)) {
+                return [[], []];
+            }
+
+            $stokMap = DB::table('stok_gudangs')
+                ->whereIn('barang_id', $targetBarangIds)
+                ->whereIn('gudang_id', $targetGudangIds)
+                ->groupBy('barang_id')
+                ->selectRaw('barang_id, SUM(stok_aktual) as total_stok, SUM(nilai_persediaan) as total_nilai, AVG(CASE WHEN harga_pokok_rata_rata > 0 THEN harga_pokok_rata_rata END) as avg_hpp, MAX(harga_beli_terakhir) as last_buy')
+                ->get()
+                ->keyBy('barang_id');
+
+            $kartuMap = DB::table('kartu_stoks')
+                ->whereIn('barang_id', $targetBarangIds)
+                ->whereIn('gudang_id', $targetGudangIds)
+                ->where('harga_satuan', '>', 0)
+                ->whereIn('id', function ($q) use ($targetBarangIds, $targetGudangIds) {
+                    $q->selectRaw('MAX(id)')
+                        ->from('kartu_stoks')
+                        ->whereIn('barang_id', $targetBarangIds)
+                        ->whereIn('gudang_id', $targetGudangIds)
+                        ->where('harga_satuan', '>', 0)
+                        ->groupBy('barang_id');
+                })
+                ->pluck('harga_satuan', 'barang_id');
+
+            return [$stokMap, $kartuMap];
+        };
+
+        [$primaryStokMap, $primaryKartuMap] = $fetchHppForGudangs($barangIds, $primaryGudangIds);
+
+        $needFallback = [];
+        foreach ($barangIds as $bId) {
+            $hasHpp = false;
+            if (isset($primaryStokMap[$bId])) {
+                $s = $primaryStokMap[$bId];
+                if ((float)$s->avg_hpp > 0 || (float)$s->last_buy > 0 || ((float)$s->total_stok > 0 && (float)$s->total_nilai > 0)) {
+                    $hasHpp = true;
+                }
+            }
+            if (!$hasHpp && isset($primaryKartuMap[$bId]) && (float)$primaryKartuMap[$bId] > 0) {
+                $hasHpp = true;
+            }
+            if (!$hasHpp) {
+                $needFallback[] = $bId;
+            }
+        }
+
+        $fallbackStokMap = [];
+        $fallbackKartuMap = [];
+        if (!empty($needFallback) && !empty($fallbackGudangIds)) {
+            [$fallbackStokMap, $fallbackKartuMap] = $fetchHppForGudangs($needFallback, $fallbackGudangIds);
+        }
+
+        // Bundle components
         $bundleMap = DB::table('master_barang_bundle')
             ->whereIn('parent_barang_id', $barangIds)
             ->get()
@@ -1482,31 +1823,46 @@ class TenderController extends Controller
         $childIds = $bundleMap->flatten()->pluck('child_barang_id')->unique()->filter()->toArray();
         $childHppMap = [];
         if (!empty($childIds)) {
-            $childHppMap = $this->resolveBarangHppMap($childIds, $canSeeHpp);
+            $childHppMap = $this->resolveBarangHppMap($childIds, $canSeeHpp, $companyId, $branchId);
         }
 
         $hppResult = [];
         foreach ($barangIds as $bId) {
             $hpp = 0;
-            $sInfo = $stokInfoMap->get($bId);
-            if ($sInfo) {
-                if ($sInfo->avg_hpp > 0) {
+
+            // 1. Primary warehouse
+            if (isset($primaryStokMap[$bId])) {
+                $sInfo = $primaryStokMap[$bId];
+                if ((float)$sInfo->avg_hpp > 0) {
                     $hpp = (float)$sInfo->avg_hpp;
-                } elseif ($sInfo->total_stok > 0 && $sInfo->total_nilai > 0) {
-                    $hpp = $sInfo->total_nilai / $sInfo->total_stok;
-                } elseif ($sInfo->last_buy > 0) {
+                } elseif ((float)$sInfo->total_stok > 0 && (float)$sInfo->total_nilai > 0) {
+                    $hpp = (float)$sInfo->total_nilai / (float)$sInfo->total_stok;
+                } elseif ((float)$sInfo->last_buy > 0) {
                     $hpp = (float)$sInfo->last_buy;
                 }
             }
 
-            if ($hpp <= 0 && isset($kartuStokMap[$bId])) {
-                $hpp = $kartuStokMap[$bId];
+            if ($hpp <= 0 && isset($primaryKartuMap[$bId])) {
+                $hpp = (float)$primaryKartuMap[$bId];
             }
 
-            if ($hpp <= 0 && isset($openingMap[$bId])) {
-                $hpp = $openingMap[$bId];
+            // 2. Fallback warehouse
+            if ($hpp <= 0 && isset($fallbackStokMap[$bId])) {
+                $sInfo = $fallbackStokMap[$bId];
+                if ((float)$sInfo->avg_hpp > 0) {
+                    $hpp = (float)$sInfo->avg_hpp;
+                } elseif ((float)$sInfo->total_stok > 0 && (float)$sInfo->total_nilai > 0) {
+                    $hpp = (float)$sInfo->total_nilai / (float)$sInfo->total_stok;
+                } elseif ((float)$sInfo->last_buy > 0) {
+                    $hpp = (float)$sInfo->last_buy;
+                }
             }
 
+            if ($hpp <= 0 && isset($fallbackKartuMap[$bId])) {
+                $hpp = (float)$fallbackKartuMap[$bId];
+            }
+
+            // 3. Bundle components
             if ($hpp <= 0 && isset($bundleMap[$bId])) {
                 $bComps = $bundleMap[$bId];
                 $bHpp = 0;

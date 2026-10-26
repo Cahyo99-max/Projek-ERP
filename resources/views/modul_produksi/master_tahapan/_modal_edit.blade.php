@@ -14,11 +14,22 @@
                         <i class="bi bi-pencil-square fs-4 text-white"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title fw-extrabold text-white mb-0" id="edit_alur_modal_title" style="letter-spacing: -0.2px;">
-                            Edit Alur Tahapan Produksi
-                        </h5>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h5 class="modal-title fw-extrabold text-white mb-0" id="edit_alur_modal_title" style="letter-spacing: -0.2px;">
+                                Edit Alur Tahapan Produksi
+                            </h5>
+                            @if(!empty($isCabang))
+                                <span class="badge rounded-pill bg-white text-success fw-bold px-2.5 py-1 shadow-xs" style="font-size: 11px;">
+                                    <i class="bi bi-geo-alt-fill me-1"></i>{{ \Illuminate\Support\Str::startsWith($activeBranchName, 'Cabang') ? $activeBranchName : 'Cabang ' . $activeBranchName }}
+                                </span>
+                            @else
+                                <span class="badge rounded-pill bg-white text-primary fw-bold px-2.5 py-1 shadow-xs" style="font-size: 11px;">
+                                    <i class="bi bi-building me-1"></i>PT Pusat
+                                </span>
+                            @endif
+                        </div>
                         <small class="text-white-50 d-block mt-0.5" id="edit_alur_modal_subtitle" style="font-size: 12px;">
-                            Perbarui susunan urutan, nama proses, foto SOP, atau tambah/kurangi langkah tahapan
+                            Edit konfigurasi alur tahapan kerja & SOP produksi.
                         </small>
                     </div>
                 </div>
@@ -30,65 +41,77 @@
                 @csrf
                 <input type="hidden" id="edit_alur_bom_key" value="">
 
-                <div class="modal-body spk-modal-body p-3 p-md-4 overflow-y-auto" style="min-height: 0;">
+                <div class="modal-body spk-modal-body p-2.5 p-md-4 overflow-y-auto" style="min-height: 0; max-width: 100%; overflow-x: hidden;">
                     
                     {{-- ── SECTION 1: BOM INFO BANNER ── --}}
-                    <div class="spk-card border-0 rounded-4 shadow-sm mb-3.5 p-3 p-md-3.5" style="border: 1px solid var(--spk-border-color) !important; background: rgba(245,158,11,0.04);">
-                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                            <div>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <span class="badge rounded-pill px-3 py-1.5 fw-bold text-white shadow-sm" style="background: linear-gradient(135deg, #d97706, #f59e0b); font-size: 13px; border: 1px solid rgba(255,255,255,0.25);" id="edit_badge_bom_nama">
+                    <div class="spk-card border-0 rounded-4 shadow-sm mb-3.5 p-3 p-md-3.5 w-100" style="border: 1px solid var(--spk-border-color) !important; background: rgba(245,158,11,0.04); max-width: 100%; min-width: 0; box-sizing: border-box; overflow: hidden;">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2" style="min-width: 0; max-width: 100%;">
+                            <div style="min-width: 0; max-width: 100%;">
+                                <div class="d-flex align-items-center gap-2 flex-wrap" style="min-width: 0; max-width: 100%;">
+                                    <span class="badge rounded-pill px-3 py-1.5 fw-bold text-white shadow-sm text-truncate" style="background: linear-gradient(135deg, #d97706, #f59e0b); font-size: 13px; border: 1px solid rgba(255,255,255,0.25); max-width: 100%;" id="edit_badge_bom_nama">
                                         --
                                     </span>
-                                    <span class="badge rounded-pill px-2.5 py-1 fw-semibold text-white" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); font-size: 11px;" id="edit_badge_bom_kode">
+                                    <span class="badge rounded-pill px-2.5 py-1 fw-semibold spk-text-main text-truncate" style="background: var(--spk-bg-tertiary, #f1f5f9); border: 1px solid var(--spk-border-color, #cbd5e1); font-size: 11px; max-width: 100%;" id="edit_badge_bom_kode">
                                         --
                                     </span>
                                 </div>
-                                <small class="text-white-50 d-block mt-1" id="edit_txt_bom_desc" style="font-size: 11.5px;">
-                                    Alur tahapan ini khusus dikonfigurasikan untuk resep produk tersebut.
+                                <small class="spk-text-muted d-block mt-1 text-break" id="edit_txt_bom_desc" style="font-size: 11.5px;">
+                                    Alur tahapan khusus untuk resep produk ini.
                                 </small>
                             </div>
-                            <div class="p-2 px-3 rounded-3" style="background: rgba(255,255,255,0.03); border: 1px dashed var(--spk-border-color);">
-                                <small class="text-white-50" style="font-size: 11.5px;">
-                                    <i class="bi bi-info-circle text-warning me-1"></i>Perubahan urutan & tahapan akan tersimpan permanen.
+                            <div class="p-2 px-3 rounded-3 mt-1 mt-md-0" style="background: var(--spk-bg-light, rgba(255,255,255,0.03)); border: 1px dashed var(--spk-border-color); max-width: 100%;">
+                                <small class="spk-text-muted" style="font-size: 11.5px;">
+                                    <i class="bi bi-info-circle text-warning me-1"></i>Perubahan alur tersimpan permanen.
                                 </small>
                             </div>
                         </div>
                     </div>
 
                     {{-- ── SECTION 2: DAFTAR BARIS TAHAPAN KERJA ── --}}
-                    <div class="spk-card border-0 rounded-4 shadow-sm p-3 p-md-3.5" style="border: 1px solid var(--spk-border-color) !important;">
+                    <div class="spk-card border-0 rounded-4 shadow-sm p-2.5 p-md-3.5 w-100" style="border: 1px solid var(--spk-border-color) !important; max-width: 100%; min-width: 0; box-sizing: border-box; overflow: hidden;">
                         
                         {{-- Action Toolbar --}}
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom" style="border-color: var(--spk-border-color) !important;">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom w-100" style="border-color: var(--spk-border-color) !important; min-width: 0; max-width: 100%;">
                             <div class="d-flex align-items-center gap-2">
                                 <span class="badge rounded-circle p-1.5 d-flex align-items-center justify-content-center text-white" style="width: 26px; height: 26px; background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.4);">
                                     <i class="bi bi-list-check" style="font-size: 13px;"></i>
                                 </span>
-                                <span class="fw-bold text-white small text-uppercase" style="letter-spacing: 0.5px;">Konfigurasi Langkah Proses</span>
+                                <span class="fw-bold spk-text-main small text-uppercase" style="letter-spacing: 0.5px;">Alur Tahapan Proses</span>
                                 <span class="badge rounded-pill px-3 py-1 fw-bold text-dark shadow-xs" style="background: #f59e0b; font-size: 11px;" id="badgeTotalEditBarisTahapan">0 / 50</span>
                             </div>
 
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 shadow-xs" onclick="tambahBarisEditTahapanPreset()" title="Tambah alur standar">
-                                    <i class="bi bi-magic me-1"></i> Tambah Preset Standar
+                            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2.5 shadow-xs" onclick="tambahBarisEditTahapanPreset()" title="Tambah alur standar" style="font-size: 12px;">
+                                    <i class="bi bi-magic me-1"></i> <span class="d-none d-sm-inline">Tambah </span>Preset Standar
                                 </button>
-                                <button type="button" class="btn btn-sm btn-warning text-dark rounded-pill px-3 fw-bold shadow-sm" onclick="tambahBarisEditTahapan()">
-                                    <i class="bi bi-plus-circle-fill me-1"></i> Tambah Baris Baru
+                                <button type="button" class="btn btn-sm btn-warning text-dark rounded-pill px-3 fw-bold shadow-sm" onclick="tambahBarisEditTahapan()" style="font-size: 12px;">
+                                    <i class="bi bi-plus-circle-fill me-1"></i> Tambah Baris
                                 </button>
                             </div>
                         </div>
 
+                        {{-- Petunjuk Geser di Layar HP --}}
+                        <div class="d-flex d-md-none align-items-center justify-content-between mb-2 px-1 spk-text-muted" style="font-size: 11px;">
+                            <span><i class="bi bi-arrow-left-right text-warning me-1"></i>Geser ke samping untuk detail deskripsi & foto SOP</span>
+                        </div>
+
                         {{-- Dynamic Table / Rows --}}
-                        <div class="table-responsive" style="max-height: 480px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
-                            <table class="table table-hover align-middle mb-0 w-100" id="tabelEditBatchTahapan">
-                                <thead style="position: sticky; top: 0; z-index: 5; background: var(--spk-table-head-bg, #0f172a);">
-                                    <tr class="small text-uppercase fw-bold text-nowrap" style="border-bottom: 2px solid var(--spk-border-color);">
-                                        <th style="width: 48px;" class="text-center">No</th>
-                                        <th style="width: 90px;" class="text-center">Foto SOP</th>
-                                        <th style="min-width: 240px;">Nama Tahapan Proses <span class="text-danger">*</span></th>
-                                        <th style="min-width: 280px;">Deskripsi / Instruksi Kerja <span class="spk-text-muted fw-normal">(Opsional)</span></th>
-                                        <th style="width: 48px;" class="text-center">Aksi</th>
+                        <div class="batch-table-scroll-container w-100">
+                            <table class="table table-hover align-middle mb-0" id="tabelEditBatchTahapan">
+                                <colgroup>
+                                    <col class="batch-col-no">
+                                    <col class="batch-col-foto">
+                                    <col class="batch-col-nama">
+                                    <col class="batch-col-desk">
+                                    <col class="batch-col-aksi">
+                                </colgroup>
+                                <thead>
+                                    <tr class="small text-uppercase fw-bold" style="border-bottom: 2px solid var(--spk-border-color); background: var(--spk-table-head-bg, #f1f5f9);">
+                                        <th class="text-center py-2.5 px-1">No</th>
+                                        <th class="text-center py-2.5 px-2">Foto SOP</th>
+                                        <th class="py-2.5 px-2">Nama Tahapan Proses <span class="text-danger">*</span></th>
+                                        <th class="py-2.5 px-2">Deskripsi / Instruksi Kerja <span class="spk-text-muted fw-normal">(Opsional)</span></th>
+                                        <th class="text-center py-2.5 px-1">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="containerBarisEditTahapan">
@@ -112,13 +135,13 @@
                 </div>
 
                 {{-- FOOTER RESPONSIF --}}
-                <div class="modal-footer spk-modal-footer d-flex flex-column-reverse flex-sm-row justify-content-sm-between gap-2 p-3 p-md-3.5 border-0" 
+                <div class="modal-footer spk-modal-footer d-flex flex-column-reverse flex-sm-row justify-content-between align-items-center gap-2 p-3 p-md-3.5 border-0 spk-modal-footer-btns" 
                      style="background: var(--spk-card-bg, #1e293b); border-top: 1px solid var(--spk-border-color) !important; flex-shrink: 0;">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill w-100 w-sm-auto px-4" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
                         <i class="bi bi-x me-1"></i> Batal
                     </button>
-                    <button type="button" id="btnSimpanEditBatchTahapan" class="btn btn-warning text-dark rounded-pill w-100 w-sm-auto px-4 fw-bold shadow-lg" onclick="simpanBatchEditTahapan()">
-                        <i class="bi bi-check-circle-fill me-1"></i> Simpan Perubahan Alur (<span id="lblCountSimpanEdit">0</span>)
+                    <button type="button" id="btnSimpanEditBatchTahapan" class="btn btn-warning text-dark rounded-pill px-4 fw-bold shadow-md" onclick="simpanBatchEditTahapan()">
+                        <i class="bi bi-check-circle-fill me-1"></i> Simpan Perubahan (<span id="lblCountSimpanEdit">0</span>)
                     </button>
                 </div>
             </form>
@@ -163,7 +186,7 @@
         $('#btnSimpanEditBatchTahapan').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Memuat...');
 
         $.get(`/produksi/master-tahapan/bom/${bomKey}`, function(res) {
-            $('#btnSimpanEditBatchTahapan').prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> Simpan Perubahan Alur (<span id="lblCountSimpanEdit">0</span>)');
+            $('#btnSimpanEditBatchTahapan').prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> Simpan Perubahan (<span id="lblCountSimpanEdit">0</span>)');
 
             const info = res.bom_info;
             const tahapans = res.tahapans || [];
@@ -204,7 +227,7 @@
             <tr class="row-edit-tahapan" id="row_edit_tahapan_${rowId}" data-row-id="${rowId}">
                 {{-- No Urutan --}}
                 <td class="text-center">
-                    <span class="badge bg-secondary bg-opacity-20 text-white rounded-circle p-2 badge-row-number" style="width: 28px; height: 28px; font-size: 11px;">1</span>
+                    <span class="badge rounded-circle p-2 badge-row-number spk-text-main fw-bold" style="width: 28px; height: 28px; font-size: 11px; background: rgba(100,116,139,0.12); border: 1px solid var(--spk-border-color);">1</span>
                     <input type="hidden" name="tahapans[${rowId}][urutan]" class="inp-row-urutan" value="1">
                     <input type="hidden" name="tahapans[${rowId}][id]" class="inp-row-id" value="${dbId}">
                     <input type="hidden" name="tahapans[${rowId}][hapus_foto]" id="inp_hapus_foto_row_${rowId}" value="0">
@@ -380,10 +403,25 @@
             contentType: false,
             processData: false,
             success: function(res) {
+                // 1. Langsung reload tabel di background secara instan tanpa jeda!
+                reloadTabelTahapan();
+
+                // 2. Tutup modal & pulihkan tombol seketika
                 $('#modalEditAlurTahapan').modal('hide');
                 $btn.prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> Simpan Perubahan Alur');
-                Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message, timer: 2000, showConfirmButton: false })
-                    .then(() => reloadTabelTahapan());
+
+                // 3. Notifikasi Toast cepat, modern, dan non-blocking
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1600,
+                    timerProgressBar: true
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: res.message || 'Alur tahapan produksi berhasil diperbarui!'
+                });
             },
             error: function(xhr) {
                 $btn.prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> Simpan Perubahan Alur');

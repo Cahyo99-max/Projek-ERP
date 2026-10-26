@@ -38,16 +38,16 @@
             </div>
         </div>
 
-        <!-- Customer & Tenor (Payment Term) Section Card -->
+        <!-- Customer, Pembayaran & Alamat Section Card -->
         <div class="tkpd-cart-section-card">
             <div class="tkpd-section-label">
-                <i class="bi bi-person-badge-fill me-1.5 text-success"></i> Pelanggan &amp; Tenor
+                <i class="bi bi-person-badge-fill me-1.5 text-success"></i> Pelanggan &amp; Pembayaran
             </div>
             
             <div class="row g-2.5">
                 <div class="col-12">
-                    <label class="form-label small mb-1" style="font-size:0.75rem;">Pelanggan / Customer</label>
-                    <select class="form-select form-select-sm" id="cart_customer_id">
+                    <label class="form-label small mb-1 fw-semibold" style="font-size:0.75rem;">Pelanggan / Customer <span class="text-danger">*</span></label>
+                    <select class="form-select form-select-sm" id="cart_customer_id" required>
                         <option value="">-- Pelanggan Umum (Walk-in) --</option>
                         @foreach($customers as $c)
                             <option value="{{ $c->id }}" data-nama="{{ $c->nama_customer }}" data-telepon="{{ $c->telepon }}" data-alamat="{{ $c->alamat }}">
@@ -69,14 +69,62 @@
                     </div>
                 </div>
 
+                {{-- Alamat Pengiriman (Otomatis dari Customer) --}}
                 <div class="col-12">
-                    <label class="form-label small mb-1" style="font-size:0.75rem;">Tenor Pembayaran (Termin)</label>
+                    <label class="form-label small mb-1 fw-semibold d-flex justify-content-between align-items-center" style="font-size:0.75rem;">
+                        <span><i class="bi bi-geo-alt-fill me-1 text-danger"></i> Alamat Pengiriman</span>
+                        <span class="text-body-secondary" style="font-size:0.68rem; font-weight:normal;">Otomatis dari customer</span>
+                    </label>
+                    <textarea class="form-control form-control-sm" id="cart_alamat_pengiriman" rows="2" placeholder="Alamat otomatis terisi dari data pelanggan..."></textarea>
+                </div>
+
+                {{-- Metode Pembayaran --}}
+                <div class="col-12">
+                    <label class="form-label small mb-1 fw-semibold" style="font-size:0.75rem;">
+                        <i class="bi bi-credit-card-2-front-fill me-1 text-primary"></i> Metode Pembayaran
+                    </label>
+                    <select class="form-select form-select-sm" id="cart_payment_method_id">
+                        <option value="">-- Pilih Metode Pembayaran --</option>
+                        @foreach($paymentMethods as $pm)
+                            <option value="{{ $pm->id }}">{{ $pm->nama_metode }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Tenor Pembayaran (Termin) --}}
+                <div class="col-12">
+                    <label class="form-label small mb-1 fw-semibold" style="font-size:0.75rem;">
+                        <i class="bi bi-calendar-event-fill me-1 text-info"></i> Tenor Pembayaran (Termin)
+                    </label>
                     <select class="form-select form-select-sm" id="cart_payment_term_id">
                         <option value="">-- Pilih Tenor (Cash / Kredit) --</option>
                         @foreach($paymentTerms as $pt)
                             <option value="{{ $pt->id }}">{{ $pt->nama_term }} ({{ $pt->jumlah_hari }} hari)</option>
                         @endforeach
                     </select>
+                </div>
+
+                {{-- Catatan & Syarat Ketentuan (Collapsible) --}}
+                <div class="col-12 pt-1">
+                    <a class="small text-decoration-none text-body-secondary d-flex align-items-center gap-1.5 py-1 px-1 rounded hover-bg-subtle" data-bs-toggle="collapse" href="#cart_collapse_notes" role="button" aria-expanded="false" style="font-size:0.75rem;">
+                        <i class="bi bi-pencil-square text-primary"></i>
+                        <span class="fw-semibold">Catatan &amp; Syarat Ketentuan</span>
+                        <i class="bi bi-chevron-down ms-auto text-muted" style="font-size:0.65rem;"></i>
+                    </a>
+                    <div class="collapse mt-2" id="cart_collapse_notes">
+                        <div class="mb-2">
+                            <label class="form-label small mb-1 text-muted" style="font-size:0.72rem;">Catatan Pesanan:</label>
+                            <textarea class="form-control form-control-sm" id="cart_catatan" rows="1" placeholder="Catatan khusus..."></textarea>
+                        </div>
+                        <div>
+                            <label class="form-label small mb-1 text-muted d-flex justify-content-between align-items-center" style="font-size:0.72rem;">
+                                <span>Syarat &amp; Ketentuan:</span>
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal" style="font-size:0.65rem;">Dapat Disesuaikan</span>
+                            </label>
+                            <textarea class="form-control form-control-sm font-monospace" id="cart_syarat_ketentuan" rows="3" style="font-size:0.75rem;" placeholder="1. Barang sesuai spesifikasi...">1. Barang sesuai dengan spesifikasi pesanan.
+2. Pembayaran sah setelah dana efektif masuk ke rekening.</textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -86,59 +134,13 @@
             <label class="tkpd-section-label mb-1.5">
                 <i class="bi bi-bag-check me-1 text-success"></i> Daftar Barang Pesanan
             </label>
-            <div class="tkpd-cart-items-list" id="cart_items_list" style="max-height:220px; overflow-y:auto;">
-                <!-- Cart items rendered dynamically by JS -->
+            <div class="tkpd-cart-items-list" id="cart_items_list" style="max-height:360px; overflow-y:auto;">
+                <!-- Cart items rendered dynamically by JS with per-item Diskon & PPN -->
             </div>
         </div>
 
-        {{-- Discount & Tax Controls Card --}}
+        {{-- Ongkir & DP Controls Card --}}
         <div class="tkpd-cart-section-card">
-
-            {{-- Diskon --}}
-            <div class="mb-3">
-                <label class="tkpd-section-label mb-2">
-                    <i class="bi bi-scissors me-1 text-danger"></i> Diskon Order
-                </label>
-                <div class="d-flex gap-1 align-items-stretch">
-                    {{-- Toggle Rp / % --}}
-                    <div class="btn-group btn-group-sm flex-shrink-0" role="group" id="cart_diskon_toggle">
-                        <input type="radio" class="btn-check" name="diskon_mode" id="diskon_mode_rp" value="Nominal" checked>
-                        <label class="btn btn-outline-secondary fw-bold px-2" for="diskon_mode_rp" style="min-width:42px;">Rp</label>
-                        <input type="radio" class="btn-check" name="diskon_mode" id="diskon_mode_pct" value="Persen">
-                        <label class="btn btn-outline-secondary fw-bold px-2" for="diskon_mode_pct" style="min-width:42px;">%</label>
-                    </div>
-                    <div class="input-group input-group-sm flex-grow-1">
-                        <input type="text" class="form-control text-end" id="cart_diskon_val" value="0" placeholder="0">
-                        <span class="input-group-text font-monospace" id="cart_diskon_suffix">Rp</span>
-                    </div>
-                </div>
-                <div class="d-flex justify-content-between mt-1" id="cart_diskon_preview_row" style="display:none!important;">
-                    <span class="text-body-secondary" style="font-size:0.75rem;">Nilai diskon:</span>
-                    <span class="fw-bold text-danger font-monospace" style="font-size:0.75rem;" id="cart_diskon_preview">- Rp 0</span>
-                </div>
-            </div>
-
-            {{-- PPN dari Master Pajak --}}
-            <div class="mb-3">
-                <label class="tkpd-section-label mb-2">
-                    <i class="bi bi-receipt me-1 text-info"></i> Pajak (PPN)
-                </label>
-                <select class="form-select form-select-sm" id="cart_pajak_type">
-                    <option value="none" data-tarif="0">Non PPN (0%)</option>
-                    @foreach($ppnList as $ppn)
-                        <option value="{{ $ppn->id }}" data-tarif="{{ $ppn->tarif }}">
-                            {{ $ppn->nama_pajak }} ({{ number_format($ppn->tarif, 0) }}%)
-                        </option>
-                    @endforeach
-                    @if($ppnList->isEmpty())
-                        <option value="ppn11" data-tarif="11">PPN 11%</option>
-                    @endif
-                </select>
-                <div class="d-flex justify-content-between mt-1" id="cart_pajak_preview_row" style="display:none!important;">
-                    <span class="text-body-secondary" style="font-size:0.75rem;">Nilai PPN:</span>
-                    <span class="fw-bold text-info font-monospace" style="font-size:0.75rem;" id="cart_pajak_preview">+ Rp 0</span>
-                </div>
-            </div>
 
             {{-- Biaya Pengiriman / Ongkir / Biaya Lain --}}
             <div class="mb-3">
@@ -178,7 +180,7 @@
                     </div>
                     <div class="d-flex justify-content-between mt-2 pt-2 border-top" id="cart_dp_preview_row">
                         <span class="text-body-secondary small" style="font-size:0.75rem;">Sisa Tagihan (Piutang):</span>
-                        <span class="fw-bold text-warning font-monospace small" id="cart_sisa_tagihan_preview">Rp 0</span>
+                        <span class="fw-bold text-warning font-monospace small" id="cart_sisa_tagihan_preview">Rp 0,00</span>
                     </div>
                 </div>
             </div>
@@ -188,49 +190,52 @@
         <div class="tkpd-cart-section-card">
             <div class="tkpd-summary-row">
                 <span class="text-body-secondary small">Subtotal</span>
-                <strong id="cart_summary_subtotal">Rp 0</strong>
+                <strong id="cart_summary_subtotal">Rp 0,00</strong>
             </div>
             <div class="tkpd-summary-row">
-                <span class="text-body-secondary small">Diskon <span id="cart_summary_diskon_label" class="text-muted font-monospace" style="font-size:0.72rem;"></span></span>
-                <strong class="text-danger" id="cart_summary_diskon">- Rp 0</strong>
+                <span class="text-body-secondary small">Total Diskon</span>
+                <strong class="text-danger" id="cart_summary_diskon">- Rp 0,00</strong>
             </div>
             <div class="tkpd-summary-row">
-                <span class="text-body-secondary small">Pajak <span id="cart_summary_pajak_label" class="text-muted font-monospace" style="font-size:0.72rem;"></span></span>
-                <strong class="text-info" id="cart_summary_pajak">+ Rp 0</strong>
+                <span class="text-body-secondary small">Total PPN</span>
+                <strong class="text-info" id="cart_summary_pajak">+ Rp 0,00</strong>
             </div>
             <div class="tkpd-summary-row">
                 <span class="text-body-secondary small">Ongkir / Biaya Lain</span>
-                <strong class="text-primary" id="cart_summary_ongkir">+ Rp 0</strong>
+                <strong class="text-primary" id="cart_summary_ongkir">+ Rp 0,00</strong>
             </div>
             <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-1">
                 <span class="fw-bold fs-6">Grand Total</span>
-                <span class="tkpd-summary-total" id="cart_summary_total">Rp 0</span>
+                <span class="tkpd-summary-total text-success" id="cart_summary_total">Rp 0,00</span>
             </div>
 
             {{-- Summary DP & Sisa Tagihan (Muncul jika DP aktif) --}}
             <div id="cart_summary_dp_section" style="display: none;">
                 <div class="tkpd-summary-row mt-2 pt-2 border-top">
                     <span class="text-body-secondary small">Uang Muka (DP) <span id="cart_summary_dp_label" class="text-muted font-monospace" style="font-size:0.72rem;"></span></span>
-                    <strong class="text-success font-monospace" id="cart_summary_dp_nominal">Rp 0</strong>
+                    <strong class="text-success font-monospace" id="cart_summary_dp_nominal">Rp 0,00</strong>
                 </div>
                 <div class="tkpd-summary-row">
                     <span class="text-body-secondary small fw-bold">Sisa Tagihan</span>
-                    <strong class="text-warning font-monospace" id="cart_summary_sisa_tagihan">Rp 0</strong>
+                    <strong class="text-warning font-monospace" id="cart_summary_sisa_tagihan">Rp 0,00</strong>
                 </div>
             </div>
         </div>
 
     </div>
 
-    {{-- Offcanvas Footer: Checkout Button --}}
-    <div class="p-3 border-top bg-body-tertiary">
-        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('tambah-sales-order'))
-        <button type="button" class="tkpd-btn-checkout w-100" id="btn_open_checkout" disabled>
-            <i class="bi bi-bag-check-fill fs-5"></i>
-            <span>Buat Pesanan &amp; Checkout</span>
+    {{-- Sticky Cart Footer (Selalu kelihatan di bawah drawer offcanvas) --}}
+    <div class="tkpd-cart-footer">
+        <button type="button" class="btn btn-success w-100 fw-bold py-2.5 mb-2 shadow-sm d-flex align-items-center justify-content-center gap-2" id="btn_simpan_pesanan" disabled style="background: linear-gradient(135deg, #059669, #10b981); border: none; font-size: 0.95rem; border-radius: 10px;">
+            <i class="bi bi-floppy2-fill fs-5"></i>
+            <span>Simpan Pesanan</span>
         </button>
-        @endif
+        <button type="button" class="btn btn-outline-success w-100 fw-semibold py-2 d-flex align-items-center justify-content-center gap-2" id="btn_open_checkout" disabled style="border-width: 1.5px; font-size: 0.88rem; border-radius: 10px;">
+            <i class="bi bi-bag-check fs-5"></i>
+            <span>Review &amp; Checkout</span>
+        </button>
     </div>
+
 </div>
 
 {{-- Floating Cart Trigger Button (Bottom Right) --}}
@@ -239,5 +244,5 @@
         <i class="bi bi-cart-fill fs-5" id="cart_icon_bounce"></i>
         <span class="cart-badge-pill" id="cart_badge_floating">0</span>
     </div>
-    <span class="d-none d-sm-inline font-monospace" id="cart_floating_nominal">Rp 0</span>
+    <span class="d-none d-sm-inline font-monospace" id="cart_floating_nominal">Rp 0,00</span>
 </button>

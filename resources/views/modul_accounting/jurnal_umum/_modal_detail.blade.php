@@ -25,15 +25,21 @@
                 
                 <!-- Info Jurnal -->
                 <div class="row g-2 p-3 rounded-3 bg-body-tertiary border mb-3 small">
-                    <div class="col-sm-4">
+                    <div class="col-sm-3 col-6">
                         <span class="text-muted">Tanggal Jurnal:</span>
                         <strong class="d-block font-monospace text-body-emphasis" id="detail_tanggal">-</strong>
                     </div>
-                    <div class="col-sm-4">
+                    <div class="col-sm-3 col-6">
                         <span class="text-muted">Sumber Transaksi:</span>
                         <strong class="d-block font-monospace text-body-emphasis" id="detail_sumber">-</strong>
                     </div>
-                    <div class="col-sm-4">
+                    <div class="col-sm-3 col-6">
+                        <span class="text-muted">No. Tender:</span>
+                        <div id="detail_no_tender_box">
+                            <span class="text-muted fst-italic" id="detail_no_tender">-</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-3 col-6">
                         <span class="text-muted">Dibuat Oleh:</span>
                         <strong class="d-block text-body-emphasis" id="detail_creator">-</strong>
                     </div>

@@ -43,14 +43,14 @@
                         </div>
 
                         <div class="col-12 col-md-5 text-md-end border-top border-md-top-0 pt-3 pt-md-0">
-                            <small class="spk-bundle-meta font-monospace small d-block mb-1">ESTIMASI KETERSEDIAAN PAKET DI GUDANG</small>
+                            <small class="spk-bundle-meta font-monospace small d-block mb-1 text-uppercase" style="letter-spacing: 0.5px;">KAPASITAS PERAKITAN MAKSIMAL (VIRTUAL STOCK)</small>
                             <div id="detail_badge_stok_bundle" class="mt-1">
                                 <span class="badge spk-badge-cyan rounded-pill px-3.5 py-2 font-monospace fs-6 fw-bold shadow-xs">
                                     <i class="bi bi-box-seam me-1"></i>0 Set Siap Dirakit
                                 </span>
                             </div>
-                            <small class="spk-bundle-meta mt-1 d-block" style="font-size: 11px;">
-                                Dihitung otomatis dari stok terkecil komponen penyusun di gudang.
+                            <small class="spk-bundle-meta mt-1.5 d-block text-white-50" style="font-size: 11px;">
+                                Kapasitas perakitan dihitung secara real-time berdasarkan komponen penyusun dengan ketersediaan stok paling terbatas <i>(bottleneck item)</i>.
                             </small>
                         </div>
                     </div>
@@ -352,8 +352,8 @@
             url: `/master-bundle/${id}/show`,
             method: 'GET',
             success: function(res) {
-                if (res.success && res.bundle) {
-                    const b = res.bundle;
+                if (res.success && (res.bundle || res.data)) {
+                    const b = res.bundle || res.data;
                     currentDetailBundleData = b;
 
                     $('#detail_kode_bundle').text(b.kode_barang);
@@ -423,7 +423,7 @@
                     $('#detail_margin_grosir_badge').html(calcMarginHtml(grosir));
                     $('#detail_margin_tender_badge').html(calcMarginHtml(tender));
 
-                    const maxAssembleable = res.bundle.max_assembleable || 0;
+                    const maxAssembleable = b.max_assembleable || 0;
                     const badgeClass = maxAssembleable > 0 ? 'spk-badge-cyan' : 'spk-badge-red';
                     $('#detail_badge_stok_bundle').html(`
                         <span class="badge ${badgeClass} rounded-pill px-3.5 py-2 font-monospace fs-6 fw-bold shadow-xs">
@@ -440,14 +440,18 @@
                             
                             let imgHtml = '';
                             if (compFotos.length > 0) {
+                                const photoSrc = typeof compFotos[0] === 'string' ? compFotos[0] : (compFotos[0].url || compFotos[0]);
                                 imgHtml = `
                                     <div class="position-relative d-inline-block spk-photo-hover-zoom me-2.5 flex-shrink-0" onclick="openComponentGallery(${idx})" title="Klik untuk melihat foto ${c.nama_barang}">
-                                        <img src="${compFotos[0].url}" class="rounded-3 border shadow-xs" style="width:40px; height:40px; object-fit:cover;">
+                                        <img src="${photoSrc}" class="rounded-3 border shadow-xs" style="width:40px; height:40px; object-fit:cover;">
                                     </div>
                                 `;
                             } else {
                                 imgHtml = `<div class="rounded-3 border bg-secondary bg-opacity-10 me-2.5 d-inline-flex align-items-center justify-content-center text-muted flex-shrink-0" style="width:40px; height:40px;"><i class="bi bi-box-seam small"></i></div>`;
                             }
+
+                            const stokGudang = c.stok_aktual_gudang !== undefined ? parseFloat(c.stok_aktual_gudang) : parseFloat(c.stok_gudang || 0);
+                            const maxPacks = c.possible_bundles !== undefined ? parseFloat(c.possible_bundles) : parseFloat(c.max_bundle_packs || 0);
 
                             html += `
                                 <tr class="spk-detail-table-row">
@@ -470,10 +474,10 @@
                                     <td class="text-end font-monospace small fw-bold ${c.subtotal_hpp > 0 ? '' : 'text-muted'}" style="${c.subtotal_hpp > 0 ? 'color: #38bdf8;' : ''}">
                                         ${c.subtotal_hpp > 0 ? 'Rp ' + numberFormatLocal(c.subtotal_hpp) : '-'}
                                     </td>
-                                    <td class="text-center font-monospace fw-bold" style="${c.stok_gudang > 0 ? 'color: #34d399;' : 'color: #ef4444;'}">${numberFormatLocal(c.stok_gudang)} ${c.satuan}</td>
+                                    <td class="text-center font-monospace fw-bold" style="${stokGudang > 0 ? 'color: #34d399;' : 'color: #ef4444;'}">${numberFormatLocal(stokGudang)} ${c.satuan}</td>
                                     <td class="text-center">
                                         <span class="badge font-monospace fw-bold px-2.5 py-1" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-size: 11.5px;">
-                                            ${numberFormatLocal(c.max_bundle_packs)} Set
+                                            ${numberFormatLocal(maxPacks)} Set
                                         </span>
                                     </td>
                                 </tr>

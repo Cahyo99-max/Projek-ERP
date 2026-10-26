@@ -11,7 +11,10 @@ class AppSettingsController extends Controller
 {
     public function index()
     {
-        $this->authorize('lihat-hak-akses');
+        $user = auth()->user();
+        if (!$user->hasRole('Super Admin') && !$user->can('lihat-pengaturan-aplikasi')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat Pengaturan Aplikasi.');
+        }
 
         $settings = AppSetting::pluck('value', 'key')->all();
         $appNameSetting = $settings['app_name'] ?? 'Lumen ERP';
@@ -24,7 +27,13 @@ class AppSettingsController extends Controller
 
     public function update(Request $request)
     {
-        $this->authorize('edit-hak-akses');
+        $user = auth()->user();
+        if (!$user->hasRole('Super Admin') && !$user->can('edit-pengaturan-aplikasi')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses untuk mengubah Pengaturan Aplikasi.'
+            ], 403);
+        }
 
         $request->validate([
             'app_name' => 'required|string|max:100',

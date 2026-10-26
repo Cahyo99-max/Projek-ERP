@@ -100,7 +100,7 @@
     }
 
     function pilihSpkFromLookupPbj(spkId) {
-        $('#pbj_spk_id').val(spkId).trigger('change');
+        onPbjSpkChanged(spkId);
         $('#modalLookupSpkPbj').modal('hide');
     }
 </script>

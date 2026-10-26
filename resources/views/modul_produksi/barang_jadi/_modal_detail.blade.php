@@ -139,7 +139,21 @@
             </div>
 
             {{-- CINEMATIC FOOTER --}}
-            <div class="modal-footer pbj-modal-footer px-4 py-3">
+            <div class="modal-footer pbj-modal-footer px-4 py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2" id="pbj_detail_action_wrapper">
+                    @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('buka-closing-penerimaan-barang-jadi'))
+                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3.5 py-1.5 fw-bold d-none align-items-center gap-1.5 shadow-2xs" id="btn_reopen_from_detail" onclick="reopenClosingFgFromDetail()">
+                        <i class="bi bi-unlock-fill"></i>
+                        <span>Buka Kembali Closing (Reopen)</span>
+                    </button>
+                    @endif
+                    @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('closing-penerimaan-barang-jadi') || auth()->user()->can('sesuaikan-hpp-penerimaan-barang-jadi'))
+                    <button type="button" class="btn btn-sm btn-warning rounded-pill px-3.5 py-1.5 fw-bold d-none align-items-center gap-1.5 text-dark shadow-2xs" id="btn_closing_hpp_from_detail" onclick="closingHppFgFromDetail()">
+                        <i class="bi bi-calculator-fill"></i>
+                        <span>Hitung & Finalisasi HPP</span>
+                    </button>
+                    @endif
+                </div>
                 <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4 py-2 fw-semibold ms-auto" data-bs-dismiss="modal">
                     Tutup
                 </button>
@@ -359,7 +373,7 @@
     let _currentPbjSpkId = null;
     let _pbjHistoryPagination = { page: 1, last: 1, from: 1, to: 1, total: 0 };
 
-    function showSpkHistoryModal(spkId) {
+    window.showSpkHistoryModal = function(spkId) {
         _currentPbjSpkId = spkId;
         
         Swal.fire({
@@ -378,6 +392,7 @@
                     return;
                 }
 
+                _currentPbjSpkData = res.spk;
                 const spk = res.spk;
                 const bKode = spk.barang_jadi ? spk.barang_jadi.kode_barang : '-';
                 const bNama = spk.barang_jadi ? spk.barang_jadi.nama_barang : '-';
@@ -418,8 +433,34 @@
                 $('#pbj_det_overall_percent').text(percentText);
                 $('#pbj_det_overall_progressbar').css('width', `${overallPercent}%`);
 
-                $('#pbj-tab-rekap-tab').tab('show');
-                $('#modalDetailBarangJadi').modal('show');
+                const isSpkClosed = spk.is_fg_closed || spk.fg_closing_status === 'Closed' || spk.is_hpp_closed;
+                const hasSessions = (res.total_sesi || 0) > 0 || (res.total_hasil_baik || 0) > 0;
+
+                if (isSpkClosed) {
+                    $('#btn_reopen_from_detail').removeClass('d-none').addClass('d-inline-flex');
+                    $('#btn_closing_hpp_from_detail').addClass('d-none').removeClass('d-inline-flex');
+                } else {
+                    $('#btn_reopen_from_detail').addClass('d-none').removeClass('d-inline-flex');
+                    if (hasSessions) {
+                        $('#btn_closing_hpp_from_detail').removeClass('d-none').addClass('d-inline-flex');
+                    } else {
+                        $('#btn_closing_hpp_from_detail').addClass('d-none').removeClass('d-inline-flex');
+                    }
+                }
+
+                const rekapTabEl = document.getElementById('pbj-tab-rekap-tab');
+                if (rekapTabEl && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                    bootstrap.Tab.getOrCreateInstance(rekapTabEl).show();
+                } else if ($.fn.tab) {
+                    $('#pbj-tab-rekap-tab').tab('show');
+                }
+
+                const modalEl = document.getElementById('modalDetailBarangJadi');
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                } else {
+                    $('#modalDetailBarangJadi').modal('show');
+                }
 
                 loadPbjHistorySessions(spkId, 1);
             },
@@ -428,9 +469,9 @@
                 Swal.fire('Gagal!', err.responseJSON?.message || 'Gagal memuat data SPK.', 'error');
             }
         });
-    }
+    };
 
-    function loadPbjHistorySessions(spkId, page = 1) {
+    window.loadPbjHistorySessions = function(spkId, page = 1) {
         $('#container_pbj_riwayat_sessions').html(`
             <div class="text-center py-5">
                 <div class="spinner-border text-emerald spinner-border-sm" role="status"></div>
@@ -483,6 +524,162 @@
                             if (s.lokasi_rak.level) rakName += ` - Lantai: ${s.lokasi_rak.level}`;
                             if (s.lokasi_rak.baris || s.lokasi_rak.kolom) rakName += ` (Brs: ${s.lokasi_rak.baris || '-'}, Klm: ${s.lokasi_rak.kolom || '-'})`;
                         }
+                        const tglProd = s.tanggal_produksi ? new Date(s.tanggal_produksi).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'}) : null;
+                        const tglExp  = s.tanggal_kedaluwarsa ? new Date(s.tanggal_kedaluwarsa).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'}) : null;
+                        const serialsList = s.serials || [];
+                        const serialsCount = serialsList.length;
+
+                        let serialsHtml = '';
+                        if (serialsCount > 0) {
+                            const chips = serialsList.map(sn => `
+                                <span class="badge bg-secondary-subtle text-dark border border-secondary-subtle font-monospace px-2 py-1 me-1 mb-1" style="font-size: 11px;">
+                                    <i class="bi bi-upc me-1 text-muted"></i>${sn.serial_number}
+                                </span>
+                            `).join('');
+
+                            serialsHtml = `
+                                <div class="mt-2.5 pt-2 border-top">
+                                    <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                        <span class="small fw-semibold text-muted d-inline-flex align-items-center gap-1" style="font-size: 11.5px;">
+                                            <i class="bi bi-upc-scan text-primary"></i>
+                                            <span>Serial Numbers (${serialsCount} SN Terdaftar):</span>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex flex-wrap align-items-center" style="max-height: 85px; overflow-y: auto;">
+                                        ${chips}
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        const sessionStatus = s.status || 'Menunggu HPP';
+                        let statusBadgeHtml = '';
+                        if (sessionStatus === 'Menunggu HPP') {
+                            statusBadgeHtml = `<span class="badge rounded-pill px-2.5 py-1 font-monospace fw-bold" style="font-size: 11px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.5);"><i class="bi bi-hourglass-split me-1"></i>Menunggu HPP</span>`;
+                        } else if (sessionStatus === 'Diterima') {
+                            statusBadgeHtml = `<span class="badge rounded-pill px-2.5 py-1 font-monospace fw-bold" style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.5);"><i class="bi bi-check-circle-fill me-1"></i>Diterima (Stok Masuk)</span>`;
+                        } else if (sessionStatus === 'Ditolak') {
+                            statusBadgeHtml = `<span class="badge rounded-pill px-2.5 py-1 font-monospace fw-bold" style="font-size: 11px; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.5);"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>`;
+                        }
+
+                        const isSpkClosed = _currentPbjSpkData && (_currentPbjSpkData.is_fg_closed || _currentPbjSpkData.fg_closing_status === 'Closed' || _currentPbjSpkData.is_hpp_closed);
+                        const isUnderClosing = _currentPbjSpkData && _currentPbjSpkData.fg_closing_status === 'Menunggu Closing';
+
+                        let actionButtonsHtml = '';
+                        if (sessionStatus === 'Menunggu HPP') {
+                            actionButtonsHtml = `
+                                @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('closing-penerimaan-barang-jadi'))
+                                <button type="button" class="btn btn-xs btn-warning rounded-pill px-3 py-1 fw-bold text-dark shadow-sm d-inline-flex align-items-center gap-1" onclick="bukaModalApproveHppPbj(${s.id})">
+                                    <i class="bi bi-calculator-fill"></i>
+                                    <span>Hitung HPP & Approve</span>
+                                </button>
+                                <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="bukaModalRejectPbj(${s.id}, '${s.nomor_penerimaan}')">
+                                    <i class="bi bi-x-circle"></i>
+                                    <span>Tolak</span>
+                                </button>
+                                @endif
+                                ${(!isSpkClosed && !isUnderClosing) ? `
+                                    @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('edit-penerimaan-barang-jadi'))
+                                    <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-3 py-1 fw-semibold" onclick="editPenerimaanBarangJadi(${s.id})">
+                                        <i class="bi bi-pencil-square me-1"></i>Edit
+                                    </button>
+                                    @endif
+                                    @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('hapus-penerimaan-barang-jadi'))
+                                    <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-3 py-1 fw-semibold" onclick="batalkanSesiPenerimaan(${s.id}, '${s.nomor_penerimaan}')" title="Batalkan Pengajuan">
+                                        <i class="bi bi-trash-fill me-1"></i>Batalkan
+                                    </button>
+                                    @endif
+                                ` : ''}
+                            `;
+                        } else if (sessionStatus === 'Diterima') {
+                            actionButtonsHtml = `
+                                @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-jurnal-penerimaan-barang-jadi'))
+                                 ${hasJurnal ? `
+                                    <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-3 py-1 fw-semibold" onclick="bukaModalJurnalPbjDetail(${s.id})">
+                                        <i class="bi bi-journal-bookmark-fill me-1"></i>Jurnal
+                                    </button>
+                                ` : ''}
+                                @endif
+                                @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('cetak-penerimaan-barang-jadi'))
+                                <a href="/produksi/barang-jadi/${s.id}/print" target="_blank" class="btn btn-xs btn-primary rounded-pill px-3 py-1 text-white border-0 fw-semibold" style="background: linear-gradient(135deg,#0a2540,#1e40af);">
+                                    <i class="bi bi-printer-fill me-1"></i>Cetak
+                                </a>
+                                @endif
+                                ${(!isSpkClosed && !isUnderClosing) ? `
+                                    @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('edit-penerimaan-barang-jadi'))
+                                    <button type="button" class="btn btn-xs btn-outline-warning rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="editPenerimaanBarangJadi(${s.id})" title="Edit Detail Penyerahan Sesi Ini">
+                                        <i class="bi bi-pencil-square me-1"></i>Edit Sesi
+                                    </button>
+                                    @endif
+                                    @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('hapus-penerimaan-barang-jadi'))
+                                    <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="batalkanSesiPenerimaan(${s.id}, '${s.nomor_penerimaan}')" title="Batalkan Penyerahan Sesi Ini & Revert Stok Gudang">
+                                        <i class="bi bi-x-circle-fill me-1"></i>Batalkan Sesi
+                                    </button>
+                                    @endif
+                                ` : ''}
+                            `;
+                        } else if (sessionStatus === 'Ditolak') {
+                            actionButtonsHtml = `
+                                ${(!isSpkClosed && !isUnderClosing) ? `
+                                    @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('edit-penerimaan-barang-jadi'))
+                                    <button type="button" class="btn btn-xs btn-outline-warning rounded-pill px-3 py-1 fw-semibold" onclick="editPenerimaanBarangJadi(${s.id})">
+                                        <i class="bi bi-pencil-square me-1"></i>Ajukan Ulang / Edit
+                                    </button>
+                                    @endif
+                                    @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('hapus-penerimaan-barang-jadi'))
+                                    <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-3 py-1 fw-semibold" onclick="batalkanSesiPenerimaan(${s.id}, '${s.nomor_penerimaan}')" title="Hapus Pengajuan">
+                                        <i class="bi bi-trash-fill me-1"></i>Hapus
+                                    </button>
+                                    @endif
+                                ` : ''}
+                            `;
+                        }
+
+                        let costSectionHtml = '';
+                        if (sessionStatus === 'Diterima') {
+                            costSectionHtml = `
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <div class="pbj-sess-metric h-100" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.25);">
+                                        <span class="pbj-hero-tile-sub text-emerald">HPP SATUAN FINAL</span>
+                                        <div class="fw-bold fs-6 text-emerald font-monospace mt-0.5">Rp ${Number(s.hpp_satuan || 0).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                                        <small class="text-muted font-monospace" style="font-size: 11px;">Total: Rp ${Number(s.total_nilai_hpp || 0).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</small>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (sessionStatus === 'Menunggu HPP') {
+                            costSectionHtml = `
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <div class="pbj-sess-metric h-100" style="background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.25);">
+                                        <span class="pbj-hero-tile-sub text-warning">STATUS HPP</span>
+                                        <b class="text-warning-emphasis font-monospace d-block" style="font-size: 12.5px;"><i class="bi bi-hourglass-split me-1"></i>Menunggu Approval</b>
+                                        <small class="text-muted" style="font-size: 11px;">Stok & Jurnal belum masuk</small>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            costSectionHtml = `
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <div class="pbj-sess-metric h-100" style="background: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.25);">
+                                        <span class="pbj-hero-tile-sub text-danger">STATUS PENGAJUAN</span>
+                                        <b class="text-danger font-monospace d-block" style="font-size: 12.5px;"><i class="bi bi-x-circle-fill me-1"></i>Pengajuan Ditolak</b>
+                                        <small class="text-muted" style="font-size: 11px;">Perlu revisi input</small>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        let rejectNoticeHtml = '';
+                        if (sessionStatus === 'Ditolak' && s.reject_reason) {
+                            rejectNoticeHtml = `
+                                <div class="alert alert-danger py-2 px-3 rounded-3 small mb-3 d-flex align-items-start gap-2 border-0" style="background-color: rgba(239, 68, 68, 0.1); color: #991b1b;">
+                                    <i class="bi bi-exclamation-triangle-fill fs-6 flex-shrink-0 mt-0.5"></i>
+                                    <div>
+                                        <b>Alasan Penolakan:</b> ${s.reject_reason}
+                                        ${s.rejected_by ? `<span class="text-muted ms-1">(Ditolak oleh: ${s.rejected_by.nama_lengkap})</span>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }
 
                         sessHtml += `
                             <div class="pbj-sess-card">
@@ -493,36 +690,24 @@
                                             <i class="bi bi-layers-fill me-1"></i>SESI #${sesiNum}
                                         </span>
                                         <span class="fw-bold font-monospace text-primary fs-6">${s.nomor_penerimaan}</span>
+                                        ${statusBadgeHtml}
                                         <span class="text-muted small ms-1 d-inline-flex align-items-center gap-1">
                                             <i class="bi bi-calendar-event text-secondary"></i>
                                             <span>Tanggal: <b class="spk-text-main">${tgl}</b></span>
                                         </span>
+                                        ${s.nomor_batch ? `
+                                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle rounded-pill px-2.5 py-1 font-monospace" style="font-size: 11px;">
+                                                <i class="bi bi-tag-fill me-1"></i>Batch: ${s.nomor_batch}
+                                            </span>
+                                        ` : ''}
                                     </div>
                                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-jurnal-penerimaan-barang-jadi'))
-                                        ${hasJurnal ? `
-                                            <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-3 py-1 fw-semibold" onclick="bukaModalJurnalPbjDetail(${s.id})">
-                                                <i class="bi bi-journal-bookmark-fill me-1"></i>Jurnal
-                                            </button>
-                                        ` : ''}
-                                        @endif
-                                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('cetak-penerimaan-barang-jadi'))
-                                        <a href="/produksi/barang-jadi/${s.id}/print" target="_blank" class="btn btn-xs btn-primary rounded-pill px-3 py-1 text-white border-0 fw-semibold" style="background: linear-gradient(135deg,#0a2540,#1e40af);">
-                                            <i class="bi bi-printer-fill me-1"></i>Cetak
-                                        </a>
-                                        @endif
-                                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('edit-penerimaan-barang-jadi'))
-                                        <button type="button" class="btn btn-xs btn-outline-warning rounded-pill px-3 py-1 fw-semibold" onclick="editPenerimaanBarangJadi(${s.id})">
-                                            <i class="bi bi-pencil-square me-1"></i>Edit
-                                        </button>
-                                        @endif
-                                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('hapus-penerimaan-barang-jadi'))
-                                        <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" onclick="batalkanSesiPenerimaan(${s.id}, '${s.nomor_penerimaan}')" title="Batalkan Penyerahan Sesi Ini & Revert Stok Gudang">
-                                            <i class="bi bi-x-circle-fill me-1"></i>Batalkan Sesi
-                                        </button>
-                                        @endif
+                                        ${actionButtonsHtml}
                                     </div>
                                 </div>
+
+                                {{-- REJECT REASON NOTICE --}}
+                                ${rejectNoticeHtml}
 
                                 {{-- CARD METRICS TILES --}}
                                 <div class="row g-3">
@@ -544,20 +729,28 @@
 
                                     <div class="col-6 col-lg-3">
                                         <div class="pbj-sess-metric h-100 pbj-tile-good">
-                                            <span class="pbj-hero-tile-sub text-emerald">KUANTITAS DITERIMA (BAIK)</span>
+                                            <span class="pbj-hero-tile-sub text-emerald">KUANTITAS (BAIK)</span>
                                             <div class="fw-bold fs-5 text-emerald font-monospace mt-0.5">${Number(s.jumlah_hasil_baik).toLocaleString('id-ID')} <small class="fs-6 fw-normal">${satName}</small></div>
+                                            ${Number(s.jumlah_reject) > 0 ? `<div class="small text-danger mt-1 font-monospace"><i class="bi bi-x-circle me-1"></i>Reject: ${Number(s.jumlah_reject).toLocaleString('id-ID')} ${satName}</div>` : ''}
                                         </div>
                                     </div>
 
-                                    <div class="col-6 col-lg-3">
-                                        <div class="pbj-sess-metric h-100 pbj-tile-reject">
-                                            <span class="pbj-hero-tile-sub text-danger">KUANTITAS REJECT (BS)</span>
-                                            <div class="fw-bold fs-5 text-danger font-monospace mt-0.5">${Number(s.jumlah_reject).toLocaleString('id-ID')} <small class="fs-6 fw-normal">${satName}</small></div>
-                                        </div>
-                                    </div>
+                                    ${costSectionHtml}
                                 </div>
 
-                                ${s.catatan ? `<div class="small text-muted fst-italic mt-3 pt-2.5 border-top d-flex align-items-center gap-1.5" style="font-size: 11.5px;"><i class="bi bi-chat-quote text-primary fs-6"></i><span>Catatan: ${s.catatan}</span></div>` : ''}
+                                {{-- BATCH & TANGGAL PRODUKSI EXTRA BAR --}}
+                                ${(tglProd || tglExp || s.nomor_batch) ? `
+                                    <div class="d-flex align-items-center gap-3 flex-wrap mt-2.5 pt-2 border-top small text-muted" style="font-size: 11.5px;">
+                                        ${s.nomor_batch ? `<div><i class="bi bi-qr-code text-info me-1"></i>No. Batch: <b class="font-monospace spk-text-main">${s.nomor_batch}</b></div>` : ''}
+                                        ${tglProd ? `<div><i class="bi bi-calendar-check text-success me-1"></i>Tgl Produksi: <b class="spk-text-main">${tglProd}</b></div>` : ''}
+                                        ${tglExp ? `<div><i class="bi bi-calendar-x text-danger me-1"></i>Tgl Kedaluwarsa: <b class="spk-text-main">${tglExp}</b></div>` : ''}
+                                    </div>
+                                ` : ''}
+
+                                {{-- SERIAL NUMBERS LIST --}}
+                                ${serialsHtml}
+
+                                ${s.catatan ? `<div class="small text-muted fst-italic mt-2.5 pt-2 border-top d-flex align-items-center gap-1.5" style="font-size: 11.5px;"><i class="bi bi-chat-quote text-primary fs-6"></i><span>Catatan: ${s.catatan}</span></div>` : ''}
                             </div>
                         `;
                     });
@@ -598,7 +791,7 @@
         });
     }
 
-    function bukaModalJurnalPbjDetail(pbjId) {
+    window.bukaModalJurnalPbjDetail = function(pbjId) {
         Swal.fire({
             title: 'Memuat Jurnal Akuntansi...',
             allowOutsideClick: false,
@@ -670,9 +863,9 @@
                 Swal.fire('Error', 'Gagal memuat data jurnal.', 'error');
             }
         });
-    }
+    };
 
-    function batalkanSesiPenerimaan(pbjId, nomorPbj) {
+    window.batalkanSesiPenerimaan = function(pbjId, nomorPbj) {
         Swal.fire({
             title: 'Batalkan Sesi Penyerahan?',
             html: `Apakah Anda yakin ingin membatalkan transaksi penerimaan <b>${nomorPbj}</b>?<br><br><small class="text-danger">Stok barang jadi yang bertambah dari sesi ini akan ditarik kembali secara otomatis.</small>`,
@@ -720,6 +913,34 @@
                 });
             }
         });
-    }
+    };
+
+    window.reopenClosingFgFromDetail = function() {
+        if (!_currentPbjSpkId || !_currentPbjSpkData) return;
+        const modalEl = document.getElementById('modalDetailBarangJadi');
+        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+        } else {
+            $('#modalDetailBarangJadi').modal('hide');
+        }
+        if (typeof konfirmasiReopenFg === 'function') {
+            konfirmasiReopenFg(_currentPbjSpkId, _currentPbjSpkData.nomor_spk);
+        }
+    };
+
+    window.closingHppFgFromDetail = function() {
+        if (!_currentPbjSpkId) return;
+        const modalEl = document.getElementById('modalDetailBarangJadi');
+        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+        } else {
+            $('#modalDetailBarangJadi').modal('hide');
+        }
+        if (typeof bukaModalReviewClosingFg === 'function') {
+            bukaModalReviewClosingFg(_currentPbjSpkId);
+        }
+    };
 </script>
 @endpush

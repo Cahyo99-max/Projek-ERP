@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             PermissionDetailSeeder::class,
             KasBankPermissionSeeder::class,
             PettyCashPermissionSeeder::class,
+            AlokasiBiayaPermissionSeeder::class,
             PengaturanAkuntansiPermissionSeeder::class,
             LogAktivitasPermissionSeeder::class,
             PengaturanAplikasiPermissionSeeder::class,
@@ -25,6 +26,10 @@ class DatabaseSeeder extends Seeder
             MasterTipeAkunSeeder::class,
             AccountMappingSeeder::class,
             MasterJenisBiayaSeeder::class,
+            MasterTipePengeluaranSeeder::class,
+            PaymentMethodSeeder::class,
+            PaymentTermSeeder::class,
+            KasKategoriMappingSeeder::class,
         ]);
     }
 }

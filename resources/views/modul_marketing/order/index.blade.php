@@ -7,6 +7,15 @@
     <!-- Tokopedia Style Sales Order CSS -->
     <link rel="stylesheet" href="{{ asset('css/sales_order_tokopedia.css?v=' . time()) }}">
     <style>
+        @keyframes spinClockwise {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spin-clockwise {
+            display: inline-block;
+            animation: spinClockwise 0.75s linear infinite;
+        }
+
         .nav-tabs .nav-link {
             border: none;
             border-bottom: 3px solid transparent;
@@ -15,6 +24,12 @@
             padding: 12px 20px;
             font-size: 0.95rem;
             transition: all 0.2s ease;
+        }
+        @media (max-width: 575.98px) {
+            .nav-tabs .nav-link {
+                padding: 8px 10px;
+                font-size: 0.8rem;
+            }
         }
         .nav-tabs .nav-link:hover {
             color: #2563eb;
@@ -315,9 +330,9 @@
                                             </div>
                                             <div class="tkpd-card-body">
                                                 <div>
-                                                    <div class="tkpd-card-meta d-flex justify-content-between">
-                                                        <span class="text-truncate">{{ $p->kategori ? $p->kategori->nama_kategori : '-' }}</span>
-                                                        <span class="fw-bold">{{ $p->kode_barang }}</span>
+                                                    <div class="tkpd-card-meta d-flex align-items-center justify-content-between gap-1 mb-1">
+                                                        <span class="text-truncate text-muted" style="max-width: 65%; font-size: 0.72rem;">{{ $p->kategori ? $p->kategori->nama_kategori : '-' }}</span>
+                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border font-monospace px-1.5 py-0.5 rounded flex-shrink-0" style="font-size: 0.65rem;">{{ $p->kode_barang }}</span>
                                                     </div>
                                                     <div class="tkpd-card-title btn-show-prod-detail cursor-pointer" data-id="{{ $p->id }}" title="{{ $p->nama_barang }}">{{ $p->nama_barang }}</div>
                                                 </div>
@@ -390,8 +405,17 @@
                         </div>
                     </div>
 
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0" id="tableSalesOrders" style="width:100%;">
+                    <!-- Mobile Swipe Hint Banner -->
+                    <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2 mb-2 rounded-3 text-primary shadow-2xs" style="background: rgba(37, 99, 235, 0.08); font-size: 0.775rem; border: 1px dashed rgba(37, 99, 235, 0.25);">
+                        <div class="d-flex align-items-center gap-1.5">
+                            <i class="bi bi-arrow-left-right"></i>
+                            <span>Tabel riwayat pesanan dapat digeser ke samping</span>
+                        </div>
+                        <span class="badge bg-primary bg-opacity-15 text-primary rounded-pill px-2 py-0.5 fw-bold" style="font-size: 0.7rem;">Swipe 👉</span>
+                    </div>
+
+                    <div class="table-responsive" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                        <table class="table table-hover align-middle mb-0" id="tableSalesOrders" style="width: 100%; min-width: 960px;">
                             <thead>
                                 <tr class="text-uppercase fw-bold">
                                     <th class="text-center" style="width: 45px;">No</th>

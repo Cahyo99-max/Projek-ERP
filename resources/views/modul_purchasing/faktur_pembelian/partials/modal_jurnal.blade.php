@@ -1,7 +1,7 @@
 <!-- Modal Jurnal Akuntansi Faktur Pembelian (Purchase Invoice) -->
 <div class="modal fade" id="modalJurnalInvoice" tabindex="-1" aria-labelledby="modalJurnalInvoiceLabel" aria-hidden="true" style="z-index: 1065;">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style="max-width: 960px;">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden bg-body">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style="max-width: 960px; width: 96%; min-width: 0 !important;">
+        <div class="modal-content border-0 shadow-lg rounded-4 bg-body" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
             <!-- Modal Header -->
             <div class="modal-header border-0 py-3 px-4 d-flex justify-content-between align-items-center" 
                  style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%); color: #ffffff;">
@@ -27,7 +27,7 @@
             </div>
 
             <!-- Modal Body -->
-            <div class="modal-body p-4 bg-body">
+            <div class="modal-body p-3 p-md-4 bg-body" style="overflow-x: hidden !important; max-width: 100%; min-width: 0; touch-action: pan-y;">
 
                 <!-- Loading State -->
                 <div class="text-center py-5" id="pi_jurnal_loading">
@@ -137,8 +137,8 @@
                     </div>
 
                     <!-- Rincian Entri Akun (Double-Entry Debit & Kredit) -->
-                    <div class="table-responsive border rounded-3 mb-3 shadow-xs overflow-hidden">
-                        <table class="table table-hover align-middle mb-0" id="pi_jurnal_table" style="font-size: 0.82rem;">
+                    <div class="table-responsive border rounded-3 mb-3 shadow-xs" style="overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
+                        <table class="table table-hover align-middle mb-0" id="pi_jurnal_table" style="font-size: 0.82rem; min-width: 680px;">
                             <thead>
                                 <tr class="text-uppercase fw-bold text-body-secondary border-bottom bg-body-tertiary" style="font-size: 0.72rem; letter-spacing: 0.5px;">
                                     <th class="text-center py-2.5 px-3" style="width: 45px;">No</th>

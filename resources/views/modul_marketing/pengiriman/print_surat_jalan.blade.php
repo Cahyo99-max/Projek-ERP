@@ -119,6 +119,13 @@
             box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5) !important;
         }
 
+        #btnToggleFitScreen.active {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+            color: #ffffff !important;
+            border-color: #38bdf8 !important;
+            box-shadow: 0 4px 15px rgba(2, 132, 199, 0.5) !important;
+        }
+
         .btn-print {
             background: #ffffff;
             color: #1e40af;
@@ -610,6 +617,120 @@
             font-family: 'JetBrains Mono', monospace;
         }
 
+        /* ==================== RESPONSIVE MOBILE STYLES ==================== */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px 0 30px 0;
+                background-color: #0f172a;
+            }
+
+            .no-print-toolbar {
+                width: calc(100% - 16px) !important;
+                max-width: calc(100% - 16px) !important;
+                margin: 0 auto 10px auto;
+                padding: 10px 12px;
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+                border-radius: 12px;
+            }
+
+            .toolbar-title-wrap {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+                padding-bottom: 8px;
+            }
+
+            .toolbar-actions-wrap {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                width: 100%;
+                flex-wrap: wrap;
+            }
+
+            .btn-toolbar {
+                flex: 1 1 calc(50% - 6px);
+                justify-content: center;
+                padding: 7px 8px;
+                font-size: 11px;
+                white-space: nowrap;
+            }
+
+            .btn-toolbar .btn-text-full {
+                display: none;
+            }
+            .btn-toolbar .btn-text-short {
+                display: inline;
+            }
+
+            .edit-mode-banner {
+                width: calc(100% - 16px) !important;
+                max-width: calc(100% - 16px) !important;
+                margin: 0 auto 10px auto;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                padding: 10px 12px;
+            }
+
+            .sheet-viewport-wrapper {
+                justify-content: flex-start;
+                padding: 0 8px;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .mobile-scroll-hint {
+                display: flex !important;
+                align-items: center;
+                justify-content: space-between;
+                width: calc(100% - 16px);
+                max-width: calc(100% - 16px);
+                margin: 0 auto 10px auto;
+                padding: 7px 12px;
+                border-radius: 8px;
+                background: rgba(37, 99, 235, 0.15);
+                border: 1px dashed rgba(59, 130, 246, 0.35);
+                color: #93c5fd;
+                font-size: 10.5px;
+            }
+
+            .page-sheet {
+                margin: 0 auto 16px auto;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            }
+        }
+
+        @media screen and (min-width: 769px) {
+            .mobile-scroll-hint {
+                display: none !important;
+            }
+            .btn-toolbar .btn-text-full {
+                display: inline;
+            }
+            .btn-toolbar .btn-text-short {
+                display: none;
+            }
+            #btnToggleFitScreen {
+                display: none !important;
+            }
+            .toolbar-title-wrap {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .toolbar-actions-wrap {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+        }
+
         /* ==================== PRINT MEDIA STYLES ==================== */
         @media print {
             @page {
@@ -622,11 +743,17 @@
                 margin: 0 !important;
                 display: block !important;
             }
-            .no-print-toolbar, .edit-mode-banner, .add-row-action-tr, .row-delete-btn, .swal2-container {
+            .no-print-toolbar, .edit-mode-banner, .add-row-action-tr, .row-delete-btn, .swal2-container, .mobile-scroll-hint {
                 display: none !important;
             }
             .sheet-viewport-wrapper {
                 padding: 0 !important;
+                overflow: visible !important;
+                display: block !important;
+            }
+            #sheetScaleWrapper {
+                width: 100% !important;
+                height: auto !important;
                 overflow: visible !important;
             }
             .page-sheet {
@@ -639,6 +766,7 @@
                 padding: 10mm 14mm 10mm 14mm !important;
                 page-break-after: avoid;
                 page-break-inside: avoid;
+                transform: none !important;
             }
             .editable-text, [contenteditable] {
                 outline: none !important;
@@ -656,23 +784,39 @@
 
     <!-- Floating Print / Action Toolbar -->
     <div class="no-print-toolbar">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <i class="bi bi-truck text-light" style="font-size: 16px;"></i>
-            <span style="font-weight: 700; font-size: 13px;">Surat Jalan Pengiriman – {{ $deliveryOrder->nomor_do }}</span>
+        <div class="toolbar-title-wrap">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-truck text-light" style="font-size: 16px;"></i>
+                <span style="font-weight: 700; font-size: 13px;">Surat Jalan – {{ $deliveryOrder->nomor_do }}</span>
+            </div>
+            <button type="button" class="btn-toolbar btn-close-view d-inline-flex d-md-none" onclick="window.close()" style="padding: 4px 8px; font-size: 11px;">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="toolbar-actions-wrap">
             <button type="button" class="btn-toolbar btn-edit-mode" id="btnToggleEditMode" onclick="toggleEditMode()" title="Klik untuk mengedit langsung teks di surat jalan">
-                <i class="bi bi-pencil-square"></i> <span id="btnEditText">Edit Manual</span>
+                <i class="bi bi-pencil-square"></i> <span id="btnEditText"><span class="btn-text-full">Edit Manual</span><span class="btn-text-short">Edit</span></span>
             </button>
             <button type="button" class="btn-toolbar btn-print" onclick="prepareAndPrint()">
-                <i class="bi bi-printer-fill"></i> Cetak Surat Jalan
+                <i class="bi bi-printer-fill"></i> <span class="btn-text-full">Cetak Surat Jalan</span><span class="btn-text-short">Cetak</span>
             </button>
             <button type="button" class="btn-toolbar btn-screenshot" onclick="takeScreenshot()">
-                <i class="bi bi-camera-fill"></i> Simpan Gambar (HD)
+                <i class="bi bi-camera-fill"></i> <span class="btn-text-full">Simpan Gambar (HD)</span><span class="btn-text-short">Gambar</span>
             </button>
-            <button type="button" class="btn-toolbar btn-close-view" onclick="window.close()">
+            <button type="button" class="btn-toolbar btn-edit-mode" id="btnToggleFitScreen" onclick="toggleFitScreen()" title="Sesuaikan lebar kertas dengan layar HP">
+                <i class="bi bi-arrows-angle-contract"></i> <span id="btnFitText">Fit Layar</span>
+            </button>
+            <button type="button" class="btn-toolbar btn-close-view d-none d-md-inline-flex" onclick="window.close()">
                 <i class="bi bi-x-lg"></i> Tutup
             </button>
+        </div>
+    </div>
+
+    <!-- Mobile Scroll / Fit Layar Hint -->
+    <div class="mobile-scroll-hint">
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <i class="bi bi-phone"></i>
+            <span>Tampilan HP aktif &bull; Gunakan <strong>Fit Layar</strong> atau geser kertas</span>
         </div>
     </div>
 
@@ -694,7 +838,8 @@
 
     <!-- Viewport Container -->
     <div class="sheet-viewport-wrapper">
-        <div class="page-sheet" id="delivery_order_paper_sheet">
+        <div id="sheetScaleWrapper">
+            <div class="page-sheet" id="delivery_order_paper_sheet">
             
             <div>
                 <!-- ==================== KOP DOKUMEN RESMI ==================== -->
@@ -963,10 +1108,12 @@
 
         </div>
     </div>
+</div>
 
     <!-- Script Logic: Edit Mode, Print, and Screenshot -->
     <script>
         let isEditMode = false;
+        let isFitScreen = false;
 
         function escapeHtml(text) {
             if (!text) return '';
@@ -1160,8 +1307,90 @@
 
         function prepareAndPrint() {
             if (document.activeElement) document.activeElement.blur();
+            const wasFit = isFitScreen;
+            if (wasFit) {
+                isFitScreen = false;
+                applyFitScreen();
+            }
             window.print();
+            if (wasFit) {
+                isFitScreen = true;
+                applyFitScreen();
+            }
         }
+
+        function toggleFitScreen() {
+            isFitScreen = !isFitScreen;
+            applyFitScreen();
+        }
+
+        function applyFitScreen() {
+            const sheet = document.getElementById('delivery_order_paper_sheet');
+            const wrapper = document.getElementById('sheetScaleWrapper');
+            const btn = document.getElementById('btnToggleFitScreen');
+            const btnFitText = document.getElementById('btnFitText');
+            if (!sheet || !wrapper) return;
+
+            if (isFitScreen && window.innerWidth <= 768) {
+                const availableWidth = window.innerWidth - 16; // 8px padding per side
+                const originalWidth = sheet.offsetWidth || 794;
+                const scale = availableWidth / originalWidth;
+
+                sheet.style.transformOrigin = 'top left';
+                sheet.style.transform = `scale(${scale})`;
+                sheet.style.margin = '0';
+                
+                // Adjust wrapper size so screen fits perfectly without excessive overflow
+                const scaledHeight = sheet.offsetHeight * scale;
+                wrapper.style.width = `${availableWidth}px`;
+                wrapper.style.height = `${scaledHeight}px`;
+                wrapper.style.overflow = 'hidden';
+                wrapper.style.margin = '0 auto';
+
+                if (btn) btn.classList.add('active');
+                if (btnFitText) btnFitText.innerHTML = '<i class="bi bi-arrows-angle-expand"></i> Ukuran Asli';
+            } else {
+                sheet.style.transform = '';
+                sheet.style.transformOrigin = '';
+                sheet.style.margin = '';
+                wrapper.style.width = '';
+                wrapper.style.height = '';
+                wrapper.style.overflow = '';
+                wrapper.style.margin = '';
+
+                if (btn) btn.classList.remove('active');
+                if (btnFitText) btnFitText.innerHTML = '<i class="bi bi-arrows-angle-contract"></i> Fit Layar';
+            }
+        }
+
+        // Auto Fit when loaded on mobile screen
+        window.addEventListener('DOMContentLoaded', function() {
+            if (window.innerWidth <= 768) {
+                isFitScreen = true;
+                applyFitScreen();
+            }
+        });
+
+        // Handle screen resizing / orientation change
+        window.addEventListener('resize', function() {
+            if (window.innerWidth <= 768) {
+                if (isFitScreen) {
+                    applyFitScreen();
+                }
+            } else {
+                if (isFitScreen) {
+                    const sheet = document.getElementById('delivery_order_paper_sheet');
+                    const wrapper = document.getElementById('sheetScaleWrapper');
+                    if (sheet) sheet.style.transform = '';
+                    if (wrapper) {
+                        wrapper.style.width = '';
+                        wrapper.style.height = '';
+                        wrapper.style.overflow = '';
+                        wrapper.style.margin = '';
+                    }
+                }
+            }
+        });
 
         function takeScreenshot() {
             const element = document.getElementById('delivery_order_paper_sheet');
@@ -1174,6 +1403,12 @@
             const wasEditing = isEditMode;
             if (wasEditing) {
                 element.classList.remove('editing-mode-active');
+            }
+
+            const wasFit = isFitScreen;
+            if (wasFit) {
+                isFitScreen = false;
+                applyFitScreen();
             }
 
             if (btn) {
@@ -1218,6 +1453,10 @@
             }).finally(() => {
                 if (wasEditing) {
                     element.classList.add('editing-mode-active');
+                }
+                if (wasFit) {
+                    isFitScreen = true;
+                    applyFitScreen();
                 }
                 if (toolbar) toolbar.style.opacity = '1';
                 if (btn) {

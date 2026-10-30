@@ -12,6 +12,7 @@ use App\Models\ChartOfAccount;
 use App\Models\MasterBarang;
 use App\Models\MasterGudang;
 use App\Models\MasterKategoriBarang;
+use App\Models\SpkPenerimaanBarangJadiSerial;
 use App\Helpers\DecimalHelper;
 use App\Helpers\AccountMappingHelper;
 use Illuminate\Http\Request;
@@ -853,6 +854,15 @@ class StockOpnameController extends Controller
                     $detail->stok_fisik = $stokFisik;
                     $detail->selisih = !is_null($stokFisik) ? ($stokFisik - $stokSistem) : null;
                     $detail->catatan = $catatan;
+
+                    if (array_key_exists('serial_numbers', $item)) {
+                        $sns = $item['serial_numbers'];
+                        if (is_string($sns)) {
+                            $sns = json_decode($sns, true);
+                        }
+                        $detail->serial_numbers = is_array($sns) ? array_values(array_filter(array_map('trim', $sns))) : null;
+                    }
+
                     $detail->save();
                 }
             }
@@ -909,6 +919,15 @@ class StockOpnameController extends Controller
                         $detail->stok_fisik = $stokFisik;
                         $detail->selisih = !is_null($stokFisik) ? ($stokFisik - $stokSistem) : null;
                         $detail->catatan = $catatan;
+
+                        if (array_key_exists('serial_numbers', $item)) {
+                            $sns = $item['serial_numbers'];
+                            if (is_string($sns)) {
+                                $sns = json_decode($sns, true);
+                            }
+                            $detail->serial_numbers = is_array($sns) ? array_values(array_filter(array_map('trim', $sns))) : null;
+                        }
+
                         $detail->save();
                     }
                 }
@@ -1041,8 +1060,9 @@ class StockOpnameController extends Controller
 
                     // Write to Kartu Stok Batch
                     if (DecimalHelper::comp($selisihStr, '0', 4) !== 0) {
-                        $tipe = DecimalHelper::comp($selisihStr, '0', 4) > 0 ? 'Masuk' : 'Keluar';
-                        $jumlahStr = abs((float)$selisihStr);
+                        $isLebih = DecimalHelper::comp($selisihStr, '0', 4) > 0;
+                        $tipe = $isLebih ? 'Masuk' : 'Keluar';
+                        $jumlahStr = ltrim($selisihStr, '-');
 
                         $kartuStokBatch[] = [
                             'barang_id'       => $barangId,
@@ -1052,13 +1072,61 @@ class StockOpnameController extends Controller
                             'stok_awal'       => $stokAwalStr,
                             'stok_akhir'      => $stokFisikStr,
                             'harga_satuan'    => $hppStr,
-                            'nilai_total'     => DecimalHelper::mul((string)$jumlahStr, $hppStr, 4),
+                            'nilai_total'     => DecimalHelper::mul($jumlahStr, $hppStr, 4),
                             'referensi_jenis' => 'Stock Opname',
                             'referensi_id'    => $stockOpname->id,
                             'referensi_nomor' => $stockOpname->nomor_opname,
-                            'keterangan'      => "Adjustment Closing Opname (Selisih " . (DecimalHelper::comp($selisihStr, '0', 4) > 0 ? "Lebih" : "Kurang") . ")",
+                            'keterangan'      => "Adjustment Closing Opname (Selisih " . ($isLebih ? "Lebih" : "Kurang") . ")",
                             'created_at'      => $now,
                         ];
+                    }
+
+                    // Sinkronisasi & Rekonsiliasi Serial Number (jika barang menggunakan pelacakan SN)
+                    if (!empty($detail->serial_numbers) && is_array($detail->serial_numbers)) {
+                        $existingSns = SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $barangId)
+                            ->where('status', 'Tersedia')
+                            ->where(function($q) use ($gudangId) {
+                                $q->whereHas('penerimaan', function($p) use ($gudangId) {
+                                    $p->where('gudang_id', $gudangId);
+                                })->orWhere('gudang_id', $gudangId);
+                            })
+                            ->pluck('serial_number')
+                            ->toArray();
+
+                        $verifiedSns = array_values(array_filter(array_map('trim', $detail->serial_numbers)));
+                        $missingSns  = array_values(array_diff($existingSns, $verifiedSns));
+                        $extraSns    = array_values(array_diff($verifiedSns, $existingSns));
+
+                        // 1. Update status serial yang hilang/kurang menjadi 'Hilang'
+                        if (!empty($missingSns)) {
+                            SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $barangId)
+                                ->whereIn('serial_number', $missingSns)
+                                ->where('status', 'Tersedia')
+                                ->where(function($q) use ($gudangId) {
+                                    $q->whereHas('penerimaan', function($p) use ($gudangId) {
+                                        $p->where('gudang_id', $gudangId);
+                                    })->orWhere('gudang_id', $gudangId);
+                                })
+                                ->update([
+                                    'status'  => 'Hilang',
+                                    'catatan' => "Selisih Kurang Fisik via Stock Opname {$stockOpname->nomor_opname}",
+                                ]);
+                        }
+
+                        // 2. Daftarkan serial baru (kelebihan fisik opname) sebagai 'Tersedia'
+                        foreach ($extraSns as $newSn) {
+                            $snTrim = trim($newSn);
+                            if (!empty($snTrim)) {
+                                SpkPenerimaanBarangJadiSerial::create([
+                                    'barang_jadi_id'  => $barangId,
+                                    'gudang_id'       => $gudangId,
+                                    'stock_opname_id' => $stockOpname->id,
+                                    'serial_number'   => $snTrim,
+                                    'status'          => 'Tersedia',
+                                    'catatan'         => "Selisih Lebih Fisik via Stock Opname {$stockOpname->nomor_opname}",
+                                ]);
+                            }
+                        }
                     }
                 }
 
@@ -1104,8 +1172,21 @@ class StockOpnameController extends Controller
         $activeCompanyId = session('active_company_id');
         $activeBranchId  = session('active_branch_id');
 
-        // 1. Resolve Default System Mappings
-        $defaultInventoryCoaId = $overrideInvCoaId ? (int)$overrideInvCoaId : AccountMappingHelper::getCoaId('default', 'default_inventory');
+        // 1. Resolve Default System Mappings (Secured with multi-tenant company validation)
+        $defaultInventoryCoaId = null;
+        if ($overrideInvCoaId) {
+            $isValidInv = ChartOfAccount::forActiveCompany()
+                ->active()
+                ->where('is_header', false)
+                ->where('id', (int)$overrideInvCoaId)
+                ->exists();
+            if ($isValidInv) {
+                $defaultInventoryCoaId = (int)$overrideInvCoaId;
+            }
+        }
+        if (!$defaultInventoryCoaId) {
+            $defaultInventoryCoaId = AccountMappingHelper::getCoaId('default', 'default_inventory');
+        }
         if (!$defaultInventoryCoaId) {
             $defaultInventoryCoaId = ChartOfAccount::forActiveCompany()
                 ->where(function($q) {
@@ -1117,9 +1198,22 @@ class StockOpnameController extends Controller
                 ->value('id');
         }
 
-        $defaultAdjustmentCoaId = $overrideAdjCoaId ? (int)$overrideAdjCoaId : (AccountMappingHelper::getCoaId('default', 'default_stock_adjustment')
-            ?? AccountMappingHelper::getCoaId('default', 'inventory_adjustment')
-            ?? AccountMappingHelper::getCoaId('stock_opname', 'opname_adjustment'));
+        $defaultAdjustmentCoaId = null;
+        if ($overrideAdjCoaId) {
+            $isValidAdj = ChartOfAccount::forActiveCompany()
+                ->active()
+                ->where('is_header', false)
+                ->where('id', (int)$overrideAdjCoaId)
+                ->exists();
+            if ($isValidAdj) {
+                $defaultAdjustmentCoaId = (int)$overrideAdjCoaId;
+            }
+        }
+        if (!$defaultAdjustmentCoaId) {
+            $defaultAdjustmentCoaId = AccountMappingHelper::getCoaId('default', 'default_stock_adjustment')
+                ?? AccountMappingHelper::getCoaId('default', 'inventory_adjustment')
+                ?? AccountMappingHelper::getCoaId('stock_opname', 'opname_adjustment');
+        }
 
         if (!$defaultAdjustmentCoaId) {
             $defaultAdjustmentCoaId = ChartOfAccount::forActiveCompany()
@@ -1335,7 +1429,8 @@ class StockOpnameController extends Controller
                 'stock_opname_details.stok_sistem',
                 'stock_opname_details.stok_fisik',
                 'stock_opname_details.selisih',
-                'stock_opname_details.catatan'
+                'stock_opname_details.catatan',
+                'stock_opname_details.serial_numbers'
             ]);
 
         // Total count
@@ -1410,6 +1505,7 @@ class StockOpnameController extends Controller
                 'nilai_selisih'  => $canSeeNilai ? $nilaiSelisih : 0.00,
                 'can_see_nilai'  => $canSeeNilai,
                 'catatan'        => $d->catatan ?? '',
+                'serial_numbers' => !empty($d->serial_numbers) ? (is_array($d->serial_numbers) ? $d->serial_numbers : json_decode($d->serial_numbers, true)) : [],
             ];
         });
 
@@ -1485,6 +1581,7 @@ class StockOpnameController extends Controller
                     'hpp'            => $hpp,
                     'nilai_selisih'  => !is_null($diff) ? ($diff * $hpp) : 0,
                     'catatan'        => $d->catatan ?? '',
+                    'serial_numbers' => $d->serial_numbers ?? [],
                 ];
             }
         });
@@ -1569,6 +1666,7 @@ class StockOpnameController extends Controller
                     'hpp'            => $hpp,
                     'nilai_selisih'  => !is_null($diff) ? ($diff * $hpp) : 0,
                     'catatan'        => $d->catatan ?? '',
+                    'serial_numbers' => $d->serial_numbers ?? [],
                 ];
             }
         });
@@ -1743,7 +1841,20 @@ class StockOpnameController extends Controller
                 });
         }
 
-        $detailsList = $stockOpname->details()->with('barang.satuan')->get()->map(function ($d) {
+        $gudangId = $stockOpname->gudang_id;
+        $detailsList = $stockOpname->details()->with('barang.satuan')->get()->map(function ($d) use ($gudangId) {
+            $hasSerials = $d->barang ? ($d->barang->tipe_pelacakan === 'Serial Number') : false;
+            if (!$hasSerials && $d->barang) {
+                // Juga deteksi jika ada data nomor seri aktif di gudang ini
+                $hasSerials = SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $d->barang_id)
+                    ->where(function($q) use ($gudangId) {
+                        $q->whereHas('penerimaan', function($p) use ($gudangId) {
+                            $p->where('gudang_id', $gudangId);
+                        })->orWhere('gudang_id', $gudangId);
+                    })
+                    ->exists();
+            }
+
             return [
                 'barang_id'      => $d->barang_id,
                 'barang_kode'    => $d->barang ? $d->barang->kode_barang : '-',
@@ -1754,6 +1865,8 @@ class StockOpnameController extends Controller
                 'stok_fisik'     => !is_null($d->stok_fisik) ? floatval($d->stok_fisik) : null,
                 'selisih'        => !is_null($d->selisih) ? floatval($d->selisih) : null,
                 'catatan'        => $d->catatan ?? '',
+                'has_serials'    => $hasSerials,
+                'serial_numbers' => $d->serial_numbers ?? [],
             ];
         });
 
@@ -1828,7 +1941,7 @@ class StockOpnameController extends Controller
     }
 
     // ══════════════════════════════════════════════════════════════
-    // FIND ACTIVE BARANG BY CODE/BARCODE (ON-THE-FLY SCAN)
+    // FIND ACTIVE BARANG BY CODE/BARCODE OR SERIAL NUMBER (ON-THE-FLY SCAN)
     // ══════════════════════════════════════════════════════════════
     public function findBarangByCode(Request $request, StockOpname $stockOpname)
     {
@@ -1840,28 +1953,129 @@ class StockOpnameController extends Controller
             return response()->json(['message' => 'Akses ditolak.'], 403);
         }
 
-        $code = $request->get('code');
-        if (empty($code)) {
-            return response()->json(['message' => 'Kode barang kosong.'], 400);
+        $rawCode = trim((string)$request->get('code'));
+        if (empty($rawCode)) {
+            return response()->json(['message' => 'Kode barang atau nomor seri kosong.'], 400);
         }
 
-        // Search in active MasterBarang
-        $barang = MasterBarang::active()
-            ->forActiveCompany()
-            ->with('satuan')
-            ->where(function($q) use ($code) {
-                $q->where('kode_barang', $code)
-                  ->orWhere('barcode', $code);
-            })
-            ->first();
+        // Parsing QR Code / Barcode cerdas:
+        // Mendukung:
+        // 1. Parameter URL ?sn=
+        // 2. Structured QR format (gabungan SN: ..., KODE: ..., BARANG: ..., BATCH: ..., WARNA: ...)
+        // 3. Multi-line QR format dengan \r\n atau \n
+        // 4. Prefix SN: ...
+        // 5. Kode barang / barcode murni
+        $extractedSn   = null;
+        $extractedKode = null;
+
+        if (preg_match('/[?&]sn=([^&]+)/i', $rawCode, $m)) {
+            $extractedSn = urldecode(trim($m[1]));
+        }
+
+        if (!$extractedSn && preg_match('/SN\s*:\s*(.+?)(?=(?:(?:KODE|BARANG|BATCH|WARNA)\s*:)|[\r\n]|$)/i', $rawCode, $m)) {
+            $extractedSn = trim($m[1]);
+        }
+
+        if (preg_match('/KODE\s*:\s*(.+?)(?=(?:(?:SN|BARANG|BATCH|WARNA)\s*:)|[\r\n]|$)/i', $rawCode, $m)) {
+            $extractedKode = trim($m[1]);
+        }
+
+        if (!$extractedSn && preg_match('/^SN\s*[:\-\s]\s*(.+)$/i', $rawCode, $m)) {
+            $extractedSn = trim($m[1]);
+        }
+
+        $cleanCode = $extractedSn ?: ($extractedKode ?: $rawCode);
+
+        $matchedType   = 'barang';
+        $matchedSerial = null;
+        $barang        = null;
+        $gudangId      = $stockOpname->gudang_id;
+
+        // 1. Cek apakah yang discan adalah Serial Number (QR/Barcode SN)
+        $potentialSns = array_values(array_filter(array_unique([$extractedSn, $cleanCode, $rawCode])));
+        if (!empty($potentialSns)) {
+            // Prioritas 1: Serial yang sudah tercatat di gudang opname ini
+            $snRecord = SpkPenerimaanBarangJadiSerial::whereIn('serial_number', $potentialSns)
+                ->where(function($q) use ($gudangId) {
+                    $q->whereHas('penerimaan', function($p) use ($gudangId) {
+                        $p->where('gudang_id', $gudangId);
+                    })
+                    ->orWhere('gudang_id', $gudangId)
+                    ->orWhereHas('adjustment', function($a) use ($gudangId) {
+                        $a->where('gudang_id', $gudangId);
+                    })
+                    ->orWhereHas('opname', function($o) use ($gudangId) {
+                        $o->where('gudang_id', $gudangId);
+                    });
+                })
+                ->first();
+
+            // Prioritas 2: Serial tercatat di perusahaan aktif (misal fisik ditemukan di gudang ini)
+            if (!$snRecord) {
+                $snRecord = SpkPenerimaanBarangJadiSerial::whereIn('serial_number', $potentialSns)
+                    ->forActiveCompany()
+                    ->first();
+            }
+
+            // Prioritas 3: Serial tercatat di tabel serial secara global
+            if (!$snRecord) {
+                $snRecord = SpkPenerimaanBarangJadiSerial::whereIn('serial_number', $potentialSns)->first();
+            }
+
+            if ($snRecord) {
+                $barang = MasterBarang::active()->with('satuan')->find($snRecord->barang_jadi_id);
+                if ($barang) {
+                    $matchedType   = 'serial_number';
+                    $matchedSerial = $snRecord->serial_number;
+                }
+            }
+        }
+
+        // 2. Jika bukan serial number yang tercatat, cari berdasarkan kode barang atau barcode
+        if (!$barang) {
+            $searchCodes = array_values(array_filter(array_unique([$extractedKode, $cleanCode, $rawCode])));
+            $barang = MasterBarang::active()
+                ->forActiveCompany()
+                ->with('satuan')
+                ->where(function($q) use ($searchCodes) {
+                    $q->whereIn('kode_barang', $searchCodes)
+                      ->orWhereIn('barcode', $searchCodes);
+                })
+                ->first();
+
+            if (!$barang) {
+                $barang = MasterBarang::active()
+                    ->with('satuan')
+                    ->where(function($q) use ($searchCodes) {
+                        $q->whereIn('kode_barang', $searchCodes)
+                          ->orWhereIn('barcode', $searchCodes);
+                    })
+                    ->first();
+            }
+
+            // Jika barang berhasil ditemukan dan QR memiliki nomor seri (temuan serial fisik baru)
+            if ($barang && !empty($extractedSn)) {
+                $matchedType   = 'serial_number';
+                $matchedSerial = $extractedSn;
+            }
+        }
 
         if (!$barang) {
-            return response()->json(['message' => 'Barang dengan kode/barcode tersebut tidak terdaftar di sistem!'], 404);
+            return response()->json(['message' => "Kode/Barcode atau QR Serial '{$rawCode}' tidak terdaftar di sistem!"], 404);
         }
+
+        // Deteksi apakah barang memiliki pelacakan serial number
+        $hasSerials = ($barang->tipe_pelacakan === 'Serial Number') || ($matchedSerial !== null) || SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $barang->id)
+            ->where(function($q) use ($gudangId) {
+                $q->whereHas('penerimaan', function($p) use ($gudangId) {
+                    $p->where('gudang_id', $gudangId);
+                })->orWhere('gudang_id', $gudangId);
+            })
+            ->exists();
 
         // Check if there is already a stock record for this item in this warehouse
         $stokGudang = StokGudang::where('barang_id', $barang->id)
-            ->where('gudang_id', $stockOpname->gudang_id)
+            ->where('gudang_id', $gudangId)
             ->first();
 
         $stokSistem = $stokGudang ? floatval($stokGudang->stok_aktual) : 0.00;
@@ -1892,6 +2106,64 @@ class StockOpnameController extends Controller
             'stok_fisik'     => $detail->stok_fisik,
             'selisih'        => $detail->selisih,
             'catatan'        => $detail->catatan,
+            'has_serials'    => $hasSerials,
+            'serial_numbers' => $detail->serial_numbers ?? [],
+            'matched_type'   => $matchedType,
+            'matched_serial' => $matchedSerial,
+        ]);
+    }
+
+    /**
+     * Dapatkan daftar Serial Number yang terdaftar di gudang ini untuk barang terkait.
+     */
+    public function getAvailableSerials(Request $request, StockOpname $stockOpname)
+    {
+        if (!auth()->user()->can('lihat-opname') && !auth()->user()->can('input-fisik-opname') && !auth()->user()->can('tambah-opname') && !auth()->user()->hasAnyRole(['Super Admin', 'Owner'])) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
+        if (!$this->resolveStockOpname($stockOpname)) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
+        $barangId = (int)$request->get('barang_id');
+        if (!$barangId) {
+            return response()->json(['message' => 'Barang ID wajib diisi.'], 422);
+        }
+
+        $gudangId = $stockOpname->gudang_id;
+
+        $serials = SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $barangId)
+            ->where('status', 'Tersedia')
+            ->where(function($q) use ($gudangId) {
+                $q->whereHas('penerimaan', function($p) use ($gudangId) {
+                    $p->where('gudang_id', $gudangId);
+                })
+                ->orWhere('gudang_id', $gudangId)
+                ->orWhereHas('adjustment', function($a) use ($gudangId) {
+                    $a->where('gudang_id', $gudangId);
+                })
+                ->orWhereHas('opname', function($o) use ($gudangId) {
+                    $o->where('gudang_id', $gudangId);
+                });
+            })
+            ->select('serial_number')
+            ->orderBy('serial_number', 'asc')
+            ->pluck('serial_number')
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $detail = StockOpnameDetail::where('opname_id', $stockOpname->id)
+            ->where('barang_id', $barangId)
+            ->first();
+
+        $savedSerials = ($detail && is_array($detail->serial_numbers)) ? $detail->serial_numbers : [];
+
+        return response()->json([
+            'success'       => true,
+            'serials'       => $serials,
+            'saved_serials' => $savedSerials,
         ]);
     }
 

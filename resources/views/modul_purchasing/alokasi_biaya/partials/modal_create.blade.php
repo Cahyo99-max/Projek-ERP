@@ -1,7 +1,7 @@
 <!-- Modal Create Alokasi Biaya (Landed Cost) -->
 <div class="modal fade" id="modalCreateAlokasi" tabindex="-1" aria-labelledby="modalCreateAlokasiLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-alokasi modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content erp-card border-0 shadow-lg" style="border-radius: 1rem; overflow: hidden;">
+        <div class="modal-content erp-card border-0 shadow-lg" style="border-radius: 1rem; overflow: hidden; overflow-x: hidden !important; max-width: 100%; min-width: 0;">
             
             <!-- GRADIENT MODAL HEADER -->
             <div class="modal-header border-0 px-3 px-md-4 py-3" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%); color: #ffffff;">
@@ -24,8 +24,8 @@
             </div>
 
             <!-- MODAL BODY -->
-            <div class="modal-body p-2.5 p-md-4" style="background-color: var(--erp-bg);">
-                <form id="formCreateAlokasi">
+            <div class="modal-body p-2.5 p-md-4" style="background-color: var(--erp-bg); overflow-x: hidden !important; max-width: 100%; min-width: 0; touch-action: pan-y;">
+                <form id="formCreateAlokasi" style="min-width: 0; max-width: 100%; overflow-x: hidden !important;">
                     @csrf
                     <input type="hidden" name="alokasi_id" id="create_alokasi_id" value="">
 
@@ -177,7 +177,7 @@
                                 <span>Geser tabel ke samping untuk melihat data GR lengkap</span>
                             </div>
 
-                            <div class="table-responsive border rounded-3" style="max-height: 480px; overflow-y: auto; overflow-x: auto; border-color: var(--erp-border) !important; -webkit-overflow-scrolling: touch;">
+                            <div class="table-responsive border rounded-3" style="max-height: 480px; overflow-y: auto; overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; border-color: var(--erp-border) !important; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
                                 <table class="table table-sm table-hover align-middle mb-0" id="tableEligibleGr">
                                     <thead class="sticky-top" style="background-color: var(--erp-table-header);">
                                         <tr class="small fw-bold text-uppercase" style="color: var(--erp-text-muted); font-size: 0.73rem; letter-spacing: 0.5px;">
@@ -257,7 +257,7 @@
                                 <span>Geser tabel ke samping untuk melihat rincian kalkulasi</span>
                             </div>
 
-                            <div class="table-responsive border rounded-3" style="border-color: var(--erp-border) !important; max-height: 380px; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                            <div class="table-responsive border rounded-3" style="border-color: var(--erp-border) !important; max-height: 380px; overflow-y: auto; overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
                                 <table class="table table-sm table-bordered table-hover align-middle mb-0" id="tablePreviewAlokasi" style="border-color: var(--erp-border);">
                                     <thead class="sticky-top" style="background-color: var(--erp-table-header);">
                                         <tr class="small text-center align-middle" style="color: var(--erp-text-muted); font-size: 0.74rem;">

@@ -320,6 +320,12 @@ class SalesOrderController extends Controller
             $query->where('tipe_item', $request->tipe_item);
         }
 
+        // Specific IDs Filter (e.g. for Cart Price Reload / Sync)
+        if ($request->filled('ids')) {
+            $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
+            $query->whereIn('id', $ids);
+        }
+
         $perPage = $request->input('per_page', 24);
         $products = $query->orderBy('id', 'desc')->paginate($perPage);
 

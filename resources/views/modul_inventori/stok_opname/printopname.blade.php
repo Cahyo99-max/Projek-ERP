@@ -678,7 +678,14 @@
                     <tr>
                         <td class="text-center" style="color: #64748b; font-weight: 600;">{{ $index + 1 }}</td>
                         <td class="code-font">{{ $d['barang_kode'] }}</td>
-                        <td class="fw-semibold" style="color: #0f172a;">{{ ucwords(strtolower($d['barang_nama'])) }}</td>
+                        <td class="fw-semibold" style="color: #0f172a;">
+                            {{ ucwords(strtolower($d['barang_nama'])) }}
+                            @if(!empty($d['serial_numbers']) && is_array($d['serial_numbers']))
+                                <div style="font-size: 8px; color: #475569; margin-top: 3px; font-family: monospace; line-height: 1.3;">
+                                    <strong style="color: #0284c7;">SN ({{ count($d['serial_numbers']) }}):</strong> {{ implode(', ', $d['serial_numbers']) }}
+                                </div>
+                            @endif
+                        </td>
                         <td class="text-center">{{ $fmtQty($d['stok_sistem']) }} {{ $d['satuan'] }}</td>
                         <td class="text-center fw-bold" style="color: #0f172a;">
                             {{ $d['stok_fisik'] !== null ? $fmtQty($d['stok_fisik']) . ' ' . $d['satuan'] : '—' }}

@@ -5,6 +5,7 @@
     <!-- Select2 CSS with Bootstrap 5 Theme -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ asset('modul_smd/pembayaran.css') }}?v={{ time() }}" />
     <style>
         .select2-container--bootstrap-5 .select2-selection {
             border-radius: 0.625rem;
@@ -353,7 +354,7 @@
     <div class="container-fluid py-3 px-3 px-md-4">
         
         <!-- Header Page Title -->
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
             <div>
                 <h4 class="fw-bold mb-0 text-body-emphasis d-flex align-items-center gap-2">
                     <span class="p-2 rounded-3 text-white d-inline-flex shadow-sm" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
@@ -364,7 +365,7 @@
                 <p class="text-body-secondary small mb-0 mt-1">Catat penerimaan kas/bank dari pelanggan, pelunasan piutang multi-faktur, dan cetak kwitansi resmi.</p>
             </div>
             
-            <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="d-flex align-items-center gap-2 flex-wrap pay-header-actions">
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-3.5 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" id="btn_open_filter" data-bs-toggle="modal" data-bs-target="#modalFilterPayment">
                     <i class="bi bi-funnel-fill text-success fs-6"></i>
                     <span>Filter Data</span>
@@ -372,7 +373,7 @@
 
                 @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('tambah-sales-payment'))
                 <button type="button" class="btn btn-success rounded-pill px-3.5 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" id="btn_open_modal_create" data-bs-toggle="modal" data-bs-target="#modalCreatePayment">
-                    <i class="bi bi-plus-circle-fill fs-6"></i> Catat Pembayaran
+                    <i class="bi bi-plus-circle-fill fs-6"></i> <span>Catat Pembayaran</span>
                 </button>
                 @endif
             </div>
@@ -394,85 +395,118 @@
             </div>
         </div>
 
-        <!-- KPI Cards Summary Row -->
-        <div class="row g-3 mb-4">
+        <!-- KPI Metric Cards Summary Row (Modern Glassmorphic) -->
+        <div class="row g-3 g-sm-3.5 g-md-4 mb-4 mb-md-4.5">
             <!-- Total Penerimaan Bulan Ini -->
             <div class="col-6 col-md-3">
-                <div class="card border border-body-tertiary shadow-sm rounded-4 h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-success small fw-semibold font-monospace text-uppercase d-block mb-1">Penerimaan Bulan Ini</span>
-                            <h4 class="fw-bold mb-0 text-success font-monospace" id="kpi_total_bulan_ini">Rp {{ number_format($totalBulanIni, 2, ',', '.') }}</h4>
+                <div class="pay-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="pay-kpi-label">Penerimaan Bulan Ini</span>
+                            <div class="pay-kpi-icon pay-kpi-icon-emerald">
+                                <i class="bi bi-cash-coin"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-4 bg-success-subtle text-success fs-4">
-                            <i class="bi bi-cash-coin"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-success font-monospace fs-4 fs-md-3 text-truncate" id="kpi_total_bulan_ini" title="Rp {{ number_format($totalBulanIni, 0, ',', '.') }}">Rp {{ number_format($totalBulanIni, 0, ',', '.') }}</h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-calendar2-month me-1"></i>Bulan Berjalan
+                        </span>
                     </div>
                 </div>
             </div>
 
             <!-- Penerimaan Hari Ini -->
             <div class="col-6 col-md-3">
-                <div class="card border border-body-tertiary shadow-sm rounded-4 h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-primary small fw-semibold font-monospace text-uppercase d-block mb-1">Penerimaan Hari Ini</span>
-                            <h4 class="fw-bold mb-0 text-primary font-monospace" id="kpi_total_hari_ini">Rp {{ number_format($totalHariIni, 2, ',', '.') }}</h4>
+                <div class="pay-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="pay-kpi-label">Penerimaan Hari Ini</span>
+                            <div class="pay-kpi-icon pay-kpi-icon-sky">
+                                <i class="bi bi-calendar-check-fill"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-4 bg-primary-subtle text-primary fs-4">
-                            <i class="bi bi-calendar-check-fill"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-info font-monospace fs-4 fs-md-3 text-truncate" id="kpi_total_hari_ini" title="Rp {{ number_format($totalHariIni, 0, ',', '.') }}">Rp {{ number_format($totalHariIni, 0, ',', '.') }}</h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-clock-history me-1"></i>Kas Masuk Hari Ini
+                        </span>
                     </div>
                 </div>
             </div>
 
             <!-- Total Transaksi Selesai -->
             <div class="col-6 col-md-3">
-                <div class="card border border-body-tertiary shadow-sm rounded-4 h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-body-secondary small fw-semibold font-monospace text-uppercase d-block mb-1">Transaksi Selesai</span>
-                            <h4 class="fw-bold mb-0 text-body-emphasis font-monospace" id="kpi_count_trx">{{ number_format($countTrx, 0, ',', '.') }} <small class="fs-6 text-body-secondary">Kwitansi</small></h4>
+                <div class="pay-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="pay-kpi-label">Transaksi Selesai</span>
+                            <div class="pay-kpi-icon pay-kpi-icon-indigo">
+                                <i class="bi bi-check2-circle"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-4 bg-info-subtle text-info fs-4">
-                            <i class="bi bi-check-all"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-body font-monospace fs-4 fs-md-3">
+                            <span id="kpi_count_trx">{{ number_format($countTrx, 0, ',', '.') }}</span>
+                            <small class="fs-7 text-body-secondary font-sans">Kwitansi</small>
+                        </h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-file-earmark-check me-1"></i>Kwitansi Terbit
+                        </span>
                     </div>
                 </div>
             </div>
 
             <!-- Potongan Diberikan -->
             <div class="col-6 col-md-3">
-                <div class="card border border-body-tertiary shadow-sm rounded-4 h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-warning small fw-semibold font-monospace text-uppercase d-block mb-1">Potongan Bulan Ini</span>
-                            <h4 class="fw-bold mb-0 text-warning font-monospace" id="kpi_potongan">Rp {{ number_format($totalPotongan, 2, ',', '.') }}</h4>
+                <div class="pay-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="pay-kpi-label">Potongan Bulan Ini</span>
+                            <div class="pay-kpi-icon pay-kpi-icon-amber">
+                                <i class="bi bi-percent"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-4 bg-warning-subtle text-warning fs-4">
-                            <i class="bi bi-percent"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-warning font-monospace fs-4 fs-md-3 text-truncate" id="kpi_potongan" title="Rp {{ number_format($totalPotongan, 0, ',', '.') }}">Rp {{ number_format($totalPotongan, 0, ',', '.') }}</h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-tag me-1"></i>Diskon / Potongan
+                        </span>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Table Card -->
-        <div class="card border border-body-tertiary shadow-sm rounded-4 overflow-hidden bg-body-tertiary">
-            <div class="card-header bg-body-secondary border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden pay-table-card">
+            <div class="card-header bg-transparent border-bottom py-3 px-3 px-md-4 d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold text-body-emphasis mb-0 d-flex align-items-center gap-2">
                     <i class="bi bi-table text-success"></i> Riwayat Penerimaan Pembayaran
                 </h6>
                 <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-monospace px-3 py-1 fw-bold d-none d-sm-inline-block">Live Data</span>
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="btn_refresh_table">
                         <i class="bi bi-arrow-clockwise me-1"></i> Refresh
                     </button>
                 </div>
             </div>
             
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" id="table_sales_payments" style="width: 100%;">
+            <div class="card-body p-3 p-md-3.5">
+                <!-- Mobile Swipe Hint Banner -->
+                <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2.5 mb-3 rounded-3 pay-mobile-swipe-banner shadow-2xs">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-arrow-left-right text-success"></i>
+                        <span class="fw-semibold small">Geser tabel pembayaran ke samping</span>
+                    </div>
+                    <span class="badge rounded-pill px-2.5 py-1 fw-bold pay-swipe-pill">Swipe &rarr;</span>
+                </div>
+
+                <div class="table-responsive" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important;">
+                    <table class="table table-hover align-middle mb-0" id="table_sales_payments" style="min-width: 1080px; width: 100%;">
                         <thead class="bg-body-tertiary text-body-secondary font-monospace text-uppercase" style="font-size: 0.75rem;">
                             <tr>
                                 <th class="ps-3 py-3" style="width: 4%;">No</th>
@@ -580,7 +614,9 @@
             const table = $('#table_sales_payments').DataTable({
                 processing: true,
                 serverSide: true,
-                responsive: true,
+                responsive: false,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
                 order: [[1, 'desc']],
                 ajax: {
                     url: "{{ route('modul_marketing.pembayaran.index') }}",
@@ -612,14 +648,24 @@
                     }
                 },
                 language: {
-                    search: "_INPUT_",
+                    search: "",
                     searchPlaceholder: "Cari nomor kwitansi, customer...",
-                    lengthMenu: "_MENU_ baris",
+                    lengthMenu: "Tampilkan _MENU_ data",
                     zeroRecords: "Tidak ada data pembayaran yang ditemukan",
-                    info: "Menampilkan _START_ - _END_ dari _TOTAL_ pembayaran",
-                    infoEmpty: "Data kosong",
+                    info: "Menampilkan _START_ - _END_ dari _TOTAL_ data",
+                    infoEmpty: "Menampilkan 0 data",
+                    infoFiltered: "(disaring dari _MAX_ total data)",
                     processing: '<div class="spinner-border spinner-border-sm text-success" role="status"></div> Memuat...'
                 }
+            });
+
+            // Debounce DataTables Search Input
+            $('#table_sales_payments_filter input').unbind().bind('input', function(e) {
+                var item = $(this);
+                clearTimeout(window.searchDebounceTimer);
+                window.searchDebounceTimer = setTimeout(function() {
+                    table.search(item.val()).draw();
+                }, 400);
             });
 
             // Apply & Reset Filter
@@ -1498,13 +1544,13 @@
                             // Status badge
                             let badge = '';
                             if (p.status === 'Posted') {
-                                badge = '<span class="badge rounded-pill bg-success px-3 py-1.5"><i class="bi bi-check2-circle me-1"></i> Posted</span>';
+                                badge = '<span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-check2-circle me-1"></i> Posted</span>';
                             } else if (p.status === 'Diajukan') {
-                                badge = '<span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-3 py-1.5"><i class="bi bi-hourglass-split me-1"></i> Menunggu Persetujuan</span>';
+                                badge = '<span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-hourglass-split me-1"></i> Menunggu Persetujuan</span>';
                             } else if (p.status === 'Draft') {
-                                badge = '<span class="badge rounded-pill bg-secondary px-3 py-1.5"><i class="bi bi-pencil-square me-1"></i> Draft</span>';
+                                badge = '<span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-pencil-square me-1"></i> Draft</span>';
                             } else {
-                                badge = '<span class="badge rounded-pill bg-danger px-3 py-1.5"><i class="bi bi-x-circle me-1"></i> Batal</span>';
+                                badge = '<span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-x-circle me-1"></i> Batal</span>';
                             }
                             $('#detail_status_badge').html(badge);
 
@@ -1711,13 +1757,15 @@
 
                                     rows += `
                                         <tr>
-                                            <td class="ps-3 py-2 font-monospace fw-semibold text-primary">${d.account?.code || '-'}</td>
-                                            <td>
-                                                <div class="fw-semibold text-body-emphasis">${d.account?.name || '-'}</div>
-                                                <small class="text-body-secondary" style="font-size: 0.75rem;">${d.keterangan || ''}</small>
+                                            <td class="ps-3 py-2.5 text-nowrap">
+                                                <span class="pay-coa-badge font-monospace px-2 py-1">${d.account?.code || '-'}</span>
                                             </td>
-                                            <td class="text-end font-monospace text-success">${debit > 0 ? 'Rp ' + formatRupiahDisplay(debit) : '-'}</td>
-                                            <td class="text-end pe-3 font-monospace text-primary">${kredit > 0 ? 'Rp ' + formatRupiahDisplay(kredit) : '-'}</td>
+                                            <td class="py-2.5">
+                                                <div class="fw-semibold text-body-emphasis">${d.account?.name || '-'}</div>
+                                                ${d.keterangan ? `<small class="text-body-secondary d-block mt-0.5" style="font-size: 0.75rem;">${d.keterangan}</small>` : ''}
+                                            </td>
+                                            <td class="text-end font-monospace text-success text-nowrap py-2.5">${debit > 0 ? 'Rp ' + formatRupiahDisplay(debit) : '-'}</td>
+                                            <td class="text-end pe-3 font-monospace text-primary text-nowrap py-2.5">${kredit > 0 ? 'Rp ' + formatRupiahDisplay(kredit) : '-'}</td>
                                         </tr>
                                     `;
                                 });

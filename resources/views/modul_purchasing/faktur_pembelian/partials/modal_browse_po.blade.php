@@ -1,7 +1,7 @@
 <!-- MODAL POPUP BROWSE PURCHASE ORDER (PO) -->
 <div class="modal fade" id="modalBrowsePO" tabindex="-1" aria-hidden="true" data-bs-backdrop="false" style="z-index: 1065 !important; background: rgba(15, 23, 42, 0.72) !important;">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 1280px; width: 96%;">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 1280px; width: 96%; min-width: 0 !important;">
+        <div class="modal-content border-0 shadow-lg rounded-4" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
             <!-- Modal Header with Modern Emerald Gradient -->
             <div class="modal-header py-3 px-4 border-0 text-white" style="background: linear-gradient(135deg, #0f172a 0%, #065f46 100%);">
                 <div class="d-flex align-items-center gap-3">
@@ -23,7 +23,7 @@
             </div>
 
             <!-- Modal Body -->
-            <div class="modal-body p-3 p-md-4">
+            <div class="modal-body p-3 p-md-4" style="overflow-x: hidden !important; max-width: 100%; min-width: 0; touch-action: pan-y;">
                 <!-- Search Box -->
                 <div class="mb-3">
                     <div class="input-group shadow-sm">
@@ -34,9 +34,14 @@
                     </div>
                 </div>
 
+                <!-- Mobile Swipe Hint -->
+                <div class="d-flex align-items-center justify-content-between px-2 py-1.5 mb-2 rounded bg-body-tertiary border d-md-none text-muted" style="font-size: 0.72rem;">
+                    <span><i class="bi bi-arrows-expand me-1 text-success"></i>Geser tabel ke samping untuk melihat detail dokumen</span>
+                </div>
+
                 <!-- Table Wrapper -->
-                <div class="table-responsive rounded-3 border shadow-sm">
-                    <table class="table align-middle table-hover mb-0" id="tableBrowsePO">
+                <div class="table-responsive rounded-3 border shadow-sm" style="overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
+                    <table class="table align-middle table-hover mb-0" id="tableBrowsePO" style="min-width: 780px;">
                         <thead class="bg-body-secondary text-body" style="font-size: 0.73rem; letter-spacing: 0.05em; text-transform: uppercase;">
                             <tr>
                                 <th width="20%" class="py-2.5 px-3">NO. PURCHASE ORDER</th>

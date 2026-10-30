@@ -1,24 +1,6 @@
 {{-- ════════════════════════════════════════════════════════════ --}}
 {{-- MODAL LOOKUP GUDANG (Cari Gudang via Modal & Search Table) --}}
 {{-- ════════════════════════════════════════════════════════════ --}}
-<style>
-    #modalLookupGudang .table-modern {
-        min-width: 100% !important;
-        width: 100% !important;
-    }
-    #modalLookupGudang .table-responsive {
-        max-height: 440px;
-        overflow-x: auto;
-    }
-    #modalLookupGudang .lookup-gudang-row:hover td {
-        background-color: rgba(239, 68, 68, 0.08) !important;
-    }
-    [data-bs-theme="dark"] #modalLookupGudang .lookup-gudang-row:hover td,
-    .dark-mode #modalLookupGudang .lookup-gudang-row:hover td {
-        background-color: rgba(239, 68, 68, 0.16) !important;
-    }
-</style>
-
 <div class="modal fade" id="modalLookupGudang" tabindex="-1" aria-labelledby="modalLookupGudangLabel" aria-hidden="true" style="z-index: 1060 !important;">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 1140px; width: 95vw; z-index: 1061 !important;">
         <div class="modal-content border-0 shadow-lg rounded-3">
@@ -126,6 +108,9 @@ function openLookupGudangModal(callback = null) {
 }
 
 function closeLookupGudangModal() {
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
     const modalEl = document.getElementById('modalLookupGudang');
     if (modalEl) {
         const modalInstance = bootstrap.Modal.getInstance(modalEl);
@@ -136,6 +121,9 @@ function closeLookupGudangModal() {
 
 // Select Gudang from modal table
 function selectLookupGudang(id, kode, nama) {
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
     if (typeof lookupGudangCallback === 'function') {
         lookupGudangCallback({ id: id, kode_gudang: kode, nama_gudang: nama });
         lookupGudangCallback = null;

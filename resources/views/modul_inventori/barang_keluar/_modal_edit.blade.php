@@ -2,7 +2,7 @@
 {{-- MODAL: Edit Barang Keluar (Goods Issue Draft)              --}}
 {{-- ════════════════════════════════════════════════════════════ --}}
 <div class="modal fade" id="modalEditGI" tabindex="-1" aria-labelledby="modalEditGILabel" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 96vw; width: 96vw;">
         <div class="modal-content border-0 shadow-lg rounded-3">
             <div class="modal-header bg-warning bg-gradient text-dark rounded-top-3">
                 <h5 class="modal-title fw-bold" id="modalEditGILabel">
@@ -117,6 +117,14 @@
 <script>
 let editItemCounter = 0;
 
+if (typeof formatGIQty !== 'function') {
+    function formatGIQty(val) {
+        if (val === null || val === undefined || isNaN(val)) return '0';
+        const num = parseFloat(val);
+        return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+}
+
 // Open Edit Modal & Load Data
 function openModalEditGI(id) {
     $('#edit_gi_items_container').empty();
@@ -163,9 +171,10 @@ function openModalEditGI(id) {
 
             // Load Available Barangs for this warehouse
             fetchEditAvailableBarangs(gi.gudang_id, function () {
+                window.editGiItemSerialsStore = {};
                 if (gi.details && gi.details.length > 0) {
                     gi.details.forEach(d => {
-                        addEditGIItemRow(d.barang_id, d.jumlah);
+                        addEditGIItemRow(d, d.jumlah, d.serial_numbers || []);
                     });
                 } else {
                     addEditGIItemRow();
@@ -210,10 +219,13 @@ function fetchEditAvailableBarangs(gudangId, callback) {
     });
 }
 
-function addEditGIItemRow(itemData = null, selectedJumlah = 1) {
+function addEditGIItemRow(itemData = null, selectedJumlah = 1, savedSerials = []) {
     editItemCounter++;
     const idx = editItemCounter;
     const cleanJumlah = (parseFloat(selectedJumlah) % 1 === 0) ? parseInt(selectedJumlah) : parseFloat(selectedJumlah);
+
+    if (!window.editGiItemSerialsStore) window.editGiItemSerialsStore = {};
+    window.editGiItemSerialsStore[idx] = Array.isArray(savedSerials) ? [...savedSerials] : [];
 
     let barangId = '';
     let barangDisplay = '';
@@ -255,7 +267,7 @@ function addEditGIItemRow(itemData = null, selectedJumlah = 1) {
     const rowHtml = `
     <div class="item-row card p-3 mb-2 border rounded-3 shadow-xs" id="edit_item_row_${idx}">
         <div class="row g-2 align-items-center">
-            <div class="col-12 col-md-5">
+            <div class="col-12 col-md-6 col-lg-6">
                 <label class="form-label small fw-semibold text-secondary">Nama Barang <span class="text-danger">*</span></label>
                 <input type="hidden" id="edit_barang_id_${idx}" class="edit-gi-barang-id" value="${barangId}" required>
                 <div class="input-group input-group-sm">
@@ -271,7 +283,7 @@ function addEditGIItemRow(itemData = null, selectedJumlah = 1) {
                     </button>
                 </div>
             </div>
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-4 col-lg-4">
                 <label class="form-label small fw-semibold text-secondary">Jumlah Keluar <span class="text-danger">*</span></label>
                 <div class="input-group input-group-sm">
                     <input type="number" step="any" min="0.0001" class="form-control edit-gi-qty-input" id="edit_gi_jumlah_${idx}"
@@ -283,10 +295,29 @@ function addEditGIItemRow(itemData = null, selectedJumlah = 1) {
                 </div>
                 <div id="edit_stok_error_${idx}"></div>
             </div>
-            <div class="col-12 col-md-3 text-end pt-md-3 pt-1">
+            <div class="col-12 col-md-2 col-lg-2 text-end pt-md-3 pt-1">
                 <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="removeEditGIItemRow(${idx})" title="Hapus baris">
                     <i class="bi bi-trash me-1"></i> Hapus
                 </button>
+            </div>
+        </div>
+
+        <!-- Serial Number Row -->
+        <div class="mt-2.5 pt-2 border-top" id="edit_sn_wrapper_${idx}">
+            <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 bg-light-subtle p-2 rounded-3 border border-light-subtle">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1 btn-open-gi-sn shadow-xs" 
+                        id="edit_btn_open_sn_${idx}" data-idx="${idx}" data-context="edit" onclick="openModalSelectSerialsGI(${idx}, 'edit')" style="font-size: 0.78rem;">
+                        <i class="bi bi-upc-scan me-1"></i> Pilih Serial Number
+                    </button>
+                    <span class="badge bg-secondary-subtle text-muted border font-monospace px-2 py-1" id="edit_sn_badge_count_${idx}" style="font-size: 0.74rem;">
+                        0 / 0 Unit
+                    </span>
+                    <span id="edit_sn_status_text_${idx}" class="small text-muted font-monospace" style="font-size: 0.72rem;">
+                        <i class="bi bi-dash-circle me-1"></i>Tanpa SN (Opsional)
+                    </span>
+                </div>
+                <div id="edit_sn_chips_preview_${idx}" class="d-flex flex-wrap gap-1 align-items-center"></div>
             </div>
         </div>
     </div>`;
@@ -303,9 +334,14 @@ function addEditGIItemRow(itemData = null, selectedJumlah = 1) {
     if (barangId) {
         onEditGIBarangChange(idx);
     }
+
+    if (typeof updateRowSnBadge === 'function') {
+        updateRowSnBadge(idx, 'edit', cleanJumlah);
+    }
 }
 
 function removeEditGIItemRow(idx) {
+    if (window.editGiItemSerialsStore) delete window.editGiItemSerialsStore[idx];
     $(`#edit_item_row_${idx}`).remove();
 }
 
@@ -392,6 +428,10 @@ function validateEditGIStock(idx) {
             : `<span class="badge bg-warning bg-opacity-10 text-dark fw-semibold"><i class="bi bi-box-seam me-1"></i>Stok Tersedia: ${formatGIQty(stok)} ${satuan}</span>`;
         $(`#edit_gi_stok_info_${idx}`).html(badge);
     }
+
+    if (typeof updateRowSnBadge === 'function') {
+        updateRowSnBadge(idx, 'edit', val);
+    }
 }
 
 function submitEditGIForm(targetStatus) {
@@ -433,7 +473,12 @@ function submitEditGIForm(targetStatus) {
         if (!izin && jumlah > stok) {
             stokExceededItems.push(`<b>${barangName}</b> (Diminta: <b>${formatGIQty(jumlah)}</b>, Stok: <b>${formatGIQty(stok)} ${satuan}</b>)`);
         }
-        items.push({ barang_id: barangId, jumlah: jumlah });
+
+        const rowId = $(this).attr('id');
+        const rIdx = rowId ? rowId.replace('edit_item_row_', '') : null;
+        const serials = (rIdx !== null && window.editGiItemSerialsStore && window.editGiItemSerialsStore[rIdx]) ? window.editGiItemSerialsStore[rIdx] : [];
+
+        items.push({ barang_id: barangId, jumlah: jumlah, serial_numbers: serials });
     });
 
     if (!gudangId) {
@@ -511,9 +556,27 @@ function submitEditGIForm(targetStatus) {
     const $btnDraft   = $('#btnSaveEditGIDraft');
     const $btnPending = $('#btnSaveEditGIPending');
     const $btnConf    = $('#btnSaveEditGIConfirm');
+
+    if ($btnDraft.prop('disabled') || $btnPending.prop('disabled') || $btnConf.prop('disabled')) {
+        return;
+    }
+
+    const activeBtn = targetStatus === 'Confirmed' ? $btnConf : (targetStatus === 'Pending' ? $btnPending : $btnDraft);
+    const oldHtml = activeBtn.html();
+
+    const restoreEditBtns = function() {
+        $btnDraft.prop('disabled', false);
+        $btnPending.prop('disabled', false);
+        $btnConf.prop('disabled', false);
+        activeBtn.html(oldHtml);
+    };
+
     $btnDraft.prop('disabled', true);
     $btnPending.prop('disabled', true);
     $btnConf.prop('disabled', true);
+
+    const spinnerText = targetStatus === 'Confirmed' ? 'Menyimpan…' : (targetStatus === 'Pending' ? 'Mengajukan…' : 'Menyimpan Draf…');
+    activeBtn.html(`<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ${spinnerText}`);
 
     $.ajax({
         url: `/goods-issue/${id}`,
@@ -544,9 +607,10 @@ function submitEditGIForm(targetStatus) {
         error: function (xhr) {
             const res = xhr.responseJSON ?? {};
             Swal.fire('Error', res.message || 'Gagal mengedit draft pengeluaran barang.', 'error');
-            $btnDraft.prop('disabled', false);
-            $btnPending.prop('disabled', false);
-            $btnConf.prop('disabled', false);
+            restoreEditBtns();
+        },
+        complete: function() {
+            restoreEditBtns();
         }
     });
 }

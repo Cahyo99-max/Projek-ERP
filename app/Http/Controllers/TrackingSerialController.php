@@ -105,6 +105,8 @@ class TrackingSerialController extends Controller
                 'penerimaan.lokasiRak',
                 'penerimaan.penerima',
                 'penerimaan.penyerah',
+                'gudang',
+                'adjustment',
             ])
             ->select('spk_penerimaan_barang_jadi_serials.*');
 
@@ -120,8 +122,11 @@ class TrackingSerialController extends Controller
 
         // Filter: Gudang
         if ($request->filled('gudang_id')) {
-            $query->whereHas('penerimaan', function ($q) use ($request) {
-                $q->where('gudang_id', $request->gudang_id);
+            $gId = $request->gudang_id;
+            $query->where(function ($q) use ($gId) {
+                $q->whereHas('penerimaan', function ($p) use ($gId) {
+                    $p->where('gudang_id', $gId);
+                })->orWhere('gudang_id', $gId);
             });
         }
 
@@ -165,6 +170,13 @@ class TrackingSerialController extends Controller
                           ->orWhereHas('penerimaan.gudang', function ($g) use ($search) {
                               $g->where('nama_gudang', 'like', "%{$search}%")
                                 ->orWhere('kode_gudang', 'like', "%{$search}%");
+                          })
+                          ->orWhereHas('gudang', function ($g) use ($search) {
+                              $g->where('nama_gudang', 'like', "%{$search}%")
+                                ->orWhere('kode_gudang', 'like', "%{$search}%");
+                          })
+                          ->orWhereHas('adjustment', function ($a) use ($search) {
+                              $a->where('nomor_adjustment', 'like', "%{$search}%");
                           });
                     });
                 }
@@ -209,23 +221,42 @@ class TrackingSerialController extends Controller
             })
             ->addColumn('spk_info', function ($row) {
                 $spk = $row->spk;
-                if (!$spk) return '<span class="text-muted">-</span>';
-                return '
-                    <div>
-                        <span class="fw-bold font-monospace spk-num-text">' . e($spk->nomor_spk) . '</span>
-                        <div class="small item-sub-text fs-8">Target: ' . number_format($spk->jumlah_rencana, 0, ',', '.') . ' ' . ($spk->satuan->nama_satuan ?? 'Pcs') . '</div>
-                    </div>';
+                if ($spk) {
+                    return '
+                        <div>
+                            <span class="fw-bold font-monospace spk-num-text">' . e($spk->nomor_spk) . '</span>
+                            <div class="small item-sub-text fs-8">Target: ' . number_format($spk->jumlah_rencana, 0, ',', '.') . ' ' . ($spk->satuan->nama_satuan ?? 'Pcs') . '</div>
+                        </div>';
+                }
+                if ($row->adjustment) {
+                    return '
+                        <div>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace"><i class="bi bi-sliders me-1"></i>' . e($row->adjustment->nomor_adjustment) . '</span>
+                            <div class="small item-sub-text fs-8 text-muted mt-0.5">' . e($row->adjustment->kategori_alasan) . '</div>
+                        </div>';
+                }
+                return '<span class="text-muted fs-8">-</span>';
             })
             ->addColumn('gudang_lokasi', function ($row) {
                 $pbj = $row->penerimaan;
-                if (!$pbj) return '<span class="text-muted">-</span>';
-                $gudang = $pbj->gudang ? '[' . e($pbj->gudang->kode_gudang) . '] ' . e($pbj->gudang->nama_gudang) : '-';
-                $rak    = $pbj->lokasiRak ? '[' . e($pbj->lokasiRak->kode_rak) . '] ' . e($pbj->lokasiRak->nama_rak) : 'Belum di Rak';
-                return '
-                    <div>
-                        <div class="fw-semibold item-title-text fs-8 text-truncate" style="max-width: 190px;" title="' . $gudang . '">' . $gudang . '</div>
-                        <small class="rak-sub-text font-monospace fs-8"><i class="bi bi-grid-3x3 me-1"></i>' . $rak . '</small>
-                    </div>';
+                if ($pbj && $pbj->gudang) {
+                    $gudang = '[' . e($pbj->gudang->kode_gudang) . '] ' . e($pbj->gudang->nama_gudang);
+                    $rak    = $pbj->lokasiRak ? '[' . e($pbj->lokasiRak->kode_rak) . '] ' . e($pbj->lokasiRak->nama_rak) : 'Belum di Rak';
+                    return '
+                        <div>
+                            <div class="fw-semibold item-title-text fs-8 text-truncate" style="max-width: 190px;" title="' . $gudang . '">' . $gudang . '</div>
+                            <small class="rak-sub-text font-monospace fs-8"><i class="bi bi-grid-3x3 me-1"></i>' . $rak . '</small>
+                        </div>';
+                }
+                if ($row->gudang) {
+                    $gudang = '[' . e($row->gudang->kode_gudang) . '] ' . e($row->gudang->nama_gudang);
+                    return '
+                        <div>
+                            <div class="fw-semibold item-title-text fs-8 text-truncate" style="max-width: 190px;" title="' . $gudang . '">' . $gudang . '</div>
+                            <small class="text-muted font-monospace fs-8"><i class="bi bi-sliders me-1"></i>Penyesuaian Stok</small>
+                        </div>';
+                }
+                return '<span class="text-muted">-</span>';
             })
             ->addColumn('tanggal_terima', function ($row) {
                 $pbj = $row->penerimaan;
@@ -236,7 +267,14 @@ class TrackingSerialController extends Controller
                             <div class="small item-sub-text font-monospace fs-8">' . e($pbj->nomor_penerimaan) . '</div>
                         </div>';
                 }
-                return '<span class="text-muted fs-8">' . $row->created_at->format('d/m/Y') . '</span>';
+                if ($row->adjustment && $row->adjustment->tanggal_adjustment) {
+                    return '
+                        <div>
+                            <span class="fw-semibold item-title-text">' . $row->adjustment->tanggal_adjustment->format('d/m/Y') . '</span>
+                            <div class="small item-sub-text font-monospace fs-8 text-primary">' . e($row->adjustment->nomor_adjustment) . '</div>
+                        </div>';
+                }
+                return '<span class="text-muted fs-8">' . ($row->created_at ? $row->created_at->format('d/m/Y') : '-') . '</span>';
             })
             ->addColumn('status_badge', function ($row) {
                 $status = $row->status ?: 'Tersedia';
@@ -452,6 +490,8 @@ class TrackingSerialController extends Controller
             'penerimaan.creator',
             'penerimaan.company',
             'penerimaan.branch',
+            'gudang',
+            'adjustment.gudang',
         ];
 
         // Tier 1: Fast Exact B-Tree Index Seek (<1ms on millions of rows)
@@ -564,6 +604,30 @@ class TrackingSerialController extends Controller
             ];
         }
 
+        // 2b. TAHAP PENYESUAIAN STOK (Jika unit terhubung dengan Adjustment)
+        $adj = $sn->adjustment;
+        if ($adj) {
+            $gudangName = $adj->gudang ? '[' . $adj->gudang->kode_gudang . '] ' . $adj->gudang->nama_gudang : ($sn->gudang ? '[' . $sn->gudang->kode_gudang . '] ' . $sn->gudang->nama_gudang : '-');
+            $timeline[] = [
+                'step_number' => count($timeline) + 1,
+                'title'       => 'Penyesuaian Stok (' . $adj->tipe_adjustment . ')',
+                'badge'       => 'INVENTORI',
+                'badge_color' => $adj->tipe_adjustment === 'Penambahan' ? 'primary' : 'warning',
+                'icon'        => 'bi-sliders',
+                'date'        => $adj->tanggal_adjustment ? $adj->tanggal_adjustment->translatedFormat('d F Y') : $adj->created_at->translatedFormat('d F Y'),
+                'time'        => $adj->created_at ? $adj->created_at->format('H:i') . ' WIB' : '-',
+                'doc_no'      => $adj->nomor_adjustment,
+                'doc_link'    => route('stock-adjustment.print', $adj->id),
+                'details'     => [
+                    'Gudang'         => $gudangName,
+                    'Tipe'           => $adj->tipe_adjustment,
+                    'Kategori Alasan'=> $adj->kategori_alasan,
+                    'Keterangan'     => $adj->keterangan ?: '-',
+                    'Status Dokumen' => $adj->status,
+                ],
+            ];
+        }
+
         // 3. TAHAP STATUS TERKINI
         $currentStatus = $sn->status ?: 'Tersedia';
         $statusText = 'Unit tersimpan di Gudang Barang Jadi dan siap untuk dipesan/didistribusikan.';
@@ -571,10 +635,14 @@ class TrackingSerialController extends Controller
             $statusText = 'Unit telah dikeluarkan dari gudang melalui transaksi penjualan / pengiriman.';
         } elseif (in_array($currentStatus, ['Rusak', 'Reject', 'RMA'])) {
             $statusText = 'Unit ditandai dalam kondisi rusak/reject atau sedang dalam proses klaim perbaikan.';
+        } elseif ($currentStatus === 'Dikeluarkan') {
+            $statusText = 'Unit telah dikeluarkan dari gudang melalui penyesuaian stok / mutasi keluar.';
         }
 
+        $lokasiFisik = ($pbj && $pbj->gudang ? $pbj->gudang->nama_gudang : ($sn->gudang ? $sn->gudang->nama_gudang : 'Gudang')) . ($pbj && $pbj->lokasiRak ? ' - Rak: ' . $pbj->lokasiRak->nama_rak : '');
+
         $timeline[] = [
-            'step_number' => 3,
+            'step_number' => count($timeline) + 1,
             'title'       => 'Status Unit Terkini: ' . $currentStatus,
             'badge'       => strtoupper($currentStatus),
             'badge_color' => $currentStatus === 'Tersedia' ? 'success' : ($currentStatus === 'Terjual' ? 'primary' : 'danger'),
@@ -585,7 +653,7 @@ class TrackingSerialController extends Controller
             'doc_link'    => null,
             'details'     => [
                 'Status Stok'   => $currentStatus,
-                'Lokasi Fisik'  => ($pbj && $pbj->gudang ? $pbj->gudang->nama_gudang : 'Gudang') . ($pbj && $pbj->lokasiRak ? ' - Rak: ' . $pbj->lokasiRak->nama_rak : ''),
+                'Lokasi Fisik'  => $lokasiFisik,
                 'Keterangan'    => $sn->catatan ?: $statusText,
                 'Update Terakhir'=> $sn->updated_at->format('d/m/Y H:i') . ' WIB',
             ],

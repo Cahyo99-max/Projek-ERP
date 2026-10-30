@@ -2,6 +2,7 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{{ asset('css/stok_adjustment.css') }}">
+    <link rel="stylesheet" href="{{ asset('inventori/barang_keluar.css') }}">
 
     <div class="container-fluid px-4 py-3">
         
@@ -96,7 +97,7 @@
                             <div class="kpi-title">TOTAL NILAI ADJUSTMENT</div>
                             <div class="kpi-value" id="kpiTotalNilai">
                                 @if($kpiData['can_see_hpp'])
-                                    Rp {{ number_format($kpiData['total_nilai'], 0, ',', '.') }}
+                                    Rp {{ number_format($kpiData['total_nilai'], 2, ',', '.') }}
                                 @else
                                     Rp ***
                                 @endif
@@ -147,6 +148,7 @@
     @include('modul_inventori.stok_ajusmen._modal_detail')
     @include('modul_inventori.stok_ajusmen._modal_lookup_barang')
     @include('modul_inventori.stok_ajusmen._modal_preview_foto')
+    @include('modul_inventori.stok_ajusmen._modal_manage_serials')
 
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -201,7 +203,7 @@
                     $('#kpiTotalPengurangan').text(new Intl.NumberFormat('id-ID', { maximumFractionDigits: 4 }).format(json.kpi.total_pengurangan) + ' Qty');
                     $('#kpiTotalPenambahan').text(new Intl.NumberFormat('id-ID', { maximumFractionDigits: 4 }).format(json.kpi.total_penambahan) + ' Qty');
                     if (json.kpi.can_see_hpp) {
-                        $('#kpiTotalNilai').text('Rp ' + new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(json.kpi.total_nilai));
+                        $('#kpiTotalNilai').text('Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(json.kpi.total_nilai));
                     }
                 }
             });

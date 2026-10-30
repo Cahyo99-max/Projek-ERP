@@ -14,28 +14,29 @@
                 </h4>
             </div>
             
-            <!-- Tombol Action Header (Pepet ke Kanan) -->
-            <div class="d-flex align-items-center gap-2 kb-header-actions ms-md-auto flex-wrap">
+            <!-- Tombol Action Header (Grid Simetris di Mobile, Sejajar Kanan di Desktop) -->
+            <div class="kb-header-actions ms-md-auto">
                 @can('tambah-kas-masuk')
-                <button type="button" class="btn btn-success btn-sm rounded-pill px-3 py-2 fw-semibold d-flex align-items-center justify-content-center gap-1.5 shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalCashIn">
+                <button type="button" class="btn btn-success btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCashIn">
                     <i class="bi bi-arrow-down-left fs-6"></i>
                     <span>+ Kas Masuk</span>
                 </button>
                 @endcan
                 @can('tambah-kas-keluar')
-                <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 py-2 fw-semibold d-flex align-items-center justify-content-center gap-1.5 shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalCashOut">
+                <button type="button" class="btn btn-danger btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCashOut">
                     <i class="bi bi-arrow-up-right fs-6"></i>
                     <span>- Kas Keluar</span>
                 </button>
                 @endcan
                 @can('transfer-kas-bank')
-                <button type="button" class="btn btn-info text-white btn-sm rounded-pill px-3.5 py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1.5 text-nowrap" data-bs-toggle="modal" data-bs-target="#modalTransfer" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: none;">
+                <button type="button" class="btn btn-info text-white btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTransfer" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: none;">
                     <i class="bi bi-arrow-left-right fs-6"></i>
-                    <span>Transfer Antar Bank</span>
+                    <span class="d-none d-sm-inline">Transfer Antar Bank</span>
+                    <span class="d-inline d-sm-none">Transfer Bank</span>
                 </button>
                 @endcan
                 @can('tambah-kas-bank')
-                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2 fw-semibold d-flex align-items-center justify-content-center gap-1.5 shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalAddAccount">
+                <button type="button" class="btn btn-sm shadow-sm kb-btn-add-account" data-bs-toggle="modal" data-bs-target="#modalAddAccount">
                     <i class="bi bi-plus-circle fs-6 text-success"></i>
                     <span>Tambah Rekening</span>
                 </button>
@@ -297,9 +298,6 @@
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill font-monospace small d-inline-flex d-md-none align-items-center gap-1" style="font-size: 0.68rem;">
-                        <i class="bi bi-arrow-left-right"></i> Geser Tabel &raquo;
-                    </span>
                     <a href="{{ route('accounting.kas-bank.print-rekening') }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm" title="Cetak Dokumen atau Simpan PDF">
                         <i class="bi bi-printer"></i>
                         <span>Cetak PDF</span>
@@ -313,7 +311,17 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                <table class="table table-hover align-middle mb-0 w-100" id="tableMasterKasBank">
+                <!-- Mobile Swipe Hint Banner -->
+                <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2 m-3 mb-2 rounded-3 kb-mobile-swipe-banner shadow-2xs">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-arrow-left-right text-success"></i>
+                        <span class="fw-semibold small">Geser tabel rekening ke samping</span>
+                    </div>
+                    <span class="badge rounded-pill px-2.5 py-1 fw-bold kb-swipe-pill">Swipe &rarr;</span>
+                </div>
+
+                <div class="table-responsive" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                <table class="table table-hover align-middle mb-0 w-100" id="tableMasterKasBank" style="min-width: 980px;">
                     <thead>
                         <tr class="small text-uppercase fw-bold text-white" style="background: linear-gradient(135deg, #14532d 0%, #16a34a 100%);">
                             <th style="width: 40px;" class="text-center">No</th>
@@ -410,6 +418,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
 

@@ -181,9 +181,104 @@
     border-left: 3.5px solid #f59e0b !important;
 }
 
-/* ===== MODAL FULLSCREEN STYLES ===== */
-.modal-dialog-invoice-wide {
-    max-width: 1400px;
+/* ===== MODAL FULLSCREEN & LOCKDOWN STYLES ===== */
+#modalTambahInvoice,
+#modalEditInvoice,
+#modalDetailInvoice {
+    overflow-x: hidden !important;
+    padding: 0 !important;
+}
+
+#modalTambahInvoice .modal-dialog,
+#modalEditInvoice .modal-dialog,
+#modalDetailInvoice .modal-dialog {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+}
+
+#modalTambahInvoice .modal-content,
+#modalEditInvoice .modal-content,
+#modalDetailInvoice .modal-content {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+#modalTambahInvoice .modal-header,
+#modalEditInvoice .modal-header,
+#modalDetailInvoice .modal-header {
+    flex-shrink: 0 !important;
+    border-radius: 0 !important;
+}
+
+#modalTambahInvoice .modal-footer,
+#modalEditInvoice .modal-footer,
+#modalDetailInvoice .modal-footer {
+    flex-shrink: 0 !important;
+    border-radius: 0 !important;
+}
+
+#modalTambahInvoice .modal-body,
+#modalEditInvoice .modal-body,
+#modalDetailInvoice .modal-body {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    flex: 1 1 auto !important;
+    touch-action: pan-y;
+    overscroll-behavior-x: none;
+}
+
+#modalTambahInvoice form,
+#modalEditInvoice form {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+}
+
+#modalTambahInvoice .erp-card,
+#modalEditInvoice .erp-card,
+#modalDetailInvoice .erp-card {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+#modalTambahInvoice .card-body,
+#modalEditInvoice .card-body,
+#modalDetailInvoice .card-body {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+/* Khusus kontainer table-responsive: Izinkan swipe/geser horizontal */
+#modalTambahInvoice .table-responsive,
+#modalEditInvoice .table-responsive,
+#modalDetailInvoice .table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+    overscroll-behavior-x: contain !important;
+    display: block !important;
 }
 .inv-modal-header {
     background: linear-gradient(135deg, #091326 0%, #0f2b5c 50%, #1e40af 100%) !important;
@@ -703,6 +798,81 @@
 }
 [data-bs-theme="light"] .inv-val-subtotal {
     color: #059669;
+}
+
+/* Badge Alokasi Biaya & HPP Akhir */
+.inv-badge-alokasi {
+    display: inline-block;
+    padding: 0.28rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    background: rgba(59, 130, 246, 0.15) !important;
+    color: #3b82f6 !important;
+    border: 1px solid rgba(59, 130, 246, 0.35) !important;
+    white-space: nowrap;
+}
+[data-bs-theme="dark"] .inv-badge-alokasi {
+    background: rgba(59, 130, 246, 0.2) !important;
+    color: #60a5fa !important;
+    border-color: rgba(96, 165, 250, 0.5) !important;
+}
+[data-bs-theme="light"] .inv-badge-alokasi {
+    background: #dbeafe !important;
+    color: #1d4ed8 !important;
+    border-color: #93c5fd !important;
+}
+
+.inv-badge-hpp {
+    display: inline-block;
+    padding: 0.32rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    background: rgba(16, 185, 129, 0.2) !important;
+    color: #10b981 !important;
+    border: 1px solid rgba(16, 185, 129, 0.45) !important;
+    white-space: nowrap;
+}
+[data-bs-theme="dark"] .inv-badge-hpp {
+    background: rgba(16, 185, 129, 0.25) !important;
+    color: #34d399 !important;
+    border-color: rgba(52, 211, 153, 0.5) !important;
+    text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+[data-bs-theme="light"] .inv-badge-hpp {
+    background: #d1fae5 !important;
+    color: #065f46 !important;
+    border-color: #6ee7b7 !important;
+    text-shadow: none;
+}
+
+.val-item-alokasi-biaya-unit {
+    color: #94a3b8 !important;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.72rem !important;
+    margin-top: 0.25rem;
+}
+[data-bs-theme="light"] .val-item-alokasi-biaya-unit {
+    color: #475569 !important;
+}
+
+.val-item-hpp-akhir-total {
+    color: #cbd5e1 !important;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.72rem !important;
+    margin-top: 0.25rem;
+}
+.val-item-hpp-akhir-total strong {
+    color: #34d399 !important;
+}
+[data-bs-theme="light"] .val-item-hpp-akhir-total {
+    color: #475569 !important;
+}
+[data-bs-theme="light"] .val-item-hpp-akhir-total strong {
+    color: #059669 !important;
 }
 
 /* Selects and inputs in modern tables */

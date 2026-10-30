@@ -312,9 +312,9 @@ $(document).ready(function () {
                                 </div>
                                 <div class="tkpd-card-body">
                                     <div>
-                                        <div class="tkpd-card-meta d-flex justify-content-between">
-                                            <span class="text-truncate">${p.kategori_name}</span>
-                                            <span class="fw-bold">${p.kode_barang}</span>
+                                        <div class="tkpd-card-meta d-flex align-items-center justify-content-between gap-1 mb-1">
+                                            <span class="text-truncate text-muted" style="max-width: 65%; font-size: 0.72rem;">${p.kategori_name}</span>
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border font-monospace px-1.5 py-0.5 rounded flex-shrink-0" style="font-size: 0.65rem;">${p.kode_barang}</span>
                                         </div>
                                         <div class="tkpd-card-title btn-show-prod-detail cursor-pointer" data-id="${p.id}" title="${p.nama_barang}">${p.nama_barang}</div>
                                     </div>
@@ -1055,6 +1055,137 @@ $(document).ready(function () {
         }).then(res => {
             if (res.isConfirmed) {
                 clearCartFull();
+            }
+        });
+    });
+
+    // ===== RELOAD / REFRESH CART PRICES & STOCK =====
+    $('#btn_reload_cart_prices').on('click', function () {
+        const $btn = $(this);
+        const $icon = $btn.find('i');
+        
+        $icon.addClass('spin-clockwise');
+        $btn.prop('disabled', true);
+
+        // Muat ulang katalog produk juga di latar belakang
+        if (typeof loadProducts === 'function') {
+            loadProducts(currentPage, false);
+        }
+
+        if (!cart || cart.length === 0) {
+            setTimeout(function () {
+                $icon.removeClass('spin-clockwise');
+                $btn.prop('disabled', false);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        title: 'Katalog berhasil dimuat ulang. Keranjang masih kosong.',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+            }, 450);
+            return;
+        }
+
+        const itemIds = cart.map(item => item.id).filter(id => id);
+
+        $.ajax({
+            url: "{{ route('marketing.sales-order.products') }}",
+            type: "GET",
+            dataType: "json",
+            data: {
+                ids: itemIds,
+                per_page: Math.max(itemIds.length, 50)
+            },
+            success: function (res) {
+                let priceChangedCount = 0;
+                let stockWarningCount = 0;
+
+                if (res && res.data && Array.isArray(res.data)) {
+                    res.data.forEach(prod => {
+                        let cItem = cart.find(c => String(c.id) === String(prod.id));
+                        if (cItem) {
+                            let oldUnitPrice = Number(cItem.harga_satuan) || 0;
+                            
+                            // Perbarui harga master
+                            cItem.harga_retail = Number(prod.harga_retail) || 0;
+                            cItem.harga_grosir = Number(prod.harga_grosir) || 0;
+                            cItem.harga_tender = Number(prod.harga_tender) || 0;
+                            cItem.stock = Number(prod.total_stok) || 0;
+
+                            // Hitung ulang harga satuan berdasarkan tier aktif
+                            let newUnitPrice = getItemUnitPrice(cItem, currentPricingTier);
+                            if (Math.round(newUnitPrice) !== Math.round(oldUnitPrice)) {
+                                priceChangedCount++;
+                            }
+                            cItem.harga_satuan = newUnitPrice;
+
+                            // Periksa jika kuantitas melebihi sisa stok terbaru
+                            let isJasa = (cItem.tipe_item === 'Jasa');
+                            if (!isJasa && cItem.qty > cItem.stock && cItem.stock > 0) {
+                                cItem.qty = cItem.stock;
+                                stockWarningCount++;
+                            }
+
+                            calculateItemValues(cItem);
+                        }
+                    });
+
+                    renderCart();
+                    saveCartToStorage();
+
+                    if (typeof Swal !== 'undefined') {
+                        if (priceChangedCount > 0) {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: `Harga ${priceChangedCount} produk di keranjang berhasil disinkronkan!`,
+                                showConfirmButton: false,
+                                timer: 2500
+                            });
+                        } else if (stockWarningCount > 0) {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'warning',
+                                title: `Kuantitas ${stockWarningCount} item disesuaikan dengan sisa stok terbaru.`,
+                                showConfirmButton: false,
+                                timer: 2500
+                            });
+                        } else {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'Harga & stok produk di keranjang sudah up-to-date!',
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                        }
+                    }
+                }
+            },
+            error: function () {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'error',
+                        title: 'Gagal memuat harga terbaru dari server.',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+            },
+            complete: function () {
+                setTimeout(function () {
+                    $icon.removeClass('spin-clockwise');
+                    $btn.prop('disabled', false);
+                }, 400);
             }
         });
     });
@@ -1959,23 +2090,23 @@ $(document).ready(function () {
 
                 tbodyHtml += `
                     <tr>
-                        <td class="text-center font-monospace text-body-secondary small">${idx + 1}</td>
+                        <td class="text-center font-monospace text-body-secondary small text-nowrap">${idx + 1}</td>
                         <td class="text-center">
                             <img src="${photoUrl}" alt="${brgNama}" class="rounded-2 border shadow-xs" style="width: 38px; height: 38px; object-fit: cover;" onerror="this.src='{{ asset('uploads/barang/placeholder_garment.png') }}';">
                         </td>
                         <td>
-                            <div class="fw-bold text-body-emphasis">${brgNama}</div>
+                            <div class="fw-bold text-body-emphasis" style="min-width: 170px;">${brgNama}</div>
                             <div class="d-flex flex-wrap align-items-center gap-1 mt-0.5">
                                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-1.5 py-0.5 rounded" style="font-size: 0.72rem;">SKU: ${brgSku}</span>
                                 ${kategoriNama ? `<span class="badge bg-secondary-subtle text-body border border-secondary-subtle px-1.5 py-0.5 rounded" style="font-size: 0.72rem;">${kategoriNama}</span>` : ''}
                             </div>
                             ${itemNote ? `<div class="text-body-secondary small mt-1" style="font-size: 0.8rem;"><i class="bi bi-chat-left-text me-1"></i>${itemNote}</div>` : ''}
                         </td>
-                        <td class="text-center font-monospace fw-semibold text-body">${Number(d.qty)} ${satuanNama}</td>
-                        <td class="text-end font-monospace text-body">${formatRp(d.harga_satuan)}</td>
-                        <td class="text-center font-monospace">${diskonHtml}</td>
-                        <td class="text-end font-monospace fw-bold text-body-emphasis">${formatRp(d.subtotal)}</td>
-                        <td class="text-center font-monospace">${ppnHtml}</td>
+                        <td class="text-center font-monospace fw-semibold text-body text-nowrap">${Number(d.qty)} ${satuanNama}</td>
+                        <td class="text-end font-monospace text-body text-nowrap">${formatRp(d.harga_satuan)}</td>
+                        <td class="text-center font-monospace text-nowrap">${diskonHtml}</td>
+                        <td class="text-end font-monospace fw-bold text-body-emphasis text-nowrap">${formatRp(d.subtotal)}</td>
+                        <td class="text-center font-monospace text-nowrap">${ppnHtml}</td>
                     </tr>
                 `;
             });

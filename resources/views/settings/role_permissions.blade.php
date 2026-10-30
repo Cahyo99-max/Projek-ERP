@@ -183,6 +183,16 @@
         'lihat-kartu-stok' => 'Lihat Laporan Kartu Stok',
         'lihat-stok-aktual' => 'Lihat Ringkasan Stok Gudang',
         'lihat-hpp-stok' => 'Lihat HPP & Nilai Persediaan Stok',
+
+        // Modul Peminjaman Barang (Pameran & Event)
+        'lihat-peminjaman' => 'Lihat Data Peminjaman Barang (Daftar & Detail)',
+        'tambah-peminjaman' => 'Input / Buat Pengajuan Peminjaman Barang Baru',
+        'edit-peminjaman' => 'Ubah / Edit Dokumen Peminjaman Barang (Draft / Revisi)',
+        'hapus-peminjaman' => 'Hapus Dokumen Peminjaman Barang (Draft / Ditolak)',
+        'approve-peminjaman' => 'Approve 1: Persetujuan Atasan / Manager (Mengetahui & ACC pengajuan peminjaman barang)',
+        'siapkan-peminjaman' => 'Approve 2: Verifikasi & Penyiapan Gudang (Memeriksa fisik, SN & konfirmasi barang siap)',
+        'serah-terima-peminjaman' => 'Approve 3: Serah Terima & Pengeluaran Barang (Keluarkan barang fisik ke booth & mutasi stok)',
+        'kembalikan-peminjaman' => 'Inspeksi QC & Pengembalian Barang (Pemeriksaan fisik barang kembali & closing)',
         'lihat-karyawan' => 'Lihat Karyawan',
         'tambah-karyawan' => 'Tambah Karyawan',
         'edit-karyawan' => 'Ubah Karyawan',

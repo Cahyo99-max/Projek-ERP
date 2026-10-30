@@ -4,7 +4,7 @@
     <!-- Select2 CSS with Bootstrap 5 Theme -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ asset('modul_smd/penawaran.css') }}">
+    <link rel="stylesheet" href="{{ asset('modul_smd/penawaran.css') }}?v={{ time() }}">
     <style>
         /* ─── Select2 Styling for Filter Modal (Dual Theme) ─── */
         .select2-container--bootstrap-5 .select2-selection {
@@ -149,75 +149,100 @@
             </button>
         </div>
 
-        <!-- KPI Metric Cards -->
+        <!-- KPI Metric Cards (Modern & Cinematic) -->
         <div class="row g-2 g-md-3 mb-4">
             <!-- Total Penawaran -->
             <div class="col-6 col-md-3">
-                <div class="sq-kpi-card h-100">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="fs-8 text-muted fw-semibold">Total Penawaran</div>
-                            <h3 class="fw-bold mb-0 text-body mt-1 fs-5 fs-md-3">{{ number_format($kpis['total_penawaran'] ?? 0) }}</h3>
+                <div class="sq-kpi-card sq-kpi-primary h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="sq-kpi-label">Total Penawaran</span>
+                            <div class="sq-kpi-icon sq-kpi-icon-primary">
+                                <i class="bi bi-file-earmark-text-fill"></i>
+                            </div>
                         </div>
-                        <div class="sq-kpi-icon badge-soft-indigo">
-                            <i class="bi bi-file-earmark-text-fill"></i>
-                        </div>
+                        <h3 class="fw-bold mb-0 text-body font-monospace fs-4 fs-md-3">{{ number_format($kpis['total_penawaran'] ?? 0) }}</h3>
                     </div>
-                    <div class="fs-9 text-muted mt-2 text-truncate">Dokumen penawaran aktif</div>
+                    <div class="mt-2.5 pt-2 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-file-text me-1"></i>Dokumen Aktif
+                        </span>
+                    </div>
                 </div>
             </div>
 
             <!-- Draft & Terkirim -->
             <div class="col-6 col-md-3">
-                <div class="sq-kpi-card h-100">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="fs-8 text-muted fw-semibold">Draft & Terkirim</div>
-                            <h3 class="fw-bold mb-0 text-info mt-1 fs-5 fs-md-3">{{ number_format($kpis['menunggu'] ?? 0) }}</h3>
+                <div class="sq-kpi-card sq-kpi-sky h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="sq-kpi-label">Draft & Terkirim</span>
+                            <div class="sq-kpi-icon sq-kpi-icon-sky">
+                                <i class="bi bi-send-fill"></i>
+                            </div>
                         </div>
-                        <div class="sq-kpi-icon badge-soft-sky">
-                            <i class="bi bi-send-fill"></i>
-                        </div>
+                        <h3 class="fw-bold mb-0 text-info font-monospace fs-4 fs-md-3">{{ number_format($kpis['menunggu'] ?? 0) }}</h3>
                     </div>
-                    <div class="fs-9 text-muted mt-2 text-truncate">Menunggu respon / negosiasi</div>
+                    <div class="mt-2.5 pt-2 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-hourglass-split me-1"></i>Menunggu Respon
+                        </span>
+                    </div>
                 </div>
             </div>
 
             <!-- Disetujui -->
             <div class="col-6 col-md-3">
-                <div class="sq-kpi-card h-100">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="fs-8 text-muted fw-semibold">Disetujui</div>
-                            <h3 class="fw-bold mb-0 text-success mt-1 fs-5 fs-md-3">{{ number_format($kpis['approved'] ?? 0) }}</h3>
+                <div class="sq-kpi-card sq-kpi-emerald h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="sq-kpi-label">Disetujui</span>
+                            <div class="sq-kpi-icon sq-kpi-icon-emerald">
+                                <i class="bi bi-patch-check-fill"></i>
+                            </div>
                         </div>
-                        <div class="sq-kpi-icon badge-soft-emerald">
-                            <i class="bi bi-patch-check-fill"></i>
-                        </div>
+                        <h3 class="fw-bold mb-0 text-success font-monospace fs-4 fs-md-3">{{ number_format($kpis['approved'] ?? 0) }}</h3>
                     </div>
-                    <div class="fs-9 text-muted mt-2 text-truncate">Siap terbit Sales Order</div>
+                    <div class="mt-2.5 pt-2 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-check-circle me-1"></i>Siap Jadi SO
+                        </span>
+                    </div>
                 </div>
             </div>
 
             <!-- Terkonversi SO -->
             <div class="col-6 col-md-3">
-                <div class="sq-kpi-card h-100">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="fs-8 text-muted fw-semibold">Jadi SO</div>
-                            <h3 class="fw-bold mb-0 text-primary mt-1 fs-5 fs-md-3">{{ number_format($kpis['so'] ?? 0) }}</h3>
+                <div class="sq-kpi-card sq-kpi-purple h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="sq-kpi-label">Jadi SO</span>
+                            <div class="sq-kpi-icon sq-kpi-icon-purple">
+                                <i class="bi bi-cart-check-fill"></i>
+                            </div>
                         </div>
-                        <div class="sq-kpi-icon badge-soft-indigo">
-                            <i class="bi bi-cart-check-fill"></i>
-                        </div>
+                        <h3 class="fw-bold mb-0 text-purple font-monospace fs-4 fs-md-3">{{ number_format($kpis['so'] ?? 0) }}</h3>
                     </div>
-                    <div class="fs-9 text-muted mt-2 text-truncate">Sudah masuk tahap SO</div>
+                    <div class="mt-2.5 pt-2 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-purple-subtle text-purple border border-purple-subtle rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-bag-check me-1"></i>Tahap SO
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- DataTables Main Card -->
         <div class="sq-main-card">
+            <!-- Mobile Swipe Hint Banner -->
+            <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2 mb-3 rounded-3 text-primary shadow-2xs sq-mobile-swipe-banner">
+                <div class="d-flex align-items-center gap-1.5">
+                    <i class="bi bi-arrow-left-right"></i>
+                    <span>Tabel penawaran dapat digeser ke samping</span>
+                </div>
+                <span class="badge bg-primary text-white rounded-pill px-2.5 py-0.5 fw-bold" style="font-size: 0.7rem;">Swipe 👉</span>
+            </div>
+
             <div class="sq-table-responsive table-responsive">
                 <table id="quotationTable" class="table align-middle w-100 mb-0">
                     <thead>
@@ -321,20 +346,22 @@
     <div class="modal fade" id="modalDetailQuotation" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content rounded-4 border-0 shadow">
-                <div class="modal-header border-bottom py-3 px-4">
-                    <div class="d-flex align-items-center gap-2.5">
-                        <div class="badge-soft-indigo p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
-                            <i class="bi bi-file-earmark-text-fill fs-5"></i>
+                <div class="modal-header border-bottom py-3 px-3 px-sm-4 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2.5 min-w-0 flex-grow-1 pe-2">
+                        <div class="sq-kpi-icon-primary p-2 rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs" style="width: 40px; height: 40px;">
+                            <i class="bi bi-file-earmark-text-fill fs-5 text-white"></i>
                         </div>
-                        <div>
-                            <div class="d-flex align-items-center gap-2">
-                                <h5 class="modal-title fw-bold mb-0 text-body" id="detailNomor">SQ/2026/...</h5>
+                        <div class="min-w-0 flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <h5 class="modal-title fw-bold mb-0 text-body fs-6 font-monospace" id="detailNomor">SQ/2026/...</h5>
                                 <div id="detailStatusBadge"></div>
                             </div>
-                            <span class="fs-8 text-muted" id="detailPerihal">Perihal Penawaran</span>
+                            <span class="fs-8 text-muted text-truncate d-block mt-0.5" id="detailPerihal">Perihal Penawaran</span>
                         </div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn sq-btn-close rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-xs flex-shrink-0" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
                 </div>
                 <div class="modal-body p-4" id="detailBodyContent">
                     <div class="text-center py-5 text-muted">
@@ -735,11 +762,11 @@
 
                         let pajakLabel = 'Non-PPN';
                         if (tipePpn === 'Include') {
-                            pajakLabel = `PPN ${tarifPpn > 0 ? tarifPpn : 11}% (Include)`;
+                            pajakLabel = `PPN ${tarifPpn > 0 ? tarifPpn + '%' : '11%'} (Incl)`;
                         } else if (tipePpn === 'Exclude') {
-                            pajakLabel = `PPN ${tarifPpn > 0 ? tarifPpn : 11}% (Exclude)`;
+                            pajakLabel = `PPN ${tarifPpn > 0 ? tarifPpn + '%' : '11%'} (Excl)`;
                         } else if (nilaiPpn > 0) {
-                            pajakLabel = `PPN ${tarifPpn > 0 ? tarifPpn + '%' : ''} (Rp ${nilaiPpn.toLocaleString('id-ID')})`;
+                            pajakLabel = `PPN ${tarifPpn > 0 ? tarifPpn + '%' : '11%'}`;
                         }
 
                         let marginHtml = '';
@@ -748,18 +775,14 @@
                             let totalMargin = data.estimasi_laba_kotor !== null && data.estimasi_laba_kotor !== undefined ? parseFloat(data.estimasi_laba_kotor) : (netRevenue - totalHpp);
                             let marginPercent = data.margin_persen !== null && data.margin_persen !== undefined ? parseFloat(data.margin_persen).toFixed(1) : (netRevenue > 0 ? ((totalMargin / netRevenue) * 100).toFixed(1) : 0);
                             let marginColor = totalMargin >= 0 ? 'text-success' : 'text-danger';
-                            let marginBadge = totalMargin >= 0 ? 'badge-soft-emerald' : 'badge-soft-danger';
                             marginHtml = `
                                 <div class="sq-metric-item">
-                                    <div class="sq-metric-icon badge-soft-emerald">
-                                         <i class="bi bi-graph-up-arrow text-success"></i>
+                                    <div class="sq-metric-icon sq-kpi-icon-emerald">
+                                         <i class="bi bi-graph-up-arrow"></i>
                                     </div>
-                                    <div>
-                                        <div class="fs-9 text-muted text-uppercase fw-semibold">Estimasi Margin</div>
-                                        <div class="fw-bold fs-8 ${marginColor}">
-                                            Rp ${Math.round(totalMargin).toLocaleString('id-ID')}
-                                            <span class="badge ${marginBadge} ms-1 fs-9">${marginPercent}%</span>
-                                        </div>
+                                    <div class="min-w-0 flex-grow-1">
+                                        <div class="fs-9 text-muted text-uppercase fw-semibold text-truncate" style="letter-spacing: 0.04em; font-size: 0.65rem;">MARGIN (${marginPercent}%)</div>
+                                        <div class="fw-bold fs-7 ${marginColor} font-monospace text-truncate">Rp ${Math.round(totalMargin).toLocaleString('id-ID')}</div>
                                     </div>
                                 </div>
                             `;
@@ -768,32 +791,32 @@
                         let metricStripHtml = `
                             <div class="sq-detail-metric-strip">
                                 <div class="sq-metric-item">
-                                    <div class="sq-metric-icon badge-soft-indigo">
-                                        <i class="bi bi-wallet2 text-primary"></i>
+                                    <div class="sq-metric-icon sq-kpi-icon-primary">
+                                        <i class="bi bi-wallet2"></i>
                                     </div>
-                                    <div>
-                                        <div class="fs-9 text-muted text-uppercase fw-semibold">Grand Total</div>
-                                        <div class="fw-bold fs-7 font-monospace text-primary">Rp ${parseFloat(data.grand_total).toLocaleString('id-ID')}</div>
-                                    </div>
-                                </div>
-
-                                <div class="sq-metric-item">
-                                    <div class="sq-metric-icon badge-soft-sky">
-                                        <i class="bi bi-box-seam text-info"></i>
-                                    </div>
-                                    <div>
-                                        <div class="fs-9 text-muted text-uppercase fw-semibold">Item & Kuantitas</div>
-                                        <div class="fw-bold fs-8 text-body">${totalItemCount} Item <span class="text-muted fw-normal fs-9">(${totalQtyCount.toLocaleString('id-ID')} Qty)</span></div>
+                                    <div class="min-w-0 flex-grow-1">
+                                        <div class="fs-9 text-muted text-uppercase fw-semibold text-truncate" style="letter-spacing: 0.04em; font-size: 0.65rem;">TOTAL</div>
+                                        <div class="fw-bold fs-7 font-monospace text-primary text-truncate">Rp ${parseFloat(data.grand_total).toLocaleString('id-ID')}</div>
                                     </div>
                                 </div>
 
                                 <div class="sq-metric-item">
-                                    <div class="sq-metric-icon badge-soft-amber">
-                                        <i class="bi bi-receipt text-warning"></i>
+                                    <div class="sq-metric-icon sq-kpi-icon-sky">
+                                        <i class="bi bi-box-seam"></i>
                                     </div>
-                                    <div>
-                                        <div class="fs-9 text-muted text-uppercase fw-semibold">Skema Perpajakan</div>
-                                        <div class="fw-bold fs-8 text-body">${pajakLabel}</div>
+                                    <div class="min-w-0 flex-grow-1">
+                                        <div class="fs-9 text-muted text-uppercase fw-semibold text-truncate" style="letter-spacing: 0.04em; font-size: 0.65rem;">ITEM</div>
+                                        <div class="fw-bold fs-7 text-body text-truncate">${totalItemCount} Item <span class="text-muted fw-normal fs-9">(${totalQtyCount} Qty)</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="sq-metric-item">
+                                    <div class="sq-metric-icon sq-kpi-icon-purple">
+                                        <i class="bi bi-receipt"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-grow-1">
+                                        <div class="fs-9 text-muted text-uppercase fw-semibold text-truncate" style="letter-spacing: 0.04em; font-size: 0.65rem;">PAJAK</div>
+                                        <div class="fw-bold fs-7 text-body text-truncate">${pajakLabel}</div>
                                     </div>
                                 </div>
 
@@ -990,16 +1013,25 @@
                                 <span class="badge badge-soft-neutral fs-9 rounded-pill px-2.5 py-1">${totalItemCount} Item Terdaftar</span>
                             </div>
 
-                            <div class="table-responsive mb-4 rounded-3 border">
-                                <table class="table table-sm sq-detail-table align-middle mb-0">
+                            <!-- Mobile Swipe Hint Banner -->
+                            <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-1.5 mb-2 rounded-3 text-primary shadow-2xs sq-mobile-swipe-banner">
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                    <span>Tabel rincian item dapat digeser ke samping</span>
+                                </div>
+                                <span class="badge bg-primary text-white rounded-pill px-2 py-0.5 fw-bold" style="font-size: 0.7rem;">Swipe 👉</span>
+                            </div>
+
+                            <div class="table-responsive mb-4 rounded-3 border" style="-webkit-overflow-scrolling: touch !important;">
+                                <table class="table table-sm sq-detail-table align-middle mb-0" style="min-width: 680px; width: 100%;">
                                     <thead>
                                         <tr>
-                                            <th class="text-center" style="width: 40px;">#</th>
-                                            <th>Item & Spesifikasi</th>
-                                            <th class="text-center" style="width: 120px;">Qty</th>
-                                            <th class="text-end" style="width: 140px;">Harga Satuan</th>
-                                            <th class="text-end" style="width: 120px;">Diskon</th>
-                                            <th class="text-end" style="width: 160px;">Subtotal</th>
+                                            <th class="text-center" style="width: 45px; min-width: 45px;">#</th>
+                                            <th style="min-width: 250px;">Item &amp; Spesifikasi</th>
+                                            <th class="text-center" style="width: 100px; min-width: 90px; white-space: nowrap;">Qty</th>
+                                            <th class="text-end" style="width: 130px; min-width: 115px; white-space: nowrap;">Harga Satuan</th>
+                                            <th class="text-end" style="width: 105px; min-width: 95px; white-space: nowrap;">Diskon</th>
+                                            <th class="text-end" style="width: 145px; min-width: 130px; white-space: nowrap;">Subtotal</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1007,43 +1039,43 @@
                                     </tbody>
                                     <tfoot>
                                         <tr>
-                                            <td colspan="5" class="text-end fw-bold fs-8">Subtotal Item:</td>
-                                            <td class="text-end fw-bold fs-8 font-monospace">Rp ${parseFloat(data.subtotal).toLocaleString('id-ID')}</td>
+                                            <td colspan="5" class="text-end fw-bold fs-8 text-nowrap">Subtotal Item:</td>
+                                            <td class="text-end fw-bold fs-8 font-monospace text-nowrap">Rp ${parseFloat(data.subtotal).toLocaleString('id-ID')}</td>
                                         </tr>
                                         ${parseFloat(data.diskon_nominal) > 0 ? `
                                             <tr>
-                                                <td colspan="5" class="text-end text-muted fs-8">Diskon Tambahan (${parseFloat(data.diskon_persen) > 0 ? parseFloat(data.diskon_persen) + '%' : 'Nominal'}):</td>
-                                                <td class="text-end text-danger fs-8 font-monospace">- Rp ${parseFloat(data.diskon_nominal).toLocaleString('id-ID')}</td>
+                                                <td colspan="5" class="text-end text-muted fs-8 text-nowrap">Diskon Tambahan (${parseFloat(data.diskon_persen) > 0 ? parseFloat(data.diskon_persen) + '%' : 'Nominal'}):</td>
+                                                <td class="text-end text-danger fs-8 font-monospace text-nowrap">- Rp ${parseFloat(data.diskon_nominal).toLocaleString('id-ID')}</td>
                                             </tr>
                                         ` : ''}
                                         ${(parseFloat(data.nilai_ppn) > 0 || (data.tipe_ppn && data.tipe_ppn !== 'Non')) ? `
                                             <tr>
-                                                <td colspan="5" class="text-end text-muted fs-8">PPN (${parseFloat(data.tarif_ppn || 11)}%${(data.tipe_ppn === 'Include') ? ' - Termasuk' : ''}):</td>
-                                                <td class="text-end fs-8 font-monospace">${(data.tipe_ppn === 'Include') ? `<span class="badge badge-soft-sky">Termasuk (Rp ${parseFloat(data.nilai_ppn || 0).toLocaleString('id-ID')})</span>` : `+ Rp ${parseFloat(data.nilai_ppn || 0).toLocaleString('id-ID')}`}</td>
+                                                <td colspan="5" class="text-end text-muted fs-8 text-nowrap">PPN (${parseFloat(data.tarif_ppn || 11)}%${(data.tipe_ppn === 'Include') ? ' - Termasuk' : ''}):</td>
+                                                <td class="text-end fs-8 font-monospace text-nowrap">${(data.tipe_ppn === 'Include') ? `<span class="badge badge-soft-sky">Termasuk (Rp ${parseFloat(data.nilai_ppn || 0).toLocaleString('id-ID')})</span>` : `+ Rp ${parseFloat(data.nilai_ppn || 0).toLocaleString('id-ID')}`}</td>
                                             </tr>
                                         ` : ''}
                                         ${parseFloat(data.nilai_pph) > 0 ? `
                                             <tr>
-                                                <td colspan="5" class="text-end text-muted fs-8">PPh (${parseFloat(data.tarif_pph || 0)}%):</td>
-                                                <td class="text-end fs-8 font-monospace">+ Rp ${parseFloat(data.nilai_pph).toLocaleString('id-ID')}</td>
+                                                <td colspan="5" class="text-end text-muted fs-8 text-nowrap">PPh (${parseFloat(data.tarif_pph || 0)}%):</td>
+                                                <td class="text-end fs-8 font-monospace text-nowrap">+ Rp ${parseFloat(data.nilai_pph).toLocaleString('id-ID')}</td>
                                             </tr>
                                         ` : ''}
                                         ${parseFloat(data.biaya_pengiriman) > 0 ? `
                                             <tr>
-                                                <td colspan="5" class="text-end text-muted fs-8">Biaya Pengiriman:</td>
-                                                <td class="text-end fs-8 font-monospace">+ Rp ${parseFloat(data.biaya_pengiriman).toLocaleString('id-ID')}</td>
+                                                <td colspan="5" class="text-end text-muted fs-8 text-nowrap">Biaya Pengiriman:</td>
+                                                <td class="text-end fs-8 font-monospace text-nowrap">+ Rp ${parseFloat(data.biaya_pengiriman).toLocaleString('id-ID')}</td>
                                             </tr>
                                         ` : ''}
                                         <tr class="sq-grand-total-row">
-                                            <td colspan="5" class="text-end text-white">Grand Total Penawaran:</td>
-                                            <td class="text-end text-white font-monospace">Rp ${parseFloat(data.grand_total).toLocaleString('id-ID')}</td>
+                                            <td colspan="5" class="text-end text-white text-nowrap">Grand Total Penawaran:</td>
+                                            <td class="text-end text-white font-monospace text-nowrap">Rp ${parseFloat(data.grand_total).toLocaleString('id-ID')}</td>
                                         </tr>
                                         ${parseFloat(data.dp_nominal) > 0 ? `
                                             <tr style="background: rgba(99, 102, 241, 0.05);">
-                                                <td colspan="5" class="text-end fw-semibold text-primary fs-8">
+                                                <td colspan="5" class="text-end fw-semibold text-primary fs-8 text-nowrap">
                                                     <i class="bi bi-cash-coin me-1"></i> Minimal Uang Muka (DP ${parseFloat(data.dp_persen) > 0 ? parseFloat(data.dp_persen) + '%' : 'Nominal'}):
                                                 </td>
-                                                <td class="text-end fw-bold text-primary fs-8 font-monospace">Rp ${parseFloat(data.dp_nominal).toLocaleString('id-ID')}</td>
+                                                <td class="text-end fw-bold text-primary fs-8 font-monospace text-nowrap">Rp ${parseFloat(data.dp_nominal).toLocaleString('id-ID')}</td>
                                             </tr>
                                         ` : ''}
                                     </tfoot>

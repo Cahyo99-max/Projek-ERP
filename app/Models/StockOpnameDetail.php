@@ -19,6 +19,16 @@ class StockOpnameDetail extends Model
         'stok_fisik',
         'selisih',
         'catatan',
+        'serial_numbers',
+        'serial_numbers_sistem',
+    ];
+
+    protected $casts = [
+        'stok_sistem'           => 'decimal:2',
+        'stok_fisik'            => 'decimal:2',
+        'selisih'               => 'decimal:2',
+        'serial_numbers'        => 'array',
+        'serial_numbers_sistem' => 'array',
     ];
 
     // ── Relationships ──────────────────────────────────────────────────────

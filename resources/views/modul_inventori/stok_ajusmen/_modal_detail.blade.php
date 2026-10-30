@@ -1,6 +1,6 @@
 {{-- MODAL DETAIL & JURNAL STOCK ADJUSTMENT --}}
 <div class="modal fade" id="modalDetailAdjustment" tabindex="-1" aria-labelledby="modalDetailAdjustmentLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 96vw; width: 96vw;">
         <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header bg-dark text-white p-3.5 rounded-top-4 border-0">
                 <div class="d-flex align-items-center gap-3">
@@ -166,6 +166,17 @@
         };
     }
 
+    if (typeof window.numberFormatCurrencyID !== 'function') {
+        window.numberFormatCurrencyID = function(val) {
+            if (val === null || val === undefined || isNaN(val)) return '0,00';
+            let num = parseFloat(val);
+            return new Intl.NumberFormat('id-ID', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(num);
+        };
+    }
+
     function showDetailAdjustment(id) {
         activeDetailId = id;
         $.ajax({
@@ -232,13 +243,29 @@
                         const fotoUrl = item.barang && item.barang.primary_foto ? `/storage/${item.barang.primary_foto.foto_path}` : '';
                         const itemDisp = item.barang ? `[${item.barang.kode_barang}] ${item.barang.nama_barang}` : '-';
 
-                        const hppDisp = res.can_see_hpp ? `Rp ${numberFormatID(item.harga_satuan)}` : 'Rp ***';
-                        const totalDisp = res.can_see_hpp ? `Rp ${numberFormatID(item.nilai_total)}` : 'Rp ***';
+                        const hppDisp = res.can_see_hpp ? `Rp ${numberFormatCurrencyID(item.harga_satuan)}` : 'Rp ***';
+                        const totalDisp = res.can_see_hpp ? `Rp ${numberFormatCurrencyID(item.nilai_total)}` : 'Rp ***';
+
+                        let snHtml = '';
+                        if (item.serial_numbers && Array.isArray(item.serial_numbers) && item.serial_numbers.length > 0) {
+                            const isPenambahan = (res.adjustment && res.adjustment.tipe_adjustment === 'Penambahan');
+                            const snColor = isPenambahan ? 'text-primary border-primary' : 'text-danger border-danger';
+                            snHtml = `
+                                <div class="mt-1.5 pt-1 border-top border-secondary border-opacity-10">
+                                    <div class="small fw-semibold ${isPenambahan ? 'text-primary' : 'text-danger'} mb-1 d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                        <i class="bi bi-upc-scan"></i> Serial Numbers (${item.serial_numbers.length} unit):
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1" style="max-height: 85px; overflow-y: auto;">
+                                        ${item.serial_numbers.map(sn => `<span class="badge bg-light text-dark border ${snColor} border-opacity-30 font-monospace px-2 py-0.5" style="font-size: 0.7rem;">${escapeHtmlAdj(sn)}</span>`).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        }
 
                         rowsHtml += `
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
-                                <td class="fw-bold text-primary">${item.barang ? item.barang.kode_barang : '-'}</td>
+                                <td class="fw-bold text-primary font-monospace">${item.barang ? item.barang.kode_barang : '-'}</td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
                                         <div class="product-thumb-box border rounded-3 d-flex align-items-center justify-content-center bg-light cursor-pointer shadow-sm"
@@ -248,7 +275,10 @@
                                             <img src="${fotoUrl}" class="product-img ${fotoUrl ? '' : 'd-none'}" style="width: 100%; height: 100%; object-fit: cover;">
                                             <i class="bi bi-image text-muted fs-6 ${fotoUrl ? 'd-none' : ''}"></i>
                                         </div>
-                                        <span class="text-body">${item.barang ? item.barang.nama_barang : '-'}</span>
+                                        <div>
+                                            <span class="text-body fw-semibold">${item.barang ? item.barang.nama_barang : '-'}</span>
+                                            ${snHtml}
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="text-center">${item.barang && item.barang.satuan ? item.barang.satuan.nama_satuan : 'Pcs'}</td>
@@ -261,7 +291,7 @@
                 }
                 $('#tbodyDetailItems').html(rowsHtml);
                 $('#detTotalQty').text(numberFormatID(totalQty) + ' Qty');
-                $('#detTotalNilai').text(res.can_see_hpp ? ('Rp ' + numberFormatID(totalNilai)) : 'Rp ***');
+                $('#detTotalNilai').text(res.can_see_hpp ? ('Rp ' + numberFormatCurrencyID(totalNilai)) : 'Rp ***');
 
                 // Render Accounting Journal Tab
                 renderJurnalTab(jurnal);
@@ -301,8 +331,8 @@
                 <tr>
                     <td class="fw-bold text-body">${d.account ? (d.account.code || d.account.kode_akun) : '-'}</td>
                     <td class="text-body">${d.account ? (d.account.name || d.account.nama_akun) : '-'}</td>
-                    <td class="text-end fw-semibold text-primary">${deb > 0 ? 'Rp ' + numberFormatID(deb) : '-'}</td>
-                    <td class="text-end fw-semibold text-success">${kre > 0 ? 'Rp ' + numberFormatID(kre) : '-'}</td>
+                    <td class="text-end fw-semibold text-primary">${deb > 0 ? 'Rp ' + numberFormatCurrencyID(deb) : '-'}</td>
+                    <td class="text-end fw-semibold text-success">${kre > 0 ? 'Rp ' + numberFormatCurrencyID(kre) : '-'}</td>
                 </tr>
             `;
         });
@@ -329,8 +359,8 @@
                     <tfoot class="fw-bold">
                         <tr>
                             <td colspan="2" class="text-end">TOTAL DEBET / KREDIT:</td>
-                            <td class="text-end text-primary">Rp ${numberFormatID(totalDebit)}</td>
-                            <td class="text-end text-success">Rp ${numberFormatID(totalKredit)}</td>
+                            <td class="text-end text-primary">Rp ${numberFormatCurrencyID(totalDebit)}</td>
+                            <td class="text-end text-success">Rp ${numberFormatCurrencyID(totalKredit)}</td>
                         </tr>
                     </tfoot>
                 </table>

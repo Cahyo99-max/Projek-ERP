@@ -1,24 +1,6 @@
 {{-- ════════════════════════════════════════════════════════════ --}}
 {{-- MODAL LOOKUP BARANG (Cari Barang via Modal & Search Table) --}}
 {{-- ════════════════════════════════════════════════════════════ --}}
-<style>
-    #modalLookupBarang .table-modern {
-        min-width: 100% !important;
-        width: 100% !important;
-    }
-    #modalLookupBarang .table-responsive {
-        max-height: 440px;
-        overflow-x: auto;
-    }
-    #modalLookupBarang .lookup-item-row:hover td {
-        background-color: rgba(239, 68, 68, 0.08) !important;
-    }
-    [data-bs-theme="dark"] #modalLookupBarang .lookup-item-row:hover td,
-    .dark-mode #modalLookupBarang .lookup-item-row:hover td {
-        background-color: rgba(239, 68, 68, 0.16) !important;
-    }
-</style>
-
 <div class="modal fade" id="modalLookupBarang" tabindex="-1" aria-labelledby="modalLookupBarangLabel" aria-hidden="true" style="z-index: 1060 !important;">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 1140px; width: 95vw; z-index: 1061 !important;">
         <div class="modal-content border-0 shadow-lg rounded-3">
@@ -136,6 +118,9 @@ function openLookupBarangModal(rowIdx, isEdit = false) {
 }
 
 function closeLookupBarangModal() {
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
     const modalEl = document.getElementById('modalLookupBarang');
     if (modalEl) {
         const modalInstance = bootstrap.Modal.getInstance(modalEl);
@@ -146,7 +131,7 @@ function closeLookupBarangModal() {
 function formatGIQty(val) {
     if (val === null || val === undefined || isNaN(val)) return '0';
     const num = parseFloat(val);
-    return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+    return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 // Render dynamic table inside lookup modal
@@ -210,6 +195,9 @@ function escapeJsStr(str) {
 
 // Select item from modal table
 function selectLookupBarang(id, kode, nama, satuan, stok, foto) {
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
     if (currentLookupRowIdx === null) return;
     const idx = currentLookupRowIdx;
     const isEdit = currentLookupIsEdit;
@@ -222,7 +210,7 @@ function selectLookupBarang(id, kode, nama, satuan, stok, foto) {
             const rowId = $(this).attr('id'); // item-row-0
             const rowIdxStr = rowId ? rowId.replace('item-row-', '') : null;
             if (rowIdxStr !== null && parseInt(rowIdxStr) !== parseInt(idx)) {
-                const chosenId = $(this).find('input[type=hidden]').val();
+                const chosenId = $(this).find('.gi-input-barang-id').val();
                 if (chosenId && parseInt(chosenId) === parseInt(id)) {
                     isDuplicate = true;
                 }

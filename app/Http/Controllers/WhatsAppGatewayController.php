@@ -6802,6 +6802,686 @@ class WhatsAppGatewayController extends Controller
         }
     }
 
+    // ═════════════════════════════════════════════════════════════════════════
+    // NOTIFIKASI WA: PEMINJAMAN BARANG (PAMERAN & EVENT)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Helper to resolve recipients for Peminjaman Barang notifications.
+     */
+    private static function getPeminjamanRecipients($peminjaman)
+    {
+        $recipients = [];
+        $addedPhones = [];
+
+        // 1. Penanggung Jawab Pameran (dari input kontak_pj form)
+        if (!empty($peminjaman->kontak_pj)) {
+            $pjPhone = self::formatPhoneNumber($peminjaman->kontak_pj);
+            if ($pjPhone) {
+                $recipients[] = [
+                    'phone' => $pjPhone,
+                    'name'  => $peminjaman->penanggung_jawab ?: 'Penanggung Jawab Acara',
+                    'role'  => 'Penanggung Jawab',
+                ];
+                $addedPhones[] = $pjPhone;
+            }
+        }
+
+        // 2. Pengaju & Pembuat Dokumen
+        $usersToCheck = array_filter([$peminjaman->pengaju, $peminjaman->creator]);
+        foreach ($usersToCheck as $user) {
+            $rawPhone = $user->no_hp ?: ($user->karyawan?->no_hp ?? null);
+            if ($rawPhone) {
+                $cPhone = self::formatPhoneNumber($rawPhone);
+                if ($cPhone && !in_array($cPhone, $addedPhones)) {
+                    $uName = $user->nama_lengkap ?: ($user->karyawan?->nama_lengkap ?: ($user->name ?: $user->username));
+                    $recipients[] = [
+                        'phone' => $cPhone,
+                        'name'  => $uName,
+                        'role'  => 'Pengaju',
+                    ];
+                    $addedPhones[] = $cPhone;
+                }
+            }
+        }
+
+        return $recipients;
+    }
+
+    /**
+     * Helper to format items list text for Peminjaman Barang
+     */
+    private static function formatPeminjamanItemsText($peminjaman)
+    {
+        $itemsText = "";
+        if ($peminjaman->details && $peminjaman->details->isNotEmpty()) {
+            foreach ($peminjaman->details as $index => $detail) {
+                $namaBarang = $detail->barang?->nama_barang ?: 'Barang';
+                $qty = (float) $detail->qty_pinjam;
+                $satuan = $detail->satuan?->singkatan ?: ($detail->barang?->satuan?->singkatan ?: 'unit');
+                $formattedQty = $qty == (int)$qty ? (int)$qty : rtrim(rtrim(number_format($qty, 2, ',', '.'), '0'), ',');
+                $snText = !empty($detail->serial_number) ? " (SN: {$detail->serial_number})" : "";
+                $itemsText .= ($index + 1) . ". *" . $namaBarang . "*: " . $formattedQty . " " . $satuan . $snText . "\n";
+            }
+        } else {
+            $itemsText = "_(Tidak ada rincian barang)_\n";
+        }
+        return $itemsText;
+    }
+
+    /**
+     * Submission Alert: Mengirim notifikasi WhatsApp ke Atasan / Manager yang memiliki akses approve-peminjaman
+     * saat dokumen diajukan (status Menunggu).
+     */
+    public static function sendPeminjamanSubmissionNotification($peminjaman)
+    {
+        try {
+            if (is_numeric($peminjaman)) {
+                $peminjaman = \App\Models\PeminjamanBarang::find($peminjaman);
+            }
+            if (!$peminjaman) return;
+
+            $peminjaman->load(['company', 'branch', 'gudangAsal', 'details.barang.satuan', 'details.satuan', 'pengaju.karyawan', 'creator.karyawan']);
+
+            $companyId = $peminjaman->company_id ?: (session('active_company_id') ?: 1);
+            $enabledSetting = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value')
+                ?? AppSetting::where('key', 'wa_enable_notification')->value('value');
+            $apiToken = self::getDecryptedToken($companyId);
+            $enabled = ($enabledSetting === '1' || ($enabledSetting === null && !empty($apiToken)));
+            if (!$enabled || !$apiToken) return;
+
+            $entity = self::resolveEntityDisplay($peminjaman, $companyId);
+            $headerEntitas = $entity['headerEntitas'];
+
+            $tglPinjam = $peminjaman->tanggal_pinjam ? \Carbon\Carbon::parse($peminjaman->tanggal_pinjam)->translatedFormat('d F Y') : '-';
+            $tglKembali = $peminjaman->tanggal_kembali_rencana ? \Carbon\Carbon::parse($peminjaman->tanggal_kembali_rencana)->translatedFormat('d F Y') : '-';
+            $gudangAsal = $peminjaman->gudangAsal?->nama_gudang ?: 'Gudang Utama';
+            $itemsText = self::formatPeminjamanItemsText($peminjaman);
+            $diajukanOleh = $peminjaman->pengaju?->nama_lengkap ?: ($peminjaman->creator?->nama_lengkap ?: 'Staff');
+            $tanggalJam = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+
+            // Ambil semua user yang memiliki hak akses 'approve-peminjaman' atau role Super Admin/Owner
+            $approvers = \App\Models\User::with('karyawan')
+                ->where(function ($q) {
+                    $q->permission('approve-peminjaman')
+                      ->orWhereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']));
+                })
+                ->where(function ($query) use ($companyId, $peminjaman) {
+                    $query->whereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']))
+                          ->orWhereHas('companies', fn($c) => $c->where('companies.id', $companyId))
+                          ->orWhereHas('branches', fn($b) => $b->where('branches.id', $peminjaman->branch_id)
+                                                               ->orWhere('branches.company_id', $companyId))
+                          ->orDoesntHave('companies');
+                })
+                ->get();
+
+            if ($approvers->isEmpty()) return;
+
+            $sentTargets = [];
+            foreach ($approvers as $approver) {
+                $rawPhone = $approver->no_hp ?: ($approver->karyawan?->no_hp ?? null);
+                if (!$rawPhone) continue;
+
+                $target = self::formatPhoneNumber($rawPhone);
+                if (!$target || in_array($target, $sentTargets)) continue;
+                $sentTargets[] = $target;
+
+                $approverName = $approver->nama_lengkap ?: ($approver->karyawan?->nama_lengkap ?: $approver->name);
+
+                $message = "🔔 *PENGAJUAN PEMINJAMAN BARANG (MENUNGGU APPROVAL)*\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$approverName}* 👋\n"
+                    . "Terdapat pengajuan peminjaman barang pameran/event baru yang membutuhkan persetujuan (Mengetahui) Anda:\n\n"
+                    . "📋 *Rincian Dokumen:*\n"
+                    . "- *No. Dokumen*: *{$peminjaman->nomor_peminjaman}*\n"
+                    . "- *Acara/Event*: *{$peminjaman->nama_acara}*\n"
+                    . "- *Lokasi Stand/Booth*: " . ($peminjaman->lokasi_acara ?: '-') . "\n"
+                    . "- *Penanggung Jawab (PJ)*: *{$peminjaman->penanggung_jawab}*" . ($peminjaman->kontak_pj ? " ({$peminjaman->kontak_pj})" : "") . "\n"
+                    . "- *Gudang Asal*: {$gudangAsal}\n"
+                    . "- *Tgl Pinjam*: {$tglPinjam}\n"
+                    . "- *Rencana Kembali*: {$tglKembali}\n"
+                    . "- *Diajukan Oleh*: {$diajukanOleh}\n"
+                    . "- *Waktu Pengajuan*: {$tanggalJam}\n"
+                    . ($peminjaman->keterangan ? "- *Keterangan*: {$peminjaman->keterangan}\n" : "") . "\n"
+                    . "📦 *Daftar Barang yang Dipinjam:*\n" . $itemsText . "\n"
+                    . "Silakan masuk ke sistem ERP untuk memeriksa & menyetujui (Approve 1) pengajuan ini.\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id' => $companyId,
+                    'action'     => 'Peminjaman Submission Alert',
+                    'recipient'  => $target . ' (' . $approverName . ')',
+                    'status'     => $status,
+                    'response'   => json_encode($resBody),
+                ]);
+            }
+
+            // Kirim notifikasi konfirmasi tanda terima pengajuan ke Pengaju & Penanggung Jawab
+            $recipients = self::getPeminjamanRecipients($peminjaman);
+            foreach ($recipients as $rec) {
+                if (in_array($rec['phone'], $sentTargets)) continue;
+                $sentTargets[] = $rec['phone'];
+
+                $msgPengaju = "📋 *BUKTI PENGAJUAN PEMINJAMAN BARANG* 📝\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$rec['name']}* 👋\n"
+                    . "Pengajuan peminjaman barang Anda telah tercatat di sistem ERP dan saat ini *Menunggu Persetujuan (Approve 1)* dari Atasan / Manager:\n\n"
+                    . "📋 *Rincian Dokumen:*\n"
+                    . "- *No. Dokumen*: *{$peminjaman->nomor_peminjaman}*\n"
+                    . "- *Acara/Event*: *{$peminjaman->nama_acara}*\n"
+                    . "- *Lokasi Stand/Booth*: " . ($peminjaman->lokasi_acara ?: '-') . "\n"
+                    . "- *Penanggung Jawab*: *{$peminjaman->penanggung_jawab}*\n"
+                    . "- *Gudang Asal*: {$gudangAsal}\n"
+                    . "- *Tgl Pinjam*: {$tglPinjam}\n"
+                    . "- *Rencana Kembali*: {$tglKembali}\n"
+                    . "- *Waktu Pengajuan*: {$tanggalJam}\n"
+                    . ($peminjaman->keterangan ? "- *Keterangan*: {$peminjaman->keterangan}\n" : "") . "\n"
+                    . "📦 *Daftar Barang yang Dipinjam:*\n" . $itemsText . "\n"
+                    . "Status dokumen saat ini: *Menunggu Persetujuan Atasan (Mengetahui)*.\n"
+                    . "Anda akan menerima notifikasi otomatis setelah dokumen diverifikasi & disetujui.\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $rec['phone'], $msgPengaju);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id' => $companyId,
+                    'action'     => 'Peminjaman Submission Receipt',
+                    'recipient'  => $rec['phone'] . ' (' . $rec['name'] . ')',
+                    'status'     => $status,
+                    'response'   => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPeminjamanSubmissionNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Approve 1: Persetujuan Atasan / Manager (Mengetahui)
+     */
+    public static function sendPeminjamanApprovedNotification($peminjaman, $approverUser = null)
+    {
+        try {
+            if (is_numeric($peminjaman)) {
+                $peminjaman = \App\Models\PeminjamanBarang::find($peminjaman);
+            }
+            if (!$peminjaman) return;
+
+            $peminjaman->load(['company', 'branch', 'gudangAsal', 'gudangPameran', 'details.barang.satuan', 'details.satuan', 'pengaju.karyawan', 'creator.karyawan']);
+
+            $companyId = $peminjaman->company_id ?: (session('active_company_id') ?: 1);
+            $enabledSetting = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value')
+                ?? AppSetting::where('key', 'wa_enable_notification')->value('value');
+            $apiToken = self::getDecryptedToken($companyId);
+            $enabled = ($enabledSetting === '1' || ($enabledSetting === null && !empty($apiToken)));
+            if (!$enabled || !$apiToken) return;
+
+            $entity = self::resolveEntityDisplay($peminjaman, $companyId);
+            $headerEntitas = $entity['headerEntitas'];
+
+            $approver = $approverUser ?: auth()->user();
+            $approverName = $approver?->nama_lengkap ?: ($approver?->karyawan?->nama_lengkap ?: 'Atasan / Manager');
+            $tanggalJam = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+
+            $tglPinjam = $peminjaman->tanggal_pinjam ? \Carbon\Carbon::parse($peminjaman->tanggal_pinjam)->translatedFormat('d F Y') : '-';
+            $tglKembali = $peminjaman->tanggal_kembali_rencana ? \Carbon\Carbon::parse($peminjaman->tanggal_kembali_rencana)->translatedFormat('d F Y') : '-';
+            $gudangAsal = $peminjaman->gudangAsal?->nama_gudang ?: 'Gudang Utama';
+            $itemsText = self::formatPeminjamanItemsText($peminjaman);
+
+            $recipients = self::getPeminjamanRecipients($peminjaman);
+
+            // 1. Notifikasi ke Pengaju & Penanggung Jawab Acara
+            foreach ($recipients as $rec) {
+                $message = "📢 *APPROVAL 1: PEMINJAMAN BARANG DISETUJUI ATASAN* ✅\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$rec['name']}* 👋\n"
+                    . "Pengajuan peminjaman barang pameran/event telah *DISETUJUI (Mengetahui)* oleh Atasan:\n\n"
+                    . "📋 *Rincian Dokumen:*\n"
+                    . "- *No. Dokumen*: {$peminjaman->nomor_peminjaman}\n"
+                    . "- *Acara/Event*: {$peminjaman->nama_acara}\n"
+                    . "- *Lokasi Booth*: " . ($peminjaman->lokasi_acara ?: '-') . "\n"
+                    . "- *Penanggung Jawab*: {$peminjaman->penanggung_jawab}\n"
+                    . "- *Gudang Asal*: {$gudangAsal}\n"
+                    . "- *Tgl Pinjam*: {$tglPinjam}\n"
+                    . "- *Rencana Kembali*: {$tglKembali}\n"
+                    . "- *Disetujui Oleh*: *{$approverName}*\n"
+                    . ($peminjaman->catatan_mengetahui ? "- *Catatan Atasan*: {$peminjaman->catatan_mengetahui}\n" : "")
+                    . "- *Waktu Approval*: {$tanggalJam}\n\n"
+                    . "📦 *Daftar Barang yang Dipinjam:*\n" . $itemsText . "\n"
+                    . "ℹ️ *Tahap Selanjutnya (Approve 2):*\n"
+                    . "Tiket peminjaman diteruskan ke tim gudang untuk verifikasi fisik, penyiapan SN, dan packing barang.\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $rec['phone'], $message);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id' => $companyId,
+                    'action'     => 'Peminjaman Barang Approved (Approve 1)',
+                    'recipient'  => $rec['phone'] . ' (' . $rec['name'] . ')',
+                    'status'     => $status,
+                    'response'   => json_encode($resBody),
+                ]);
+            }
+
+            // 2. Notifikasi ke Petugas Gudang (yang memiliki izin siapkan-peminjaman)
+            $warehouseStaff = \App\Models\User::with('karyawan')
+                ->where(function ($q) {
+                    $q->permission('siapkan-peminjaman')
+                      ->orWhereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']));
+                })
+                ->where(function ($query) use ($companyId, $peminjaman) {
+                    $query->whereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']))
+                          ->orWhereHas('companies', fn($c) => $c->where('companies.id', $companyId))
+                          ->orWhereHas('branches', fn($b) => $b->where('branches.id', $peminjaman->branch_id)
+                                                               ->orWhere('branches.company_id', $companyId))
+                          ->orDoesntHave('companies');
+                })
+                ->get();
+
+            $alreadySent = array_column($recipients, 'phone');
+            foreach ($warehouseStaff as $staff) {
+                $rawPhone = $staff->no_hp ?: ($staff->karyawan?->no_hp ?? null);
+                if (!$rawPhone) continue;
+                $phone = self::formatPhoneNumber($rawPhone);
+                if (!$phone || in_array($phone, $alreadySent)) continue;
+                $alreadySent[] = $phone;
+
+                $staffName = $staff->nama_lengkap ?: ($staff->karyawan?->nama_lengkap ?: $staff->name);
+
+                $whMessage = "📦 *PEMBERITAHUAN PENYIAPAN BARANG PEMINJAMAN (GUDANG)* 🏭\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$staffName}* 👋\n"
+                    . "Pengajuan peminjaman barang pameran/event telah *DISETUJUI (Mengetahui)* oleh Atasan dan membutuhkan *PENYIAPAN / PACKING BARANG* di gudang:\n\n"
+                    . "📋 *Rincian Dokumen:*\n"
+                    . "- *No. Dokumen*: *{$peminjaman->nomor_peminjaman}*\n"
+                    . "- *Acara/Event*: *{$peminjaman->nama_acara}*\n"
+                    . "- *Gudang Asal*: *{$gudangAsal}*\n"
+                    . "- *Penanggung Jawab (PJ)*: {$peminjaman->penanggung_jawab}\n"
+                    . "- *Tgl Pinjam*: {$tglPinjam}\n"
+                    . "- *Disetujui Oleh*: {$approverName}\n"
+                    . ($peminjaman->catatan_mengetahui ? "- *Catatan Atasan*: {$peminjaman->catatan_mengetahui}\n" : "") . "\n"
+                    . "📦 *Daftar Barang untuk Disiapkan:*\n" . $itemsText . "\n"
+                    . "Silakan lakukan pengecekan kelengkapan fisik barang, packing, dan klik tombol *Barang Siap (Approve 2)* di sistem ERP.\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $phone, $whMessage);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id' => $companyId,
+                    'action'     => 'Peminjaman Barang Ready for Packing',
+                    'recipient'  => $phone . ' (' . $staffName . ')',
+                    'status'     => $status,
+                    'response'   => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPeminjamanApprovedNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Approve 2: Verifikasi & Penyiapan Gudang (Barang Siap)
+     */
+    public static function sendPeminjamanBarangSiapNotification($peminjaman, $penyiapUser = null)
+    {
+        try {
+            if (is_numeric($peminjaman)) {
+                $peminjaman = \App\Models\PeminjamanBarang::find($peminjaman);
+            }
+            if (!$peminjaman) return;
+
+            $peminjaman->load(['company', 'branch', 'gudangAsal', 'details.barang.satuan', 'details.satuan', 'pengaju.karyawan', 'creator.karyawan']);
+
+            $companyId = $peminjaman->company_id ?: (session('active_company_id') ?: 1);
+            $enabledSetting = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value')
+                ?? AppSetting::where('key', 'wa_enable_notification')->value('value');
+            $apiToken = self::getDecryptedToken($companyId);
+            $enabled = ($enabledSetting === '1' || ($enabledSetting === null && !empty($apiToken)));
+            if (!$enabled || !$apiToken) return;
+
+            $entity = self::resolveEntityDisplay($peminjaman, $companyId);
+            $headerEntitas = $entity['headerEntitas'];
+
+            $penyiap = $penyiapUser ?: auth()->user();
+            $penyiapName = $penyiap?->nama_lengkap ?: ($penyiap?->karyawan?->nama_lengkap ?: 'Tim Gudang');
+            $tanggalJam = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+
+            $gudangAsal = $peminjaman->gudangAsal?->nama_gudang ?: 'Gudang Utama';
+            $itemsText = self::formatPeminjamanItemsText($peminjaman);
+
+            $recipients = self::getPeminjamanRecipients($peminjaman);
+
+            foreach ($recipients as $rec) {
+                $message = "📦 *APPROVAL 2: BARANG SELESAI DISIAPKAN GUDANG* 🚀\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$rec['name']}* 👋\n"
+                    . "Barang untuk peminjaman acara/event telah *SELESAI DIPACKING & SIAP DIAMBIL* di gudang:\n\n"
+                    . "📋 *Rincian Dokumen:*\n"
+                    . "- *No. Dokumen*: {$peminjaman->nomor_peminjaman}\n"
+                    . "- *Acara/Event*: {$peminjaman->nama_acara}\n"
+                    . "- *Lokasi Booth*: " . ($peminjaman->lokasi_acara ?: '-') . "\n"
+                    . "- *Penanggung Jawab*: {$peminjaman->penanggung_jawab}\n"
+                    . "- *Gudang Pengambilan*: *{$gudangAsal}*\n"
+                    . "- *Disiapkan Oleh*: *{$penyiapName}* (Tim Gudang)\n"
+                    . "- *Waktu Selesai Siap*: {$tanggalJam}\n\n"
+                    . "🔍 *Daftar Barang yang Disiapkan:*\n" . $itemsText . "\n"
+                    . "⚠️ *Tahap Selanjutnya (Approve 3):*\n"
+                    . "Silakan datangi gudang asal untuk serah terima fisik & pengeluaran surat jalan.\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $rec['phone'], $message);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id' => $companyId,
+                    'action'     => 'Peminjaman Barang Siap (Approve 2)',
+                    'recipient'  => $rec['phone'] . ' (' . $rec['name'] . ')',
+                    'status'     => $status,
+                    'response'   => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPeminjamanBarangSiapNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Approve 3: Serah Terima & Pengeluaran Barang (Sedang Dipinjam)
+     */
+    public static function sendPeminjamanSerahTerimaNotification($peminjaman, $serahTerimaUser = null)
+    {
+        try {
+            if (is_numeric($peminjaman)) {
+                $peminjaman = \App\Models\PeminjamanBarang::find($peminjaman);
+            }
+            if (!$peminjaman) return;
+
+            $peminjaman->load(['company', 'branch', 'gudangAsal', 'details.barang.satuan', 'details.satuan', 'pengaju.karyawan', 'creator.karyawan']);
+
+            $companyId = $peminjaman->company_id ?: (session('active_company_id') ?: 1);
+            $enabledSetting = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value')
+                ?? AppSetting::where('key', 'wa_enable_notification')->value('value');
+            $apiToken = self::getDecryptedToken($companyId);
+            $enabled = ($enabledSetting === '1' || ($enabledSetting === null && !empty($apiToken)));
+            if (!$enabled || !$apiToken) return;
+
+            $entity = self::resolveEntityDisplay($peminjaman, $companyId);
+            $headerEntitas = $entity['headerEntitas'];
+
+            $petugas = $serahTerimaUser ?: auth()->user();
+            $petugasName = $petugas?->nama_lengkap ?: ($petugas?->karyawan?->nama_lengkap ?: 'Petugas Gudang');
+            $tanggalJam = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+
+            $tglKembali = $peminjaman->tanggal_kembali_rencana ? \Carbon\Carbon::parse($peminjaman->tanggal_kembali_rencana)->translatedFormat('d F Y') : '-';
+            $gudangAsal = $peminjaman->gudangAsal?->nama_gudang ?: 'Gudang Utama';
+            $itemsText = self::formatPeminjamanItemsText($peminjaman);
+
+            $recipients = self::getPeminjamanRecipients($peminjaman);
+
+            foreach ($recipients as $rec) {
+                $message = "🚚 *APPROVAL 3: SERAH TERIMA & BARANG RESMI KELUAR* 🏢\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$rec['name']}* 👋\n"
+                    . "Barang peminjaman telah *RESMI DISERAHKAN & DIKELUARKAN* ke booth pameran.\n"
+                    . "Stok telah dimutasi ke Gudang Transit Pameran:\n\n"
+                    . "📋 *Rincian Serah Terima:*\n"
+                    . "- *No. Dokumen*: {$peminjaman->nomor_peminjaman}\n"
+                    . "- *Acara/Event*: {$peminjaman->nama_acara}\n"
+                    . "- *Lokasi Booth*: " . ($peminjaman->lokasi_acara ?: '-') . "\n"
+                    . "- *Penanggung Jawab (PJ)*: *{$peminjaman->penanggung_jawab}*\n"
+                    . "- *Gudang Asal*: {$gudangAsal}\n"
+                    . "- *Diserahkan Oleh*: *{$petugasName}*\n"
+                    . "- *Waktu Pengeluaran*: {$tanggalJam}\n"
+                    . "- ⏰ *Batas Pengembalian*: *{$tglKembali}*\n\n"
+                    . "📦 *Barang yang Dibawa:*\n" . $itemsText . "\n"
+                    . "🛡️ *Pengingat Penting:*\n"
+                    . "Harap menjaga kelengkapan dan kondisi fisik barang inventaris pameran. Segera kembalikan ke gudang setelah event selesai.\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $rec['phone'], $message);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id' => $companyId,
+                    'action'     => 'Peminjaman Serah Terima (Approve 3)',
+                    'recipient'  => $rec['phone'] . ' (' . $rec['name'] . ')',
+                    'status'     => $status,
+                    'response'   => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPeminjamanSerahTerimaNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Penolakan Peminjaman Barang oleh Atasan
+     */
+    public static function sendPeminjamanRejectedNotification($peminjaman, $alasan, $rejectorUser = null)
+    {
+        try {
+            if (is_numeric($peminjaman)) {
+                $peminjaman = \App\Models\PeminjamanBarang::find($peminjaman);
+            }
+            if (!$peminjaman) return;
+
+            $peminjaman->load(['company', 'branch', 'pengaju.karyawan', 'creator.karyawan']);
+
+            $companyId = $peminjaman->company_id ?: (session('active_company_id') ?: 1);
+            $enabledSetting = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value')
+                ?? AppSetting::where('key', 'wa_enable_notification')->value('value');
+            $apiToken = self::getDecryptedToken($companyId);
+            $enabled = ($enabledSetting === '1' || ($enabledSetting === null && !empty($apiToken)));
+            if (!$enabled || !$apiToken) return;
+
+            $entity = self::resolveEntityDisplay($peminjaman, $companyId);
+            $headerEntitas = $entity['headerEntitas'];
+
+            $rejector = $rejectorUser ?: auth()->user();
+            $rejectorName = $rejector?->nama_lengkap ?: ($rejector?->karyawan?->nama_lengkap ?: 'Atasan / Manager');
+            $tanggalJam = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+            $alasanTeks = $alasan ?: 'Perlu peninjauan ulang / ketersediaan barang.';
+
+            $recipients = self::getPeminjamanRecipients($peminjaman);
+
+            foreach ($recipients as $rec) {
+                $message = "❌ *PENGAJUAN PEMINJAMAN BARANG DITOLAK* ⚠️\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$rec['name']}* 👋\n"
+                    . "Mohon maaf, pengajuan peminjaman barang pameran/event *DITOLAK* oleh Atasan:\n\n"
+                    . "📋 *Rincian Dokumen:*\n"
+                    . "- *No. Dokumen*: {$peminjaman->nomor_peminjaman}\n"
+                    . "- *Acara/Event*: {$peminjaman->nama_acara}\n"
+                    . "- *Ditolak Oleh*: *{$rejectorName}*\n"
+                    . "- *Waktu Penolakan*: {$tanggalJam}\n"
+                    . "- ❗ *Alasan Penolakan*: *{$alasanTeks}*\n\n"
+                    . "Silakan berkoordinasi dengan atasan atau revisi dokumen pengajuan di sistem ERP.\n\n"
+                    . "Terima kasih,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $rec['phone'], $message);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id' => $companyId,
+                    'action'     => 'Peminjaman Barang Rejected',
+                    'recipient'  => $rec['phone'] . ' (' . $rec['name'] . ')',
+                    'status'     => $status,
+                    'response'   => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPeminjamanRejectedNotification error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Pengembalian Barang & QC Selesai: Mengirim notifikasi WA ke PJ, Pengaju, dan Atasan
+     * bahwa seluruh/sebagian barang telah selesai dicek QC dan stok kondisi bagus sudah dikembalikan ke Gudang Asal.
+     */
+    public static function sendPeminjamanReturnedNotification($peminjaman, $penerimaUser = null)
+    {
+        try {
+            if (is_numeric($peminjaman)) {
+                $peminjaman = \App\Models\PeminjamanBarang::find($peminjaman);
+            }
+            if (!$peminjaman) return;
+
+            $peminjaman->load(['company', 'branch', 'gudangAsal', 'details.barang.satuan', 'details.satuan', 'pengaju.karyawan', 'creator.karyawan', 'pengetahu.karyawan']);
+
+            $companyId = $peminjaman->company_id ?: (session('active_company_id') ?: 1);
+            $enabledSetting = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value')
+                ?? AppSetting::where('key', 'wa_enable_notification')->value('value');
+            $apiToken = self::getDecryptedToken($companyId);
+            $enabled = ($enabledSetting === '1' || ($enabledSetting === null && !empty($apiToken)));
+            if (!$enabled || !$apiToken) return;
+
+            $entity = self::resolveEntityDisplay($peminjaman, $companyId);
+            $headerEntitas = $entity['headerEntitas'];
+
+            $penerima = $penerimaUser ?: (auth()->user() ?: $peminjaman->penerimaKembali);
+            $penerimaName = $penerima?->nama_lengkap ?: ($penerima?->karyawan?->nama_lengkap ?: ($penerima?->name ?: 'Petugas QC Gudang'));
+            $tanggalJam = now()->timezone('Asia/Jakarta')->format('d-m-Y H:i:s') . ' WIB';
+
+            $gudangAsal = $peminjaman->gudangAsal?->nama_gudang ?: 'Gudang Utama';
+
+            // Format rincian barang hasil QC pengembalian
+            $qcItemsText = "";
+            $totalBagus = 0;
+            $totalRusak = 0;
+            $totalHilang = 0;
+            if ($peminjaman->details && $peminjaman->details->isNotEmpty()) {
+                foreach ($peminjaman->details as $index => $detail) {
+                    $namaBarang = $detail->barang?->nama_barang ?: 'Barang';
+                    $satuan = $detail->satuan?->singkatan ?: ($detail->barang?->satuan?->singkatan ?: 'unit');
+                    $qtyPinjam = (float)$detail->qty_pinjam;
+                    $qBagus = (float)$detail->qty_kembali_bagus;
+                    $qRusak = (float)$detail->qty_kembali_rusak;
+                    $qHilang = (float)$detail->qty_hilang;
+
+                    $totalBagus += $qBagus;
+                    $totalRusak += $qRusak;
+                    $totalHilang += $qHilang;
+
+                    $qcItemsText .= ($index + 1) . ". *" . $namaBarang . "* (Pinjam: " . (int)$qtyPinjam . " " . $satuan . ")\n";
+                    $qcItemsText .= "   - ✅ Bagus: " . (int)$qBagus . " " . $satuan . "\n";
+                    if ($qRusak > 0) {
+                        $qcItemsText .= "   - ⚠️ Rusak: " . (int)$qRusak . " " . $satuan . "\n";
+                    }
+                    if ($qHilang > 0) {
+                        $qcItemsText .= "   - ❌ Hilang: " . (int)$qHilang . " " . $satuan . "\n";
+                    }
+                    if (!empty($detail->kondisi_akhir)) {
+                        $qcItemsText .= "   - 📝 Kondisi: {$detail->kondisi_akhir}\n";
+                    }
+                }
+            } else {
+                $qcItemsText = "_(Tidak ada rincian barang)_\n";
+            }
+
+            $adaMasalah = ($totalRusak > 0 || $totalHilang > 0);
+            $statusBadge = $adaMasalah ? '⚠️ SELESAI (ADA MASALAH / RUSAK / HILANG)' : '✅ SELESAI LENGKAP & UTUH';
+
+            $recipients = self::getPeminjamanRecipients($peminjaman);
+            $existingPhones = array_column($recipients, 'phone');
+
+            // Tambahkan Atasan / Pengetahu spesifik jika belum ada dalam list
+            if ($peminjaman->pengetahu) {
+                $rawPhone = $peminjaman->pengetahu->no_hp ?: ($peminjaman->pengetahu->karyawan?->no_hp ?? null);
+                if ($rawPhone) {
+                    $atasanPhone = self::formatPhoneNumber($rawPhone);
+                    if ($atasanPhone && !in_array($atasanPhone, $existingPhones)) {
+                        $existingPhones[] = $atasanPhone;
+                        $recipients[] = [
+                            'phone' => $atasanPhone,
+                            'name'  => $peminjaman->pengetahu->nama_lengkap ?: ($peminjaman->pengetahu->karyawan?->nama_lengkap ?: $peminjaman->pengetahu->name),
+                            'role'  => 'Atasan (Mengetahui)',
+                        ];
+                    }
+                }
+            }
+
+            // Tambahkan seluruh User yang memiliki hak akses Approval 1 (approve-peminjaman / Super Admin / Owner)
+            $approvers = \App\Models\User::with('karyawan')
+                ->where(function ($q) {
+                    $q->permission('approve-peminjaman')
+                      ->orWhereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']));
+                })
+                ->where(function ($query) use ($companyId, $peminjaman) {
+                    $query->whereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']))
+                          ->orWhereHas('companies', fn($c) => $c->where('companies.id', $companyId))
+                          ->orWhereHas('branches', fn($b) => $b->where('branches.id', $peminjaman->branch_id)
+                                                               ->orWhere('branches.company_id', $companyId))
+                          ->orDoesntHave('companies');
+                })
+                ->get();
+
+            foreach ($approvers as $approver) {
+                $rawPhone = $approver->no_hp ?: ($approver->karyawan?->no_hp ?? null);
+                if (!$rawPhone) continue;
+
+                $target = self::formatPhoneNumber($rawPhone);
+                if (!$target || in_array($target, $existingPhones)) continue;
+                $existingPhones[] = $target;
+
+                $approverName = $approver->nama_lengkap ?: ($approver->karyawan?->nama_lengkap ?: $approver->name);
+                $recipients[] = [
+                    'phone' => $target,
+                    'name'  => $approverName,
+                    'role'  => 'Atasan (Approver 1)',
+                ];
+            }
+
+            foreach ($recipients as $rec) {
+                $message = "🎉 *PENGEMBALIAN BARANG SUDAH DITERIMA DI GUDANG ASAL* 🏢\n"
+                    . "*{$headerEntitas}*\n\n"
+                    . "Halo, *{$rec['name']}* 👋\n"
+                    . "Barang inventaris peminjaman pameran/event telah *SELESAI DIPERIKSA (QC) & DIKEMBALIKAN* ke persediaan gudang asal.\n\n"
+                    . "📋 *Rincian Pengembalian:*\n"
+                    . "- *No. Dokumen*: {$peminjaman->nomor_peminjaman}\n"
+                    . "- *Acara/Event*: {$peminjaman->nama_acara}\n"
+                    . "- *Penanggung Jawab (PJ)*: *{$peminjaman->penanggung_jawab}*\n"
+                    . "- *Gudang Asal*: *{$gudangAsal}*\n"
+                    . "- *Diterima & Diperiksa*: *{$penerimaName}*\n"
+                    . "- *Waktu Pengembalian*: {$tanggalJam}\n"
+                    . "- *Status Dokumen*: *{$statusBadge}*\n"
+                    . ($peminjaman->catatan_pengembalian ? "- *Catatan QC Umum*: {$peminjaman->catatan_pengembalian}\n" : "")
+                    . "\n"
+                    . "🔍 *Hasil Pemeriksaan Fisik Barang (QC):*\n"
+                    . $qcItemsText . "\n"
+                    . "📦 *Info Persediaan:*\n"
+                    . "Stok barang dalam kondisi bagus telah otomatis masuk dan menambah persediaan *{$gudangAsal}*.\n\n"
+                    . "Terima kasih atas kerja samanya,\n"
+                    . "🤖 *{$headerEntitas} - ERP System*";
+
+                $resBody = self::dispatchFonnteMessage($apiToken, $rec['phone'], $message);
+                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                WhatsAppLog::create([
+                    'company_id' => $companyId,
+                    'action'     => 'Peminjaman Barang Dikembalikan',
+                    'recipient'  => $rec['phone'] . ' (' . $rec['name'] . ')',
+                    'status'     => $status,
+                    'response'   => json_encode($resBody),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('WA sendPeminjamanReturnedNotification error: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Format phone number to international Indonesian format (628xxx).
      */
@@ -6814,6 +7494,10 @@ class WhatsAppGatewayController extends Controller
             $clean = '62' . substr($clean, 1);
         } elseif (str_starts_with($clean, '8')) {
             $clean = '62' . $clean;
+        }
+        // Valid Indonesian phone numbers with 62 are between 10 and 16 digits
+        if (strlen($clean) < 10 || strlen($clean) > 16) {
+            return null;
         }
         return $clean;
     }

@@ -1,39 +1,39 @@
 <!-- ===== MODAL EDIT FAKTUR PEMBELIAN ===== -->
 <div class="modal fade" id="modalEditInvoice" aria-labelledby="modalEditInvoiceLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-focus="false">
-    <div class="modal-dialog modal-fullscreen-xl-down modal-dialog-invoice-wide modal-dialog-scrollable">
-        <div class="modal-content erp-card border-0 shadow-lg">
+    <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
+        <div class="modal-content erp-card border-0 shadow-lg" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
 
             <!-- ── GRADIENT MODAL HEADER ── -->
-            <div class="modal-header inv-modal-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%);">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="p-2 rounded-3 shadow-sm" style="background:rgba(255,255,255,0.15); backdrop-filter:blur(6px);">
-                        <i class="bi bi-pencil-square fs-4 text-warning"></i>
+            <div class="modal-header inv-modal-header border-0 px-3 px-md-4 py-2.5 py-md-3 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important; color: #fff;">
+                <div class="d-flex align-items-center gap-2 gap-md-3 min-w-0" style="min-width: 0; flex: 1 1 auto; overflow: hidden;">
+                    <div class="p-2 rounded-3 shadow-sm flex-shrink-0" style="background:rgba(255,255,255,0.15); backdrop-filter:blur(6px); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-pencil-square fs-5 text-warning"></i>
                     </div>
-                    <div>
-                        <div class="modal-title fs-5 fw-bold" id="modalEditInvoiceLabel">Edit Faktur Pembelian</div>
-                        <div class="text-subtitle" id="modalEditInvoiceSubtitle" style="font-size:0.75rem; opacity:0.85;">Purchase Invoice (AP) — Penyesuaian Data Tagihan</div>
+                    <div style="min-width: 0; overflow: hidden;">
+                        <div class="modal-title fs-6 fs-md-5 fw-bold text-truncate text-white" id="modalEditInvoiceLabel">Edit Faktur Pembelian</div>
+                        <div class="text-subtitle text-truncate text-white-50" id="modalEditInvoiceSubtitle" style="font-size:0.72rem;">Purchase Invoice (AP) — Penyesuaian Data Tagihan</div>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="inv-status-pill draft shadow-sm" id="edit_badge_status_form">
-                        <i class="bi bi-pencil-fill text-warning" style="font-size:0.5rem;"></i> DRAFT
+                <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-2">
+                    <span class="inv-status-pill draft shadow-sm" id="edit_badge_status_form" style="font-size:0.7rem; padding: 0.2rem 0.55rem;">
+                        <i class="bi bi-pencil-fill text-warning" style="font-size:0.45rem;"></i> DRAFT
                     </span>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
             </div>
 
             <!-- ── MODAL BODY ── -->
-            <div class="modal-body p-0 bg-body-tertiary">
-                <form id="formEditInvoice" action="" method="POST" enctype="multipart/form-data" autocomplete="off">
+            <div class="modal-body p-0 bg-body-tertiary" style="overflow-x: hidden !important; max-width: 100%; min-width: 0; touch-action: pan-y;">
+                <form id="formEditInvoice" action="" method="POST" enctype="multipart/form-data" autocomplete="off" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                     @csrf
                     <input type="hidden" name="invoice_id" id="edit_invoice_id" value="">
                     <input type="hidden" name="action_type" id="edit_action_type" value="draft">
 
                     <!-- ── MAIN FORM BODY ── -->
-                    <div class="p-3 p-md-4">
+                    <div class="p-2.5 p-md-4" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
 
                         <!-- CARD 1: INFORMASI DOKUMEN FAKTUR -->
-                        <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm">
+                        <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                                     <div class="erp-card-header d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-file-earmark-text-fill text-warning"></i>
@@ -189,16 +189,21 @@
                                 </div>
 
                                 <!-- CARD 2: RINCIAN ITEM BARANG DARI GRN -->
-                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm">
+                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                                     <div class="erp-card-header d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-box-seam-fill text-warning"></i>
                                             <h6 class="fw-bold mb-0 text-body">2. Rincian Item Barang (Sesuai GRN)</h6>
                                         </div>
                                     </div>
-                                    <div class="card-body p-0">
-                                        <div class="table-responsive inv-table-responsive">
-                                            <table class="table align-middle table-hover mb-0 inv-modern-table" id="tableEditItems">
+                                    <!-- Mobile Table Swipe Hint -->
+                                    <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-body-tertiary border-bottom d-md-none text-muted" style="font-size: 0.72rem;">
+                                        <span><i class="bi bi-arrows-expand me-1 text-primary"></i>Geser tabel ke samping untuk melihat & edit kolom</span>
+                                        <span class="badge bg-secondary-subtle text-secondary rounded-pill">12 Kolom</span>
+                                    </div>
+                                    <div class="card-body p-0" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
+                                        <div class="table-responsive inv-table-responsive" style="overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
+                                            <table class="table align-middle table-hover mb-0 inv-modern-table" id="tableEditItems" style="min-width: 1550px;">
                                                 <thead>
                                                     <tr>
                                                         <th style="width: 45px;" class="text-center">#</th>
@@ -222,7 +227,7 @@
                                 </div>
 
                                 <!-- CARD 3: BIAYA TAMBAHAN & ALOKASI COA -->
-                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm">
+                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                                     <div class="erp-card-header d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-truck text-warning"></i>
@@ -232,8 +237,12 @@
                                             <i class="bi bi-plus-circle me-1"></i> Tambah Biaya
                                         </button>
                                     </div>
-                                    <div class="card-body p-0">
-                                        <div class="table-responsive inv-table-responsive">
+                                    <!-- Mobile Table Swipe Hint -->
+                                    <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-body-tertiary border-bottom d-md-none text-muted" style="font-size: 0.72rem;">
+                                        <span><i class="bi bi-arrows-expand me-1 text-primary"></i>Geser tabel ke samping untuk melihat data biaya</span>
+                                    </div>
+                                    <div class="card-body p-0" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
+                                        <div class="table-responsive inv-table-responsive" style="overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
                                             <table class="table align-middle table-hover mb-0 inv-modern-table" id="tableEditExtraCosts" style="min-width: 950px;">
                                                 <thead>
                                                     <tr>
@@ -493,27 +502,26 @@
                         </div>
 
                     </div><!-- end p-4 -->
-
-                    <!-- ── STICKY BOTTOM MODAL FOOTER ── -->
-                    <div class="modal-footer bg-body border-top py-3 px-4 d-flex flex-wrap justify-content-between align-items-center" style="position: sticky; bottom: 0; z-index: 1020; box-shadow: 0 -4px 12px rgba(0,0,0,0.05);">
-                        <div class="text-muted small d-none d-md-flex align-items-center gap-2">
-                            <i class="bi bi-info-circle text-warning"></i>
-                            <span>Perubahan dapat disimpan sebagai Draft atau langsung diajukan ke Atasan via WhatsApp untuk persetujuan (ACC).</span>
-                        </div>
-                        <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
-                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
-                                <i class="bi bi-x-circle me-1"></i> Batal
-                            </button>
-                            <button type="button" class="btn btn-outline-primary rounded-pill px-4 fw-semibold" id="edit_btn_save_draft_invoice">
-                                <i class="bi bi-file-earmark-code me-1"></i> Simpan Draft
-                            </button>
-                            <button type="button" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm" id="edit_btn_submit_post_invoice">
-                                <i class="bi bi-send-check me-1"></i> Simpan & Ajukan
-                            </button>
-                        </div>
-                    </div>
-
                 </form>
+            </div>
+
+            <!-- ── MODAL FOOTER ── -->
+            <div class="modal-footer border-top py-2.5 py-md-3 px-3 px-md-4 d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2" style="background-color: var(--erp-card-bg); border-color: var(--erp-border) !important; flex-shrink: 0;">
+                <div class="text-muted small d-none d-lg-flex align-items-center gap-2">
+                    <i class="bi bi-info-circle text-warning"></i>
+                    <span>Perubahan dapat disimpan sebagai Draft atau langsung diajukan ke Atasan via WhatsApp untuk persetujuan (ACC).</span>
+                </div>
+                <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 ms-sm-auto w-100 w-sm-auto">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2 order-2 order-sm-1" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> Batal
+                    </button>
+                    <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold order-1 order-sm-2" id="edit_btn_save_draft_invoice">
+                        <i class="bi bi-file-earmark-code me-1"></i> Simpan Draft
+                    </button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm order-0 order-sm-3" id="edit_btn_submit_post_invoice">
+                        <i class="bi bi-send-check me-1"></i> Simpan &amp; Ajukan
+                    </button>
+                </div>
             </div>
         </div>
     </div>

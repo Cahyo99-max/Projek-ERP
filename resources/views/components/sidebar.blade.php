@@ -142,15 +142,15 @@
             @endcanany
 
             <!-- Accordion Menu: Inventory -->
-            @canany(['lihat-gr', 'tambah-gr', 'hapus-gr', 'lihat-kartu-stok', 'lihat-gi', 'tambah-gi', 'hapus-gi', 'lihat-stok-aktual', 'lihat-transfer', 'tambah-transfer', 'hapus-transfer', 'lihat-opname', 'tambah-opname', 'hapus-opname', 'konfirmasi-opname', 'lihat-stok-adjustment', 'tambah-stok-adjustment', 'approve-stok-adjustment', 'lihat-opening-stock'])
+            @canany(['lihat-gr', 'tambah-gr', 'hapus-gr', 'lihat-kartu-stok', 'lihat-gi', 'tambah-gi', 'hapus-gi', 'lihat-stok-aktual', 'lihat-transfer', 'tambah-transfer', 'hapus-transfer', 'lihat-opname', 'tambah-opname', 'hapus-opname', 'konfirmasi-opname', 'lihat-stok-adjustment', 'tambah-stok-adjustment', 'approve-stok-adjustment', 'lihat-opening-stock', 'lihat-peminjaman'])
             <li class="nav-item">
-                <a href="#menuInventory" class="nav-link {{ request()->is('goods-receipt*') || request()->is('stock-card*') || request()->is('goods-issue*') || request()->is('stock-overview*') || request()->is('warehouse-transfer*') || request()->is('stock-opname*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('goods-receipt*') || request()->is('stock-card*') || request()->is('goods-issue*') || request()->is('stock-overview*') || request()->is('warehouse-transfer*') || request()->is('stock-opname*') ? 'true' : 'false' }}"
+                <a href="#menuInventory" class="nav-link {{ request()->is('goods-receipt*') || request()->is('stock-card*') || request()->is('goods-issue*') || request()->is('stock-overview*') || request()->is('warehouse-transfer*') || request()->is('peminjaman-barang*') || request()->is('stock-opname*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('goods-receipt*') || request()->is('stock-card*') || request()->is('goods-issue*') || request()->is('stock-overview*') || request()->is('warehouse-transfer*') || request()->is('peminjaman-barang*') || request()->is('stock-opname*') ? 'true' : 'false' }}"
                     data-tooltip-title="{{ __('messages.inventory') }}">
                     <i class="bi bi-box-seam"></i>
                     <span class="nav-text">{{ __('messages.inventory') }}</span>
                     <i class="bi bi-chevron-down nav-arrow"></i>
                 </a>
-                <div class="collapse {{ request()->is('goods-receipt*') || request()->is('stock-card*') || request()->is('goods-issue*') || request()->is('stock-overview*') || request()->is('warehouse-transfer*') || request()->is('stock-opname*') || request()->is('stock-adjustment*') ? 'show' : '' }}" id="menuInventory">
+                <div class="collapse {{ request()->is('goods-receipt*') || request()->is('stock-card*') || request()->is('goods-issue*') || request()->is('stock-overview*') || request()->is('warehouse-transfer*') || request()->is('peminjaman-barang*') || request()->is('stock-opname*') || request()->is('stock-adjustment*') ? 'show' : '' }}" id="menuInventory">
                     <ul class="sub-menu">
                         @can('lihat-gr')
                         <li><a href="/goods-receipt" class="nav-link {{ request()->is('goods-receipt*') ? 'active' : '' }}"><i class="bi bi-circle-fill"></i> {{ __('messages.incoming_goods') }}</a></li>
@@ -173,6 +173,9 @@
                         @endcan
                         @can('lihat-transfer')
                         <li><a href="{{ route('transfer.index') }}" class="nav-link {{ request()->is('warehouse-transfer*') ? 'active' : '' }}"><i class="bi bi-circle-fill"></i> Transfer Gudang</a></li>
+                        @endcan
+                        @can('lihat-peminjaman')
+                        <li><a href="{{ route('peminjaman.index') }}" class="nav-link {{ request()->is('peminjaman-barang*') ? 'active' : '' }}"><i class="bi bi-circle-fill"></i> Peminjaman Barang</a></li>
                         @endcan
                          @can('lihat-kartu-stok')
                         <li><a href="{{ route('stock-card.index') }}" class="nav-link {{ request()->is('stock-card*') ? 'active' : '' }}"><i class="bi bi-circle-fill"></i> Kartu Stok</a></li>

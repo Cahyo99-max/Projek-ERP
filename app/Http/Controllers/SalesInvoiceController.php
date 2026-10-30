@@ -471,9 +471,9 @@ class SalesInvoiceController extends Controller
                 })
                 ->with([
                     'totalFaktur'           => number_format($totalFaktur, 0, ',', '.'),
-                    'totalPiutangUnpaid'    => 'Rp ' . number_format($totalPiutangUnpaid, 2, ',', '.'),
+                    'totalPiutangUnpaid'    => 'Rp ' . number_format($totalPiutangUnpaid, 0, ',', '.'),
                     'totalJatuhTempo'       => number_format($totalJatuhTempo, 0, ',', '.'),
-                    'totalTerbayarBulanIni' => 'Rp ' . number_format($totalTerbayarBulanIni, 2, ',', '.'),
+                    'totalTerbayarBulanIni' => 'Rp ' . number_format($totalTerbayarBulanIni, 0, ',', '.'),
                 ])
                 ->rawColumns(['nomor_faktur', 'customer_name', 'tanggal_jatuh_tempo_fmt', 'grand_total_fmt', 'sisa_tagihan_fmt', 'status_badge', 'action'])
                 ->make(true);

@@ -1,7 +1,7 @@
 <!-- Modal Detail Alokasi Biaya (View) -->
 <div class="modal fade" id="modalViewAlokasi" tabindex="-1" aria-labelledby="modalViewAlokasiLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-alokasi modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content erp-card border-0 shadow-lg" style="border-radius: 1rem; overflow: hidden;">
+        <div class="modal-content erp-card border-0 shadow-lg" style="border-radius: 1rem; overflow: hidden; overflow-x: hidden !important; max-width: 100%; min-width: 0;">
             
             <!-- GRADIENT MODAL HEADER -->
             <div class="modal-header border-0 px-3 px-md-4 py-3" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%); color: #ffffff;">
@@ -19,7 +19,7 @@
             </div>
 
             <!-- MODAL BODY -->
-            <div class="modal-body p-2.5 p-md-4" style="background-color: var(--erp-bg);">
+            <div class="modal-body p-2.5 p-md-4" style="background-color: var(--erp-bg); overflow-x: hidden !important; max-width: 100%; min-width: 0; touch-action: pan-y;">
                 <!-- Info Header Box -->
                 <div class="card border mb-3 shadow-sm" style="background-color: var(--erp-card-bg); border-color: var(--erp-border) !important; border-radius: 0.95rem;">
                     <div class="card-body p-3 p-md-4">
@@ -97,7 +97,7 @@
                         <span>Geser tabel ke samping untuk melihat seluruh data</span>
                     </div>
 
-                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto; overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
                         <table class="table table-sm table-bordered table-hover align-middle mb-0" style="border-color: var(--erp-border);">
                             <thead class="sticky-top" style="background-color: var(--erp-table-header);">
                                 <tr class="small text-center align-middle" style="color: var(--erp-text-muted); font-size: 0.74rem;">

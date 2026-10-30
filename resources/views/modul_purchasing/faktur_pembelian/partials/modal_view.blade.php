@@ -216,31 +216,31 @@
 </style>
 
 <div class="modal fade" id="modalDetailInvoice" tabindex="-1" aria-labelledby="modalDetailInvoiceLabel" aria-hidden="true">
-    <div class="modal-dialog modal-fullscreen-xl-down modal-dialog-invoice-wide modal-dialog-scrollable">
-        <div class="modal-content erp-card border-0 shadow-lg">
+    <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
+        <div class="modal-content erp-card border-0 shadow-lg" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
 
             <!-- ── GRADIENT CINEMATIC HEADER ── -->
-            <div class="modal-header inv-modal-header d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="inv-modal-icon-badge">
-                        <i class="bi bi-receipt-cutoff fs-4 text-white"></i>
+            <div class="modal-header inv-modal-header border-0 px-3 px-md-4 py-2.5 py-md-3 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #060d1d 0%, #0b1c3a 45%, #172554 100%) !important; color: #fff;">
+                <div class="d-flex align-items-center gap-2 gap-md-3 min-w-0" style="min-width: 0; flex: 1 1 auto; overflow: hidden;">
+                    <div class="inv-modal-icon-badge flex-shrink-0" style="width: 40px; height: 40px;">
+                        <i class="bi bi-receipt-cutoff fs-5 text-white"></i>
                     </div>
-                    <div>
+                    <div style="min-width: 0; overflow: hidden;">
                         <div class="d-flex align-items-center gap-2">
-                            <h5 class="modal-title mb-0 fw-bold" id="modalDetailInvoiceLabel">Detail Faktur Pembelian</h5>
-                            <span class="badge bg-white bg-opacity-15 text-white border border-white border-opacity-15 rounded-pill px-2.5 py-0.5 font-monospace" style="font-size:0.68rem; letter-spacing:0.05em;">AP INVOICE</span>
+                            <h5 class="modal-title mb-0 fs-6 fs-md-5 fw-bold text-truncate text-white" id="modalDetailInvoiceLabel">Detail Faktur Pembelian</h5>
+                            <span class="badge bg-white bg-opacity-15 text-white border border-white border-opacity-15 rounded-pill px-2 py-0.5 font-monospace d-none d-sm-inline-block" style="font-size:0.65rem; letter-spacing:0.05em;">AP INVOICE</span>
                         </div>
-                        <div class="text-subtitle mt-0.5 text-white-50" id="view_nomor_faktur_sub" style="font-size:0.78rem;">Purchase Invoice (AP) — Rincian Tagihan &amp; Pelunasan</div>
+                        <div class="text-subtitle mt-0.5 text-white-50 text-truncate" id="view_nomor_faktur_sub" style="font-size:0.72rem;">Purchase Invoice (AP) — Rincian Tagihan &amp; Pelunasan</div>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2.5">
+                <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-2">
                     <div id="view_status_badge"></div>
-                    <button type="button" class="btn-close ms-1" data-bs-dismiss="modal" aria-label="Close" title="Tutup Modal"></button>
+                    <button type="button" class="btn-close btn-close-white ms-1" data-bs-dismiss="modal" aria-label="Close" title="Tutup Modal"></button>
                 </div>
             </div>
 
             <!-- ── MODAL BODY ── -->
-            <div class="modal-body p-0 bg-body-tertiary">
+            <div class="modal-body p-0 bg-body-tertiary" style="overflow-x: hidden !important; max-width: 100%; min-width: 0; touch-action: pan-y;">
 
                 <!-- ── STICKY ACTION BAR ── -->
                 <div class="inv-action-bar">
@@ -290,7 +290,7 @@
                 </div>
 
                 <!-- ── MAIN CONTENT CONTAINER ── -->
-                <div class="p-3 p-md-4">
+                <div class="p-3 p-md-4" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
 
                     <!-- APPROVAL STATUS BANNER CONTAINER -->
                     <div id="view_approval_banner_container"></div>
@@ -436,7 +436,7 @@
                     </div>
 
                     <!-- ── 2. TABEL RINCIAN ITEM BARANG DITERIMA ── -->
-                    <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm">
+                    <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                         <div class="erp-card-header d-flex align-items-center justify-content-between">
                             <div class="d-flex align-items-center gap-2">
                                 <i class="bi bi-box-seam-fill text-primary"></i>
@@ -446,9 +446,14 @@
                                 Barang Diterima (PO / GR)
                             </span>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive inv-table-responsive">
-                                <table class="table align-middle table-hover mb-0 cinematic-table inv-modern-table" id="tableViewItems">
+                        <!-- Mobile Swipe Hint -->
+                        <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-body-tertiary border-bottom d-md-none text-muted" style="font-size: 0.72rem;">
+                            <span><i class="bi bi-arrows-expand me-1 text-primary"></i>Geser tabel ke samping untuk melihat seluruh rincian</span>
+                            <span class="badge bg-secondary-subtle text-secondary rounded-pill">11 Kolom</span>
+                        </div>
+                        <div class="card-body p-0" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
+                            <div class="table-responsive inv-table-responsive" style="overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
+                                <table class="table align-middle table-hover mb-0 cinematic-table inv-modern-table" id="tableViewItems" style="min-width: 1450px;">
                                     <thead>
                                         <tr>
                                             <th style="width: 45px;" class="text-center">#</th>
@@ -471,7 +476,7 @@
                     </div>
 
                     <!-- ── 3. BIAYA TAMBAHAN & PPN ── -->
-                    <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" id="view_card_extra_costs" style="display:none;">
+                    <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" id="view_card_extra_costs" style="display:none; overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                         <div class="erp-card-header d-flex align-items-center justify-content-between">
                             <div class="d-flex align-items-center gap-2">
                                 <i class="bi bi-truck text-primary"></i>
@@ -481,9 +486,13 @@
                                 Additional Charges
                             </span>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive inv-table-responsive">
-                                <table class="table align-middle table-hover mb-0 cinematic-table inv-modern-table" id="tableViewExtraCosts" style="min-width: 900px;">
+                        <!-- Mobile Swipe Hint -->
+                        <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-body-tertiary border-bottom d-md-none text-muted" style="font-size: 0.72rem;">
+                            <span><i class="bi bi-arrows-expand me-1 text-primary"></i>Geser tabel ke samping untuk rincian biaya</span>
+                        </div>
+                        <div class="card-body p-0" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
+                            <div class="table-responsive inv-table-responsive" style="overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
+                                <table class="table align-middle table-hover mb-0 cinematic-table inv-modern-table" id="tableViewExtraCosts" style="min-width: 780px;">
                                     <thead>
                                         <tr>
                                             <th style="min-width: 250px;">Jenis Biaya / Pajak</th>
@@ -499,7 +508,7 @@
                     </div>
 
                     <!-- ── 4. RIWAYAT PEMBAYARAN UTANG ── -->
-                    <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" id="view_card_payments">
+                    <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" id="view_card_payments" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                         <div class="erp-card-header d-flex align-items-center justify-content-between">
                             <div class="d-flex align-items-center gap-2">
                                 <i class="bi bi-cash-stack text-success"></i>
@@ -509,9 +518,9 @@
                                 0 Pembayaran
                             </span>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive inv-table-responsive">
-                                <table class="table align-middle table-hover mb-0 cinematic-table inv-modern-table" id="tableViewPayments" style="min-width: 850px;">
+                        <div class="card-body p-0" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
+                            <div class="table-responsive inv-table-responsive" style="overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
+                                <table class="table align-middle table-hover mb-0 cinematic-table inv-modern-table" id="tableViewPayments" style="min-width: 780px;">
                                     <thead>
                                         <tr>
                                             <th style="width: 200px;">No. Bukti Bayar</th>

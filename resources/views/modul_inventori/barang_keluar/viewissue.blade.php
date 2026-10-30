@@ -1,530 +1,7 @@
 <x-layouts title="Barang Keluar (Goods Issue)">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-
-    <style>
-        /* ─── Status Badges ─────────────────────────────────────── */
-        .badge-draft    { background: rgba(245, 158, 11, 0.15); color: #d97706; padding: .35em .85em; border-radius: 50px; font-size: .78rem; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.3); }
-        .badge-pending  { background: rgba(14, 165, 233, 0.15); color: #0284c7; padding: .35em .85em; border-radius: 50px; font-size: .78rem; font-weight: 700; border: 1px solid rgba(14, 165, 233, 0.3); }
-        .badge-confirmed{ background: rgba(16, 185, 129, 0.15); color: #059669; padding: .35em .85em; border-radius: 50px; font-size: .78rem; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3); }
-
-        [data-bs-theme="dark"] .badge-draft, .dark-mode .badge-draft { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4); }
-        [data-bs-theme="dark"] .badge-pending, .dark-mode .badge-pending { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border-color: rgba(14, 165, 233, 0.4); }
-        [data-bs-theme="dark"] .badge-confirmed, .dark-mode .badge-confirmed { background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(16, 185, 129, 0.4); }
-
-        /* ─── Tipe Badges ────────────────────────────────────────── */
-        .tipe-badge { padding: .28em .75em; border-radius: 50px; font-size: .74rem; font-weight: 700; display: inline-flex; align-items: center; }
-        .tipe-internal    { background: rgba(139, 92, 246, 0.12); color: #7c3aed; border: 1px solid rgba(139, 92, 246, 0.25); }
-        .tipe-retur       { background: rgba(249, 115, 22, 0.12); color: #ea580c; border: 1px solid rgba(249, 115, 22, 0.25); }
-        .tipe-penyesuaian { background: rgba(6, 182, 212, 0.12); color: #0891b2; border: 1px solid rgba(6, 182, 212, 0.25); }
-        .tipe-lainnya     { background: rgba(100, 116, 139, 0.12); color: #475569; border: 1px solid rgba(100, 116, 139, 0.25); }
-
-        [data-bs-theme="dark"] .tipe-internal, .dark-mode .tipe-internal { background: rgba(139, 92, 246, 0.2); color: #a78bfa; border-color: rgba(139, 92, 246, 0.4); }
-        [data-bs-theme="dark"] .tipe-retur, .dark-mode .tipe-retur { background: rgba(249, 115, 22, 0.2); color: #fb923c; border-color: rgba(249, 115, 22, 0.4); }
-        [data-bs-theme="dark"] .tipe-penyesuaian, .dark-mode .tipe-penyesuaian { background: rgba(6, 182, 212, 0.2); color: #22d3ee; border-color: rgba(6, 182, 212, 0.4); }
-        [data-bs-theme="dark"] .tipe-lainnya, .dark-mode .tipe-lainnya { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.4); }
-
-        /* ─── Count Badge ────────────────────────────────────────── */
-        .gi-count-badge {
-            background: rgba(239, 68, 68, 0.12);
-            color: #dc2626;
-            border: 1px solid rgba(239, 68, 68, 0.25);
-            font-size: 0.8rem;
-            font-weight: 700;
-            padding: 6px 14px;
-            letter-spacing: 0.3px;
-        }
-        [data-bs-theme="dark"] .gi-count-badge,
-        .dark-mode .gi-count-badge {
-            background: rgba(239, 68, 68, 0.2);
-            color: #fca5a5;
-            border-color: rgba(239, 68, 68, 0.4);
-        }
-
-        /* ─── Table Modern & Cinematic Horizontal Scroll ───────── */
-        .table-responsive-gi {
-            overflow-x: auto !important;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-x: contain;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(239, 68, 68, 0.4) transparent;
-        }
-        .table-responsive-gi::-webkit-scrollbar {
-            height: 7px;
-        }
-        .table-responsive-gi::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.03);
-            border-radius: 4px;
-        }
-        [data-bs-theme="dark"] .table-responsive-gi::-webkit-scrollbar-track,
-        .dark-mode .table-responsive-gi::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.03);
-        }
-        .table-responsive-gi::-webkit-scrollbar-thumb {
-            background: rgba(239, 68, 68, 0.4);
-            border-radius: 4px;
-        }
-        .table-responsive-gi::-webkit-scrollbar-thumb:hover {
-            background: rgba(239, 68, 68, 0.7);
-        }
-
-        .gi-table-scroll-hint {
-            background: rgba(239, 68, 68, 0.06);
-            border-bottom: 1px solid rgba(239, 68, 68, 0.12);
-            color: #ef4444;
-            font-size: 0.76rem;
-            padding: 7px 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-        [data-bs-theme="dark"] .gi-table-scroll-hint,
-        .dark-mode .gi-table-scroll-hint {
-            background: rgba(239, 68, 68, 0.12);
-            border-bottom: 1px solid rgba(239, 68, 68, 0.2);
-            color: #fca5a5;
-        }
-
-        .table-modern {
-            min-width: 900px !important;
-            width: 100%;
-            white-space: nowrap;
-            margin-bottom: 0;
-            border-collapse: collapse;
-        }
-        .table-modern th {
-            background-color: #f1f5f9 !important;
-            color: #475569 !important;
-            font-weight: 700;
-            text-transform: uppercase;
-            font-size: .74rem;
-            letter-spacing: .6px;
-            padding: 13px 16px !important;
-            border-bottom: 2px solid #e2e8f0 !important;
-            border-top: none !important;
-            white-space: nowrap;
-            vertical-align: middle;
-        }
-        [data-bs-theme="dark"] .table-modern th,
-        .dark-mode .table-modern th {
-            background-color: #0f172a !important;
-            color: #94a3b8 !important;
-            border-bottom: 2px solid #334155 !important;
-        }
-
-        .table-modern td {
-            padding: 12px 16px !important;
-            border-bottom: 1px solid #f1f5f9 !important;
-            vertical-align: middle;
-            color: var(--text-main, #0f172a) !important;
-            white-space: nowrap;
-            font-size: .88rem;
-        }
-        [data-bs-theme="dark"] .table-modern td,
-        .dark-mode .table-modern td {
-            border-bottom: 1px solid #334155 !important;
-            color: #f8fafc !important;
-        }
-
-        .table-modern tbody tr {
-            cursor: pointer;
-            transition: background 0.15s ease-in-out;
-        }
-        .table-modern tbody tr:hover td {
-            background-color: rgba(239, 68, 68, 0.04) !important;
-        }
-        [data-bs-theme="dark"] .table-modern tbody tr:hover td,
-        .dark-mode .table-modern tbody tr:hover td {
-            background-color: rgba(255, 255, 255, 0.04) !important;
-        }
-
-        /* ─── DataTables Custom Controls & Responsive Styling ───── */
-        .dataTables_wrapper {
-            padding: 0 !important;
-        }
-        .dataTables_wrapper .row:first-child {
-            padding: 14px 18px;
-            margin: 0 !important;
-            align-items: center;
-            gap: 10px 0;
-            border-bottom: 1px solid var(--border-color, #e2e8f0);
-            background: var(--card-bg, #ffffff);
-        }
-        [data-bs-theme="dark"] .dataTables_wrapper .row:first-child,
-        .dark-mode .dataTables_wrapper .row:first-child {
-            background: #1e293b;
-            border-bottom-color: #334155;
-        }
-
-        .dataTables_wrapper .row:last-child {
-            padding: 14px 18px;
-            margin: 0 !important;
-            align-items: center;
-            border-top: 1px solid var(--border-color, #e2e8f0);
-            background: var(--card-bg, #ffffff);
-        }
-        [data-bs-theme="dark"] .dataTables_wrapper .row:last-child,
-        .dark-mode .dataTables_wrapper .row:last-child {
-            background: #1e293b;
-            border-top-color: #334155;
-        }
-
-        /* Page Length Select */
-        .dataTables_length {
-            display: flex;
-            align-items: center;
-        }
-        .dataTables_length label {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-muted, #64748b);
-            margin-bottom: 0;
-        }
-        .dataTables_length select {
-            padding: 6px 32px 6px 14px !important;
-            border-radius: 50px !important;
-            font-size: 0.84rem !important;
-            font-weight: 600 !important;
-            border: 1px solid var(--border-color, #cbd5e1) !important;
-            background-color: var(--bg-color, #ffffff) !important;
-            color: var(--text-main, #0f172a) !important;
-            outline: none !important;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        [data-bs-theme="dark"] .dataTables_length select,
-        .dark-mode .dataTables_length select {
-            background-color: #0f172a !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-        .dataTables_length select:focus {
-            border-color: #ef4444 !important;
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
-        }
-
-        /* Search Filter Input */
-        .dataTables_filter {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-        }
-        .dataTables_filter label {
-            width: 100%;
-            max-width: 320px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            margin-bottom: 0;
-        }
-        .dataTables_filter input {
-            width: 100% !important;
-            padding: 8px 16px 8px 38px !important;
-            border-radius: 50px !important;
-            font-size: 0.85rem !important;
-            border: 1px solid var(--border-color, #cbd5e1) !important;
-            background-color: var(--bg-color, #ffffff) !important;
-            color: var(--text-main, #0f172a) !important;
-            outline: none !important;
-            transition: all 0.2s ease;
-        }
-        [data-bs-theme="dark"] .dataTables_filter input,
-        .dark-mode .dataTables_filter input {
-            background-color: #0f172a !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-        .dataTables_filter input:focus {
-            border-color: #ef4444 !important;
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
-        }
-        .dataTables_filter label::before {
-            content: "\F52A";
-            font-family: "bootstrap-icons";
-            position: absolute;
-            left: 14px;
-            color: var(--text-muted, #94a3b8);
-            font-size: 0.9rem;
-            pointer-events: none;
-        }
-
-        /* Info & Pagination */
-        .dataTables_info {
-            font-size: 0.84rem;
-            font-weight: 600;
-            color: var(--text-muted, #64748b) !important;
-            padding-top: 0 !important;
-        }
-        [data-bs-theme="dark"] .dataTables_info,
-        .dark-mode .dataTables_info {
-            color: #94a3b8 !important;
-        }
-
-        .dataTables_paginate {
-            display: flex;
-            justify-content: flex-end;
-        }
-        .dataTables_paginate .pagination {
-            gap: 4px;
-            margin-bottom: 0;
-            flex-wrap: wrap;
-        }
-        .dataTables_paginate .page-item .page-link {
-            border-radius: 50px !important;
-            padding: 6px 14px;
-            font-size: 0.82rem;
-            font-weight: 700;
-            border: 1px solid var(--border-color, #cbd5e1);
-            background-color: var(--bg-color, #ffffff);
-            color: var(--text-main, #0f172a);
-            transition: all 0.2s ease;
-        }
-        [data-bs-theme="dark"] .dataTables_paginate .page-item .page-link,
-        .dark-mode .dataTables_paginate .page-item .page-link {
-            background-color: #0f172a;
-            border-color: #334155;
-            color: #f8fafc;
-        }
-        .dataTables_paginate .page-item.active .page-link {
-            background-color: #ef4444 !important;
-            border-color: #ef4444 !important;
-            color: #ffffff !important;
-            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
-        }
-        .dataTables_paginate .page-item.disabled .page-link {
-            opacity: 0.4;
-            background-color: transparent !important;
-            border-color: var(--border-color, #e2e8f0) !important;
-        }
-
-        @media (max-width: 768px) {
-            .dataTables_wrapper .row:first-child {
-                flex-direction: column-reverse;
-                padding: 12px 14px;
-                gap: 12px;
-            }
-            .dataTables_filter, .dataTables_length {
-                width: 100% !important;
-                justify-content: stretch !important;
-            }
-            .dataTables_filter label {
-                max-width: 100% !important;
-            }
-            .dataTables_length {
-                justify-content: space-between;
-            }
-            .dataTables_wrapper .row:last-child {
-                flex-direction: column;
-                gap: 12px;
-                text-align: center;
-            }
-            .dataTables_paginate {
-                justify-content: center !important;
-                width: 100%;
-            }
-        }
-
-        /* ─── Item Rows in Modal ─────────────────────────────────── */
-        .item-row {
-            background-color: var(--bg-color, #f8fafc);
-            border: 1px solid var(--border-color, #e2e8f0);
-            border-radius: 12px;
-            padding: 12px 14px;
-            margin-bottom: 10px;
-        }
-        .item-row:last-child { margin-bottom: 0; }
-        .stok-indicator { font-size: .78rem; margin-top: 4px; }
-        .stok-ok    { color: #16a34a; }
-        .stok-warn  { color: #d97706; }
-        .stok-empty { color: #dc2626; }
-
-        /* ─── Scrollbar & Smooth Touch for Items Container ──────── */
-        .gi-items-scrollable,
-        #gi_items_container,
-        #edit_gi_items_container {
-            max-height: 480px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding-right: 4px;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: contain;
-            scroll-behavior: smooth;
-            touch-action: pan-y;
-        }
-
-        #gi_items_container::-webkit-scrollbar,
-        #edit_gi_items_container::-webkit-scrollbar,
-        .gi-items-scrollable::-webkit-scrollbar {
-            width: 6px;
-        }
-        #gi_items_container::-webkit-scrollbar-track,
-        #edit_gi_items_container::-webkit-scrollbar-track,
-        .gi-items-scrollable::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.05);
-            border-radius: 4px;
-        }
-        #gi_items_container::-webkit-scrollbar-thumb,
-        #edit_gi_items_container::-webkit-scrollbar-thumb,
-        .gi-items-scrollable::-webkit-scrollbar-thumb {
-            background: rgba(239, 68, 68, 0.4);
-            border-radius: 4px;
-        }
-        #gi_items_container::-webkit-scrollbar-thumb:hover,
-        #edit_gi_items_container::-webkit-scrollbar-thumb:hover,
-        .gi-items-scrollable::-webkit-scrollbar-thumb:hover {
-            background: rgba(239, 68, 68, 0.7);
-        }
-
-        /* Modal Dialog & Body Mobile Fluid Scrolling */
-        .modal-dialog-scrollable .modal-body {
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: contain;
-            scroll-behavior: smooth;
-        }
-
-        @media (max-width: 768px) {
-            .gi-items-scrollable,
-            #gi_items_container,
-            #edit_gi_items_container {
-                max-height: none !important;
-                overflow-y: visible !important;
-                overflow-x: visible !important;
-                padding-right: 0 !important;
-            }
-            .modal-dialog-scrollable {
-                height: calc(100% - 1rem) !important;
-            }
-            .modal-dialog-scrollable .modal-content {
-                max-height: 94vh !important;
-            }
-            .modal-body {
-                padding: 1rem !important;
-            }
-        }
-
-        /* ─── Select2 override ───────────────────────────────────── */
-        .select2-container--bootstrap-5 .select2-selection {
-            border-radius: 8px; font-size: .88rem; border: 1px solid var(--border-color, #cbd5e1);
-            background-color: var(--card-bg, #ffffff) !important;
-            color: var(--text-main, #0f172a) !important;
-        }
-
-        /* ─── DARK MODE ADAPTABILITY OVERRIDES ───────────────────── */
-        [data-bs-theme="dark"], .dark-mode {
-            --card-bg: #1e293b;
-            --bg-color: #0f172a;
-            --border-color: #334155;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-        }
-
-        [data-bs-theme="dark"] .card, .dark-mode .card,
-        [data-bs-theme="dark"] .card-header, .dark-mode .card-header,
-        [data-bs-theme="dark"] .card-body, .dark-mode .card-body {
-            background-color: var(--card-bg, #1e293b) !important;
-            border-color: var(--border-color, #334155) !important;
-            color: var(--text-main, #f8fafc) !important;
-        }
-
-        [data-bs-theme="dark"] .text-dark, .dark-mode .text-dark,
-        [data-bs-theme="dark"] .fw-bold.text-dark, .dark-mode .fw-bold.text-dark,
-        [data-bs-theme="dark"] h4.text-dark, .dark-mode h4.text-dark,
-        [data-bs-theme="dark"] h5.text-dark, .dark-mode h5.text-dark,
-        [data-bs-theme="dark"] h6.text-dark, .dark-mode h6.text-dark {
-            color: #f8fafc !important;
-        }
-
-        [data-bs-theme="dark"] .text-muted, .dark-mode .text-muted,
-        [data-bs-theme="dark"] .text-secondary, .dark-mode .text-secondary {
-            color: #94a3b8 !important;
-        }
-
-        [data-bs-theme="dark"] .table-modern, .dark-mode .table-modern {
-            background-color: #1e293b !important;
-            color: #f8fafc !important;
-        }
-
-        [data-bs-theme="dark"] .table-modern th, .dark-mode .table-modern th {
-            background-color: #0f172a !important;
-            color: #cbd5e1 !important;
-            border-bottom: 2px solid #334155 !important;
-        }
-
-        [data-bs-theme="dark"] .table-modern td, .dark-mode .table-modern td {
-            background-color: #1e293b !important;
-            border-bottom: 1px solid #334155 !important;
-            color: #f8fafc !important;
-        }
-
-        [data-bs-theme="dark"] .table-modern tbody tr:hover td, .dark-mode .table-modern tbody tr:hover td {
-            background-color: #334155 !important;
-        }
-
-        [data-bs-theme="dark"] .modal-content, .dark-mode .modal-content {
-            background-color: #1e293b !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-
-        [data-bs-theme="dark"] .modal-footer.bg-light, .dark-mode .modal-footer.bg-light,
-        [data-bs-theme="dark"] .bg-light, .dark-mode .bg-light {
-            background-color: #0f172a !important;
-            color: #f8fafc !important;
-            border-color: #334155 !important;
-        }
-
-        [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select,
-        .dark-mode .form-control, .dark-mode .form-select {
-            background-color: #0f172a !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-
-        [data-bs-theme="dark"] .form-control:focus, [data-bs-theme="dark"] .form-select:focus,
-        .dark-mode .form-control:focus, .dark-mode .form-select:focus {
-            background-color: #0f172a !important;
-            color: #f8fafc !important;
-            border-color: #ef4444 !important;
-        }
-
-        [data-bs-theme="dark"] .item-row, .dark-mode .item-row {
-            background-color: #0f172a !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-
-        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection,
-        .dark-mode .select2-container--bootstrap-5 .select2-selection {
-            background-color: #0f172a !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-
-        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
-        .dark-mode .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-            color: #f8fafc !important;
-        }
-
-        [data-bs-theme="dark"] .select2-dropdown, .dark-mode .select2-dropdown {
-            background-color: #1e293b !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-
-        [data-bs-theme="dark"] .select2-results__option, .dark-mode .select2-results__option {
-            color: #f8fafc !important;
-        }
-
-        [data-bs-theme="dark"] .select2-results__option--highlighted, .dark-mode .select2-results__option--highlighted {
-            background-color: #ef4444 !important;
-            color: #ffffff !important;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('inventori/barang_keluar.css') }}?v={{ time() }}">
 
     <div class="container-fluid py-3 px-2 px-md-4">
 
@@ -678,9 +155,11 @@
     @include('modul_inventori.barang_keluar.lookup_gudang')
     @include('modul_inventori.barang_keluar.lookup_barang')
     @include('modul_inventori.barang_keluar.preview_foto')
+    @include('modul_inventori.barang_keluar._modal_select_serials')
 
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script>
     window.barangsData = @json($barangsData);
     let isFetchingGI = false;
@@ -778,13 +257,464 @@
         }
     };
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // HELPER: ESCAPE HTML
+    // ══════════════════════════════════════════════════════════════════════════
+    function escapeHtml(text) {
+        if (text === null || text === undefined) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+    window.escapeHtml = escapeHtml;
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SERIAL NUMBER (SN) MANAGEMENT LOGIC FOR GOODS ISSUE (BARANG KELUAR)
+    // ══════════════════════════════════════════════════════════════════════════
+    window.giItemSerialsStore = window.giItemSerialsStore || {};
+    window.editGiItemSerialsStore = window.editGiItemSerialsStore || {};
+
+    let currentGiSnIdx = null;
+    let currentGiSnContext = 'input'; // 'input' or 'edit'
+    let currentGiSnBarangId = null;
+    let currentGiSnBarangNama = '';
+    let currentGiSnBarangSku = '';
+    let currentGiSnTargetQty = 0;
+    let giModalWorkingSerials = [];
+    let giAvailableStockSerials = [];
+
+    // Camera Scanner State
+    let giModalCameraScanner = null;
+    let isGiCameraActive = false;
+    let giCameraSessionToken = 0;
+    let giCameraScanCooldown = false;
+
+    // Helper: Update badge and chip preview on each item row
+    function updateRowSnBadge(rowIdx, context, targetQty) {
+        const isEdit = (context === 'edit');
+        const store = isEdit ? window.editGiItemSerialsStore : window.giItemSerialsStore;
+        const serials = (store && store[rowIdx]) ? store[rowIdx] : [];
+        const count = serials.length;
+
+        if (targetQty === undefined || targetQty === null) {
+            const input = isEdit ? $(`#edit_gi_jumlah_${rowIdx}`) : $(`#jumlah_${rowIdx}`);
+            targetQty = parseFloat(input.val()) || 0;
+        }
+
+        const prefix = isEdit ? 'edit_' : '';
+        const badgeElem = $(`#${prefix}sn_badge_count_${rowIdx}`);
+        const statusElem = $(`#${prefix}sn_status_text_${rowIdx}`);
+        const btnElem = $(`#${prefix}btn_open_sn_${rowIdx}`);
+        const chipsElem = $(`#${prefix}sn_chips_preview_${rowIdx}`);
+
+        badgeElem.text(`${count} / ${targetQty} Unit`);
+        badgeElem.removeClass('bg-secondary-subtle bg-success-subtle bg-warning-subtle bg-danger-subtle text-muted text-success text-dark text-danger border-success-subtle border-warning-subtle border-danger-subtle');
+
+        if (count === 0) {
+            badgeElem.addClass('bg-secondary-subtle text-muted');
+            statusElem.html('<span class="text-muted"><i class="bi bi-dash-circle me-1"></i>Tanpa SN (Opsional)</span>');
+            btnElem.html('<i class="bi bi-upc-scan me-1"></i> Pilih Serial Number');
+        } else if (count === targetQty) {
+            badgeElem.addClass('bg-success-subtle text-success border border-success-subtle');
+            statusElem.html('<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Lengkap (${count} SN)</span>');
+            btnElem.html(`<i class="bi bi-pencil-square me-1"></i> Ubah SN (${count})`);
+        } else if (count < targetQty) {
+            badgeElem.addClass('bg-warning-subtle text-dark border border-warning-subtle');
+            statusElem.html(`<span class="text-warning-emphasis fw-semibold"><i class="bi bi-exclamation-triangle me-1"></i>Sebagian (${count}/${targetQty} SN)</span>`);
+            btnElem.html(`<i class="bi bi-pencil-square me-1"></i> Ubah SN (${count})`);
+        } else {
+            badgeElem.addClass('bg-danger-subtle text-danger border border-danger-subtle');
+            statusElem.html(`<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Kelebihan (${count - targetQty} SN)</span>`);
+            btnElem.html(`<i class="bi bi-exclamation-octagon me-1"></i> Kelebihan (${count})`);
+        }
+
+        // Render chips preview (first 4 items)
+        if (count === 0) {
+            chipsElem.empty();
+        } else {
+            let chipsHtml = '';
+            serials.slice(0, 4).forEach(sn => {
+                chipsHtml += `<span class="badge bg-light text-dark border font-monospace px-2 py-0.5 small" style="font-size:0.72rem;">${escapeHtml(sn)}</span>`;
+            });
+            if (count > 4) {
+                chipsHtml += `<span class="badge bg-secondary-subtle text-muted border font-monospace px-1.5 py-0.5 small" style="font-size:0.7rem;">+${count - 4} lainnya</span>`;
+            }
+            chipsElem.html(chipsHtml);
+        }
+    }
+    window.updateRowSnBadge = updateRowSnBadge;
+
+    // Refresh Modal SN UI (Counter, Status, Chips, and Checkboxes)
+    function refreshGiModalSnUI() {
+        const count = giModalWorkingSerials.length;
+        const target = currentGiSnTargetQty;
+
+        $('#modal_gi_sn_allocated_num').text(count);
+        $('#modal_gi_sn_target_num').text(target);
+        $('#modal_gi_sn_active_tags_count').text(`${count} SN`);
+
+        // Status indicator in header card
+        let indHtml = '';
+        if (count === 0) {
+            indHtml = `<span class="badge bg-secondary-subtle text-muted border border-secondary-subtle font-monospace px-2.5 py-1"><i class="bi bi-dash-circle me-1"></i>Tanpa SN (Opsional)</span>`;
+        } else if (count === target) {
+            indHtml = `<span class="badge bg-success-subtle text-success border border-success-subtle font-monospace px-2.5 py-1"><i class="bi bi-check-circle-fill me-1"></i>Lengkap (${count} SN)</span>`;
+        } else if (count < target) {
+            indHtml = `<span class="badge bg-warning-subtle text-dark border border-warning-subtle font-monospace px-2.5 py-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Kurang ${target - count} SN</span>`;
+        } else {
+            indHtml = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace px-2.5 py-1"><i class="bi bi-exclamation-octagon-fill me-1"></i>Kelebihan ${count - target} SN</span>`;
+        }
+        $('#modal_gi_sn_status_indicator').html(indHtml);
+
+        // Render selected chips box
+        if (count === 0) {
+            $('#modal_gi_sn_selected_chips_box').html(`
+                <div class="text-muted small fst-italic d-flex align-items-center gap-2 py-2" id="modal_gi_sn_empty_selected_hint">
+                    <i class="bi bi-info-circle text-muted"></i>
+                    <span>Belum ada serial number yang dipilih. Centang dari stok di atas atau ketik/scan nomor seri unit.</span>
+                </div>
+            `);
+        } else {
+            let chipsHtml = '';
+            giModalWorkingSerials.forEach((sn) => {
+                chipsHtml += `
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace px-3 py-1.5 rounded-pill d-inline-flex align-items-center gap-2 shadow-xs" style="font-size:0.82rem;">
+                        <i class="bi bi-upc-scan"></i> <span>${escapeHtml(sn)}</span>
+                        <button type="button" class="btn-close btn-close-xs btn-modal-remove-gi-chip" data-sn="${escapeHtml(sn)}" style="width:0.5rem; height:0.5rem;" title="Hapus"></button>
+                    </span>
+                `;
+            });
+            $('#modal_gi_sn_selected_chips_box').html(chipsHtml);
+        }
+
+        // Sync stock checkboxes in Tab 1
+        $('.gi-stock-sn-checkbox').each(function () {
+            const snVal = $(this).val();
+            const isChecked = giModalWorkingSerials.includes(snVal);
+            $(this).prop('checked', isChecked);
+            const parentLabel = $(this).closest('label');
+            if (isChecked) {
+                parentLabel.addClass('border-danger bg-danger-subtle bg-opacity-25');
+            } else {
+                parentLabel.removeClass('border-danger bg-danger-subtle bg-opacity-25');
+            }
+        });
+    }
+    window.refreshGiModalSnUI = refreshGiModalSnUI;
+
+    // Load available stock serial numbers via AJAX
+    function loadGiStockSerialsForModal() {
+        $('#modal_gi_sn_stock_list_container').html(`
+            <div class="text-center py-5 text-muted small fst-italic">
+                <div class="spinner-border spinner-border-sm text-danger me-2" role="status"></div> Memuat serial number dari gudang...
+            </div>
+        `);
+
+        const isEdit = (currentGiSnContext === 'edit');
+        const gudangId = isEdit ? $('#edit_gi_gudang_id').val() : $('#gi_gudang_id').val();
+        const giId = isEdit ? $('#edit_gi_id').val() : null;
+
+        $.get("{{ route('gi.available-serials') }}", {
+            barang_id: currentGiSnBarangId,
+            gudang_id: gudangId,
+            goods_issue_id: giId
+        }, function (res) {
+            if (res.success && res.serials && res.serials.length > 0) {
+                giAvailableStockSerials = res.serials;
+                $('#modal_gi_sn_stock_available_count').text(res.serials.length);
+                renderGiStockList(res.serials);
+                enableGiManualInputTab(true);
+            } else {
+                giAvailableStockSerials = [];
+                $('#modal_gi_sn_stock_available_count').text(0);
+                $('#modal_gi_sn_stock_list_container').html('<div class="text-center py-5 text-muted small"><i class="bi bi-box-seam fs-3 d-block text-secondary mb-2"></i>Tidak ada serial number berstatus Tersedia di gudang ini untuk produk ini.</div>');
+                enableGiManualInputTab(false);
+            }
+        }).fail(function () {
+            giAvailableStockSerials = [];
+            $('#modal_gi_sn_stock_available_count').text(0);
+            $('#modal_gi_sn_stock_list_container').html('<div class="text-center py-5 text-danger small">Gagal memuat serial number dari server.</div>');
+            enableGiManualInputTab(false);
+        });
+    }
+    window.loadGiStockSerialsForModal = loadGiStockSerialsForModal;
+
+    // Render Stock List checkboxes in Tab 1
+    function renderGiStockList(serials) {
+        let html = '<div class="row g-3" id="gi_stock_serials_grid">';
+        serials.forEach(s => {
+            const isChecked = giModalWorkingSerials.includes(s.serial_number);
+            const borderClass = isChecked ? 'border-danger bg-danger-subtle bg-opacity-25' : '';
+            html += `
+                <div class="col-12 col-md-6 gi-stock-sn-item" data-sn="${escapeHtml((s.serial_number || '').toLowerCase())}" data-batch="${escapeHtml((s.nomor_batch || '').toLowerCase())}">
+                    <label class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white h-100 ${borderClass} gi-sn-card-label shadow-xs" style="cursor: pointer; transition: all 0.2s ease;">
+                        <div class="d-flex align-items-center gap-3 overflow-hidden">
+                            <input type="checkbox" class="form-check-input gi-stock-sn-checkbox mt-0 flex-shrink-0" value="${escapeHtml(s.serial_number)}" ${isChecked ? 'checked' : ''} style="width: 1.15rem; height: 1.15rem;">
+                            <div class="overflow-hidden">
+                                <div class="font-monospace fw-bold text-dark text-truncate d-flex align-items-center gap-1.5" style="font-size:0.88rem;">
+                                    <i class="bi bi-upc-scan text-danger"></i> <span>${escapeHtml(s.serial_number)}</span>
+                                </div>
+                                <div class="text-muted small font-monospace mt-1 d-flex align-items-center gap-2" style="font-size:0.75rem;">
+                                    <span>Batch: <span class="badge bg-light text-dark border px-1.5 py-0.5">${escapeHtml(s.nomor_batch || '-')}</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace px-2 py-1 small flex-shrink-0" style="font-size:0.72rem;">
+                            <i class="bi bi-check-circle me-1"></i>Tersedia
+                        </span>
+                    </label>
+                </div>
+            `;
+        });
+        html += '</div>';
+        $('#modal_gi_sn_stock_list_container').html(html);
+    }
+    window.renderGiStockList = renderGiStockList;
+
+    function enableGiManualInputTab(isEnabled) {
+        $('#modal_gi_sn_quick_scan_input').prop('disabled', !isEnabled);
+        $('#btn_modal_gi_sn_toggle_camera').prop('disabled', !isEnabled);
+        $('#btn_modal_gi_sn_add_single').prop('disabled', !isEnabled);
+        $('#modal_gi_sn_bulk_paste_input').prop('disabled', !isEnabled);
+        $('#btn_modal_gi_sn_apply_bulk').prop('disabled', !isEnabled);
+    }
+    window.enableGiManualInputTab = enableGiManualInputTab;
+
+    // Single Manual Scan / Enter
+    function processSingleGiSerial(inputVal) {
+        const cleanSn = $.trim(inputVal);
+        if (!cleanSn) return;
+
+        // Check if exists in available stock
+        const existsInStock = giAvailableStockSerials.some(s => s.serial_number.toLowerCase() === cleanSn.toLowerCase());
+        if (!existsInStock) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Serial Number Tidak Ditemukan',
+                html: `Nomor seri <b>${escapeHtml(cleanSn)}</b> tidak terdaftar berstatus <i>Tersedia</i> di gudang ini untuk produk ini!`,
+                confirmButtonColor: '#ef4444'
+            });
+            return;
+        }
+
+        // Get exact registered casing
+        const stockRecord = giAvailableStockSerials.find(s => s.serial_number.toLowerCase() === cleanSn.toLowerCase());
+        const officialSn = stockRecord ? stockRecord.serial_number : cleanSn;
+
+        if (giModalWorkingSerials.includes(officialSn)) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sudah Terpilih',
+                html: `Nomor seri <b>${escapeHtml(officialSn)}</b> sudah ada dalam daftar pilihan!`,
+                confirmButtonColor: '#ef4444'
+            });
+            return;
+        }
+
+        if (giModalWorkingSerials.length >= currentGiSnTargetQty) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Kapasitas Unit Penuh',
+                html: `Jumlah serial number terpilih sudah mencapai target (${currentGiSnTargetQty} unit).`,
+                confirmButtonColor: '#ef4444'
+            });
+            return;
+        }
+
+        giModalWorkingSerials.push(officialSn);
+        $('#modal_gi_sn_quick_scan_input').val('').focus();
+        refreshGiModalSnUI();
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: `SN ${officialSn} berhasil ditambahkan!`,
+            showConfirmButton: false,
+            timer: 1200
+        });
+    }
+    window.processSingleGiSerial = processSingleGiSerial;
+
+    // Open Modal Select Serials GI function
+    function openModalSelectSerialsGI(rowIdx, context = 'input') {
+        const isEdit = (context === 'edit');
+
+        const gudangId = isEdit ? $('#edit_gi_gudang_id').val() : $('#gi_gudang_id').val();
+        if (!gudangId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Gudang Belum Dipilih',
+                text: 'Silakan pilih gudang pengeluaran barang terlebih dahulu!',
+                confirmButtonColor: '#ef4444'
+            });
+            return;
+        }
+
+        const barangId = isEdit ? $(`#edit_barang_id_${rowIdx}`).val() : $(`#barang_id_${rowIdx}`).val();
+        const barangDisplay = isEdit ? $(`#edit_barang_display_${rowIdx}`).val() : $(`#barang_display_${rowIdx}`).val();
+        if (!barangId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Barang Belum Dipilih',
+                text: 'Silakan pilih barang pada baris ini sebelum mengalokasikan serial number!',
+                confirmButtonColor: '#ef4444'
+            });
+            return;
+        }
+
+        const qtyInput = isEdit ? $(`#edit_gi_jumlah_${rowIdx}`) : $(`#jumlah_${rowIdx}`);
+        const qtyVal = parseFloat(qtyInput.val());
+        if (isNaN(qtyVal) || qtyVal <= 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Jumlah Tidak Valid',
+                text: 'Silakan isi jumlah pengeluaran barang yang valid (> 0) terlebih dahulu!',
+                confirmButtonColor: '#ef4444'
+            });
+            return;
+        }
+
+        currentGiSnIdx = rowIdx;
+        currentGiSnContext = context;
+        currentGiSnBarangId = barangId;
+        currentGiSnTargetQty = qtyVal;
+
+        // Parse SKU and name from display
+        let parts = (barangDisplay || '').split(' - ');
+        if (parts.length >= 2) {
+            currentGiSnBarangSku = parts[0].trim();
+            currentGiSnBarangNama = parts.slice(1).join(' - ').trim();
+        } else {
+            currentGiSnBarangSku = 'PROD-' + barangId;
+            currentGiSnBarangNama = barangDisplay || 'Barang #' + barangId;
+        }
+
+        $('#modal_gi_sn_barang_nama').text(currentGiSnBarangNama);
+        $('#modal_gi_sn_barang_sku').text(`SKU: ${currentGiSnBarangSku}`);
+        $('#modal_gi_sn_search_stock').val('');
+        $('#modal_gi_sn_quick_scan_input').val('');
+        $('#modal_gi_sn_bulk_paste_input').val('');
+
+        const store = isEdit ? window.editGiItemSerialsStore : window.giItemSerialsStore;
+        if (!store[rowIdx]) store[rowIdx] = [];
+        giModalWorkingSerials = [...store[rowIdx]];
+
+        refreshGiModalSnUI();
+        loadGiStockSerialsForModal();
+
+        const modalEl = document.getElementById('modalSelectSerialsGI');
+        if (modalEl) {
+            const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            bsModal.show();
+        }
+    }
+    window.openModalSelectSerialsGI = openModalSelectSerialsGI;
+
+    // Camera Scanner Handlers
+    function stopGiCameraScanner() {
+        isGiCameraActive = false;
+        giCameraSessionToken++;
+
+        if (giModalCameraScanner) {
+            let scanner = giModalCameraScanner;
+            giModalCameraScanner = null;
+            try {
+                scanner.stop().then(() => {
+                    try { scanner.clear(); } catch(e) {}
+                }).catch(() => {
+                    try { scanner.clear(); } catch(e) {}
+                });
+            } catch(e) {
+                try { scanner.clear(); } catch(e) {}
+            }
+        }
+
+        $('#modal_gi_sn_camera_scanner_container').addClass('d-none');
+        $('#modal_gi_sn_camera_reader').empty();
+        $('#btn_modal_gi_sn_toggle_camera')
+            .removeClass('btn-danger text-white')
+            .addClass('btn-outline-danger')
+            .html('<i class="bi bi-camera-video-fill text-danger"></i> <span class="d-none d-sm-inline">Scan Kamera</span>');
+    }
+    window.stopGiCameraScanner = stopGiCameraScanner;
+
+    function startGiCameraScanner(selectedCameraId = null) {
+        stopGiCameraScanner();
+
+        if (typeof Html5Qrcode === 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Scanner Belum Siap',
+                text: 'Pustaka Html5Qrcode belum selesai dimuat.',
+                confirmButtonColor: '#ef4444'
+            });
+            return;
+        }
+
+        isGiCameraActive = true;
+        const currentSession = ++giCameraSessionToken;
+
+        $('#modal_gi_sn_camera_scanner_container').removeClass('d-none');
+        $('#modal_gi_sn_camera_reader').html(`
+            <div class="d-flex align-items-center justify-content-center text-white flex-column py-5" style="min-height: 220px;">
+                <div class="spinner-border text-danger mb-2" role="status"></div>
+                <span class="small text-danger fw-semibold">Menginisialisasi Kamera...</span>
+            </div>
+        `);
+        $('#btn_modal_gi_sn_toggle_camera')
+            .removeClass('btn-outline-danger')
+            .addClass('btn-danger text-white')
+            .html('<i class="bi bi-camera-video-off-fill"></i> <span class="d-none d-sm-inline">Stop Kamera</span>');
+
+        Html5Qrcode.getCameras().then(devices => {
+            if (!isGiCameraActive || currentSession !== giCameraSessionToken) return;
+
+            if (devices && devices.length > 0) {
+                let selectHtml = '';
+                devices.forEach((dev, idx) => {
+                    selectHtml += `<option value="${dev.id}">${dev.label || ('Kamera ' + (idx + 1))}</option>`;
+                });
+                $('#modal_gi_sn_camera_select').html(selectHtml);
+
+                const cameraId = selectedCameraId || devices[devices.length - 1].id;
+                modalSnCameraScanner = new Html5Qrcode("modal_gi_sn_camera_reader");
+                giModalCameraScanner = modalSnCameraScanner;
+
+                modalSnCameraScanner.start(
+                    cameraId,
+                    { fps: 15, qrbox: { width: 250, height: 160 } },
+                    (decodedText) => {
+                        if (giCameraScanCooldown) return;
+                        giCameraScanCooldown = true;
+                        processSingleGiSerial(decodedText);
+                        setTimeout(() => { giCameraScanCooldown = false; }, 1500);
+                    },
+                    () => {}
+                ).catch(() => {
+                    $('#modal_gi_sn_camera_reader').html('<div class="text-danger p-4 text-center small">Gagal mengakses kamera perangkat.</div>');
+                });
+            } else {
+                $('#modal_gi_sn_camera_reader').html('<div class="text-danger p-4 text-center small">Tidak ada perangkat kamera yang terdeteksi.</div>');
+            }
+        }).catch(() => {
+            $('#modal_gi_sn_camera_reader').html('<div class="text-danger p-4 text-center small">Izin akses kamera ditolak oleh browser.</div>');
+        });
+    }
+    window.startGiCameraScanner = startGiCameraScanner;
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // DOCUMENT READY DOM INITIALIZATION & EVENT LISTENERS
+    // ══════════════════════════════════════════════════════════════════════════
     $(document).ready(function () {
         @if($issues->count())
         $('#tableGI').DataTable(giDataTableConfig);
         @endif
 
         // ─── REAL-TIME POLLER (1 DETIK) ───────────────────────────────
-        // Secara instan memperbarui status (Draft -> Pending -> Confirmed) tanpa mengganggu interaksi modal atau pencarian
         setInterval(function () {
             let isSearching = $('#tableGI_filter input').is(':focus');
             let isModalOpen = $('.modal.show').length > 0;
@@ -792,6 +722,225 @@
                 reloadTableGI(false); // Silent background auto-sync
             }
         }, 1000);
+
+        // Click delegation on .btn-open-gi-sn
+        $(document).on('click', '.btn-open-gi-sn', function (e) {
+            e.preventDefault();
+            // If inline onclick exists, let it handle directly to avoid double invocation
+            if (this.getAttribute('onclick')) return;
+            const rowIdx = $(this).data('idx');
+            const context = $(this).data('context') || 'input';
+            openModalSelectSerialsGI(rowIdx, context);
+        });
+
+        if (typeof window.parseQrOrBarcodeString !== 'function') {
+            window.parseQrOrBarcodeString = function(str) {
+                str = (str || '').toString().trim();
+                let sn = null;
+                let kode = null;
+
+                if (str.includes('sn=')) {
+                    let m = str.match(/[?&]sn=([^&]+)/i);
+                    if (m) sn = decodeURIComponent(m[1].trim());
+                }
+
+                if (!sn) {
+                    let m = str.match(/SN\s*:\s*(.+?)(?=(?:(?:KODE|BARANG|BATCH|WARNA)\s*:)|[\r\n]|$)/i);
+                    if (m) sn = m[1].trim();
+                }
+
+                let mKode = str.match(/KODE\s*:\s*(.+?)(?=(?:(?:SN|BARANG|BATCH|WARNA)\s*:)|[\r\n]|$)/i);
+                if (mKode) kode = mKode[1].trim();
+
+                if (!sn) {
+                    let m = str.match(/^SN\s*[:\-\s]\s*(.+)$/i);
+                    if (m) sn = m[1].trim();
+                }
+
+                return { sn: sn, kode: kode, raw: str };
+            };
+        }
+
+        // Filter stock serials search in Tab 1
+        $('#modal_gi_sn_search_stock').on('input keyup', function () {
+            let rawVal = $(this).val();
+            let parsed = window.parseQrOrBarcodeString(rawVal);
+            const query = (parsed.sn || parsed.kode || rawVal).toLowerCase().trim();
+            let matchCount = 0;
+            $('.gi-stock-sn-item').each(function () {
+                const sn = $(this).data('sn') || '';
+                const batch = $(this).data('batch') || '';
+                if (sn.includes(query) || batch.includes(query)) {
+                    $(this).show();
+                    matchCount++;
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+
+        // Checkbox change event in Tab 1
+        $(document).on('change', '.gi-stock-sn-checkbox', function () {
+            const sn = $(this).val();
+            if ($(this).is(':checked')) {
+                if (!giModalWorkingSerials.includes(sn)) {
+                    giModalWorkingSerials.push(sn);
+                }
+            } else {
+                giModalWorkingSerials = giModalWorkingSerials.filter(item => item !== sn);
+            }
+            refreshGiModalSnUI();
+        });
+
+        // Auto-select button
+        $('#btn_modal_gi_sn_auto_select').on('click', function () {
+            const target = currentGiSnTargetQty;
+            if (target <= 0) return;
+
+            let addedCount = 0;
+            for (let i = 0; i < giAvailableStockSerials.length; i++) {
+                if (giModalWorkingSerials.length >= target) break;
+                const sn = giAvailableStockSerials[i].serial_number;
+                if (!giModalWorkingSerials.includes(sn)) {
+                    giModalWorkingSerials.push(sn);
+                    addedCount++;
+                }
+            }
+            refreshGiModalSnUI();
+
+            if (addedCount > 0) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: `${addedCount} serial number berhasil dipilih otomatis!`,
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            }
+        });
+
+        // Reset selection button
+        $('#btn_modal_gi_sn_clear_selection').on('click', function () {
+            giModalWorkingSerials = [];
+            refreshGiModalSnUI();
+        });
+
+        // Remove single chip from chips box
+        $(document).on('click', '.btn-modal-remove-gi-chip', function () {
+            const sn = $(this).data('sn');
+            giModalWorkingSerials = giModalWorkingSerials.filter(item => item !== sn);
+            refreshGiModalSnUI();
+        });
+
+        // Single Manual Scan button & Enter
+        $('#btn_modal_gi_sn_add_single').on('click', function () {
+            processSingleGiSerial($('#modal_gi_sn_quick_scan_input').val());
+        });
+
+        $('#modal_gi_sn_quick_scan_input').on('keypress', function (e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                processSingleGiSerial($(this).val());
+            }
+        });
+
+        // Bulk Paste Apply
+        $('#btn_modal_gi_sn_apply_bulk').on('click', function () {
+            const raw = $('#modal_gi_sn_bulk_paste_input').val();
+            if (!raw || !$.trim(raw)) return;
+
+            const tokens = raw.split(/[\r\n,]+/).map(t => $.trim(t)).filter(t => t.length > 0);
+            if (tokens.length === 0) return;
+
+            let added = 0;
+            let notFound = [];
+            let duplicates = [];
+
+            tokens.forEach(sn => {
+                const match = giAvailableStockSerials.find(s => s.serial_number.toLowerCase() === sn.toLowerCase());
+                if (!match) {
+                    notFound.push(sn);
+                } else {
+                    const officialSn = match.serial_number;
+                    if (giModalWorkingSerials.includes(officialSn)) {
+                        duplicates.push(officialSn);
+                    } else {
+                        if (giModalWorkingSerials.length < currentGiSnTargetQty) {
+                            giModalWorkingSerials.push(officialSn);
+                            added++;
+                        }
+                    }
+                }
+            });
+
+            $('#modal_gi_sn_bulk_paste_input').val('');
+            refreshGiModalSnUI();
+
+            let msg = `<b>${added}</b> serial number berhasil ditambahkan!`;
+            if (notFound.length > 0) {
+                msg += `<br><small class="text-danger mt-1 d-block">${notFound.length} serial tidak terdaftar di stok gudang.</small>`;
+            }
+            if (duplicates.length > 0) {
+                msg += `<br><small class="text-muted mt-0.5 d-block">${duplicates.length} serial sudah pernah dipilih sebelumnya.</small>`;
+            }
+
+            Swal.fire({
+                icon: added > 0 ? 'success' : 'warning',
+                title: 'Hasil Penambahan Massal',
+                html: msg,
+                confirmButtonColor: '#ef4444'
+            });
+        });
+
+        // Camera Scanner Handlers
+        $('#btn_modal_gi_sn_toggle_camera').on('click', function () {
+            if (isGiCameraActive) {
+                stopGiCameraScanner();
+            } else {
+                startGiCameraScanner();
+            }
+        });
+
+        $('#btn_modal_gi_sn_stop_camera').on('click', function () {
+            stopGiCameraScanner();
+        });
+
+        $('#modal_gi_sn_camera_select').on('change', function () {
+            const devId = $(this).val();
+            if (devId) startGiCameraScanner(devId);
+        });
+
+        // Apply Serial Numbers to Row
+        $('#btn_modal_gi_sn_save').on('click', function () {
+            if (currentGiSnIdx === null) return;
+
+            const isEdit = (currentGiSnContext === 'edit');
+            const store = isEdit ? window.editGiItemSerialsStore : window.giItemSerialsStore;
+            store[currentGiSnIdx] = [...giModalWorkingSerials];
+
+            updateRowSnBadge(currentGiSnIdx, currentGiSnContext, currentGiSnTargetQty);
+            stopGiCameraScanner();
+            const modalEl = document.getElementById('modalSelectSerialsGI');
+            if (modalEl) {
+                const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                bsModal.hide();
+            }
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `${giModalWorkingSerials.length} serial number diterapkan ke baris rincian!`,
+                showConfirmButton: false,
+                timer: 1500
+            });
+        });
+
+        // Stop camera when modal is closed
+        $('#modalSelectSerialsGI').on('hidden.bs.modal', function () {
+            stopGiCameraScanner();
+        });
     });
     </script>
     @endpush

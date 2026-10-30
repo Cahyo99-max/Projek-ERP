@@ -132,7 +132,11 @@
                         : `<div class="rounded border bg-light d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;"><i class="bi bi-image text-muted"></i></div>`;
 
                     const hppCellHtml = canSeeHppLookup 
-                        ? `<td class="text-end font-monospace text-body">Rp ${numberFormatID(b.hpp_satuan)}</td>`
+                        ? `<td class="text-end font-monospace text-body">Rp ${numberFormatCurrencyID(b.hpp_satuan)}</td>`
+                        : ``;
+
+                    const snBadgeHtml = b.has_serials
+                        ? `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-2 py-0.5 ms-1.5 small"><i class="bi bi-upc-scan me-1"></i>Serial</span>`
                         : ``;
 
                     rowsHtml += `
@@ -143,10 +147,15 @@
                             data-satuan="${escapeHtmlAdj(b.satuan_name)}"
                             data-stok="${b.stok_aktual}"
                             data-hpp="${b.hpp_satuan}"
-                            data-foto="${b.foto_url || ''}">
+                            data-foto="${b.foto_url || ''}"
+                            data-has-serials="${b.has_serials ? '1' : '0'}"
+                            data-tipe-pelacakan="${escapeHtmlAdj(b.tipe_pelacakan || 'None')}">
                             <td class="text-center">${thumbFotoHtml}</td>
                             <td class="fw-bold text-primary font-monospace">${escapeHtmlAdj(b.kode_barang)}</td>
-                            <td class="fw-semibold text-body">${escapeHtmlAdj(b.nama_barang)}</td>
+                            <td class="fw-semibold text-body">
+                                ${escapeHtmlAdj(b.nama_barang)}
+                                ${snBadgeHtml}
+                            </td>
                             <td class="text-center"><span class="badge bg-secondary bg-opacity-10 text-body border-0 px-2.5 py-1">${escapeHtmlAdj(b.satuan_name)}</span></td>
                             <td class="text-center fw-bold font-monospace ${b.stok_aktual > 0 ? 'text-success' : 'text-danger'}">${numberFormatID(b.stok_aktual)}</td>
                             ${hppCellHtml}
@@ -189,6 +198,9 @@
 
         const hppFmt = formatRibuanID(hpp);
 
+        const hasSerials = ($(this).data('has-serials') == '1');
+        const tipePelacakan = $(this).data('tipe-pelacakan') || 'None';
+
         if (activeFormContext === 'input') {
             $(`#${activeTargetRowId} .inp-barang-id`).val(id);
             $(`#${activeTargetRowId} .inp-barang-name`).val(displayName);
@@ -196,6 +208,18 @@
             $(`#${activeTargetRowId}`).attr('data-stok', stok);
             $(`#stok_aktual_${activeTargetRowId}`).text(numberFormatID(stok)).attr('data-stok', stok);
             $(`#${activeTargetRowId} .inp-hpp-input`).val(hppFmt);
+
+            // Handle Serial Numbers button & flag
+            $(`#${activeTargetRowId} .inp-has-serials`).val(hasSerials ? '1' : '0');
+            $(`#${activeTargetRowId} .inp-serial-numbers`).val('[]');
+            if (hasSerials) {
+                const targetQty = parseInt($(`#${activeTargetRowId} .inp-qty-input`).val() || 0, 10);
+                $(`#${activeTargetRowId} .btn-manage-sn`).removeClass('d-none btn-outline-success text-success')
+                    .addClass('btn-outline-danger text-danger')
+                    .find('.sn-btn-text').text(`Serial (0/${targetQty})`);
+            } else {
+                $(`#${activeTargetRowId} .btn-manage-sn`).addClass('d-none');
+            }
 
             // LOGIKA HPP: Jika HPP > 0 kunci (readonly), jika HPP == 0 buka (bisa diisi manual)
             if (hpp > 0) {
@@ -223,6 +247,18 @@
             $(`#${activeTargetRowId}`).attr('data-stok', stok);
             $(`#stok_aktual_${activeTargetRowId}`).text(numberFormatID(stok)).attr('data-stok', stok);
             $(`#${activeTargetRowId} .inp-hpp-edit`).val(hppFmt);
+
+            // Handle Serial Numbers button & flag
+            $(`#${activeTargetRowId} .inp-has-serials`).val(hasSerials ? '1' : '0');
+            $(`#${activeTargetRowId} .inp-serial-numbers`).val('[]');
+            if (hasSerials) {
+                const targetQty = parseInt($(`#${activeTargetRowId} .inp-qty-edit`).val() || 0, 10);
+                $(`#${activeTargetRowId} .btn-manage-sn`).removeClass('d-none btn-outline-success text-success')
+                    .addClass('btn-outline-danger text-danger')
+                    .find('.sn-btn-text').text(`Serial (0/${targetQty})`);
+            } else {
+                $(`#${activeTargetRowId} .btn-manage-sn`).addClass('d-none');
+            }
 
             // LOGIKA HPP: Jika HPP > 0 kunci (readonly), jika HPP == 0 buka (bisa diisi manual)
             if (hpp > 0) {
@@ -268,6 +304,17 @@
     function escapeHtmlAdj(str) {
         if (!str) return '';
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    if (typeof window.numberFormatCurrencyID !== 'function') {
+        window.numberFormatCurrencyID = function(val) {
+            if (val === null || val === undefined || isNaN(val)) return '0,00';
+            let num = parseFloat(val);
+            return new Intl.NumberFormat('id-ID', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(num);
+        };
     }
 </script>
 @endpush

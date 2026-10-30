@@ -256,4 +256,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 9. FIX CHROMIUM ACCESSIBILITY WARNING:
+    // "Blocked aria-hidden on an element because its descendant retained focus"
+    document.addEventListener('hide.bs.modal', function (event) {
+        if (document.activeElement && event.target && event.target.contains(document.activeElement)) {
+            document.activeElement.blur();
+        }
+    }, true);
+
+    document.addEventListener('hidden.bs.modal', function () {
+        // If another modal is still visible on the page (stacked / nested modals),
+        // keep modal-open class on body so background doesn't lock or freeze
+        if (document.querySelector('.modal.show')) {
+            document.body.classList.add('modal-open');
+        }
+    });
+
 });

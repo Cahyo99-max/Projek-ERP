@@ -12,6 +12,7 @@ use App\Models\MasterTipePengeluaran;
 use App\Models\Jurnal;
 use App\Models\JurnalDetail;
 use App\Models\ChartOfAccount;
+use App\Models\SpkPenerimaanBarangJadiSerial;
 use App\Helpers\AccountMappingHelper;
 use App\Helpers\DecimalHelper;
 use App\Http\Controllers\WhatsAppGatewayController;
@@ -158,7 +159,11 @@ class GoodsIssueController extends Controller
     // ══════════════════════════════════════════════════════════════
     public function getBarangsByGudang(int $gudangId)
     {
-        $this->authorize('tambah-gi');
+        if (auth()->user()->can('edit-gi')) {
+            $this->authorize('edit-gi');
+        } else {
+            $this->authorize('tambah-gi');
+        }
 
         $gudang = $this->resolveGudang($gudangId);
         if (!$gudang) {
@@ -191,7 +196,16 @@ class GoodsIssueController extends Controller
         $stokMap = StokGudang::where('gudang_id', $gudangId)
             ->pluck('stok_aktual', 'barang_id');
 
-        $result = $barangs->map(function ($b) use ($stokMap) {
+        $snBarangIds = SpkPenerimaanBarangJadiSerial::where('status', 'Tersedia')
+            ->whereHas('penerimaan', function($q) use ($gudangId) {
+                $q->where('gudang_id', $gudangId);
+            })
+            ->whereIn('barang_jadi_id', $barangs->pluck('id'))
+            ->distinct()
+            ->pluck('barang_jadi_id')
+            ->toArray();
+
+        $result = $barangs->map(function ($b) use ($stokMap, $snBarangIds) {
             $stokVal = floatval($stokMap[$b->id] ?? 0);
             $fotoUrl = $b->primaryFoto ? asset('storage/' . $b->primaryFoto->foto_path) : null;
             $kategoriName = $b->kategori ? $b->kategori->nama_kategori : '-';
@@ -204,10 +218,113 @@ class GoodsIssueController extends Controller
                 'satuan'      => $b->satuan ? $b->satuan->nama_satuan : '-',
                 'stok_aktual' => $stokVal,
                 'foto'        => $fotoUrl,
+                'has_serials' => in_array($b->id, $snBarangIds),
             ];
         })->values();
 
         return response()->json(['barangs' => $result]);
+    }
+
+    /**
+     * Dapatkan daftar Serial Number yang tersedia (status Tersedia) untuk suatu barang di gudang tertentu.
+     * Mengunci pengecekan anti-dobel alokasi terhadap dokumen GI lain yang berstatus aktif/pending.
+     */
+    public function getAvailableSerials(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->can('lihat-gi') && !$user->can('tambah-gi') && !$user->can('edit-gi') && !$user->hasAnyRole(['Super Admin', 'Owner']))) {
+            return response()->json(['success' => false, 'message' => 'Akses tidak diizinkan.'], 403);
+        }
+
+        $request->validate([
+            'barang_id' => 'required|integer',
+        ]);
+
+        $query = SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $request->barang_id)
+            ->where('status', 'Tersedia')
+            ->with(['penerimaan.gudang:id,nama_gudang,kode_gudang', 'gudang:id,nama_gudang,kode_gudang', 'adjustment:id,nomor_adjustment']);
+
+        if ($request->filled('gudang_id')) {
+            $gudangId = (int) $request->gudang_id;
+            $gudang = $this->resolveGudang($gudangId);
+            if (!$gudang) {
+                return response()->json(['success' => false, 'serials' => []], 403);
+            }
+            $query->where(function($q) use ($gudangId) {
+                $q->whereHas('penerimaan', function($p) use ($gudangId) {
+                    $p->where('gudang_id', $gudangId);
+                })->orWhere('gudang_id', $gudangId);
+            });
+        } else {
+            $query->forActiveCompany();
+        }
+
+        // Integritas Data: Kecualikan nomor seri yang sedang dialokasikan di GI lain yang aktif / pending
+        $ignoreGiId = $request->input('goods_issue_id');
+        $allocatedSerialsQuery = GoodsIssueDetail::where('barang_id', $request->barang_id)
+            ->whereHas('gi', function($q) use ($ignoreGiId) {
+                $q->whereIn('status', ['Draft', 'Pending']);
+                if ($ignoreGiId) {
+                    $q->where('id', '!=', $ignoreGiId);
+                }
+            })
+            ->whereNotNull('serial_numbers');
+
+        $allocatedSerials = [];
+        foreach ($allocatedSerialsQuery->pluck('serial_numbers') as $sns) {
+            if (is_array($sns)) {
+                foreach ($sns as $sn) {
+                    if (!empty($sn)) $allocatedSerials[] = $sn;
+                }
+            } elseif (is_string($sns)) {
+                $decoded = json_decode($sns, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $sn) {
+                        if (!empty($sn)) $allocatedSerials[] = $sn;
+                    }
+                }
+            }
+        }
+
+        // Juga kecualikan serial yang sedang dialokasikan di Stock Adjustment (Pengurangan) Draft/Pending
+        $adjSerialsQuery = \App\Models\StockAdjustmentDetail::where('barang_id', $request->barang_id)
+            ->whereHas('adjustment', function($q) {
+                $q->whereIn('status', ['Draft', 'Pending'])->where('tipe_adjustment', 'Pengurangan');
+            })
+            ->whereNotNull('serial_numbers');
+        foreach ($adjSerialsQuery->pluck('serial_numbers') as $sns) {
+            if (is_array($sns)) {
+                foreach ($sns as $sn) {
+                    if (!empty($sn)) $allocatedSerials[] = $sn;
+                }
+            } elseif (is_string($sns)) {
+                $decoded = json_decode($sns, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $sn) {
+                        if (!empty($sn)) $allocatedSerials[] = $sn;
+                    }
+                }
+            }
+        }
+
+        if (!empty($allocatedSerials)) {
+            $query->whereNotIn('serial_number', array_values(array_unique($allocatedSerials)));
+        }
+
+        $serials = $query->orderBy('id', 'asc')->limit(1000)->get()->map(function($s) {
+            return [
+                'id'            => $s->id,
+                'serial_number' => $s->serial_number,
+                'nomor_batch'   => $s->nomor_batch,
+                'gudang'        => $s->gudang?->nama_gudang ?? ($s->penerimaan?->gudang?->nama_gudang ?? 'Gudang Utama'),
+                'penerimaan_no' => $s->penerimaan?->nomor_penerimaan ?? ($s->stock_adjustment_id ? "Adj #{$s->adjustment?->nomor_adjustment}" : '-'),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'serials' => $serials,
+        ]);
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -216,7 +333,11 @@ class GoodsIssueController extends Controller
     public function getStokBarang(int $gudangId, int $barangId)
     {
         // LAYER 2: Permission check
-        $this->authorize('tambah-gi');
+        if (auth()->user()->can('edit-gi')) {
+            $this->authorize('edit-gi');
+        } else {
+            $this->authorize('tambah-gi');
+        }
 
         // LAYER 3: Branch scope
         $gudang = $this->resolveGudang($gudangId);
@@ -286,7 +407,7 @@ class GoodsIssueController extends Controller
                 'status'           => 'nullable|in:Draft,Pending,Confirmed',
                 'items'            => 'required|array|min:1|max:25',
                 'items.*.barang_id'=> 'required|integer|exists:master_barang,id',
-                'items.*.jumlah'   => 'required|numeric|min:0.01',
+                'items.*.jumlah'   => 'required|numeric|min:0.0001',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -332,9 +453,30 @@ class GoodsIssueController extends Controller
         }
 
         $itemsGrouped = [];
+        $itemSerialsGrouped = [];
         foreach ($request->items as $item) {
             $bid = (int) $item['barang_id'];
             $itemsGrouped[$bid] = floatval($item['jumlah']);
+
+            $sns = [];
+            if (!empty($item['serial_numbers'])) {
+                if (is_array($item['serial_numbers'])) {
+                    $sns = array_values(array_filter($item['serial_numbers']));
+                } elseif (is_string($item['serial_numbers'])) {
+                    $decoded = json_decode($item['serial_numbers'], true);
+                    $sns = is_array($decoded) ? array_values(array_filter($decoded)) : [];
+                }
+            }
+            if (!empty($sns)) {
+                if (count($sns) > $itemsGrouped[$bid]) {
+                    $barangObj = MasterBarang::find($bid);
+                    $namaB = $barangObj ? $barangObj->nama_barang : "ID #{$bid}";
+                    return response()->json([
+                        'message' => "Jumlah Serial Number (" . count($sns) . ") melebihi kuantitas yang dikeluarkan ({$itemsGrouped[$bid]}) untuk barang '{$namaB}'!",
+                    ], 422);
+                }
+                $itemSerialsGrouped[$bid] = $sns;
+            }
         }
 
         // ── LAYER 4 + 5: Business logic validation (outside transaction) ───
@@ -435,9 +577,10 @@ class GoodsIssueController extends Controller
             foreach ($itemsGrouped as $barangId => $jumlah) {
                 // Save detail line
                 GoodsIssueDetail::create([
-                    'gi_id'    => $gi->id,
-                    'barang_id'=> $barangId,
-                    'jumlah'   => $jumlah,
+                    'gi_id'          => $gi->id,
+                    'barang_id'      => $barangId,
+                    'jumlah'         => $jumlah,
+                    'serial_numbers' => $itemSerialsGrouped[$barangId] ?? null,
                 ]);
             }
 
@@ -540,15 +683,13 @@ class GoodsIssueController extends Controller
                 $stokAwalStr  = (string) $stokGudang->stok_aktual;
                 $nilaiLamaStr = (string) $stokGudang->nilai_persediaan;
 
-                $stokBaruStr  = DecimalHelper::add($stokAwalStr, $qtyStr, 2);
+                $stokBaruStr  = DecimalHelper::add($stokAwalStr, $qtyStr, 4);
                 $nilaiBaruStr = DecimalHelper::add($nilaiLamaStr, $nilaiTotStr, 4);
 
                 $stokGudang->stok_aktual      = $stokBaruStr;
                 $stokGudang->nilai_persediaan = $nilaiBaruStr;
                 if (DecimalHelper::comp($stokBaruStr, '0', 4) > 0) {
                     $stokGudang->harga_pokok_rata_rata = DecimalHelper::div($nilaiBaruStr, $stokBaruStr, 6);
-                } else {
-                    $stokGudang->harga_pokok_rata_rata = '0.000000';
                 }
                 $stokGudang->save();
 
@@ -570,6 +711,19 @@ class GoodsIssueController extends Controller
         foreach ($existingJurnals as $ej) {
             $ej->details()->delete();
             $ej->forceDelete();
+        }
+
+        // Kembalikan status serial numbers ke Tersedia jika ada
+        foreach ($gi->details as $d) {
+            if (!empty($d->serial_numbers) && is_array($d->serial_numbers)) {
+                SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $d->barang_id)
+                    ->whereIn('serial_number', $d->serial_numbers)
+                    ->where('status', 'Dikeluarkan')
+                    ->update([
+                        'status'  => 'Tersedia',
+                        'catatan' => "Batal pengeluaran GI {$gi->nomor_gi}",
+                    ]);
+            }
         }
     }
 
@@ -604,14 +758,15 @@ class GoodsIssueController extends Controller
         $canSeeJournal = $this->canSeeJournal();
 
         $relations = [
-            'gudang',
-            'company',
-            'branch',
-            'creator.karyawan',
-            'updater.karyawan',
-            'approver.karyawan',
-            'details.barang.satuan',
-            'details.barang.primaryFoto',
+            'gudang:id,kode_gudang,nama_gudang,cabang_id,company_id',
+            'company:id,nama_perusahaan',
+            'branch:id,nama_cabang',
+            'creator.karyawan:id,nama_lengkap',
+            'updater.karyawan:id,nama_lengkap',
+            'approver.karyawan:id,nama_lengkap',
+            'details.barang:id,kode_barang,nama_barang,satuan_id,kategori_barang_id',
+            'details.barang.satuan:id,nama_satuan',
+            'details.barang.primaryFoto:id,barang_id,foto_path',
         ];
 
         if ($canSeeJournal) {
@@ -712,7 +867,7 @@ class GoodsIssueController extends Controller
                 'status'           => 'nullable|in:Draft,Pending,Confirmed',
                 'items'            => 'required|array|min:1|max:25',
                 'items.*.barang_id'=> 'required|integer|exists:master_barang,id',
-                'items.*.jumlah'   => 'required|numeric|min:0.01',
+                'items.*.jumlah'   => 'required|numeric|min:0.0001',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -746,9 +901,30 @@ class GoodsIssueController extends Controller
         }
 
         $itemsGrouped = [];
+        $itemSerialsGrouped = [];
         foreach ($request->items as $item) {
             $bid = (int) $item['barang_id'];
             $itemsGrouped[$bid] = floatval($item['jumlah']);
+
+            $sns = [];
+            if (!empty($item['serial_numbers'])) {
+                if (is_array($item['serial_numbers'])) {
+                    $sns = array_values(array_filter($item['serial_numbers']));
+                } elseif (is_string($item['serial_numbers'])) {
+                    $decoded = json_decode($item['serial_numbers'], true);
+                    $sns = is_array($decoded) ? array_values(array_filter($decoded)) : [];
+                }
+            }
+            if (!empty($sns)) {
+                if (count($sns) > $itemsGrouped[$bid]) {
+                    $barangObj = MasterBarang::find($bid);
+                    $namaB = $barangObj ? $barangObj->nama_barang : "ID #{$bid}";
+                    return response()->json([
+                        'message' => "Jumlah Serial Number (" . count($sns) . ") melebihi kuantitas yang dikeluarkan ({$itemsGrouped[$bid]}) untuk barang '{$namaB}'!",
+                    ], 422);
+                }
+                $itemSerialsGrouped[$bid] = $sns;
+            }
         }
 
         // Check active barang
@@ -795,9 +971,10 @@ class GoodsIssueController extends Controller
 
             foreach ($itemsGrouped as $barangId => $jumlah) {
                 GoodsIssueDetail::create([
-                    'gi_id'    => $goodsIssue->id,
-                    'barang_id'=> $barangId,
-                    'jumlah'   => $jumlah,
+                    'gi_id'          => $goodsIssue->id,
+                    'barang_id'      => $barangId,
+                    'jumlah'         => $jumlah,
+                    'serial_numbers' => $itemSerialsGrouped[$barangId] ?? null,
                 ]);
             }
 
@@ -1079,8 +1256,14 @@ class GoodsIssueController extends Controller
                         }
 
                         $nilaiKeluarStr        = DecimalHelper::mul($qtyRequiredStr, $hppStr, 4);
-                        $nilaiPersediaanBaruStr= max('0.0000', DecimalHelper::sub($nilaiLamaStr, $nilaiKeluarStr, 4));
-                        $stokAkhirStr          = max('0.00', DecimalHelper::sub($stokAwalStr, $qtyRequiredStr, 2));
+                        $nilaiPersediaanBaruStr= DecimalHelper::sub($nilaiLamaStr, $nilaiKeluarStr, 4);
+                        if (DecimalHelper::comp($nilaiPersediaanBaruStr, '0', 4) < 0) {
+                            $nilaiPersediaanBaruStr = '0.0000';
+                        }
+                        $stokAkhirStr          = DecimalHelper::sub($stokAwalStr, $qtyRequiredStr, 4);
+                        if (!$gudang->izinkan_stok_negatif && DecimalHelper::comp($stokAkhirStr, '0', 4) < 0) {
+                            $stokAkhirStr = '0.0000';
+                        }
 
                         $stokGudang->stok_aktual      = $stokAkhirStr;
                         $stokGudang->nilai_persediaan = $nilaiPersediaanBaruStr;
@@ -1093,6 +1276,8 @@ class GoodsIssueController extends Controller
                         $detailValues[] = [
                             'kategori_id' => $compBarang ? $compBarang->kategori_barang_id : null,
                             'nama'        => $compBarang ? $compBarang->nama_barang : "Komponen #{$component->child_barang_id}",
+                            'jumlah'      => floatval($qtyRequiredStr),
+                            'satuan'      => $compBarang?->satuan?->nama_satuan ?? '',
                             'nilai'       => floatval($nilaiKeluarStr),
                         ];
 
@@ -1131,13 +1316,19 @@ class GoodsIssueController extends Controller
                     }
 
                     $nilaiKeluarStr         = DecimalHelper::mul($qtyIssueStr, $hppStr, 4);
-                    $nilaiPersediaanBaruStr = max('0.0000', DecimalHelper::sub($nilaiLamaStr, $nilaiKeluarStr, 4));
-                    $stokAkhirStr           = max('0.00', DecimalHelper::sub($stokAwalStr, $qtyIssueStr, 2));
+                    $nilaiPersediaanBaruStr = DecimalHelper::sub($nilaiLamaStr, $nilaiKeluarStr, 4);
+                    if (DecimalHelper::comp($nilaiPersediaanBaruStr, '0', 4) < 0) {
+                        $nilaiPersediaanBaruStr = '0.0000';
+                    }
+                    $stokAkhirStr           = DecimalHelper::sub($stokAwalStr, $qtyIssueStr, 4);
+                    if (!$gudang->izinkan_stok_negatif && DecimalHelper::comp($stokAkhirStr, '0', 4) < 0) {
+                        $stokAkhirStr = '0.0000';
+                    }
 
-                        $stokGudang->stok_aktual      = $stokAkhirStr;
-                        $stokGudang->nilai_persediaan = $nilaiPersediaanBaruStr;
-                        $stokGudang->harga_pokok_rata_rata = DecimalHelper::comp($hppStr, '0', 6) > 0 ? $hppStr : (string)($stokGudang->harga_pokok_rata_rata ?? '0.000000');
-                        $stokGudang->save();
+                    $stokGudang->stok_aktual      = $stokAkhirStr;
+                    $stokGudang->nilai_persediaan = $nilaiPersediaanBaruStr;
+                    $stokGudang->harga_pokok_rata_rata = DecimalHelper::comp($hppStr, '0', 6) > 0 ? $hppStr : (string)($stokGudang->harga_pokok_rata_rata ?? '0.000000');
+                    $stokGudang->save();
 
                     StokGudang::syncMasterHpp($detail->barang_id);
 
@@ -1146,6 +1337,7 @@ class GoodsIssueController extends Controller
                         'kategori_id' => $barang ? $barang->kategori_barang_id : null,
                         'nama'        => $barang ? $barang->nama_barang : "Barang #{$detail->barang_id}",
                         'jumlah'      => floatval($qtyIssueStr),
+                        'satuan'      => $barang?->satuan?->nama_satuan ?? '',
                         'nilai'       => floatval($nilaiKeluarStr),
                     ];
 
@@ -1164,6 +1356,17 @@ class GoodsIssueController extends Controller
                         'referensi_nomor' => $goodsIssue->nomor_gi,
                         'keterangan'      => "Pengeluaran Barang - {$goodsIssue->tipe_pengeluaran} ke {$goodsIssue->tujuan}",
                     ]);
+                }
+
+                // Alokasikan & potong status serial number jika ada
+                if (!empty($detail->serial_numbers) && is_array($detail->serial_numbers)) {
+                    SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $detail->barang_id)
+                        ->whereIn('serial_number', $detail->serial_numbers)
+                        ->where('status', 'Tersedia')
+                        ->update([
+                            'status'  => 'Dikeluarkan',
+                            'catatan' => "Pengeluaran Barang via GI {$goodsIssue->nomor_gi} ke {$goodsIssue->tujuan}",
+                        ]);
                 }
             }
 
@@ -1291,8 +1494,15 @@ class GoodsIssueController extends Controller
                 ->value('id');
         }
 
-        // Determine Credit COA ID — fallback chain
-        $defaultCreditCoaId = AccountMappingHelper::getCoaId('goods_issue', "gi_type_{$slug}_credit", null, $coaCompanyId);
+        // Determine Credit COA ID — prioritize Master Tipe Pengeluaran coa_kredit_id, then fallback chain
+        $defaultCreditCoaId = null;
+        if ($masterTipe && $masterTipe->coa_kredit_id) {
+            $defaultCreditCoaId = $masterTipe->coa_kredit_id;
+        }
+
+        if (!$defaultCreditCoaId) {
+            $defaultCreditCoaId = AccountMappingHelper::getCoaId('goods_issue', "gi_type_{$slug}_credit", null, $coaCompanyId);
+        }
         if (!$defaultCreditCoaId) {
             $defaultCreditCoaId = AccountMappingHelper::getCoaId('goods_issue', 'gi_credit_inventory', null, $coaCompanyId);
         }
@@ -1340,15 +1550,20 @@ class GoodsIssueController extends Controller
             $val = floatval($itemVal['nilai']);
             if ($val <= 0) continue;
 
-            $itemName = $itemVal['nama'] ?? 'Barang';
-            $qtyStr   = isset($itemVal['jumlah']) && $itemVal['jumlah'] > 0 ? " (" . floatval($itemVal['jumlah']) . " Pcs)" : '';
+            $itemName   = $itemVal['nama'] ?? 'Barang';
+            $unitName   = !empty($itemVal['satuan']) ? " " . $itemVal['satuan'] : ' Pcs';
+            $qtyVal     = isset($itemVal['jumlah']) && $itemVal['jumlah'] > 0 ? floatval($itemVal['jumlah']) : null;
+            $qtyStr     = $qtyVal !== null ? " (" . round($qtyVal, 2) . "{$unitName})" : '';
             $itemKeterangan = "{$itemName}{$qtyStr}";
 
-            // Priority 1: Category specific inventory COA
+            // Priority 1: Category specific inventory COA (unless custom fixed credit account defined on issue type)
             $catId = $itemVal['kategori_id'] ?? null;
-            $itemCreditCoaId = $catId ? AccountMappingHelper::getCoaId('inventory_category', "cat_{$catId}_inventory", null, $coaCompanyId) : null;
+            $itemCreditCoaId = null;
+            if (!$masterTipe || !$masterTipe->coa_kredit_id) {
+                $itemCreditCoaId = $catId ? AccountMappingHelper::getCoaId('inventory_category', "cat_{$catId}_inventory", null, $coaCompanyId) : null;
+            }
 
-            // Priority 2: System default inventory COA
+            // Priority 2: System / Issue Type default credit COA
             if (!$itemCreditCoaId) {
                 $itemCreditCoaId = $defaultCreditCoaId;
             }

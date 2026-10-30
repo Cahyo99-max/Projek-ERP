@@ -311,7 +311,27 @@ function showDetailOpname(id) {
                     columns: [
                         { data: 'index', name: 'index', orderable: false, searchable: false, className: 'text-center text-muted small' },
                         { data: 'barang_kode', name: 'barang_kode', className: 'fw-semibold small' },
-                        { data: 'barang_nama', name: 'barang_nama', className: 'small' },
+                        { 
+                            data: 'barang_nama', 
+                            name: 'barang_nama', 
+                            className: 'small',
+                            render: function(data, type, row) {
+                                let nameHtml = `<div>${data || '-'}</div>`;
+                                if (row.serial_numbers && Array.isArray(row.serial_numbers) && row.serial_numbers.length > 0) {
+                                    nameHtml += `
+                                        <div class="mt-1 pt-1 border-top border-secondary border-opacity-10">
+                                            <span class="small text-primary fw-semibold d-block mb-0.5" style="font-size: 0.7rem;">
+                                                <i class="bi bi-upc-scan me-1"></i>Serial Fisik (${row.serial_numbers.length} unit):
+                                            </span>
+                                            <div class="d-flex flex-wrap gap-1" style="max-height: 55px; overflow-y: auto;">
+                                                ${row.serial_numbers.map(sn => `<span class="badge bg-light text-primary border border-primary border-opacity-30 font-monospace px-1.5 py-0.5" style="font-size: 0.65rem;">${sn}</span>`).join('')}
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                                return nameHtml;
+                            }
+                        },
                         { 
                             data: 'stok_sistem', 
                             name: 'stok_sistem', 
@@ -615,7 +635,10 @@ function renderOpnameCoaTable(list) {
         </tr>`;
     } else {
         list.forEach(c => {
-            const escapedName = (c.name || '').replace(/'/g, "\\'");
+            const safeName = window.escapeHtml(c.name || '-');
+            const safeCode = window.escapeHtml(c.code || '-');
+            const safeType = window.escapeHtml(c.type || '-');
+            const escapedParamName = (c.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
             
             // Color badges based on type
             let badgeClass = 'bg-secondary bg-opacity-10 text-secondary border-secondary';
@@ -631,16 +654,16 @@ function renderOpnameCoaTable(list) {
             rows += `
             <tr class="align-middle">
                 <td class="ps-3 fw-bold">
-                    <span class="font-monospace text-dark bg-light px-2 py-1 rounded border small">${c.code}</span>
+                    <span class="font-monospace text-dark bg-light px-2 py-1 rounded border small">${safeCode}</span>
                 </td>
                 <td>
-                    <div class="fw-bold text-dark">${c.name}</div>
+                    <div class="fw-bold text-dark">${safeName}</div>
                 </td>
                 <td>
-                    <span class="badge ${badgeClass} border rounded-pill px-2 py-1 fw-semibold small">${c.type || '-'}</span>
+                    <span class="badge ${badgeClass} border rounded-pill px-2 py-1 fw-semibold small">${safeType}</span>
                 </td>
                 <td class="pe-3 text-center">
-                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-bold shadow-sm d-inline-flex align-items-center gap-1" onclick="pickOpnameCoa(${c.id}, '${c.code}', '${escapedName}')">
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-bold shadow-sm d-inline-flex align-items-center gap-1" onclick="pickOpnameCoa(${c.id}, '${safeCode}', '${escapedParamName}')">
                         <i class="bi bi-check-lg"></i> Pilih
                     </button>
                 </td>
@@ -662,16 +685,18 @@ function filterOpnameCoaList() {
 }
 
 function pickOpnameCoa(id, code, name) {
+    const safeCode = window.escapeHtml(code);
+    const safeName = window.escapeHtml(name);
     if (window.activeCoaSelectionType === 'inventory') {
         window.selectedOpnameInvCoaId = id;
         $('#displayInvCoaBox').html(`
-            <code class="fw-bold text-dark me-1">${code}</code> ${name} 
+            <code class="fw-bold text-dark me-1">${safeCode}</code> ${safeName} 
             <span class="badge bg-warning text-dark border border-warning border-opacity-50 ms-1" style="font-size: 10px;">Pilihan User</span>
         `);
     } else if (window.activeCoaSelectionType === 'adjustment') {
         window.selectedOpnameAdjCoaId = id;
         $('#displayAdjCoaBox').html(`
-            <code class="fw-bold text-dark me-1">${code}</code> ${name} 
+            <code class="fw-bold text-dark me-1">${safeCode}</code> ${safeName} 
             <span class="badge bg-warning text-dark border border-warning border-opacity-50 ms-1" style="font-size: 10px;">Pilihan User</span>
         `);
     }

@@ -89,10 +89,20 @@
                     </div>
 
                     <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
-                        <h6 class="fw-bold mb-0 text-info d-flex align-items-center">
-                            <i class="bi bi-list-check me-2 fs-5"></i>
-                            <span>Daftar Hitungan Fisik Riil</span>
-                        </h6>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h6 class="fw-bold mb-0 text-info d-flex align-items-center me-2">
+                                <i class="bi bi-list-check me-1.5 fs-5"></i>
+                                <span>Daftar Hitungan Fisik</span>
+                            </h6>
+                            <div class="btn-group btn-group-sm shadow-xs" role="group">
+                                <button type="button" class="btn btn-primary active fw-semibold" id="tab_btn_sesi_baru" onclick="switchFisikTab('session')">
+                                    <i class="bi bi-upc-scan me-1"></i>Sesi Scan Baru (<span id="count_sesi_baru">0</span>)
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary fw-semibold" id="tab_btn_sudah_disimpan" onclick="switchFisikTab('saved')">
+                                    <i class="bi bi-cloud-check me-1"></i>Sudah Tersimpan di Draf (<span id="count_sudah_disimpan">0</span>)
+                                </button>
+                            </div>
+                        </div>
                         <div id="local_draft_indicator" style="display:none;"></div>
                     </div>
                     <div class="table-responsive">
@@ -142,21 +152,23 @@
 <!-- MODAL: Scanner camera barcode/QR code -->
 <div class="modal modal-blur fade" id="modalScanner" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" style="z-index: 2000;">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="background: #0f172a; color: #f8fafc;">
-            <div class="modal-header border-0 pb-1 d-flex justify-content-between align-items-center">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden" style="background-color: #0f172a !important; color: #f8fafc !important; border: 1.5px solid #334155 !important;">
+            <div class="modal-header border-0 pb-2 d-flex justify-content-between align-items-center px-3 pt-3" style="background: #1e293b !important;">
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-success bg-opacity-25 text-success border border-success rounded-pill px-3 py-1 fw-bold">
-                        <i class="bi bi-camera-fill me-1"></i> Mode Kamera Belakang
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success rounded-pill px-3 py-1.5 fw-bold">
+                        <i class="bi bi-camera-fill me-1"></i> Scanner Kamera Aktif
                     </span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-light rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" onclick="switchCamera()" title="Ganti Kamera">
-                        <i class="bi bi-arrow-repeat"></i>
+                    <button type="button" class="btn btn-sm btn-outline-light rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;" onclick="switchCamera()" title="Ganti Kamera">
+                        <i class="bi bi-arrow-repeat fs-6"></i>
                     </button>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="stopCameraScanner()"></button>
+                    <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 py-1 fw-bold d-inline-flex align-items-center gap-1 shadow" data-bs-dismiss="modal" onclick="stopCameraScanner()" title="Tutup Kamera">
+                        <i class="bi bi-x-lg"></i> Tutup
+                    </button>
                 </div>
             </div>
-            <div class="modal-body p-3 text-center">
+            <div class="modal-body p-3 text-center" style="background: #0f172a !important;">
                 <div class="scanner-viewport-wrapper my-2">
                     <div id="scanner_reader"></div>
                     <div class="scanner-overlay" style="display: none;">
@@ -177,8 +189,10 @@
                     <span class="text-white-50 small">Arahkan barcode / QR Code ke dalam area bidik hijau</span>
                 </div>
             </div>
-            <div class="modal-footer border-0 pt-0 justify-content-center">
-                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-4 text-white" data-bs-dismiss="modal" onclick="stopCameraScanner()">Tutup</button>
+            <div class="modal-footer border-0 pt-2 pb-3 justify-content-center" style="background: #1e293b !important;">
+                <button type="button" class="btn btn-danger rounded-pill px-5 py-2 fw-bold shadow-lg d-inline-flex align-items-center gap-2" data-bs-dismiss="modal" onclick="stopCameraScanner()">
+                    <i class="bi bi-x-circle-fill fs-5"></i> Selesai & Tutup Kamera
+                </button>
             </div>
         </div>
     </div>
@@ -189,9 +203,24 @@
 {{-- ════════════════════════════════════════════════════════════ --}}
 @push('scripts')
 <script>
+// Universal HTML Escaping to prevent XSS and ReferenceErrors
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+window.escapeHtmlAdj = escapeHtml;
+
 let currentOpnameDetails = [];
 let currentScannedItem = null;
 let html5QrcodeScanner = null;
+let sessionScannedBarangIds = new Set();
+let currentActiveFisikTab = 'session'; // 'session' | 'saved'
 
 function createRowHtml(d, displayedIdx) {
     let sistemVal = parseFloat(d.stok_sistem || 0);
@@ -211,11 +240,39 @@ function createRowHtml(d, displayedIdx) {
 
     let catatanVal = d.catatan || '';
 
+    let hasSerials = d.has_serials || false;
+    let snList = d.serial_numbers || [];
+    if (typeof snList === 'string') {
+        try { snList = JSON.parse(snList); } catch(e) { snList = []; }
+    }
+    let snCount = Array.isArray(snList) ? snList.length : 0;
+    let snBtnClass = 'btn-outline-info text-info';
+    if (snCount === sistemVal && sistemVal > 0) {
+        snBtnClass = 'btn-outline-success text-success';
+    } else if (snCount < sistemVal) {
+        snBtnClass = 'btn-outline-danger text-danger';
+    } else if (snCount > sistemVal) {
+        snBtnClass = 'btn-outline-warning text-dark';
+    }
+
     return `
     <tr id="table_row_barang_${d.barang_id}">
         <td data-label="No" class="text-center text-muted small index-cell fw-bold">${displayedIdx}</td>
         <td data-label="Kode" class="small fw-bold text-primary">${d.barang_kode}</td>
-        <td data-label="Barang" class="small fw-semibold">${d.barang_nama}</td>
+        <td data-label="Barang" class="small fw-semibold">
+            <div>${d.barang_nama}</div>
+            ${hasSerials ? `
+                <div class="mt-1 d-flex align-items-center gap-1">
+                    <button type="button" class="btn btn-xs ${snBtnClass} rounded-pill px-2 py-0.5 fw-semibold d-inline-flex align-items-center gap-1 shadow-xs" 
+                            id="btn_sn_${d.barang_id}" onclick="openModalManageSerialsOpname(${d.barang_id})" title="Cek & Verifikasi Serial Number">
+                        <i class="bi bi-upc-scan"></i> <span class="sn-btn-text">Serial (${snCount}/${sistemFormatted})</span>
+                    </button>
+                    <input type="hidden" id="serials_${d.barang_id}" name="items[${d.barang_id}][serial_numbers]" value='${JSON.stringify(snList)}'>
+                </div>
+            ` : `
+                <input type="hidden" id="serials_${d.barang_id}" name="items[${d.barang_id}][serial_numbers]" value="[]">
+            `}
+        </td>
         <td data-label="Sistem" class="text-center">
             <span class="stok-sistem-badge" id="badge_sistem_${d.barang_id}">${sistemFormatted}</span>
             <input type="hidden" id="input_sistem_${d.barang_id}" value="${sistemFormatted}">
@@ -261,6 +318,64 @@ function updateRowIndexes() {
     });
 }
 
+function updateFisikTabCounters() {
+    let sessionCount = sessionScannedBarangIds.size;
+    let savedCount = currentOpnameDetails.filter(d => d.stok_fisik !== null && !sessionScannedBarangIds.has(d.barang_id)).length;
+
+    $('#count_sesi_baru').text(sessionCount);
+    $('#count_sudah_disimpan').text(savedCount);
+}
+
+function switchFisikTab(tab) {
+    currentActiveFisikTab = tab;
+    if (tab === 'session') {
+        $('#tab_btn_sesi_baru').addClass('btn-primary active').removeClass('btn-outline-secondary');
+        $('#tab_btn_sudah_disimpan').removeClass('btn-primary active').addClass('btn-outline-secondary');
+    } else {
+        $('#tab_btn_sudah_disimpan').addClass('btn-primary active').removeClass('btn-outline-secondary');
+        $('#tab_btn_sesi_baru').removeClass('btn-primary active').addClass('btn-outline-secondary');
+    }
+    renderFisikTableByCurrentTab();
+}
+
+function renderFisikTableByCurrentTab() {
+    let tbody = $('#input_fisik_tbody');
+    tbody.empty();
+
+    let itemsToRender = [];
+
+    if (currentActiveFisikTab === 'session') {
+        itemsToRender = currentOpnameDetails.filter(d => sessionScannedBarangIds.has(d.barang_id));
+        if (itemsToRender.length === 0) {
+            tbody.html(getEmptyRowHtml());
+        } else {
+            itemsToRender.forEach((d, idx) => {
+                tbody.append(createRowHtml(d, idx + 1));
+            });
+        }
+    } else {
+        // Tab 'saved': tampilkan barang yang sudah tersimpan di database
+        itemsToRender = currentOpnameDetails.filter(d => d.stok_fisik !== null && !sessionScannedBarangIds.has(d.barang_id));
+        if (itemsToRender.length === 0) {
+            tbody.html(`
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted bg-light bg-opacity-50 border-0 rounded-3">
+                        <i class="bi bi-inbox fs-3 d-block mb-1 text-secondary"></i>
+                        <span>Belum ada item lain yang tersimpan di draf database.</span>
+                    </td>
+                </tr>
+            `);
+        } else {
+            itemsToRender.forEach((d, idx) => {
+                tbody.append(createRowHtml(d, idx + 1));
+            });
+        }
+    }
+
+    updateRowIndexes();
+    updateFisikTabCounters();
+}
+
 function saveLocalFisikDraft(id) {
     if (!id) id = $('#input_so_id').val();
     if (!id) return;
@@ -268,13 +383,15 @@ function saveLocalFisikDraft(id) {
     const items = [];
     if (currentOpnameDetails && currentOpnameDetails.length) {
         currentOpnameDetails.forEach(d => {
-            if (d.stok_fisik !== null || (d.catatan && d.catatan !== '')) {
+            // Hanya simpan item yang sedang ada di sesi scan saat ini ke draf lokal
+            if (sessionScannedBarangIds.has(d.barang_id)) {
                 items.push({
                     barang_id: d.barang_id,
                     barang_kode: d.barang_kode,
                     barang_nama: d.barang_nama,
                     stok_sistem: d.stok_sistem,
                     stok_fisik: d.stok_fisik,
+                    serial_numbers: d.serial_numbers || [],
                     catatan: d.catatan,
                     selisih: d.selisih
                 });
@@ -283,11 +400,10 @@ function saveLocalFisikDraft(id) {
     }
     if (items.length > 0) {
         localStorage.setItem(key, JSON.stringify(items));
-        $('#local_draft_indicator').html('<span class="badge bg-warning bg-opacity-25 text-warning-emphasis border border-warning border-opacity-50 rounded-pill px-3 py-1 fw-semibold small d-inline-flex align-items-center"><i class="bi bi-cloud-arrow-up-fill me-1"></i>Progress Tersimpan (' + items.length + ' item)</span>').show();
     } else {
         localStorage.removeItem(key);
-        $('#local_draft_indicator').hide();
     }
+    updateFisikTabCounters();
 }
 
 function clearLocalFisikDraft(id) {
@@ -305,7 +421,8 @@ function getEmptyRowHtml() {
                     <div class="mb-2 p-3 rounded-circle bg-info bg-opacity-10 text-info d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 52px; height: 52px;">
                         <i class="bi bi-upc-scan fs-3"></i>
                     </div>
-                    <div class="fw-bold text-dark fs-6 text-center w-100">Belum Ada Barang yang Di-scan</div>
+                    <div class="fw-bold text-dark fs-6 text-center w-100">Belum Ada Barang yang Di-scan di Sesi Ini</div>
+                    <div class="text-muted small mt-1">Arahkan scanner ke barcode atau QR Code nomor seri untuk mulai menghitung.</div>
                 </div>
             </td>
         </tr>
@@ -316,38 +433,23 @@ function restoreLocalFisikDraft(id) {
     if (!id) return;
     const key = `so_draft_fisik_${id}`;
     const saved = localStorage.getItem(key);
-    if (!saved) {
-        $('#local_draft_indicator').hide();
-        return;
-    }
+    if (!saved) return;
+
     try {
         const localItems = JSON.parse(saved);
         if (Array.isArray(localItems) && localItems.length > 0) {
-            let restoredCount = 0;
             localItems.forEach(local => {
+                sessionScannedBarangIds.add(local.barang_id);
                 let match = currentOpnameDetails.find(d => d.barang_id == local.barang_id);
                 if (match) {
                     match.stok_fisik = local.stok_fisik;
+                    match.serial_numbers = local.serial_numbers || [];
                     match.catatan = local.catatan;
                     match.selisih = local.selisih;
                 } else {
                     currentOpnameDetails.push(local);
                 }
-                restoredCount++;
             });
-
-            let tbody = $('#input_fisik_tbody');
-            tbody.empty();
-            let activeDetails = currentOpnameDetails.filter(d => d.stok_fisik !== null || (d.catatan && d.catatan !== ''));
-            if (activeDetails.length > 0) {
-                activeDetails.forEach((d, idx) => {
-                    tbody.append(createRowHtml(d, idx + 1));
-                });
-            } else {
-                tbody.html(getEmptyRowHtml());
-            }
-
-            $('#local_draft_indicator').html(`<span class="badge bg-info bg-opacity-25 text-info-emphasis border border-info border-opacity-50 rounded-pill px-3 py-1 fw-semibold small d-inline-flex align-items-center"><i class="bi bi-cloud-check-fill me-1"></i>Draf Lokal Terhubung (${restoredCount} item)</span>`).show();
         }
     } catch (e) {
         console.warn("Error restoring local draft:", e);
@@ -368,6 +470,11 @@ function openInputFisikModal(id) {
     $('#deleted_items_container').empty();
     currentScannedItem = null;
 
+    sessionScannedBarangIds.clear();
+    currentActiveFisikTab = 'session';
+    $('#tab_btn_sesi_baru').addClass('btn-primary active').removeClass('btn-outline-secondary');
+    $('#tab_btn_sudah_disimpan').removeClass('btn-primary active').addClass('btn-outline-secondary');
+
     $.ajax({
         url: `/stock-opname/${id}`,
         method: 'GET',
@@ -378,7 +485,11 @@ function openInputFisikModal(id) {
             $('#input_so_tanggal').text(res.tanggal_mulai);
 
             currentOpnameDetails = res.details || [];
+
+            // Restore hanya item yang sedang dikerjakan pada sesi belum tersimpan
             restoreLocalFisikDraft(res.id);
+
+            renderFisikTableByCurrentTab();
             $('#btnSimpanFisikDraft').prop('disabled', false);
 
             setTimeout(() => { $('#scan_kode').focus(); }, 400);
@@ -549,6 +660,11 @@ function masukkanKeDaftar() {
 
     $(`#deleted_items_container input[name="items[${currentScannedItem.barang_id}][barang_id]"]`).parent().remove();
 
+    sessionScannedBarangIds.add(currentScannedItem.barang_id);
+    if (currentActiveFisikTab !== 'session') {
+        switchFisikTab('session');
+    }
+
     let targetRow = $(`#table_row_barang_${currentScannedItem.barang_id}`);
     if (targetRow.length) {
         let targetInput = $(`#input_fisik_${currentScannedItem.barang_id}`);
@@ -563,6 +679,7 @@ function masukkanKeDaftar() {
     }
 
     updateRowIndexes();
+    updateFisikTabCounters();
     saveLocalFisikDraft();
 
     if (targetRow.length) {
@@ -585,13 +702,96 @@ function masukkanKeDaftar() {
     $('#scan_kode').focus();
 }
 
+function parseQrOrBarcodeString(str) {
+    str = (str || '').toString().trim();
+    let sn = null;
+    let kode = null;
+
+    if (str.includes('sn=')) {
+        let m = str.match(/[?&]sn=([^&]+)/i);
+        if (m) sn = decodeURIComponent(m[1].trim());
+    }
+
+    if (!sn) {
+        let m = str.match(/SN\s*:\s*(.+?)(?=(?:(?:KODE|BARANG|BATCH|WARNA)\s*:)|[\r\n]|$)/i);
+        if (m) sn = m[1].trim();
+    }
+
+    let mKode = str.match(/KODE\s*:\s*(.+?)(?=(?:(?:SN|BARANG|BATCH|WARNA)\s*:)|[\r\n]|$)/i);
+    if (mKode) kode = mKode[1].trim();
+
+    if (!sn) {
+        let m = str.match(/^SN\s*[:\-\s]\s*(.+)$/i);
+        if (m) sn = m[1].trim();
+    }
+
+    return { sn: sn, kode: kode, raw: str };
+}
+
 function processBarcodeInput(query) {
     query = (query || '').toString().trim();
     if (query === '') return;
 
-    $('#scan_kode').val(query);
-    let qLower = query.toLowerCase();
+    let parsed = parseQrOrBarcodeString(query);
+    let isSerial = parsed.sn !== null;
 
+    // Bersihkan tampilan di kolom input
+    if (parsed.sn && parsed.kode) {
+        $('#scan_kode').val(`${parsed.kode} (${parsed.sn})`);
+    } else if (parsed.sn) {
+        $('#scan_kode').val(parsed.sn);
+    } else if (parsed.kode) {
+        $('#scan_kode').val(parsed.kode);
+    } else {
+        $('#scan_kode').val(query);
+    }
+
+    $('#scan_autocomplete_container').hide().empty();
+
+    // Jika yang di-scan adalah format Serial Number (misal: SN: PAS-TAS-... atau ada nomor seri)
+    if (isSerial) {
+        let opnameId = $('#input_so_id').val();
+        if (!opnameId) return;
+
+        $('#scan_nama').val('Memverifikasi Serial Number...');
+
+        $.ajax({
+            url: `/stock-opname/${opnameId}/find-barang`,
+            method: 'GET',
+            data: { code: query },
+            success: function(res) {
+                if (res.matched_type === 'serial_number' && res.matched_serial) {
+                    handleScannedSerialNumber(res, res.matched_serial);
+                    return;
+                }
+                currentOpnameDetails.push(res);
+                selectScannedItem(res, true);
+            },
+            error: function(xhr) {
+                playWarningBeep();
+                let msg = 'Kode, Barcode, atau QR Serial tidak terdaftar di sistem!';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Tidak Ditemukan',
+                    html: `<div class="text-danger fw-bold mb-1">${escapeHtmlAdj(msg)}</div><small class="text-muted font-monospace">${escapeHtmlAdj(parsed.sn || query)}</small>`,
+                    confirmButtonText: 'OK'
+                });
+                $('#scan_kode').val('').focus();
+                $('#scan_nama').val('');
+                $('#scan_sistem').val('');
+                $('#scan_fisik').val('');
+                $('#scan_catatan').val('');
+                $('#scan_selisih').removeClass('selisih-plus selisih-minus').addClass('selisih-zero').text('-');
+            }
+        });
+        return;
+    }
+
+    // Jika scan barcode / kode barang biasa:
+    let qLower = (parsed.kode || query).toLowerCase();
     let exactMatch = currentOpnameDetails.find(d => 
         (d.barang_kode && d.barang_kode.toLowerCase() === qLower) || 
         (d.barang_barcode && d.barang_barcode.toLowerCase() === qLower)
@@ -613,6 +813,11 @@ function processBarcodeInput(query) {
             method: 'GET',
             data: { code: query },
             success: function(res) {
+                if (res.matched_type === 'serial_number' && res.matched_serial) {
+                    handleScannedSerialNumber(res, res.matched_serial);
+                    return;
+                }
+
                 currentOpnameDetails.push(res);
                 selectScannedItem(res, true);
                 setTimeout(() => {
@@ -624,8 +829,8 @@ function processBarcodeInput(query) {
                 
                 Swal.fire({
                     icon: 'error',
-                    title: 'Barang Tidak Terdaftar!',
-                    html: `Barang dengan kode/barcode <strong class="text-danger">${query.toUpperCase()}</strong> tidak terdaftar di sistem!`,
+                    title: 'Barang / QR Serial Tidak Terdaftar!',
+                    html: `Kode, Barcode, atau QR Serial <strong class="text-danger font-monospace">${escapeHtmlAdj((parsed.kode || query).toUpperCase())}</strong> tidak terdaftar di sistem!`,
                     confirmButtonText: 'OK'
                 });
 
@@ -638,6 +843,92 @@ function processBarcodeInput(query) {
             }
         });
     }
+}
+
+function handleScannedSerialNumber(res, sn) {
+    let targetRow = $(`#table_row_barang_${res.barang_id}`);
+    let itemInDetails = currentOpnameDetails.find(d => d.barang_id == res.barang_id);
+
+    if (!itemInDetails) {
+        currentOpnameDetails.push(res);
+        itemInDetails = res;
+    }
+
+    // Ambil daftar nomor seri yang saat ini sudah diverifikasi di baris
+    let currentSns = [];
+    let rawVal = $(`#serials_${res.barang_id}`).val();
+    if (rawVal) {
+        try { currentSns = JSON.parse(rawVal); } catch(e) { currentSns = []; }
+    } else if (itemInDetails.serial_numbers && Array.isArray(itemInDetails.serial_numbers)) {
+        currentSns = itemInDetails.serial_numbers;
+    }
+
+    if (currentSns.includes(sn)) {
+        playWarningBeep();
+        Swal.fire({
+            icon: 'info',
+            title: 'Sudah Terverifikasi',
+            html: `Nomor seri <strong class="text-primary font-monospace">${escapeHtmlAdj(sn)}</strong> sudah pernah dicentang fisik untuk barang <strong>${escapeHtmlAdj(res.barang_nama)}</strong>!`,
+            timer: 1600,
+            showConfirmButton: false
+        });
+        $('#scan_kode').val('').focus();
+        return;
+    }
+
+    // Tambah serial baru yang diverifikasi
+    currentSns.push(sn);
+    let newCount = currentSns.length;
+    itemInDetails.serial_numbers = currentSns;
+    itemInDetails.stok_fisik = newCount;
+    let sistemVal = parseFloat(itemInDetails.stok_sistem || 0);
+    itemInDetails.selisih = newCount - sistemVal;
+
+    sessionScannedBarangIds.add(res.barang_id);
+    if (currentActiveFisikTab !== 'session') {
+        switchFisikTab('session');
+    }
+
+    // Jika baris belum ada di tabel, tambahkan baris baru
+    if (!targetRow.length) {
+        $('#empty_row_placeholder').remove();
+        let nextIndex = $('#input_fisik_tbody tr:not(#empty_row_placeholder)').length + 1;
+        let newRowHtml = createRowHtml(itemInDetails, nextIndex);
+        $('#input_fisik_tbody').append(newRowHtml);
+        targetRow = $(`#table_row_barang_${res.barang_id}`);
+        updateRowIndexes();
+    } else {
+        $(`#input_fisik_${res.barang_id}`).val(newCount);
+        $(`#serials_${res.barang_id}`).val(JSON.stringify(currentSns));
+        hitungDiffFisik(res.barang_id);
+    }
+
+    if (typeof updateOpnameSnRowBadge === 'function') {
+        updateOpnameSnRowBadge(res.barang_id, newCount, currentSns);
+    }
+
+    updateFisikTabCounters();
+    saveLocalFisikDraft();
+
+    // Feedback visual dan audio
+    playScannerBeep();
+    if (targetRow.length) {
+        targetRow[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetRow.css('transition', 'background-color 0.2s').css('background-color', '#dcfce7');
+        setTimeout(() => { targetRow.css('background-color', ''); }, 1500);
+    }
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Serial Terverifikasi!',
+        html: `Nomor seri <strong class="text-success font-monospace">${escapeHtmlAdj(sn)}</strong> berhasil diverifikasi untuk <strong>${escapeHtmlAdj(res.barang_nama)}</strong>!<br><span class="badge bg-success mt-1">Total Fisik: ${newCount} Unit</span>`,
+        timer: 1600,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+    });
+
+    $('#scan_kode').val('').focus();
 }
 
 let availableCameraIds = [];
@@ -869,7 +1160,19 @@ $(document).ready(function () {
     $(document).on('input keyup', '#scan_kode', function(e) {
         if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter') return;
 
-        let query = $(this).val().trim().toLowerCase();
+        let rawVal = $(this).val();
+        let parsed = parseQrOrBarcodeString(rawVal);
+
+        // Jika terdeteksi input/scan QR komposit (memiliki SN: / KODE: atau URL param)
+        if (parsed.sn && (parsed.kode || rawVal.toUpperCase().includes('SN:'))) {
+            $('#scan_autocomplete_container').hide().empty();
+            if (e.type === 'keyup') {
+                processBarcodeInput(rawVal);
+            }
+            return;
+        }
+
+        let query = rawVal.trim().toLowerCase();
         if (query === '') {
             $('#scan_nama').val('');
             $('#scan_sistem').val('');
@@ -1018,6 +1321,18 @@ $(document).ready(function () {
         $('#fisik_alert').hide();
 
         const id = $('#input_so_id').val();
+
+        if ($('#input_fisik_tbody tr:not(#empty_row_placeholder)').length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Belum Ada Input',
+                text: 'Belum ada barang fisik yang di-scan atau dihitung di sesi ini.',
+                timer: 1600,
+                showConfirmButton: false
+            });
+            return;
+        }
+
         const data = $('#formInputFisik').serialize();
 
         $('#btnSimpanFisikDraft').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan…');
@@ -1029,13 +1344,33 @@ $(document).ready(function () {
             success: function (res) {
                 $('#btnSimpanFisikDraft').prop('disabled', false).html('<i class="bi bi-save me-1"></i> Simpan Draf Progress');
 
-                $('#input_fisik_tbody').html(getEmptyRowHtml());
-                $('#deleted_items_container').empty();
+                // Sinkronkan stok_fisik di memori currentOpnameDetails
+                sessionScannedBarangIds.forEach(bId => {
+                    let match = currentOpnameDetails.find(d => d.barang_id == bId);
+                    if (match) {
+                        let rowVal = $(`#input_fisik_${bId}`).val();
+                        match.stok_fisik = (rowVal !== '' && !isNaN(rowVal)) ? parseFloat(rowVal) : null;
+                    }
+                });
+
+                // Bersihkan sesi scan saat ini agar tidak tampil lagi
+                sessionScannedBarangIds.clear();
                 clearLocalFisikDraft(id);
+                $('#deleted_items_container').empty();
+
+                // Kembalikan ke tab sesi scan yang bersih
+                currentActiveFisikTab = 'session';
+                switchFisikTab('session');
 
                 reloadTableOpname();
 
-                Swal.fire({ icon:'success', title:'Progress Disimpan!', text:res.message, timer:1500, showConfirmButton:false });
+                Swal.fire({ 
+                    icon: 'success', 
+                    title: 'Progress Disimpan!', 
+                    text: res.message || 'Data hitungan fisik berhasil disimpan. Siap scan barang berikutnya.', 
+                    timer: 1800, 
+                    showConfirmButton: false 
+                });
             },
             error: function (xhr) {
                 $('#btnSimpanFisikDraft').prop('disabled', false).html('<i class="bi bi-save me-1"></i> Simpan Draf Progress');

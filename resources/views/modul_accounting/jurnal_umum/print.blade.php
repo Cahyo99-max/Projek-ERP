@@ -55,6 +55,26 @@
             align-items: center;
         }
 
+        .top-action-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-action-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .top-action-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .btn-action-close {
             background: rgba(255, 255, 255, 0.15);
             color: #ffffff;
@@ -336,6 +356,119 @@
             print-color-adjust: exact !important;
         }
 
+        /* ==================== RESPONSIVE MOBILE STYLES ==================== */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px 8px 30px 8px;
+                background: #0f172a;
+            }
+            .top-action-bar {
+                padding: 10px 12px;
+                flex-direction: row;
+                gap: 8px;
+                align-items: center;
+                border-radius: 12px;
+                margin-bottom: 12px;
+            }
+            .top-action-left {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                overflow: hidden;
+                flex: 1 1 auto;
+            }
+            .top-action-title {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 0.88rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .top-action-right {
+                flex-shrink: 0;
+            }
+            .btn-action-close {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            .btn-action-print {
+                padding: 6px 14px;
+                font-size: 12px;
+                white-space: nowrap;
+            }
+            .print-container {
+                padding: 18px 14px;
+                border-radius: 14px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            }
+            .kop-surat {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 14px;
+                padding-bottom: 12px;
+            }
+            .kop-entity-left {
+                max-width: 100% !important;
+                width: 100%;
+                gap: 12px;
+            }
+            .kop-logo-frame {
+                width: 58px;
+                height: 58px;
+                border-radius: 10px;
+                padding: 4px;
+            }
+            .kop-entity-name {
+                font-size: 1.12rem;
+                line-height: 1.25;
+            }
+            .kop-title-right {
+                max-width: 100% !important;
+                width: 100%;
+                text-align: left;
+            }
+            .doc-title-text {
+                font-size: 0.95rem;
+                margin-bottom: 4px;
+                letter-spacing: 0.5px;
+            }
+            .voucher-pill {
+                width: 100%;
+                justify-content: flex-start;
+                padding: 4px 10px;
+                font-size: 0.8rem;
+            }
+            .voucher-pill-num {
+                font-size: 0.82rem;
+            }
+            .voucher-date-line {
+                text-align: left;
+                font-size: 0.76rem;
+                margin-top: 4px;
+            }
+            .info-card {
+                padding: 12px 14px;
+                margin-bottom: 16px;
+                border-left-width: 3.5px;
+            }
+            .info-label {
+                font-size: 0.68rem;
+                margin-bottom: 1px;
+            }
+            .info-val {
+                font-size: 0.82rem;
+                line-height: 1.3;
+            }
+            .signature-section .font-mono {
+                font-size: 0.72rem !important;
+            }
+            .signature-section .text-muted {
+                font-size: 0.68rem !important;
+            }
+        }
+
         /* ==================== PRINT SPECIFIC STYLES ==================== */
         @media print {
             @page {
@@ -357,6 +490,29 @@
                 box-shadow: none !important;
                 padding: 0 !important;
                 max-width: 100% !important;
+            }
+            .kop-surat {
+                flex-direction: row !important;
+                align-items: flex-start !important;
+            }
+            .kop-entity-left {
+                max-width: 58% !important;
+            }
+            .kop-title-right {
+                max-width: 40% !important;
+                text-align: right !important;
+            }
+            .info-card .col-md-4 {
+                width: 33.333333% !important;
+            }
+            .table-voucher-wrap,
+            .table-responsive {
+                overflow: visible !important;
+                border: none !important;
+            }
+            .table-voucher {
+                min-width: 100% !important;
+                width: 100% !important;
             }
             .table-voucher thead th {
                 background: #1e40af !important;
@@ -405,19 +561,24 @@
 
     <!-- Top Action Bar (No Print) -->
     <div class="top-action-bar no-print">
-        <button onclick="window.close()" class="btn-action-close">
-            <i class="bi bi-arrow-left"></i> Tutup
-        </button>
-        <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-file-earmark-check fs-5"></i>
-            <span class="fw-bold" style="letter-spacing: 0.3px;">Pratinjau Voucher Jurnal Akuntansi</span>
+        <div class="top-action-left">
+            <button onclick="window.close()" class="btn-action-close">
+                <i class="bi bi-arrow-left"></i> Tutup
+            </button>
+            <div class="top-action-title">
+                <i class="bi bi-file-earmark-check fs-5"></i>
+                <span class="d-none d-sm-inline">Pratinjau Voucher Jurnal Akuntansi</span>
+                <span class="d-inline d-sm-none">Voucher Jurnal</span>
+            </div>
             <span class="badge bg-light text-secondary border font-mono d-none d-md-inline-flex align-items-center gap-1.5 px-3 py-1 ms-2" style="font-size: 10px;">
                 <i class="bi bi-pencil-square text-primary"></i> Tanda Tangan Dapat Diedit Langsung (Klik Teks)
             </span>
         </div>
-        <button onclick="window.print()" class="btn-action-print">
-            <i class="bi bi-printer-fill"></i> Cetak Dokumen (PDF)
-        </button>
+        <div class="top-action-right">
+            <button onclick="window.print()" class="btn-action-print">
+                <i class="bi bi-printer-fill"></i> <span class="d-none d-sm-inline">Cetak Dokumen (PDF)</span><span class="d-inline d-sm-none">Cetak</span>
+            </button>
+        </div>
     </div>
 
     <!-- Main Printable Voucher -->
@@ -459,7 +620,7 @@
         <!-- Info Transaksi Card -->
         <div class="info-card">
             <div class="row g-2">
-                <div class="col-4">
+                <div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0">
                     <div class="info-label">Sumber Transaksi</div>
                     <div class="info-val d-flex align-items-center gap-1.5">
                         <span class="badge" style="background: #dbeafe; color: #1e40af; font-size: 0.78rem; font-weight: 700; padding: 4px 9px;">
@@ -468,7 +629,7 @@
                     </div>
                 </div>
 
-                <div class="col-4">
+                <div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0">
                     <div class="info-label">No. Referensi / Dokumen</div>
                     <div class="info-val font-mono">
                         @if($refData && isset($refData->nomor_do))
@@ -490,7 +651,7 @@
                     </div>
                 </div>
 
-                <div class="col-4">
+                <div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0">
                     <div class="info-label">Dibuat Oleh</div>
                     <div class="info-val">
                         <i class="bi bi-person-circle text-primary me-1"></i>
@@ -498,7 +659,7 @@
                     </div>
                 </div>
 
-                <div class="col-4 mt-2">
+                <div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0 mt-md-2">
                     <div class="info-label">Unit Pembukuan</div>
                     <div class="info-val">
                         @if($isBranch)
@@ -509,7 +670,7 @@
                     </div>
                 </div>
 
-                <div class="col-4 mt-2">
+                <div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0 mt-md-2">
                     <div class="info-label">No. Tender / Proyek</div>
                     <div class="info-val font-mono">
                         {{ $jurnal->no_tender ?: '-' }}
@@ -517,7 +678,7 @@
                 </div>
 
                 @if($refData && $refData->customer)
-                <div class="col-4 mt-2">
+                <div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0 mt-md-2">
                     <div class="info-label">Customer / Instansi</div>
                     <div class="info-val text-truncate" title="{{ $refData->customer->nama_perusahaan ?: $refData->customer->nama_customer }}">
                         <i class="bi bi-person-vcard text-primary me-1"></i>
@@ -525,7 +686,7 @@
                     </div>
                 </div>
                 @else
-                <div class="col-4 mt-2">
+                <div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0 mt-md-2">
                     <div class="info-label">Status Posting</div>
                     <div class="info-val">
                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5" style="font-size: 0.75rem;">
@@ -544,100 +705,110 @@
             </div>
         </div>
 
+        <!-- Swipe Hint Banner untuk Mobile -->
+        <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2 mb-2 rounded-3 no-print" style="background: rgba(37, 99, 235, 0.08); border: 1px dashed rgba(37, 99, 235, 0.3); color: #1e40af; font-size: 0.76rem;">
+            <span><i class="bi bi-arrow-left-right me-1"></i> Geser tabel voucher ke samping</span>
+            <span class="badge bg-primary text-white rounded-pill px-2 py-0.5" style="font-size: 0.7rem;">Swipe &rarr;</span>
+        </div>
+
         <!-- Tabel Baris Jurnal Akuntansi -->
         <div class="table-voucher-wrap mb-0">
-            <table class="table table-voucher">
-                <thead>
-                    <tr>
-                        <th style="width: 40px;" class="text-center">NO</th>
-                        <th style="width: 120px;" class="text-center">KODE AKUN</th>
-                        <th>NAMA AKUN COA &amp; DESKRIPSI BARIS</th>
-                        <th class="text-end" style="width: 175px;">DEBIT (RP)</th>
-                        <th class="text-end" style="width: 175px;">KREDIT (RP)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($jurnal->details as $idx => $d)
-                    <tr>
-                        <td class="text-center font-mono text-muted" style="font-size: 0.82rem;">{{ $idx + 1 }}</td>
-                        <td class="text-center font-mono">
-                            <span class="coa-badge-code">{{ $d->account ? $d->account->code : '-' }}</span>
-                        </td>
-                        <td>
-                            <div class="fw-bold text-dark">{{ $d->account ? $d->account->name : 'Akun Tidak Ditemukan' }}</div>
-                            @if(!empty($d->keterangan) && $d->keterangan !== $jurnal->keterangan)
-                                <div class="text-secondary small mt-0.5 fst-italic">
-                                    <i class="bi bi-arrow-return-right text-primary me-1"></i>{{ $d->keterangan }}
-                                </div>
-                            @endif
-                        </td>
-                        <td class="text-end font-mono">
-                            @if($d->debit > 0)
-                                <span class="val-debit">Rp {{ number_format($d->debit, 2, ',', '.') }}</span>
-                            @else
-                                <span class="text-muted opacity-50">-</span>
-                            @endif
-                        </td>
-                        <td class="text-end font-mono">
-                            @if($d->kredit > 0)
-                                <span class="val-kredit">Rp {{ number_format($d->kredit, 2, ',', '.') }}</span>
-                            @else
-                                <span class="text-muted opacity-50">-</span>
-                            @endif
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="3">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <strong class="text-uppercase" style="color: var(--primary-dark); font-size: 0.82rem; letter-spacing: 0.5px;">
-                                    TOTAL NILAI VOUCHER:
-                                </strong>
-                                @php
-                                    $isBalance = abs($jurnal->total_debit - $jurnal->total_kredit) < 0.01;
-                                @endphp
-                                @if($isBalance)
-                                    <span class="badge" style="background: #10b981; color: #ffffff; font-size: 0.72rem; font-weight: 700; padding: 4px 10px;">
-                                        <i class="bi bi-check-circle-fill me-1"></i>SEIMBANG (BALANCE)
-                                    </span>
-                                @else
-                                    <span class="badge" style="background: #ef4444; color: #ffffff; font-size: 0.72rem; font-weight: 700; padding: 4px 10px;">
-                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>TIDAK SEIMBANG (UNBALANCED)
-                                    </span>
+            <div class="table-responsive" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important;">
+                <table class="table table-voucher" style="min-width: 620px;">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;" class="text-center">NO</th>
+                            <th style="width: 120px;" class="text-center">KODE AKUN</th>
+                            <th>NAMA AKUN COA &amp; DESKRIPSI BARIS</th>
+                            <th class="text-end text-nowrap" style="width: 175px;">DEBIT (RP)</th>
+                            <th class="text-end text-nowrap" style="width: 175px;">KREDIT (RP)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($jurnal->details as $idx => $d)
+                        <tr>
+                            <td class="text-center font-mono text-muted" style="font-size: 0.82rem;">{{ $idx + 1 }}</td>
+                            <td class="text-center font-mono">
+                                <span class="coa-badge-code">{{ $d->account ? $d->account->code : '-' }}</span>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark">{{ $d->account ? $d->account->name : 'Akun Tidak Ditemukan' }}</div>
+                                @if(!empty($d->keterangan) && $d->keterangan !== $jurnal->keterangan)
+                                    <div class="text-secondary small mt-0.5 fst-italic">
+                                        <i class="bi bi-arrow-return-right text-primary me-1"></i>{{ $d->keterangan }}
+                                    </div>
                                 @endif
-                            </div>
-                        </td>
-                        <td class="text-end font-mono">
-                            <strong class="val-debit" style="font-size: 0.94rem;">Rp {{ number_format($jurnal->total_debit, 2, ',', '.') }}</strong>
-                        </td>
-                        <td class="text-end font-mono">
-                            <strong class="val-kredit" style="font-size: 0.94rem;">Rp {{ number_format($jurnal->total_kredit, 2, ',', '.') }}</strong>
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
+                            </td>
+                            <td class="text-end font-mono text-nowrap">
+                                @if($d->debit > 0)
+                                    <span class="val-debit">Rp {{ number_format($d->debit, 2, ',', '.') }}</span>
+                                @else
+                                    <span class="text-muted opacity-50">-</span>
+                                @endif
+                            </td>
+                            <td class="text-end font-mono text-nowrap">
+                                @if($d->kredit > 0)
+                                    <span class="val-kredit">Rp {{ number_format($d->kredit, 2, ',', '.') }}</span>
+                                @else
+                                    <span class="text-muted opacity-50">-</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <strong class="text-uppercase" style="color: var(--primary-dark); font-size: 0.82rem; letter-spacing: 0.5px;">
+                                        TOTAL NILAI VOUCHER:
+                                    </strong>
+                                    @php
+                                        $isBalance = abs($jurnal->total_debit - $jurnal->total_kredit) < 0.01;
+                                    @endphp
+                                    @if($isBalance)
+                                        <span class="badge" style="background: #10b981; color: #ffffff; font-size: 0.72rem; font-weight: 700; padding: 4px 10px;">
+                                            <i class="bi bi-check-circle-fill me-1"></i>SEIMBANG (BALANCE)
+                                        </span>
+                                    @else
+                                        <span class="badge" style="background: #ef4444; color: #ffffff; font-size: 0.72rem; font-weight: 700; padding: 4px 10px;">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>TIDAK SEIMBANG (UNBALANCED)
+                                        </span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="text-end font-mono text-nowrap">
+                                <strong class="val-debit" style="font-size: 0.94rem;">Rp {{ number_format($jurnal->total_debit, 2, ',', '.') }}</strong>
+                            </td>
+                            <td class="text-end font-mono text-nowrap">
+                                <strong class="val-kredit" style="font-size: 0.94rem;">Rp {{ number_format($jurnal->total_kredit, 2, ',', '.') }}</strong>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
         <!-- Lembar Tanda Tangan Otorisasi Voucher Jurnal (Dapat Diedit Langsung) -->
         <div class="row text-center signature-section mt-4 pt-3" style="page-break-inside: avoid; break-inside: avoid;">
             <div class="col-4 d-flex flex-column align-items-center justify-content-between">
                 <div class="text-muted small" contenteditable="true" spellcheck="false" title="Klik untuk mengedit teks otorisasi" style="font-size: 0.82rem;">Dibuat Oleh:</div>
-                <div style="width: 165px; border-bottom: 1.5px solid #334155; margin: 45px auto 6px auto;"></div>
-                <div class="fw-bold text-dark font-mono" contenteditable="true" spellcheck="false" title="Klik untuk mengedit nama" style="font-size: 0.85rem;">
+                <div style="width: 80%; max-width: 165px; border-bottom: 1.5px solid #334155; margin: 45px auto 6px auto;"></div>
+                <div class="fw-bold text-dark font-mono text-truncate w-100" contenteditable="true" spellcheck="false" title="Klik untuk mengedit nama" style="font-size: 0.85rem;">
                     ( {{ $jurnal->creator ? ($jurnal->creator->nama_lengkap ?: $jurnal->creator->name) : 'Staff Accounting' }} )
                 </div>
-                <div class="text-muted small mt-0.5" contenteditable="true" spellcheck="false" title="Klik untuk mengedit jabatan" style="font-size: 0.75rem;">Staff Pembukuan &amp; Verifikasi</div>
+                <div class="text-muted small mt-0.5" contenteditable="true" spellcheck="false" title="Klik untuk mengedit jabatan" style="font-size: 0.75rem;">Staff Pembukuan</div>
             </div>
             <div class="col-4 d-flex flex-column align-items-center justify-content-between">
                 <div class="text-muted small" contenteditable="true" spellcheck="false" title="Klik untuk mengedit teks otorisasi" style="font-size: 0.82rem;">Diperiksa Oleh:</div>
-                <div style="width: 165px; border-bottom: 1.5px solid #334155; margin: 45px auto 6px auto;"></div>
-                <div class="fw-bold text-dark font-mono" contenteditable="true" spellcheck="false" title="Klik untuk mengedit nama" style="font-size: 0.85rem;">( Accounting Manager )</div>
-                <div class="text-muted small mt-0.5" contenteditable="true" spellcheck="false" title="Klik untuk mengedit jabatan" style="font-size: 0.75rem;">Manager Akuntansi &amp; Keuangan</div>
+                <div style="width: 80%; max-width: 165px; border-bottom: 1.5px solid #334155; margin: 45px auto 6px auto;"></div>
+                <div class="fw-bold text-dark font-mono text-truncate w-100" contenteditable="true" spellcheck="false" title="Klik untuk mengedit nama" style="font-size: 0.85rem;">( Accounting Manager )</div>
+                <div class="text-muted small mt-0.5" contenteditable="true" spellcheck="false" title="Klik untuk mengedit jabatan" style="font-size: 0.75rem;">Manager Keuangan</div>
             </div>
             <div class="col-4 d-flex flex-column align-items-center justify-content-between">
                 <div class="text-muted small" contenteditable="true" spellcheck="false" title="Klik untuk mengedit teks otorisasi" style="font-size: 0.82rem;">Disetujui Oleh:</div>
-                <div style="width: 165px; border-bottom: 1.5px solid #334155; margin: 45px auto 6px auto;"></div>
-                <div class="fw-bold text-dark font-mono" contenteditable="true" spellcheck="false" title="Klik untuk mengedit nama" style="font-size: 0.85rem;">( Direktur Keuangan )</div>
+                <div style="width: 80%; max-width: 165px; border-bottom: 1.5px solid #334155; margin: 45px auto 6px auto;"></div>
+                <div class="fw-bold text-dark font-mono text-truncate w-100" contenteditable="true" spellcheck="false" title="Klik untuk mengedit nama" style="font-size: 0.85rem;">( Direktur Keuangan )</div>
                 <div class="text-muted small mt-0.5" contenteditable="true" spellcheck="false" title="Klik untuk mengedit jabatan" style="font-size: 0.75rem;">Direksi Perusahaan</div>
             </div>
         </div>

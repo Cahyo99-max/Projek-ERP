@@ -15,7 +15,7 @@
                 <p class="text-body-secondary small mb-0 mt-1">Kelola penerbitan faktur penagihan resmi, piutang customer, dan integrasi Surat Jalan (DO).</p>
             </div>
             
-            <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="d-flex align-items-center gap-2 flex-wrap si-header-actions">
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-3.5 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" id="btn_reload_table" title="Segarkan Data Tabel">
                     <i class="bi bi-arrow-clockwise fs-6 text-primary"></i>
                     <span>Segarkan</span>
@@ -35,89 +35,122 @@
             </div>
         </div>
 
-        <!-- KPI Cards Summary Row -->
-        <div class="row g-3 mb-4">
+        <!-- KPI Metric Cards Summary Row (Modern Glassmorphic) -->
+        <div class="row g-3 g-sm-3.5 g-md-4 mb-4 mb-md-4.5">
             <!-- Total Faktur -->
             <div class="col-6 col-md-3">
-                <div class="card border border-body-tertiary shadow-sm rounded-4 h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-body-secondary small fw-semibold font-monospace text-uppercase d-block mb-1">Total</span>
-                            <h4 class="fw-bold mb-0 text-body-emphasis font-monospace" id="kpi_total_faktur">{{ number_format($totalFaktur, 0, ',', '.') }}</h4>
+                <div class="si-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="si-kpi-label">Total Faktur</span>
+                            <div class="si-kpi-icon si-kpi-icon-emerald">
+                                <i class="bi bi-receipt"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-4 bg-success-subtle text-success fs-4">
-                            <i class="bi bi-journal-text"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-body font-monospace fs-4 fs-md-3" id="kpi_total_faktur">{{ number_format($totalFaktur, 0, ',', '.') }}</h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-file-earmark-text me-1"></i>Dokumen Faktur
+                        </span>
                     </div>
                 </div>
             </div>
 
             <!-- Piutang Belum Lunas -->
             <div class="col-6 col-md-3">
-                <div class="card border border-body-tertiary shadow-sm rounded-4 h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-warning small fw-semibold font-monospace text-uppercase d-block mb-1">Piutang Belum Lunas</span>
-                            <h4 class="fw-bold mb-0 text-warning font-monospace" id="kpi_piutang_unpaid">Rp {{ number_format($totalPiutangUnpaid, 2, ',', '.') }}</h4>
+                <div class="si-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="si-kpi-label">Piutang Belum Lunas</span>
+                            <div class="si-kpi-icon si-kpi-icon-amber">
+                                <i class="bi bi-hourglass-split"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-4 bg-warning-subtle text-warning fs-4">
-                            <i class="bi bi-hourglass-split"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-warning font-monospace fs-5 fs-md-4 text-truncate" id="kpi_piutang_unpaid" title="Rp {{ number_format($totalPiutangUnpaid, 0, ',', '.') }}">Rp {{ number_format($totalPiutangUnpaid, 0, ',', '.') }}</h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-clock-history me-1"></i>Belum Terbayar
+                        </span>
                     </div>
                 </div>
             </div>
 
             <!-- Faktur Jatuh Tempo -->
             <div class="col-6 col-md-3">
-                <div class="card border border-body-tertiary shadow-sm rounded-4 h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-danger small fw-semibold font-monospace text-uppercase d-block mb-1">Jatuh Tempo</span>
-                            <h4 class="fw-bold mb-0 text-danger font-monospace"><span id="kpi_jatuh_tempo">{{ number_format($totalJatuhTempo, 0, ',', '.') }}</span> <small class="fs-6 text-body-secondary">Faktur</small></h4>
+                <div class="si-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="si-kpi-label">Jatuh Tempo</span>
+                            <div class="si-kpi-icon si-kpi-icon-rose">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-4 bg-danger-subtle text-danger fs-4">
-                            <i class="bi bi-exclamation-triangle-fill"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-danger font-monospace fs-4 fs-md-3">
+                            <span id="kpi_jatuh_tempo">{{ number_format($totalJatuhTempo, 0, ',', '.') }}</span>
+                            <small class="fs-7 text-danger text-opacity-75 font-sans">Faktur</small>
+                        </h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-shield-exclamation me-1"></i>Perlu Tindakan
+                        </span>
                     </div>
                 </div>
             </div>
 
             <!-- Total Terbayar Bulan Ini -->
             <div class="col-6 col-md-3">
-                <div class="card border border-body-tertiary shadow-sm rounded-4 h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-success small fw-semibold font-monospace text-uppercase d-block mb-1">Lunas Bulan Ini</span>
-                            <h4 class="fw-bold mb-0 text-success font-monospace" id="kpi_terbayar_bulan_ini">Rp {{ number_format($totalTerbayarBulanIni, 2, ',', '.') }}</h4>
+                <div class="si-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="si-kpi-label">Lunas Bulan Ini</span>
+                            <div class="si-kpi-icon si-kpi-icon-sky">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-4 bg-success-subtle text-success fs-4">
-                            <i class="bi bi-check-circle-fill"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-info font-monospace fs-5 fs-md-4 text-truncate" id="kpi_terbayar_bulan_ini" title="Rp {{ number_format($totalTerbayarBulanIni, 0, ',', '.') }}">Rp {{ number_format($totalTerbayarBulanIni, 0, ',', '.') }}</h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-cash-coin me-1"></i>Kas Masuk Bulan Ini
+                        </span>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Table Card -->
-        <div class="card border border-body-tertiary shadow-sm rounded-4 overflow-hidden bg-body-tertiary">
-            <div class="card-header bg-body-secondary border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden table-custom-card">
+            <div class="card-header bg-transparent border-bottom py-3 px-3 px-md-4 d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold text-body-emphasis mb-0 d-flex align-items-center gap-2">
-                    <i class="bi bi-table text-success"></i> Daftar Faktur Penjualan
+                    <i class="bi bi-receipt text-success"></i> Daftar Faktur Penjualan
                 </h6>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-monospace px-3 py-1 fw-bold">Live Data</span>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive p-3">
-                    <table class="table table-hover align-middle w-100" id="tableSalesInvoices">
+            <div class="card-body p-3 p-md-3.5">
+                <!-- Mobile Swipe Hint Banner -->
+                <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2.5 mb-3 rounded-3 si-mobile-swipe-banner shadow-2xs">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-arrow-left-right text-success"></i>
+                        <span class="fw-semibold small">Geser tabel untuk melihat rincian</span>
+                    </div>
+                    <span class="badge rounded-pill px-2.5 py-1 fw-bold si-swipe-pill">Swipe &rarr;</span>
+                </div>
+
+                <div class="table-responsive" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important;">
+                    <table class="table table-hover align-middle w-100 mb-0" id="tableSalesInvoices" style="min-width: 960px;">
                         <thead>
-                            <tr class="small text-uppercase fw-bold bg-body-secondary text-body-secondary">
-                                <th style="width: 40px;" class="text-center">No</th>
-                                <th>No. Faktur</th>
-                                <th>Customer</th>
-                                <th>Jatuh Tempo</th>
-                                <th class="text-end">Total </th>
-                                <th class="text-end">Sisa Tagihan</th>
-                                <th class="text-center">Status</th>
-                                <th style="width: 100px;" class="text-center">Aksi</th>
+                            <tr class="small text-uppercase fw-bold text-body-secondary">
+                                <th style="width: 45px;" class="text-center">No</th>
+                                <th style="min-width: 150px;">No. Faktur</th>
+                                <th style="min-width: 180px;">Customer</th>
+                                <th style="min-width: 130px;">Jatuh Tempo</th>
+                                <th class="text-end" style="min-width: 140px;">Total</th>
+                                <th class="text-end" style="min-width: 140px;">Sisa Tagihan</th>
+                                <th class="text-center" style="min-width: 120px;">Status</th>
+                                <th style="width: 130px;" class="text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -136,6 +169,8 @@
     @include('modul_marketing.faktur_penjualan._modal_jurnal')
 
     @push('styles')
+    <!-- Modul SMD Faktur Penjualan Modern Styling -->
+    <link rel="stylesheet" href="{{ asset('modul_smd/faktur_penjualan.css') }}?v={{ time() }}">
     <!-- Select2 Searchable Dropdown CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
@@ -518,6 +553,10 @@
             let table = $('#tableSalesInvoices').DataTable({
                 processing: false,
                 serverSide: true,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                deferRender: true,
+                orderClasses: false,
                 ajax: {
                     url: "{{ route('modul_marketing.faktur_penjualan.index') }}",
                     data: function (d) {
@@ -544,15 +583,38 @@
                 },
                 order: [[1, 'desc']],
                 language: {
-                    search: "Cari Faktur:",
+                    search: "",
+                    searchPlaceholder: "Cari nomor faktur, customer...",
                     lengthMenu: "Tampilkan _MENU_ data",
-                    info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ faktur",
+                    info: "Menampilkan _START_ s/d _END_ dari _TOTAL_ faktur",
+                    infoEmpty: "Menampilkan 0 data",
+                    infoFiltered: "(disaring dari _MAX_ total faktur)",
+                    zeroRecords: "Tidak ada faktur yang cocok",
                     paginate: {
                         first: "Awal",
                         last: "Akhir",
-                        next: "<i class='bi bi-chevron-right'></i>",
-                        previous: "<i class='bi bi-chevron-left'></i>"
-                    }
+                        next: "&raquo;",
+                        previous: "&laquo;"
+                    },
+                    emptyTable: "Belum ada riwayat faktur penjualan.",
+                    processing: '<div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div>'
+                },
+                initComplete: function() {
+                    let api = this.api();
+                    let searchInput = $('#tableSalesInvoices_filter input');
+                    let debounceTimer = null;
+
+                    searchInput.unbind().on('input keyup', function(e) {
+                        let term = this.value;
+                        clearTimeout(debounceTimer);
+                        if (e.keyCode === 13) {
+                            api.search(term).draw();
+                            return;
+                        }
+                        debounceTimer = setTimeout(function() {
+                            api.search(term).draw();
+                        }, 400);
+                    });
                 }
             });
 
@@ -778,7 +840,12 @@
                     } else if (jurnal.company) {
                         entitasText = jurnal.company.nama_perusahaan || 'PT PUSAT';
                     }
-                    $('#inv_jurnal_entitas_badge').html(`<span class="badge ${entitasBadgeClass} px-2.5 py-1 rounded-pill fw-bold"><i class="bi bi-building me-1"></i>${escapeHtml(entitasText)}</span>`);
+                    $('#inv_jurnal_entitas_badge').html(`
+                        <span class="badge ${entitasBadgeClass} px-2.5 py-1 rounded-pill fw-bold d-inline-flex align-items-center mw-100" style="max-width: 100%; white-space: normal; text-align: left; line-height: 1.3;" title="${escapeHtml(entitasText)}">
+                            <i class="bi bi-building me-1.5 flex-shrink-0"></i>
+                            <span class="text-truncate">${escapeHtml(entitasText)}</span>
+                        </span>
+                    `);
 
                     $('#inv_jurnal_ref_faktur').text(invoice.nomor_faktur || '-');
                     let custName = invoice.customer ? (invoice.customer.nama_perusahaan || invoice.customer.nama_customer) : '-';
@@ -810,14 +877,14 @@
                         rowsHtml += `
                             <tr>
                                 <td class="text-center text-body-secondary small">${idx + 1}</td>
-                                <td style="${isDebit ? '' : 'padding-left: 28px !important;'}">
+                                <td class="text-nowrap" style="${isDebit ? '' : 'padding-left: 28px !important;'}">
                                     <span class="badge bg-secondary-subtle text-secondary border font-monospace me-2">${safeCoaCode}</span>
                                     <span class="${isDebit ? 'fw-bold text-body-emphasis' : 'text-body-secondary'}">${!isDebit ? '<i class="bi bi-arrow-return-right text-muted me-1"></i>' : ''}${safeCoaName}</span>
                                 </td>
-                                <td class="text-end font-monospace ${debit > 0 ? 'text-success fw-bold' : 'text-body-secondary opacity-50'}">
+                                <td class="text-end font-monospace text-nowrap ${debit > 0 ? 'text-success fw-bold' : 'text-body-secondary opacity-50'}">
                                     ${debitFmt}
                                 </td>
-                                <td class="text-end font-monospace ${kredit > 0 ? 'text-primary fw-bold' : 'text-body-secondary opacity-50'}">
+                                <td class="text-end font-monospace text-nowrap ${kredit > 0 ? 'text-primary fw-bold' : 'text-body-secondary opacity-50'}">
                                     ${kreditFmt}
                                 </td>
                                 <td class="text-body-secondary text-truncate small" style="max-width: 250px;" title="${safeKet}">${safeKet}</td>

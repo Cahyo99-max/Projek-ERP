@@ -19,12 +19,14 @@ class StockAdjustmentDetail extends Model
         'harga_satuan',
         'nilai_total',
         'keterangan_detail',
+        'serial_numbers',
     ];
 
     protected $casts = [
-        'jumlah'       => 'decimal:2',
-        'harga_satuan' => 'decimal:4',
-        'nilai_total'  => 'decimal:4',
+        'jumlah'         => 'decimal:2',
+        'harga_satuan'   => 'decimal:4',
+        'nilai_total'    => 'decimal:4',
+        'serial_numbers' => 'array',
     ];
 
     public function adjustment(): BelongsTo

@@ -147,42 +147,42 @@ class SalesQuotationController extends Controller
             })
             ->addColumn('nomor_formatted', function ($q) {
                 $revBadge = $q->revisi > 0 
-                    ? '<span class="badge badge-soft-indigo fs-9 px-2 py-0.5 rounded-pill fw-semibold"><i class="bi bi-clock-history me-0.5"></i>Rev.' . $q->revisi . '</span>' 
-                    : '<span class="badge badge-soft-neutral fs-9 px-2 py-0.5 rounded-pill text-muted">Rev.0</span>';
-                return '<div class="d-flex align-items-center gap-1.5"><span class="fw-bold text-primary font-monospace fs-8">' . e($q->nomor_quotation) . '</span>' . $revBadge . '</div>';
+                    ? '<span class="badge badge-soft-indigo fs-9 px-2 py-0.5 rounded-pill fw-semibold text-nowrap"><i class="bi bi-clock-history me-0.5"></i>Rev.' . $q->revisi . '</span>' 
+                    : '<span class="badge badge-soft-neutral fs-9 px-2 py-0.5 rounded-pill text-muted text-nowrap">Rev.0</span>';
+                return '<div class="d-flex align-items-center gap-1.5 text-nowrap"><span class="fw-bold text-primary font-monospace fs-8">' . e($q->nomor_quotation) . '</span>' . $revBadge . '</div>';
             })
             ->addColumn('customer_info', function ($q) {
                 $corp = $q->customer ? ($q->customer->nama_perusahaan ?: $q->customer->nama_customer) : '-';
                 $custName = e($corp);
                 $tenderInfo = '';
                 if ($q->tender) {
-                    $tenderInfo = '<div class="fs-9 text-muted text-truncate mt-0.5" style="max-width: 220px;"><i class="bi bi-briefcase me-1 text-info"></i>' . e($q->tender->nama_tender) . '</div>';
+                    $tenderInfo = '<div class="fs-9 text-muted text-truncate mt-0.5" style="max-width: 240px;"><i class="bi bi-briefcase me-1 text-info"></i>' . e($q->tender->nama_tender) . '</div>';
                 }
-                return '<div><div class="fw-semibold text-body fs-8">' . $custName . '</div>' . $tenderInfo . '</div>';
+                return '<div><div class="fw-semibold text-body fs-8 text-truncate" style="max-width: 250px;">' . $custName . '</div>' . $tenderInfo . '</div>';
             })
             ->addColumn('tanggal_formatted', function ($q) {
-                return '<span class="fs-8 text-secondary">' . ($q->tanggal_quotation ? $q->tanggal_quotation->format('d/m/Y') : '-') . '</span>';
+                return '<span class="fs-8 text-secondary text-nowrap"><i class="bi bi-calendar3 me-1 text-muted opacity-75"></i>' . ($q->tanggal_quotation ? $q->tanggal_quotation->format('d/m/Y') : '-') . '</span>';
             })
             ->addColumn('grand_total_formatted', function ($q) {
-                return '<span class="fw-bold fs-8 text-body font-monospace">Rp ' . number_format($q->grand_total, 0, ',', '.') . '</span>';
+                return '<span class="fw-bold fs-8 text-success font-monospace text-nowrap">Rp ' . number_format($q->grand_total, 0, ',', '.') . '</span>';
             })
             ->addColumn('hpp_margin', function ($q) use ($canSeeHpp) {
                 if (!$canSeeHpp) return '<span class="text-muted fs-8">-</span>';
                 $margin = (float)$q->margin_persen;
                 $badgeClass = $margin >= 20 ? 'text-success' : ($margin >= 10 ? 'text-warning' : 'text-danger');
-                return '<div class="fs-8 text-secondary">HPP: Rp ' . number_format($q->total_hpp, 0, ',', '.') . '</div>
-                        <div class="fs-9 fw-bold ' . $badgeClass . '"><i class="bi bi-graph-up-arrow me-1"></i>Margin: ' . number_format($margin, 1) . '%</div>';
+                return '<div class="fs-8 text-secondary text-nowrap">HPP: Rp ' . number_format($q->total_hpp, 0, ',', '.') . '</div>
+                        <div class="fs-9 fw-bold text-nowrap ' . $badgeClass . '"><i class="bi bi-graph-up-arrow me-1"></i>Margin: ' . number_format($margin, 1) . '%</div>';
             })
             ->addColumn('status_badge', function ($q) {
                 $badges = [
-                    'Draft'           => '<span class="badge badge-soft-neutral rounded-pill px-2.5 py-1 fs-8 fw-semibold"><i class="bi bi-pencil-square me-1"></i>Draft</span>',
-                    'Sent'            => '<span class="badge badge-soft-sky rounded-pill px-2.5 py-1 fs-8 fw-semibold"><i class="bi bi-send me-1"></i>Terkirim</span>',
-                    'Revised'         => '<span class="badge badge-soft-amber rounded-pill px-2.5 py-1 fs-8 fw-semibold"><i class="bi bi-arrow-repeat me-1"></i>Direvisi</span>',
-                    'Approved'        => '<span class="badge badge-soft-emerald rounded-pill px-2.5 py-1 fs-8 fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Disetujui</span>',
-                    'Rejected'        => '<span class="badge badge-soft-rose rounded-pill px-2.5 py-1 fs-8 fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>',
-                    'Converted_to_SO' => '<span class="badge badge-soft-indigo rounded-pill px-2.5 py-1 fs-8 fw-semibold"><i class="bi bi-cart-check-fill me-1"></i>Jadi SO</span>' . ($q->salesOrder ? '<div class="fs-9 font-monospace text-primary mt-0.5">' . e($q->salesOrder->nomor_so) . '</div>' : ''),
+                    'Draft'           => '<span class="badge badge-soft-neutral rounded-pill px-2.5 py-1 fs-8 fw-semibold text-nowrap"><i class="bi bi-pencil-square me-1"></i>Draft</span>',
+                    'Sent'            => '<span class="badge badge-soft-sky rounded-pill px-2.5 py-1 fs-8 fw-semibold text-nowrap"><i class="bi bi-send me-1"></i>Terkirim</span>',
+                    'Revised'         => '<span class="badge badge-soft-amber rounded-pill px-2.5 py-1 fs-8 fw-semibold text-nowrap"><i class="bi bi-arrow-repeat me-1"></i>Direvisi</span>',
+                    'Approved'        => '<span class="badge badge-soft-emerald rounded-pill px-2.5 py-1 fs-8 fw-semibold text-nowrap"><i class="bi bi-check-circle-fill me-1"></i>Disetujui</span>',
+                    'Rejected'        => '<span class="badge badge-soft-rose rounded-pill px-2.5 py-1 fs-8 fw-semibold text-nowrap"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>',
+                    'Converted_to_SO' => '<span class="badge badge-soft-indigo rounded-pill px-2.5 py-1 fs-8 fw-semibold text-nowrap"><i class="bi bi-cart-check-fill me-1"></i>Jadi SO</span>' . ($q->salesOrder ? '<div class="fs-9 font-monospace text-primary mt-0.5 text-nowrap">' . e($q->salesOrder->nomor_so) . '</div>' : ''),
                 ];
-                return $badges[$q->status] ?? '<span class="badge badge-soft-neutral rounded-pill px-2.5 py-1 fs-8">' . e($q->status) . '</span>';
+                return $badges[$q->status] ?? '<span class="badge badge-soft-neutral rounded-pill px-2.5 py-1 fs-8 text-nowrap">' . e($q->status) . '</span>';
             })
             ->addColumn('action', function ($q) {
                 $user = Auth::user();

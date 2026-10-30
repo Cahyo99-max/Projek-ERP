@@ -1,0 +1,344 @@
+/* ==========================================================================
+   MODUL MARKETING - FAKTUR PENJUALAN (SALES INVOICES)
+   High-End Glassmorphic KPI Cards & Modern Table Styling
+   ========================================================================== */
+
+/* ── KPI Metric Cards (Modern & Frosted) ────────────────────────────────── */
+.si-kpi-card {
+    background: var(--bs-card-bg, #ffffff);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 1.15rem;
+    padding: 1.25rem 1.3rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+@media (max-width: 576px) {
+    .si-kpi-card {
+        padding: 1.05rem 1rem;
+        border-radius: 1rem;
+    }
+}
+
+.si-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08);
+}
+
+[data-bs-theme="dark"] .si-kpi-card {
+    background: #111827;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+[data-bs-theme="dark"] .si-kpi-card:hover {
+    box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.45);
+}
+
+.si-kpi-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color, #64748b);
+    text-transform: capitalize;
+    letter-spacing: 0.2px;
+}
+
+[data-bs-theme="dark"] .si-kpi-label {
+    color: #94a3b8;
+}
+
+.si-kpi-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.si-kpi-icon-emerald {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+}
+[data-bs-theme="dark"] .si-kpi-icon-emerald {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.si-kpi-icon-amber {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+}
+[data-bs-theme="dark"] .si-kpi-icon-amber {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.si-kpi-icon-rose {
+    background: rgba(244, 63, 94, 0.12);
+    color: #e11d48;
+}
+[data-bs-theme="dark"] .si-kpi-icon-rose {
+    background: rgba(244, 63, 94, 0.2);
+    color: #fb7185;
+}
+
+.si-kpi-icon-sky {
+    background: rgba(14, 165, 233, 0.12);
+    color: #0284c7;
+}
+[data-bs-theme="dark"] .si-kpi-icon-sky {
+    background: rgba(14, 165, 233, 0.2);
+    color: #38bdf8;
+}
+
+/* ── Mobile Swipe Hint Banner ───────────────────────────────────────────── */
+.si-mobile-swipe-banner {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px dashed rgba(16, 185, 129, 0.3);
+    color: #059669;
+    font-size: 0.775rem;
+}
+[data-bs-theme="dark"] .si-mobile-swipe-banner {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(52, 211, 153, 0.35);
+    color: #34d399;
+}
+.si-swipe-pill {
+    background: rgba(16, 185, 129, 0.18);
+    color: #047857;
+    font-size: 0.72rem;
+}
+[data-bs-theme="dark"] .si-swipe-pill {
+    background: rgba(16, 185, 129, 0.28);
+    color: #6ee7b7;
+}
+
+/* ── Header Actions on Mobile ───────────────────────────────────────────── */
+@media (max-width: 575.98px) {
+    .si-header-actions {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .si-header-actions .btn {
+        flex: 1 1 auto;
+        justify-content: center;
+        padding: 0.45rem 0.85rem !important;
+        font-size: 0.82rem !important;
+    }
+}
+
+/* ── Modern Table Card ─────────────────────────────────────────────────── */
+.table-custom-card {
+    background: var(--bs-card-bg, #ffffff);
+    border: 1px solid rgba(226, 232, 240, 0.8) !important;
+}
+[data-bs-theme="dark"] .table-custom-card {
+    background: #111827 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ── Modern DataTables Controls (Length, Search, Pagination) ────────────── */
+#tableSalesInvoices_wrapper .dataTables_length,
+#tableSalesInvoices_wrapper .dataTables_filter {
+    margin-bottom: 14px;
+}
+#tableSalesInvoices_wrapper .dataTables_length label,
+#tableSalesInvoices_wrapper .dataTables_filter label,
+#tableSalesInvoices_wrapper .dataTables_info {
+    font-size: 0.82rem;
+    color: #64748b;
+    font-weight: 500;
+}
+[data-bs-theme="dark"] #tableSalesInvoices_wrapper .dataTables_length label,
+[data-bs-theme="dark"] #tableSalesInvoices_wrapper .dataTables_filter label,
+[data-bs-theme="dark"] #tableSalesInvoices_wrapper .dataTables_info {
+    color: #94a3b8 !important;
+}
+
+#tableSalesInvoices_wrapper .dataTables_length select {
+    border: 1px solid #cbd5e1;
+    border-radius: 20px !important;
+    padding: 0.38rem 2.2rem 0.38rem 0.95rem !important;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background-color: #ffffff;
+    color: #0f172a;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 11px 11px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    outline: none;
+    transition: all 0.2s ease;
+}
+#tableSalesInvoices_wrapper .dataTables_length select:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+[data-bs-theme="dark"] #tableSalesInvoices_wrapper .dataTables_length select {
+    background-color: #0f172a !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    color: #f8fafc !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+}
+
+#tableSalesInvoices_wrapper .dataTables_filter {
+    position: relative;
+}
+#tableSalesInvoices_wrapper .dataTables_filter label {
+    display: inline-flex;
+    align-items: center;
+    width: auto;
+    position: relative;
+    margin-bottom: 0;
+}
+#tableSalesInvoices_wrapper .dataTables_filter input {
+    border: 1px solid #cbd5e1;
+    border-radius: 24px !important;
+    padding: 0.45rem 1.1rem 0.45rem 2.3rem !important;
+    font-size: 0.82rem;
+    outline: none;
+    background-color: #ffffff;
+    color: #0f172a;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 11px center;
+    background-size: 14px 14px;
+    min-width: 240px;
+}
+#tableSalesInvoices_wrapper .dataTables_filter input:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+[data-bs-theme="dark"] #tableSalesInvoices_wrapper .dataTables_filter input {
+    background-color: #0f172a !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    color: #f8fafc !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+}
+
+@media (max-width: 767.98px) {
+    #tableSalesInvoices_wrapper .dataTables_length,
+    #tableSalesInvoices_wrapper .dataTables_filter {
+        width: 100%;
+        text-align: left;
+        margin-bottom: 10px;
+    }
+    #tableSalesInvoices_wrapper .dataTables_filter label {
+        width: 100%;
+    }
+    #tableSalesInvoices_wrapper .dataTables_filter input {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+}
+
+#tableSalesInvoices_wrapper .dataTables_info {
+    font-size: 0.82rem;
+    color: var(--bs-secondary-color);
+    padding-top: 12px;
+}
+#tableSalesInvoices_wrapper .dataTables_paginate {
+    padding-top: 10px;
+}
+#tableSalesInvoices_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 8px !important;
+    padding: 4px 11px !important;
+    font-size: 0.82rem !important;
+    margin: 0 2px !important;
+    border: 1px solid transparent !important;
+}
+#tableSalesInvoices_wrapper .dataTables_paginate .paginate_button.current,
+#tableSalesInvoices_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    border-color: #059669 !important;
+}
+
+/* ── Action Buttons Polish in Table Rows ────────────────────────────────── */
+#tableSalesInvoices .btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+    transition: all 0.2s ease;
+}
+#tableSalesInvoices .btn-icon:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Modern Circular Close Button ────────────────────────────────────────── */
+.si-btn-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(148, 163, 184, 0.15);
+    border: none;
+    color: #64748b;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.si-btn-close:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    transform: scale(1.05);
+}
+[data-bs-theme="dark"] .si-btn-close {
+    background: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+}
+[data-bs-theme="dark"] .si-btn-close:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #f87171;
+}
+
+/* ── Jurnal Modal Header & Badge Code ───────────────────────────────────── */
+.si-jurnal-badge-code {
+    background-color: rgba(37, 99, 235, 0.08);
+    border: 1px solid rgba(37, 99, 235, 0.25);
+    color: #2563eb;
+    white-space: nowrap;
+}
+[data-bs-theme="dark"] .si-jurnal-badge-code {
+    background-color: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.35);
+    color: #60a5fa;
+}
+
+.si-jurnal-icon-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(5, 150, 105, 0.22) 100%);
+    color: #059669;
+    flex-shrink: 0;
+}
+[data-bs-theme="dark"] .si-jurnal-icon-badge {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.35) 100%);
+    color: #34d399;
+}
+

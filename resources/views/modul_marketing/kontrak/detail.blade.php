@@ -1,38 +1,181 @@
 {{-- ===== MODAL DETAIL TENDER (DUAL THEME ADAPTIVE: LIGHT & DARK) ===== --}}
 
+<style>
+    /* ─── TENDER MODAL CINEMATIC & RESPONSIVE REFINEMENTS ─── */
+    .tender-btn-close {
+        width: 34px;
+        height: 34px;
+        border-radius: 50% !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        font-size: 0.85rem;
+        cursor: pointer;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        background: rgba(0, 0, 0, 0.04);
+        color: #64748b;
+        flex-shrink: 0;
+        margin-left: 8px;
+    }
+    .tender-btn-close:hover {
+        background: rgba(239, 68, 68, 0.12) !important;
+        color: #ef4444 !important;
+        border-color: rgba(239, 68, 68, 0.25) !important;
+        transform: rotate(90deg) scale(1.05);
+    }
+    [data-bs-theme="dark"] .tender-btn-close {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.12);
+        color: #cbd5e1;
+    }
+    [data-bs-theme="dark"] .tender-btn-close:hover {
+        background: rgba(239, 68, 68, 0.2) !important;
+        color: #f87171 !important;
+        border-color: rgba(239, 68, 68, 0.4) !important;
+    }
+
+    /* Stepper Scrollable Mobile */
+    @media (max-width: 991.98px) {
+        .tender-stepper-scrollable {
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding-bottom: 8px !important;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .tender-stepper-scrollable::-webkit-scrollbar {
+            display: none;
+        }
+        .tender-stepper-scrollable .stepper-node {
+            flex-shrink: 0 !important;
+        }
+        .tender-stepper-scrollable .stepper-text {
+            white-space: nowrap !important;
+            font-size: 0.78rem !important;
+        }
+        .tender-stepper-scrollable > i.bi-chevron-right {
+            flex-shrink: 0 !important;
+        }
+
+        #detail_workflow_actions {
+            width: 100% !important;
+            margin-top: 8px;
+        }
+        #detail_workflow_actions .btn {
+            width: 100% !important;
+            justify-content: center !important;
+            padding: 10px 16px !important;
+            font-size: 0.88rem !important;
+        }
+    }
+
+    /* Tabs Scrollable Mobile */
+    @media (max-width: 768px) {
+        .tender-tabs-scrollable {
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding-bottom: 4px !important;
+            scrollbar-width: none;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.06) !important;
+        }
+        .tender-tabs-scrollable::-webkit-scrollbar {
+            display: none;
+        }
+        .tender-tabs-scrollable .nav-item {
+            flex-shrink: 0 !important;
+        }
+        .tender-tabs-scrollable .nav-link {
+            padding: 8px 14px !important;
+            font-size: 0.8rem !important;
+            white-space: nowrap !important;
+        }
+
+        /* Metric cards in mobile 2x2 grid */
+        .tender-card-metric {
+            padding: 10px 12px !important;
+            border-radius: 12px !important;
+        }
+        .tender-card-metric span.d-inline-flex {
+            width: 38px !important;
+            height: 38px !important;
+            font-size: 1.15rem !important;
+            border-radius: 8px !important;
+        }
+        .tender-card-metric .metric-label {
+            font-size: 0.62rem !important;
+        }
+        .tender-card-metric .metric-value {
+            font-size: 0.88rem !important;
+        }
+        .tender-btn-close {
+            width: 30px !important;
+            height: 30px !important;
+            font-size: 0.78rem !important;
+        }
+
+        /* Modal Full Width on Mobile */
+        #modalDetailTender {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        #modalDetailTender .modal-dialog {
+            width: calc(100% - 14px) !important;
+            max-width: calc(100% - 14px) !important;
+            margin: 7px auto !important;
+        }
+        #modalDetailTender .modal-content {
+            width: 100% !important;
+            border-radius: 20px !important;
+        }
+    }
+
+    /* Modal Full / Ultra Wide on Desktop */
+    @media (min-width: 769px) {
+        #modalDetailTender .modal-dialog {
+            width: 96vw !important;
+            max-width: 96vw !important;
+            margin: 0.5rem auto !important;
+        }
+    }
+</style>
 
 <div class="modal modal-blur fade" id="modalDetailTender" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-custom-xxl modal-dialog-centered">
-        <div class="modal-content tender-modal-content tender-modal-cinematic rounded-4 overflow-hidden">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-custom-xxl">
+        <div class="modal-content tender-modal-content tender-modal-cinematic rounded-4 overflow-hidden w-100">
             
             <!-- Modal Header -->
-            <div class="modal-header border-0 pb-0 pt-3.5 px-4 d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5 rounded-pill fw-bold font-monospace shadow-xs" id="detail_nomor_kontrak">
+            <div class="modal-header border-0 pb-0 pt-3.5 px-3 px-sm-4 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2 flex-wrap pe-2 min-w-0 flex-grow-1">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 rounded-pill fw-bold font-monospace shadow-xs" id="detail_nomor_kontrak" style="font-size: 0.78rem;">
                         TND-000
                     </span>
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5 rounded-pill shadow-xs" id="detail_entitas_badge">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 rounded-pill shadow-xs" id="detail_entitas_badge" style="font-size: 0.75rem;">
                         <i class="bi bi-building me-1"></i> PT (Pusat)
                     </span>
-                    <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1.5 rounded-pill shadow-xs" id="detail_kategori_instansi">
+                    <span class="badge bg-info-subtle text-info border border-info-subtle px-2.5 py-1.5 rounded-pill shadow-xs" id="detail_kategori_instansi" style="font-size: 0.75rem;">
                         Pemerintah / B2G
                     </span>
-                    <span class="badge bg-secondary px-3 py-1.5 rounded-pill shadow-xs" id="detail_status_badge">
+                    <span class="badge bg-secondary px-2.5 py-1.5 rounded-pill shadow-xs" id="detail_status_badge" style="font-size: 0.75rem;">
                         Draft
                     </span>
-                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1.5 rounded-pill shadow-xs" id="detail_priority_badge">
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-1.5 rounded-pill shadow-xs" id="detail_priority_badge" style="font-size: 0.75rem;">
                         ⚡ Sedang (Medium)
                     </span>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn tender-btn-close rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-xs flex-shrink-0" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
             </div>
 
-            <div class="modal-body p-4 pt-2.5">
-                <div class="row g-3.5">
+            <div class="modal-body p-3 p-sm-4 pt-2.5">
+                <div class="row g-3 g-sm-3.5">
                     
                     <!-- Proyek Title & Summary Banner (Ultra-Wide) -->
                     <div class="col-12">
-                        <div class="p-4 rounded-4 tender-banner-cinematic d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 shadow-sm">
+                        <div class="p-3.5 p-sm-4 rounded-4 tender-banner-cinematic d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 shadow-sm">
                             <div>
                                 <h3 class="fw-black mb-1.5 tender-title text-truncate" id="detail_nama_tender" style="letter-spacing: -0.02em;">-</h3>
                                 <div class="d-flex align-items-center gap-2 fs-6">
@@ -42,7 +185,7 @@
                             </div>
                             <div class="text-lg-end tender-pagu-card p-3 px-4 rounded-4 border shadow-xs">
                                 <div class="text-success small fw-bold text-uppercase font-monospace" id="detail_pagu_label" style="font-size:0.75rem; letter-spacing: 0.08em;">TOTAL ESTIMASI NILAI PROYEK:</div>
-                                <h1 class="fw-black text-success font-monospace mb-0 display-6" id="detail_nilai_estimasi">Rp 0</h1>
+                                <h1 class="fw-black text-success font-monospace mb-0 fs-3 fs-md-1" id="detail_nilai_estimasi">Rp 0</h1>
                                 <div class="text-muted font-monospace small mt-0.5" id="detail_pagu_subtext" style="display:none; font-size:0.75rem;"></div>
                             </div>
                         </div>
@@ -52,8 +195,8 @@
                     <div class="col-12">
                         <div class="tender-workflow-card p-3.5 shadow-xs" id="detail_workflow_card">
                             <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 pb-3 border-bottom">
-                                <!-- Stepper Nodes -->
-                                <div class="d-flex align-items-center gap-2 gap-md-3 flex-wrap flex-grow-1" id="tender_stepper_container">
+                                <!-- Stepper Nodes (Horizontal Swipeable di Mobile) -->
+                                <div class="d-flex align-items-center gap-2 gap-md-3 flex-grow-1 tender-stepper-scrollable" id="tender_stepper_container">
                                     <div class="stepper-node d-flex align-items-center gap-2" id="step_draft">
                                         <span class="stepper-dot"><i class="bi bi-pencil-fill"></i></span>
                                         <span class="stepper-text">1. Draft</span>
@@ -93,75 +236,75 @@
                         </div>
                     </div>
 
-                    <!-- Wide Cinematic Metric Cards Grid (4 Columns) -->
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="tender-card-metric d-flex align-items-center gap-3">
-                            <span class="p-3 rounded-3 bg-primary bg-opacity-10 text-primary fs-4 d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 52px; height: 52px;">
+                    <!-- Wide Cinematic Metric Cards Grid (2x2 di Mobile, 4 Kolom di Desktop) -->
+                    <div class="col-6 col-xl-3">
+                        <div class="tender-card-metric d-flex align-items-center gap-2.5 gap-sm-3">
+                            <span class="p-2 p-sm-3 rounded-3 bg-primary bg-opacity-10 text-primary fs-4 d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; flex-shrink: 0;">
                                 <i class="bi bi-calendar-check"></i>
                             </span>
                             <div class="flex-grow-1 min-w-0">
-                                <div class="metric-label small fw-bold text-uppercase" style="font-size:0.7rem; letter-spacing: 0.05em;">TANGGAL MULAI</div>
-                                <div class="metric-value fw-bold fs-5 font-monospace text-truncate" id="detail_tanggal">-</div>
+                                <div class="metric-label small fw-bold text-uppercase" style="font-size:0.68rem; letter-spacing: 0.05em;">TANGGAL MULAI</div>
+                                <div class="metric-value fw-bold fs-6 fs-sm-5 font-monospace text-truncate" id="detail_tanggal">-</div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="tender-card-metric d-flex align-items-center gap-3 border-danger border-opacity-25">
-                            <span class="p-3 rounded-3 bg-danger bg-opacity-10 text-danger fs-4 d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 52px; height: 52px;">
+                    <div class="col-6 col-xl-3">
+                        <div class="tender-card-metric d-flex align-items-center gap-2.5 gap-sm-3 border-danger border-opacity-25">
+                            <span class="p-2 p-sm-3 rounded-3 bg-danger bg-opacity-10 text-danger fs-4 d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; flex-shrink: 0;">
                                 <i class="bi bi-calendar-x"></i>
                             </span>
                             <div class="flex-grow-1 min-w-0">
-                                <div class="text-danger small fw-bold text-uppercase" style="font-size:0.7rem; letter-spacing: 0.05em;">BATAS DEADLINE</div>
-                                <div class="fw-bold fs-5 text-danger font-monospace text-truncate" id="detail_deadline">-</div>
+                                <div class="text-danger small fw-bold text-uppercase" style="font-size:0.68rem; letter-spacing: 0.05em;">BATAS DEADLINE</div>
+                                <div class="fw-bold fs-6 fs-sm-5 text-danger font-monospace text-truncate" id="detail_deadline">-</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="tender-card-metric d-flex align-items-center gap-3">
-                            <span class="p-3 rounded-3 bg-warning bg-opacity-10 text-warning fs-4 d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 52px; height: 52px;">
+                    <div class="col-6 col-xl-3">
+                        <div class="tender-card-metric d-flex align-items-center gap-2.5 gap-sm-3">
+                            <span class="p-2 p-sm-3 rounded-3 bg-warning bg-opacity-10 text-warning fs-4 d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; flex-shrink: 0;">
                                 <i class="bi bi-hourglass-split"></i>
                             </span>
                             <div class="flex-grow-1 min-w-0">
-                                <div class="metric-label small fw-bold text-uppercase" style="font-size:0.7rem; letter-spacing: 0.05em;">ESTIMASI CLOSING</div>
-                                <div class="metric-value fw-bold fs-5 font-monospace text-truncate" id="detail_estimasi_closing">-</div>
+                                <div class="metric-label small fw-bold text-uppercase" style="font-size:0.68rem; letter-spacing: 0.05em;">ESTIMASI CLOSING</div>
+                                <div class="metric-value fw-bold fs-6 fs-sm-5 font-monospace text-truncate" id="detail_estimasi_closing">-</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="tender-card-metric d-flex align-items-center gap-3">
-                            <span class="p-3 rounded-3 bg-info bg-opacity-10 text-info fs-4 d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 52px; height: 52px;">
+                    <div class="col-6 col-xl-3">
+                        <div class="tender-card-metric d-flex align-items-center gap-2.5 gap-sm-3">
+                            <span class="p-2 p-sm-3 rounded-3 bg-info bg-opacity-10 text-info fs-4 d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; flex-shrink: 0;">
                                 <i class="bi bi-person-badge"></i>
                             </span>
                             <div class="flex-grow-1 min-w-0">
-                                <div class="metric-label small fw-bold text-uppercase" style="font-size:0.7rem; letter-spacing: 0.05em;">SALES PIC / OWNER</div>
-                                <div class="metric-value fw-bold fs-5 text-truncate" id="detail_sales">-</div>
+                                <div class="metric-label small fw-bold text-uppercase" style="font-size:0.68rem; letter-spacing: 0.05em;">SALES PIC / OWNER</div>
+                                <div class="metric-value fw-bold fs-6 fs-sm-5 text-truncate" id="detail_sales">-</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Detail Tabs for Sub-relations -->
+                    <!-- Detail Tabs for Sub-relations (Horizontal Scrollable di Mobile) -->
                     <div class="col-12 mt-2">
-                        <ul class="nav nav-tabs nav-tabs-custom mb-3" id="detailTabs" role="tablist">
+                        <ul class="nav nav-tabs nav-tabs-custom mb-3 tender-tabs-scrollable" id="detailTabs" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active fw-bold px-4 py-2.5" id="detail-item-tab" data-bs-toggle="tab" data-bs-target="#detail-item" type="button" role="tab">
+                                <button class="nav-link active fw-bold px-3.5 py-2" id="detail-item-tab" data-bs-toggle="tab" data-bs-target="#detail-item" type="button" role="tab">
                                     <i class="bi bi-list-stars me-1.5"></i> 1. Rincian Item / Spesifikasi Kebutuhan
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link fw-bold px-4 py-2.5" id="detail-dokumen-tab" data-bs-toggle="tab" data-bs-target="#detail-dokumen" type="button" role="tab">
+                                <button class="nav-link fw-bold px-3.5 py-2" id="detail-dokumen-tab" data-bs-toggle="tab" data-bs-target="#detail-dokumen" type="button" role="tab">
                                     <i class="bi bi-paperclip me-1.5"></i> 2. Berkas Dokumen Lelang
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link fw-bold px-4 py-2.5" id="detail-followup-tab" data-bs-toggle="tab" data-bs-target="#detail-followup" type="button" role="tab">
+                                <button class="nav-link fw-bold px-3.5 py-2" id="detail-followup-tab" data-bs-toggle="tab" data-bs-target="#detail-followup" type="button" role="tab">
                                     <i class="bi bi-journal-text me-1.5"></i> 3. Catatan & Log Aktivitas
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link fw-bold px-4 py-2.5" id="detail-approval-tab" data-bs-toggle="tab" data-bs-target="#detail-approval" type="button" role="tab">
+                                <button class="nav-link fw-bold px-3.5 py-2" id="detail-approval-tab" data-bs-toggle="tab" data-bs-target="#detail-approval" type="button" role="tab">
                                     <i class="bi bi-shield-check me-1.5"></i> 4. Persetujuan (Approval)
                                 </button>
                             </li>
@@ -171,14 +314,23 @@
                             
                             <!-- TAB 1: ITEM SPESIFIKASI & RAB -->
                             <div class="tab-pane fade show active" id="detail-item" role="tabpanel">
-                                <div class="table-responsive border rounded-4 tender-workflow-card mb-3.5 shadow-xs overflow-hidden">
-                                    <table class="table align-middle mb-0 tender-rab-table-cinematic">
+                                <!-- Mobile Swipe Hint Banner -->
+                                <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-1.5 mb-2 rounded-3 text-primary shadow-2xs" style="background: rgba(37, 99, 235, 0.08); font-size: 0.775rem; border: 1px dashed rgba(37, 99, 235, 0.25);">
+                                    <div class="d-flex align-items-center gap-1.5">
+                                        <i class="bi bi-arrow-left-right"></i>
+                                        <span>Tabel rincian item dapat digeser ke samping</span>
+                                    </div>
+                                    <span class="badge bg-primary bg-opacity-15 text-primary rounded-pill px-2 py-0.5 fw-bold" style="font-size: 0.7rem;">Swipe 👉</span>
+                                </div>
+
+                                <div class="table-responsive border rounded-4 tender-workflow-card mb-3.5 shadow-xs" style="-webkit-overflow-scrolling: touch !important;">
+                                    <table class="table align-middle mb-0 tender-rab-table-cinematic" style="min-width: 620px; width: 100%;">
                                         <thead>
                                             <tr>
-                                                <th width="6%" class="text-center">No</th>
-                                                <th width="64%">Nama Barang / Jasa & Spesifikasi Kebutuhan</th>
-                                                <th class="text-center" width="15%">Kuantiti (Qty)</th>
-                                                <th class="text-center" width="15%">Satuan</th>
+                                                <th style="width: 50px; min-width: 50px;" class="text-center">No</th>
+                                                <th style="min-width: 280px;">Nama Barang / Jasa &amp; Spesifikasi Kebutuhan</th>
+                                                <th class="text-center" style="width: 130px; min-width: 110px;">Kuantiti (Qty)</th>
+                                                <th class="text-center" style="width: 110px; min-width: 90px;">Satuan</th>
                                             </tr>
                                         </thead>
                                         <tbody id="detail_items_tbody">

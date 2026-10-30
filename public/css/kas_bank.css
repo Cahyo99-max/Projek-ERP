@@ -648,6 +648,69 @@
     background: rgba(255, 255, 255, 0.25);
 }
 
+/* ── Header Actions Toolbar ─────────────────────────────────────────────── */
+.kb-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+.kb-header-actions .btn {
+    padding: 7px 16px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.kb-btn-add-account {
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #334155;
+}
+.kb-btn-add-account:hover {
+    background: rgba(22, 163, 74, 0.08);
+    border-color: #16a34a;
+    color: #16a34a;
+}
+[data-bs-theme="dark"] .kb-btn-add-account {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #f1f5f9;
+}
+[data-bs-theme="dark"] .kb-btn-add-account:hover {
+    background: rgba(22, 163, 74, 0.2);
+    border-color: #22c55e;
+    color: #4ade80;
+}
+
+/* ── Mobile Swipe Banner for Tables ─────────────────────────────────────── */
+.kb-mobile-swipe-banner {
+    background: rgba(22, 163, 74, 0.08);
+    border: 1px dashed rgba(22, 163, 74, 0.3);
+    color: #16a34a;
+    font-size: 0.775rem;
+}
+[data-bs-theme="dark"] .kb-mobile-swipe-banner {
+    background: rgba(22, 163, 74, 0.12);
+    border-color: rgba(74, 222, 128, 0.35);
+    color: #4ade80;
+}
+.kb-swipe-pill {
+    background: rgba(22, 163, 74, 0.18);
+    color: #15803d;
+    font-size: 0.72rem;
+}
+[data-bs-theme="dark"] .kb-swipe-pill {
+    background: rgba(22, 163, 74, 0.28);
+    color: #86efac;
+}
+
 /* Enforce spacious desktop-like minimum width so all columns remain elegant without squishing */
 #tableMasterKasBank,
 #tableKasMutasi,
@@ -661,22 +724,27 @@
    7. RESPONSIVE & CINEMATIC MOBILE OPTIMIZATIONS (HP / SMARTPHONES)
    ========================================================================== */
 @media (max-width: 767.98px) {
-    /* Header & Action Toolbar (Pepet ke Kanan di HP) */
+    /* Header & Action Toolbar (Grid 2-Kolom Rapi & Simetris di HP) */
     .kb-header-title {
         font-size: 1.15rem !important;
     }
     .kb-header-actions {
         width: 100% !important;
-        display: flex !important;
-        justify-content: flex-end !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
         gap: 8px !important;
-        margin-left: auto !important;
+        margin-left: 0 !important;
+        margin-top: 4px !important;
     }
     .kb-header-actions .btn {
-        flex: 0 1 auto !important;
-        padding: 8px 14px !important;
-        font-size: 0.8rem !important;
+        width: 100% !important;
+        padding: 9px 8px !important;
+        font-size: 0.78rem !important;
+        border-radius: 12px !important;
+        display: flex !important;
+        align-items: center !important;
         justify-content: center !important;
+        text-align: center !important;
         white-space: nowrap !important;
     }
 

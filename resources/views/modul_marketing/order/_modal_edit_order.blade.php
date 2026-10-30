@@ -127,8 +127,17 @@
                             </div>
                         </div>
 
-                        <div class="table-responsive border rounded-3 overflow-hidden shadow-xs so-edit-table-wrap mb-1">
-                            <table class="table table-hover align-middle mb-0" id="edit_items_table">
+                        <!-- Mobile Swipe Hint Banner -->
+                        <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2 mb-2 rounded-3 so-swipe-banner shadow-2xs">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-arrow-left-right text-primary"></i>
+                                <span class="fw-semibold small">Tabel barang dapat digeser ke samping</span>
+                            </div>
+                            <span class="badge rounded-pill px-2.5 py-1 fw-bold so-swipe-pill">Swipe &rarr;</span>
+                        </div>
+
+                        <div class="table-responsive border rounded-3 shadow-xs so-edit-table-wrap mb-1" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                            <table class="table table-hover align-middle mb-0" id="edit_items_table" style="min-width: 980px;">
                                 <thead>
                                     <tr class="small text-uppercase text-secondary fw-bold">
                                         <th style="width: 40px;" class="text-center py-2.5">No</th>
@@ -373,9 +382,18 @@
                 </div>
                 @endif
 
+                <!-- Mobile Swipe Hint Banner -->
+                <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2 mb-2 rounded-3 so-swipe-banner shadow-2xs">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-arrow-left-right text-primary"></i>
+                        <span class="fw-semibold small">Tabel barang dapat digeser ke samping</span>
+                    </div>
+                    <span class="badge rounded-pill px-2.5 py-1 fw-bold so-swipe-pill">Swipe &rarr;</span>
+                </div>
+
                 {{-- Table Container --}}
-                <div class="table-responsive rounded-3 border so-edit-table-wrap">
-                    <table class="table table-hover align-middle mb-0" id="pickerBarangEditTable">
+                <div class="table-responsive rounded-3 border so-edit-table-wrap" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                    <table class="table table-hover align-middle mb-0" id="pickerBarangEditTable" style="min-width: 820px;">
                         <thead class="sticky-top">
                             <tr class="small text-uppercase text-secondary fw-bold">
                                 <th style="min-width: 260px;">Produk &amp; SKU</th>
@@ -534,6 +552,47 @@
 #modalEditOrder .so-edit-input-readonly {
     background-color: #f1f5f9 !important;
     color: #475569 !important;
+}
+.so-swipe-banner {
+    background: rgba(37, 99, 235, 0.08);
+    border: 1px dashed rgba(37, 99, 235, 0.28);
+    color: #1d4ed8;
+}
+[data-bs-theme="dark"] .so-swipe-banner {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px dashed rgba(96, 165, 250, 0.35);
+    color: #93c5fd;
+}
+.so-swipe-pill {
+    background: rgba(37, 99, 235, 0.15);
+    color: #1d4ed8;
+}
+[data-bs-theme="dark"] .so-swipe-pill {
+    background: rgba(59, 130, 246, 0.22);
+    color: #bfdbfe;
+}
+#modalEditOrder .so-edit-table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+#modalEditOrder #edit_items_table {
+    min-width: 980px;
+}
+#modalEditOrder #pickerBarangEditTable {
+    min-width: 820px;
+}
+#modalEditOrder .so-edit-table-wrap::-webkit-scrollbar {
+    height: 6px;
+}
+#modalEditOrder .so-edit-table-wrap::-webkit-scrollbar-track {
+    background: transparent;
+}
+#modalEditOrder .so-edit-table-wrap::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.45);
+    border-radius: 4px;
+}
+#modalEditOrder .so-edit-table-wrap::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.7);
 }
 #modalEditOrder .so-edit-table-wrap thead tr {
     background-color: #f8fafc;

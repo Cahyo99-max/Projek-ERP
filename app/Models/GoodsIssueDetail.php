@@ -16,10 +16,12 @@ class GoodsIssueDetail extends Model
         'gi_id',
         'barang_id',
         'jumlah',
+        'serial_numbers',
     ];
 
     protected $casts = [
-        'jumlah' => 'decimal:2',
+        'jumlah'         => 'decimal:2',
+        'serial_numbers' => 'array',
     ];
 
     public function gi(): BelongsTo

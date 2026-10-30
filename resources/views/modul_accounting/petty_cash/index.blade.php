@@ -156,11 +156,11 @@
 
         <div class="card border-0 shadow-sm rounded-4 mb-3 bg-body">
             <div class="card-body p-2.5 p-md-3">
-                <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center justify-content-between gap-2">
+                <div class="d-flex align-items-center justify-content-between gap-2">
                     
                     <!-- Search Input Form -->
                     @can('filter-petty-cash')
-                    <form action="{{ route('accounting.petty-cash.index') }}" method="GET" class="flex-grow-1" id="formSearchPettyCash">
+                    <form action="{{ route('accounting.petty-cash.index') }}" method="GET" class="flex-grow-1 m-0" id="formSearchPettyCash">
                         <!-- Pertahankan Parameter Filter jika sedang aktif -->
                         @if(!empty($perPage) && $perPage != 10) <input type="hidden" name="per_page" value="{{ $perPage }}"> @endif
                         @if(!empty($kategoriFilter) && $kategoriFilter !== 'all') <input type="hidden" name="kategori" value="{{ $kategoriFilter }}"> @endif
@@ -173,15 +173,15 @@
                         @if(!empty($sortBy)) <input type="hidden" name="sort_by" value="{{ $sortBy }}"> @endif
                         @if(!empty($sortOrder)) <input type="hidden" name="sort_order" value="{{ $sortOrder }}"> @endif
 
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-body border-end-0 text-muted ps-3">
+                        <div class="input-group input-group-sm pc-search-pill-group">
+                            <span class="input-group-text bg-transparent border-0 text-muted ps-2.5">
                                 <i class="bi bi-search" id="iconSearchPettyCash"></i>
                             </span>
-                            <input type="text" name="search" id="inputSearchPettyCash" class="form-control form-control-sm border-start-0 ps-1" placeholder="Cari transaksi, pengaju, atau keterangan..." value="{{ $search }}" autocomplete="off">
-                            <button type="button" class="btn btn-outline-secondary btn-sm {{ empty($search) ? 'd-none' : '' }}" id="btnClearSearchPettyCash" title="Hapus Kata Kunci">
-                                <i class="bi bi-x-lg"></i>
+                            <input type="text" name="search" id="inputSearchPettyCash" class="form-control form-control-sm border-0 ps-1 bg-transparent" placeholder="Cari transaksi..." value="{{ $search }}" autocomplete="off">
+                            <button type="button" class="btn btn-link text-muted btn-sm border-0 text-decoration-none px-2 {{ empty($search) ? 'd-none' : '' }}" id="btnClearSearchPettyCash" title="Hapus Kata Kunci">
+                                <i class="bi bi-x-circle-fill"></i>
                             </button>
-                            <button type="button" class="btn btn-secondary btn-sm px-3 fw-semibold" id="btnSubmitSearchPettyCash">Cari</button>
+                            <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3 fw-semibold d-none d-md-inline-block ms-1" id="btnSubmitSearchPettyCash">Cari</button>
                         </div>
                     </form>
                     @else
@@ -189,17 +189,17 @@
                     @endcan
 
                     <!-- Filter Trigger Button (Munculkan Modal Filter) & Reset -->
-                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
                         @canany(['filter-petty-cash', 'cetak-pdf-petty-cash', 'export-excel-petty-cash'])
                         <button type="button" 
-                                class="btn btn-sm rounded-pill px-3.5 py-1.5 d-inline-flex align-items-center gap-2 fw-semibold pc-btn-filter-trigger" 
+                                class="btn btn-sm rounded-pill px-3 py-1.5 d-inline-flex align-items-center gap-1.5 fw-semibold pc-btn-filter-trigger" 
                                 data-bs-toggle="modal" 
                                 data-bs-target="#modalFilterPettyCash" 
                                 title="Buka Filter Transaksi">
                             <i class="bi bi-funnel-fill text-info"></i>
                             <span>Filter</span>
                             @if($activeFilterCount > 0)
-                                <span class="badge rounded-pill bg-danger text-white px-2 py-0.5 font-monospace" style="font-size: 10px;">
+                                <span class="badge rounded-pill bg-danger text-white px-1.5 py-0.5 font-monospace" style="font-size: 10px;">
                                     {{ $activeFilterCount }}
                                 </span>
                             @endif
@@ -308,10 +308,10 @@
         <!-- =========================================================================
              4. MOBILE TRANSACTION CARDS FEED (OPTIMIZED FOR HP)
              ========================================================================= -->
-        <div class="d-block d-lg-none mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
-                <span class="small fw-bold text-muted text-uppercase">Daftar Transaksi ({{ $transactions->total() }})</span>
-                <span class="small text-muted">Hal {{ $transactions->currentPage() }} / {{ $transactions->lastPage() }}</span>
+        <div class="d-block d-lg-none mb-4" id="mobileListPettyCash">
+            <div class="d-flex justify-content-between align-items-center mb-2.5 px-1">
+                <span class="small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px; font-size: 11px;">Daftar Transaksi ({{ $transactions->total() }})</span>
+                <span class="small text-muted font-monospace" style="font-size: 11px;">Hal {{ $transactions->currentPage() }} / {{ $transactions->lastPage() }}</span>
             </div>
 
             @forelse($transactions as $trx)
@@ -323,75 +323,108 @@
                     $iconClass = $catMeta['icon'] ?? 'bi-wallet2';
                     $badgeColor = $catMeta['badge'] ?? 'primary';
                     $iconBg = "bg-{$badgeColor}-subtle text-{$badgeColor}";
+                    $nominalFormatted = fmod((float)$trx->nominal, 1) == 0 
+                        ? number_format($trx->nominal, 0, ',', '.') 
+                        : number_format($trx->nominal, 2, ',', '.');
                 @endphp
-                <div class="card border-0 shadow-sm rounded-4 mb-2.5 bg-body pc-trx-mobile-card" data-id="{{ $trx->id }}">
+                <div class="card border-0 shadow-sm rounded-4 mb-3 bg-body pc-trx-mobile-card" data-id="{{ $trx->id }}">
                     <div class="card-body p-3">
-                        <div class="d-flex align-items-start justify-content-between gap-2">
-                            <!-- Left: Icon & Info -->
-                            <div class="d-flex align-items-start gap-2.5">
-                                <div class="p-2.5 rounded-4 {{ $iconBg }} d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                        <!-- 1. Header Baris Atas: Icon Kategori + Nama Kategori + Badge Tipe + Nominal -->
+                        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                            <!-- Left: Icon & Kategori -->
+                            <div class="d-flex align-items-center gap-2 min-w-0">
+                                <div class="p-2 rounded-3 {{ $iconBg }} d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
                                     <i class="bi {{ $iconClass }} fs-5"></i>
                                 </div>
-                                <div>
-                                    <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                                        <span class="fw-bold text-body-emphasis small">{{ $trx->kategori }}</span>
-                                        <span class="badge {{ $badgeTipeClass }} border rounded-pill px-2 py-0.5 font-monospace" style="font-size: 10px;">{{ $trx->tipe }}</span>
+                                <div class="min-w-0">
+                                    <div class="fw-bold text-body-emphasis small text-truncate" title="{{ $trx->kategori }}">
+                                        {{ $trx->kategori }}
                                     </div>
-                                    <p class="small text-muted mb-0 font-monospace" style="font-size: 11px;">
-                                        {{ date('d M Y', strtotime($trx->tanggal)) }}
-                                        @if(!empty($trx->created_at))
-                                            &bull; <i class="bi bi-clock me-0.5 opacity-75"></i>{{ \Carbon\Carbon::parse($trx->created_at)->format('H:i') }}
-                                        @endif
-                                        &bull; {{ $trx->nomor_transaksi }}
-                                    </p>
-                                    @if($trx->keterangan)
-                                        <p class="small text-body-secondary mb-1 text-truncate" style="max-width: 200px; font-size: 11px;">
-                                            {{ $trx->keterangan }}
-                                        </p>
-                                    @endif
-                                    @if($trx->status === 'Dibatalkan' && !empty($trx->alasan_pembatalan))
-                                        <div class="small text-danger mt-1 p-1.5 rounded-2" style="background: rgba(225, 29, 72, 0.08); border-left: 2px solid #e11d48; font-size: 10px; max-width: 220px;">
-                                            <strong>Alasan Batal:</strong> {{ $trx->alasan_pembatalan }}
-                                        </div>
-                                    @endif
-
-                                    <!-- Tag Tender (Jika ada) -->
-                                    @if($trx->tender)
-                                        <div class="mt-1">
-                                            <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill font-monospace" style="font-size: 10px;">
-                                                🎯 {{ $trx->tender->nomor_kontrak }}
-                                            </span>
-                                        </div>
-                                    @endif
+                                    <span class="badge {{ $badgeTipeClass }} border rounded-pill px-2 py-0.5 font-monospace" style="font-size: 9.5px;">
+                                        {{ $trx->tipe }}
+                                    </span>
                                 </div>
                             </div>
 
-                            <!-- Right: Nominal & Action -->
+                            <!-- Right: Nominal (Rapi, Bold, Tidak Terpotong) -->
                             <div class="text-end flex-shrink-0">
-                                <span class="fw-bold font-monospace d-block fs-6 {{ $trx->status === 'Dibatalkan' ? 'text-decoration-line-through text-muted' : 'text-danger' }}">
-                                    - Rp {{ number_format($trx->nominal, 2, ',', '.') }}
+                                <span class="fw-bold font-monospace fs-6 d-block {{ $trx->status === 'Dibatalkan' ? 'text-decoration-line-through text-muted' : 'text-danger' }}">
+                                    - Rp {{ $nominalFormatted }}
                                 </span>
+                                <span class="text-muted font-monospace" style="font-size: 10px;">
+                                    {{ \Carbon\Carbon::parse($trx->tanggal)->translatedFormat('d M Y') }}
+                                </span>
+                            </div>
+                        </div>
 
+                        <!-- 2. Meta Info (No Transaksi, Jam, Pemohon) -->
+                        <div class="d-flex flex-wrap align-items-center gap-1.5 py-1.5 px-2 rounded-2 mb-2 pc-mobile-card-meta" style="font-size: 11px;">
+                            <span class="font-monospace fw-semibold text-body-secondary">
+                                <i class="bi bi-hash text-muted"></i>{{ $trx->nomor_transaksi }}
+                            </span>
+                            @if(!empty($trx->created_at))
+                                <span class="text-muted">&bull;</span>
+                                <span class="text-muted font-monospace">
+                                    <i class="bi bi-clock me-0.5 opacity-75"></i>{{ \Carbon\Carbon::parse($trx->created_at)->format('H:i') }}
+                                </span>
+                            @endif
+                            @if($trx->nama_pengaju)
+                                <span class="text-muted">&bull;</span>
+                                <span class="text-muted text-truncate" style="max-width: 140px;">
+                                    <i class="bi bi-person me-0.5"></i>{{ $trx->nama_pengaju }}
+                                </span>
+                            @endif
+                        </div>
+
+                        <!-- 3. Keterangan / Keperluan -->
+                        @if($trx->keterangan)
+                            <p class="small text-body-secondary mb-2 lh-sm text-truncate-2" style="font-size: 12px;">
+                                {{ $trx->keterangan }}
+                            </p>
+                        @endif
+
+                        <!-- Alasan Pembatalan (Jika Batal) -->
+                        @if($trx->status === 'Dibatalkan' && !empty($trx->alasan_pembatalan))
+                            <div class="small text-danger mb-2 p-2 rounded-2" style="background: rgba(225, 29, 72, 0.08); border-left: 3px solid #e11d48; font-size: 11px;">
+                                <strong><i class="bi bi-exclamation-octagon-fill me-1"></i>Alasan Batal:</strong> {{ $trx->alasan_pembatalan }}
+                            </div>
+                        @endif
+
+                        <!-- 4. Baris Bawah: Tag Tender + Action Pill (Nota & Detail) -->
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top pc-border-adaptive mt-1">
+                            <!-- Left: Tender Tag (jika ada) atau Akun Kas -->
+                            <div class="d-flex align-items-center gap-1 flex-wrap min-w-0">
+                                @if($trx->tender)
+                                    <span class="badge pc-badge-tender rounded-pill font-monospace" style="font-size: 10.5px;">
+                                        🎯 {{ $trx->tender->nomor_kontrak }}
+                                    </span>
+                                @else
+                                    <span class="badge pc-badge-kas rounded-pill font-monospace text-truncate" style="font-size: 10.5px; max-width: 160px;">
+                                        <i class="bi bi-wallet2 me-0.5"></i>{{ $trx->coaKas->name ?? 'Kas Kecil' }}
+                                    </span>
+                                @endif
+                            </div>
+
+                            <!-- Right: Action Buttons Group (Nota & Detail) -->
+                            <div class="d-flex align-items-center gap-1.5 flex-shrink-0 pc-action-group">
                                 @if($trx->lampiran_nota)
                                     <button type="button" 
-                                            class="badge pc-badge-bukti-mobile btn-preview-bukti border-0 mt-1 d-inline-flex align-items-center gap-1 text-decoration-none" 
+                                            class="badge pc-badge-bukti-mobile btn-preview-bukti border-0 d-inline-flex align-items-center gap-1 text-decoration-none py-1 px-2.5" 
                                             data-url="{{ asset('storage/' . $trx->lampiran_nota) }}" 
                                             data-nomor="{{ $trx->nomor_transaksi }}" 
                                             data-kategori="{{ $trx->kategori }}" 
-                                            data-nominal="- Rp {{ number_format($trx->nominal, 2, ',', '.') }}"
+                                            data-nominal="- Rp {{ $nominalFormatted }}"
                                             onclick="previewBukti(this, event);" 
                                             title="Lihat Bukti Nota / Struk">
                                         <i class="bi bi-paperclip"></i> Nota
                                     </button>
                                 @endif
 
-                                <div class="mt-2 d-flex justify-content-end gap-1 pc-action-group">
-                                    @can('detail-petty-cash')
-                                    <button type="button" class="btn-action-modern btn-action-detail btn-detail-pc" data-id="{{ $trx->id }}" title="Detail Voucher &amp; Lawan COA" onclick="loadPettyCashDetail({{ $trx->id }})" style="width: 28px; height: 28px; font-size: 11px;">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    @endcan
-                                </div>
+                                @can('detail-petty-cash')
+                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2.5 py-0.5 d-inline-flex align-items-center gap-1 fw-semibold btn-detail-pc" data-id="{{ $trx->id }}" title="Detail Voucher &amp; Jurnal" onclick="loadPettyCashDetail({{ $trx->id }})" style="font-size: 11px;">
+                                    <i class="bi bi-eye"></i> Detail
+                                </button>
+                                @endcan
                             </div>
                         </div>
                     </div>

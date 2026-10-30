@@ -33,7 +33,16 @@
 
         {{-- Card Body --}}
         <div class="card-body tbl-card-body px-0 pb-0">
-            <div class="table-responsive">
+            <!-- Mobile Swipe Hint Banner -->
+            <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-1.5 mx-2 my-2 rounded-3 text-primary shadow-2xs" style="background: rgba(37, 99, 235, 0.08); font-size: 0.775rem; border: 1px dashed rgba(37, 99, 235, 0.25);">
+                <div class="d-flex align-items-center gap-1.5">
+                    <i class="bi bi-arrow-left-right"></i>
+                    <span>Tabel dapat digeser ke samping</span>
+                </div>
+                <span class="badge bg-primary bg-opacity-15 text-primary rounded-pill px-2 py-0.5 fw-bold" style="font-size: 0.7rem;">Swipe 👉</span>
+            </div>
+
+            <div class="table-responsive" style="-webkit-overflow-scrolling: touch;">
                 <table class="table table-hover tbl-table mb-0 align-middle" id="{{ $tableId }}">
                     <thead>
                         <tr>

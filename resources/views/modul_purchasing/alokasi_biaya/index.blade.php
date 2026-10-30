@@ -311,22 +311,94 @@
         }
     }
 
-    /* Modal Dialog Responsive Fullscreen on Mobile / Tablet */
+    /* Modal Dialog Lockdown - Anti Geser Horizontal pada Modal */
     .modal-dialog-alokasi {
-        max-width: 96vw;
-        width: 96vw;
+        max-width: 95vw;
+        width: 95vw;
         margin: 1.25rem auto;
+        min-width: 0 !important;
     }
+
+    #modalCreateAlokasi,
+    #modalViewAlokasi {
+        overflow-x: hidden !important;
+    }
+
+    #modalCreateAlokasi .modal-dialog,
+    #modalViewAlokasi .modal-dialog {
+        min-width: 0 !important;
+        overflow-x: hidden !important;
+    }
+
+    #modalCreateAlokasi .modal-content,
+    #modalViewAlokasi .modal-content {
+        max-width: 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        overflow-x: hidden !important;
+    }
+
+    #modalCreateAlokasi .modal-body,
+    #modalViewAlokasi .modal-body {
+        max-width: 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        overflow-x: hidden !important;
+        touch-action: pan-y;
+        overscroll-behavior-x: none;
+    }
+
+    #modalCreateAlokasi form,
+    #modalViewAlokasi form {
+        max-width: 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        overflow-x: hidden !important;
+    }
+
+    #modalCreateAlokasi .card,
+    #modalViewAlokasi .card {
+        max-width: 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    #modalCreateAlokasi .card-body,
+    #modalViewAlokasi .card-body {
+        max-width: 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* Khusus kontainer table-responsive: Izinkan swipe/geser horizontal */
+    #modalCreateAlokasi .table-responsive,
+    #modalViewAlokasi .table-responsive,
+    #modalCreateAlokasi .card .table-responsive,
+    #modalViewAlokasi .card .table-responsive {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+        overscroll-behavior-x: contain !important;
+        display: block !important;
+    }
+
     @media (max-width: 991.98px) {
         .modal-dialog-alokasi {
-            max-width: 100vw !important;
+            max-width: 100% !important;
             width: 100% !important;
             margin: 0 !important;
             min-height: 100vh;
+            min-width: 0 !important;
         }
         .modal-dialog-alokasi .modal-content {
             border-radius: 0 !important;
             min-height: 100vh;
+            max-width: 100% !important;
+            width: 100% !important;
         }
     }
 
@@ -706,11 +778,13 @@
 
 </div>
 
-<!-- Modals -->
+<!-- Modals Container Outside Main Stacking Context -->
+@push('modals')
 @include('modul_purchasing.alokasi_biaya.partials.modal_create')
 @include('modul_purchasing.alokasi_biaya.partials.modal_view')
 @include('modul_purchasing.alokasi_biaya.partials.modal_jurnal')
 @include('modul_purchasing.alokasi_biaya.partials.modal_filter')
+@endpush
 
 @push('scripts')
 <!-- Select2 & SweetAlert2 JS -->

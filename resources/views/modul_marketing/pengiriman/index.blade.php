@@ -16,7 +16,7 @@
                 <p class="text-muted small mb-0 mt-1">Kelola pengeluaran fisik barang, pelacakan ekspedisi/kurir, dan cetak Surat Jalan resmi.</p>
             </div>
             
-            <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="d-flex align-items-center gap-2 flex-wrap do-header-actions">
                 <!-- Tombol Trigger Modal Filter -->
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-3.5 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2 position-relative do-btn-filter-trigger" id="btn_open_modal_filter" data-bs-toggle="modal" data-bs-target="#modalFilterDO">
                     <i class="bi bi-funnel-fill text-primary fs-6"></i>
@@ -26,10 +26,93 @@
 
                 <!-- Tombol Buat DO Baru -->
                 @can('tambah-delivery-order')
-                <button type="button" class="btn btn-primary rounded-pill px-3.5 py-2 fw-bold shadow-sm d-flex align-items-center gap-2 do-btn-primary" id="btn_open_modal_create" data-bs-toggle="modal" data-bs-target="#modalCreateDO">
+                <button type="button" class="btn btn-primary rounded-pill px-3.5 py-2 fw-bold shadow-sm d-flex align-items-center gap-2 do-btn-primary" id="btn_open_modal_create" data-bs-toggle="modal" data-bs-target="#modalCreateDO" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border: none;">
                     <i class="bi bi-plus-circle-fill fs-6"></i> Buat Surat Jalan Baru
                 </button>
                 @endcan
+            </div>
+        </div>
+
+        <!-- KPI Metric Cards (Modern & Cinematic) -->
+        <div class="row g-3 g-sm-3.5 g-md-4 mb-4 mb-md-4.5">
+            <!-- Total Pengiriman -->
+            <div class="col-6 col-md-3">
+                <div class="do-kpi-card do-kpi-primary h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="do-kpi-label">Total Pengiriman</span>
+                            <div class="do-kpi-icon do-kpi-icon-primary">
+                                <i class="bi bi-truck-flatbed"></i>
+                            </div>
+                        </div>
+                        <h3 class="fw-bold mb-3 text-body font-monospace fs-4 fs-md-3">{{ number_format($kpis['total'] ?? 0) }}</h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-file-text me-1"></i>Dokumen DO
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menunggu Review -->
+            <div class="col-6 col-md-3">
+                <div class="do-kpi-card do-kpi-amber h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="do-kpi-label">Menunggu Review</span>
+                            <div class="do-kpi-icon do-kpi-icon-amber">
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                        </div>
+                        <h3 class="fw-bold mb-3 text-warning font-monospace fs-4 fs-md-3">{{ number_format($kpis['menunggu'] ?? 0) }}</h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-hourglass-split me-1"></i>Draft &amp; Approval
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dalam Pengiriman -->
+            <div class="col-6 col-md-3">
+                <div class="do-kpi-card do-kpi-sky h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="do-kpi-label">Dalam Pengiriman</span>
+                            <div class="do-kpi-icon do-kpi-icon-sky">
+                                <i class="bi bi-send-fill"></i>
+                            </div>
+                        </div>
+                        <h3 class="fw-bold mb-3 text-info font-monospace fs-4 fs-md-3">{{ number_format($kpis['proses'] ?? 0) }}</h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-truck me-1"></i>Proses Kirim
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selesai / Terkirim -->
+            <div class="col-6 col-md-3">
+                <div class="do-kpi-card do-kpi-emerald h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="do-kpi-label">Selesai / Terkirim</span>
+                            <div class="do-kpi-icon do-kpi-icon-emerald">
+                                <i class="bi bi-patch-check-fill"></i>
+                            </div>
+                        </div>
+                        <h3 class="fw-bold mb-3 text-success font-monospace fs-4 fs-md-3">{{ number_format($kpis['selesai'] ?? 0) }}</h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-check-circle me-1"></i>Tiba di Tujuan
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -46,24 +129,33 @@
 
         <!-- Table Card -->
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden table-custom-card">
-            <div class="card-header bg-transparent border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+            <div class="card-header bg-transparent border-bottom py-3 px-3 px-md-4 d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold text-body-emphasis mb-0 d-flex align-items-center gap-2">
                     <i class="bi bi-table text-primary"></i> Daftar Surat Jalan &amp; Pengiriman
                 </h6>
                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill font-monospace px-3 py-1 fw-bold">Live Data</span>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive p-3">
-                    <table class="table table-hover align-middle w-100" id="tableDeliveryOrders">
+            <div class="card-body p-3 p-md-3.5">
+                <!-- Swipe Hint Banner untuk Mobile -->
+                <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2.5 mb-3 rounded-3 do-mobile-swipe-banner shadow-2xs">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-arrow-left-right text-primary fs-6"></i>
+                        <span class="fw-semibold small">Geser tabel untuk melihat rincian lengkap</span>
+                    </div>
+                    <span class="badge rounded-pill px-2.5 py-1 fw-bold do-swipe-pill">Swipe &rarr;</span>
+                </div>
+
+                <div class="table-responsive" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important;">
+                    <table class="table table-hover align-middle w-100 mb-0" id="tableDeliveryOrders" style="min-width: 820px;">
                         <thead>
                             <tr class="small text-uppercase fw-bold text-white">
-                                <th style="width: 40px;" class="text-center">No</th>
-                                <th>Nomor DO</th>
-                                <th>No. Pesanan (SO)</th>
-                                <th>Penerima / Instansi</th>
-                                <th>Jumlah Item</th>
-                                <th class="text-center">Status</th>
-                                <th class="text-center" style="width: 150px;">Aksi</th>
+                                <th style="width: 45px;" class="text-center">No</th>
+                                <th style="min-width: 140px;">Nomor DO</th>
+                                <th style="min-width: 150px;">No. Pesanan (SO)</th>
+                                <th style="min-width: 200px;">Penerima / Instansi</th>
+                                <th style="min-width: 130px;">Jumlah Item</th>
+                                <th class="text-center" style="min-width: 130px;">Status</th>
+                                <th class="text-center" style="min-width: 130px;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -87,7 +179,7 @@
     <!-- Select2 Searchable Dropdown CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ asset('modul_smd/pengiriman.css') }}">
+    <link rel="stylesheet" href="{{ asset('modul_smd/pengiriman.css') }}?v={{ time() }}">
     @endpush
 
     @push('scripts')
@@ -145,22 +237,27 @@
                     }
                 },
                 columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center font-monospace small' },
-                    { data: 'nomor_do', name: 'nomor_do' },
-                    { data: 'nomor_so', name: 'salesOrder.nomor_so' },
+                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center font-monospace small text-nowrap' },
+                    { data: 'nomor_do', name: 'nomor_do', className: 'text-nowrap' },
+                    { data: 'nomor_so', name: 'salesOrder.nomor_so', className: 'text-nowrap' },
                     { data: 'customer_info', name: 'customer.nama_customer' },
-                    { data: 'items_count', name: 'items_count', orderable: false, searchable: false },
-                    { data: 'status', name: 'status', className: 'text-center' },
-                    { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
+                    { data: 'items_count', name: 'items_count', orderable: false, searchable: false, className: 'text-nowrap' },
+                    { data: 'status', name: 'status', className: 'text-center text-nowrap' },
+                    { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center text-nowrap' }
                 ],
                 order: [[1, 'desc']],
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
                 deferRender: true,
                 orderClasses: false,
                 language: {
-                    search: "Cari Surat Jalan:",
-                    searchPlaceholder: "Nomor DO, SO, atau Penerima...",
-                    lengthMenu: "_MENU_ data per hal",
+                    search: "",
+                    searchPlaceholder: "Cari nomor DO, SO, penerima...",
+                    lengthMenu: "Tampilkan _MENU_ data",
                     info: "Menampilkan _START_ s/d _END_ dari _TOTAL_ pengiriman",
+                    infoEmpty: "Menampilkan 0 data",
+                    infoFiltered: "(disaring dari _MAX_ total pengiriman)",
+                    zeroRecords: "Tidak ada pengiriman yang cocok",
                     paginate: {
                         first: "Awal",
                         last: "Akhir",
@@ -2226,18 +2323,18 @@
 
                     tbodyHtml += `
                         <tr>
-                            <td class="text-center font-monospace text-muted small">${idx + 1}</td>
+                            <td class="text-center font-monospace text-muted small text-nowrap">${idx + 1}</td>
                             <td>
-                                <div class="fw-bold text-body-emphasis mb-1">${escapeHtml(brgNama)}</div>
+                                <div class="fw-bold text-body-emphasis mb-1" style="min-width: 220px;">${escapeHtml(brgNama)}</div>
                                 <div class="d-flex align-items-center gap-1.5 flex-wrap">
                                     <span class="badge font-monospace do-badge-sku">SKU: ${escapeHtml(brgSku)}</span>
                                     <span class="badge font-monospace do-badge-unit">${escapeHtml(satuan)}</span>
                                 </div>
                                 ${snHtml}
                             </td>
-                            <td class="text-center font-monospace"><span class="do-metric-badge-total">${Number(item.qty_order)} ${escapeHtml(satuan)}</span></td>
-                            <td class="text-center font-monospace fw-bold"><span class="do-metric-badge-delivered">${Number(item.qty_kirim)} ${escapeHtml(satuan)}</span></td>
-                            <td class="small text-muted">${escapeHtml(item.catatan_item || '-')}</td>
+                            <td class="text-center font-monospace text-nowrap"><span class="do-metric-badge-total">${Number(item.qty_order)} ${escapeHtml(satuan)}</span></td>
+                            <td class="text-center font-monospace fw-bold text-nowrap"><span class="do-metric-badge-delivered">${Number(item.qty_kirim)} ${escapeHtml(satuan)}</span></td>
+                            <td class="small text-muted" style="min-width: 160px;">${escapeHtml(item.catatan_item || '-')}</td>
                         </tr>
                     `;
                 });
@@ -2345,7 +2442,12 @@
             } else if (jurnal.company) {
                 entitasText = jurnal.company.nama_perusahaan || 'PT PUSAT';
             }
-            $('#do_jurnal_entitas_badge').html(`<span class="badge ${entitasBadgeClass} px-2.5 py-1 rounded-pill fw-bold"><i class="bi bi-building me-1"></i>${escapeHtml(entitasText)}</span>`);
+            $('#do_jurnal_entitas_badge').html(`
+                <span class="badge ${entitasBadgeClass} px-2.5 py-1 rounded-pill fw-bold d-inline-flex align-items-center mw-100" style="max-width: 100%; white-space: normal; text-align: left; line-height: 1.3;" title="${escapeHtml(entitasText)}">
+                    <i class="bi bi-building me-1.5 flex-shrink-0"></i>
+                    <span class="text-truncate">${escapeHtml(entitasText)}</span>
+                </span>
+            `);
 
             // Proyek / Tender Terkait
             let tenderInfo = jurnal.no_tender;
@@ -2389,18 +2491,18 @@
 
                 rowsHtml += `
                     <tr>
-                        <td class="text-center font-monospace text-muted small">${idx + 1}</td>
-                        <td style="${isDebit ? '' : 'padding-left: 28px !important;'}">
+                        <td class="text-center font-monospace text-muted small text-nowrap">${idx + 1}</td>
+                        <td style="${isDebit ? '' : 'padding-left: 28px !important;'}" class="text-nowrap">
                             <span class="do-jurnal-coa-badge me-2">${escapeHtml(coaCode)}</span>
                             <span class="${isDebit ? 'fw-semibold text-body-emphasis' : 'text-body-secondary'}">${!isDebit ? '<i class="bi bi-arrow-return-right text-muted opacity-75 me-1.5"></i>' : ''}${escapeHtml(coaName)}</span>
                         </td>
-                        <td class="text-end font-monospace ${debit > 0 ? 'do-jurnal-debit-val fw-bold' : 'text-muted opacity-50'}">
+                        <td class="text-end font-monospace text-nowrap ${debit > 0 ? 'do-jurnal-debit-val fw-bold' : 'text-muted opacity-50'}">
                             ${debitFmt}
                         </td>
-                        <td class="text-end font-monospace ${kredit > 0 ? 'do-jurnal-kredit-val fw-bold' : 'text-muted opacity-50'}">
+                        <td class="text-end font-monospace text-nowrap ${kredit > 0 ? 'do-jurnal-kredit-val fw-bold' : 'text-muted opacity-50'}">
                             ${kreditFmt}
                         </td>
-                        <td class="do-jurnal-memo-text text-truncate" style="max-width: 250px;" title="${escapeHtml(row.keterangan || '-')}">${escapeHtml(row.keterangan || '-')}</td>
+                        <td class="do-jurnal-memo-text text-nowrap" style="min-width: 180px;" title="${escapeHtml(row.keterangan || '-')}">${escapeHtml(row.keterangan || '-')}</td>
                     </tr>
                 `;
             });

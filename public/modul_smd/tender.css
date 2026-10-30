@@ -2101,7 +2101,9 @@ body.dark-mode .tender-log-footer {
 
     /* Modals & Input Form on Mobile */
     .modal-dialog {
-        margin: 0.5rem !important;
+        margin: 0.5rem auto !important;
+        width: calc(100% - 12px) !important;
+        max-width: calc(100% - 12px) !important;
     }
     .tender-modal-content {
         border-radius: 20px !important;

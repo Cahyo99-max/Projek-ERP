@@ -160,6 +160,16 @@ class RolePermissionController extends Controller
             'lihat-stok-aktual'        => 'Laporan & Ringkasan Stok Persediaan',
             'lihat-hpp-stok'           => 'Laporan & Ringkasan Stok Persediaan',
 
+            // Peminjaman Barang (Pameran & Event)
+            'lihat-peminjaman'         => 'Peminjaman Barang (Pameran & Event)',
+            'tambah-peminjaman'        => 'Peminjaman Barang (Pameran & Event)',
+            'edit-peminjaman'          => 'Peminjaman Barang (Pameran & Event)',
+            'hapus-peminjaman'         => 'Peminjaman Barang (Pameran & Event)',
+            'approve-peminjaman'       => 'Peminjaman Barang (Pameran & Event)',
+            'siapkan-peminjaman'       => 'Peminjaman Barang (Pameran & Event)',
+            'serah-terima-peminjaman'  => 'Peminjaman Barang (Pameran & Event)',
+            'kembalikan-peminjaman'    => 'Peminjaman Barang (Pameran & Event)',
+
             // Purchasing
             'lihat-gr'        => 'Penerimaan Barang (Goods Receipt / GR)',
             'tambah-gr'       => 'Penerimaan Barang (Goods Receipt / GR)',
@@ -441,6 +451,8 @@ class RolePermissionController extends Controller
             'lihat-jurnal-opname','lihat-nilai-opname',
             'lihat-opening-stock','tambah-opening-stock','konfirmasi-opening-stock','hapus-opening-stock',
             'lihat-kartu-stok','lihat-stok-aktual','lihat-hpp-stok',
+            'lihat-peminjaman','tambah-peminjaman','edit-peminjaman','hapus-peminjaman',
+            'approve-peminjaman','siapkan-peminjaman','serah-terima-peminjaman','kembalikan-peminjaman',
         ];
         if (in_array($permissionName, $inventory)) return 'inventory';
 
@@ -617,6 +629,31 @@ class RolePermissionController extends Controller
                 }
             }
             $modules['kas_bank']['subgroups'] = $sortedKasBankSubgroups;
+        }
+
+        // Sort subgroups in Inventory & Stok module (Peminjaman Barang ditempatkan di bawah Laporan & Ringkasan Stok)
+        if (isset($modules['inventory']['subgroups'])) {
+            $inventorySubgroupOrder = [
+                'Penyesuaian Stok (Stock Adjustment)',
+                'Barang Keluar (Goods Issue / GI)',
+                'Transfer Gudang',
+                'Stock Opname',
+                'Saldo Awal Persediaan (Opening Stock)',
+                'Laporan & Ringkasan Stok Persediaan',
+                'Peminjaman Barang (Pameran & Event)',
+            ];
+            $sortedInventorySubgroups = [];
+            foreach ($inventorySubgroupOrder as $subName) {
+                if (isset($modules['inventory']['subgroups'][$subName])) {
+                    $sortedInventorySubgroups[$subName] = $modules['inventory']['subgroups'][$subName];
+                }
+            }
+            foreach ($modules['inventory']['subgroups'] as $subName => $perms) {
+                if (!isset($sortedInventorySubgroups[$subName])) {
+                    $sortedInventorySubgroups[$subName] = $perms;
+                }
+            }
+            $modules['inventory']['subgroups'] = $sortedInventorySubgroups;
         }
 
         // Sort subgroups in Master Produk & Barang module
@@ -868,6 +905,16 @@ class RolePermissionController extends Controller
             if ($permName === 'cetak-progress-spk') return 7;
             if ($permName === 'lihat-riwayat-input-produksi') return 8;
             if ($permName === 'input-hasil-harian-produksi') return 9;
+
+            // Peminjaman Barang specific ordering
+            if ($permName === 'lihat-peminjaman') return 1;
+            if ($permName === 'tambah-peminjaman') return 2;
+            if ($permName === 'edit-peminjaman') return 3;
+            if ($permName === 'hapus-peminjaman') return 4;
+            if ($permName === 'approve-peminjaman') return 5;
+            if ($permName === 'siapkan-peminjaman') return 6;
+            if ($permName === 'serah-terima-peminjaman') return 7;
+            if ($permName === 'kembalikan-peminjaman') return 8;
 
             // General action weight sorting
             if (str_starts_with($permName, 'lihat-') && !str_contains($permName, '-hpp') && !str_contains($permName, '-jurnal') && !str_contains($permName, '-nilai')) return 10;

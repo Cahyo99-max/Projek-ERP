@@ -128,6 +128,8 @@
         /* ─── Table Modern Styling ───────────────────────────────── */
         #tableCustomer {
             color: var(--cine-text-main) !important;
+            min-width: 980px !important;
+            width: 100% !important;
         }
         #tableCustomer thead th {
             background-color: var(--table-header-bg) !important;
@@ -138,7 +140,7 @@
             text-transform: uppercase;
             letter-spacing: 0.6px;
             padding: 14px 16px;
-            white-space: nowrap;
+            white-space: nowrap !important;
         }
         #tableCustomer tbody td {
             background-color: transparent !important;
@@ -156,7 +158,9 @@
 
         /* ─── Cell Component Design ──────────────────────────────── */
         .customer-code-badge {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-weight: 700;
             font-size: 0.8rem;
@@ -166,6 +170,7 @@
             color: var(--cine-primary);
             border: 1px solid rgba(56, 189, 248, 0.3);
             letter-spacing: 0.5px;
+            white-space: nowrap !important;
         }
 
         .customer-name-title {
@@ -174,6 +179,7 @@
             color: var(--cine-text-main) !important;
             line-height: 1.25;
             letter-spacing: -0.2px;
+            min-width: 140px;
         }
         .customer-company-sub {
             font-size: 0.78rem;
@@ -182,6 +188,7 @@
             display: flex;
             align-items: center;
             gap: 4px;
+            white-space: nowrap;
         }
 
         /* Type Badges */
@@ -196,6 +203,7 @@
             align-items: center;
             gap: 4px;
             margin-bottom: 3px;
+            white-space: nowrap !important;
         }
         .badge-type-distributor {
             background: var(--cine-primary-glow);
@@ -224,6 +232,7 @@
             display: flex;
             align-items: center;
             gap: 4px;
+            white-space: nowrap;
         }
 
         .customer-phone {
@@ -231,6 +240,7 @@
             font-weight: 600;
             color: var(--cine-text-main) !important;
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            white-space: nowrap !important;
         }
         .customer-email-sub {
             font-size: 0.76rem;
@@ -239,6 +249,7 @@
             display: flex;
             align-items: center;
             gap: 4px;
+            white-space: nowrap;
         }
 
         .customer-location {
@@ -247,6 +258,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            white-space: nowrap !important;
         }
 
         /* Status Pills */
@@ -259,6 +271,7 @@
             font-size: 0.75rem;
             font-weight: 700;
             letter-spacing: 0.2px;
+            white-space: nowrap !important;
         }
         .badge-status-active {
             background: var(--cine-success-glow);
@@ -564,6 +577,27 @@
             padding: 2px 8px !important;
             font-size: 0.82rem !important;
         }
+
+        /* Responsive Mobile Adjustments */
+        @media (max-width: 767.98px) {
+            .summary-card {
+                padding: 0.85rem 1rem !important;
+                border-radius: 14px !important;
+            }
+            .summary-title {
+                font-size: 0.65rem !important;
+                letter-spacing: 0.3px !important;
+            }
+            .summary-value {
+                font-size: 1.35rem !important;
+            }
+            .summary-icon {
+                width: 38px !important;
+                height: 38px !important;
+                font-size: 1.15rem !important;
+                border-radius: 10px !important;
+            }
+        }
     </style>
     @endpush
 
@@ -575,8 +609,8 @@
         $countRetail      = $countRetail ?? 0;
     @endphp
     <div class="container-fluid pt-3 px-2 px-md-4">
-        <div class="row g-3">
-            <div class="col-12 col-sm-6 col-md-3">
+        <div class="row g-2 g-sm-3">
+            <div class="col-6 col-md-3">
                 <div class="summary-card summary-card-total">
                     <div>
                         <div class="summary-title">Total Customer</div>
@@ -587,7 +621,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-6 col-md-3">
                 <div class="summary-card summary-card-active">
                     <div>
                         <div class="summary-title">Customer Aktif</div>
@@ -598,7 +632,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-6 col-md-3">
                 <div class="summary-card summary-card-distributor">
                     <div>
                         <div class="summary-title">Distributor & Agen</div>
@@ -609,7 +643,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-6 col-md-3">
                 <div class="summary-card summary-card-retail">
                     <div>
                         <div class="summary-title">Retail & End User</div>
@@ -665,14 +699,14 @@
         </x-slot>
 
         <x-slot name="thead">
-            <th width="4%" class="text-center py-3">No</th>
-            <th class="py-3" width="12%">Kode</th>
-            <th class="py-3" width="24%">Nama / Perusahaan</th>
-            <th class="py-3" width="18%">Jenis</th>
-            <th class="py-3" width="18%">Hubungi</th>
-            <th class="py-3" width="14%">Lokasi Utama</th>
-            <th class="py-3 text-center" width="8%">Status</th>
-            <th width="10%" class="text-center py-3">Aksi</th>
+            <th class="text-center py-3" style="width: 50px; min-width: 50px;">No</th>
+            <th class="py-3" style="min-width: 120px;">Kode</th>
+            <th class="py-3" style="min-width: 220px;">Nama / Perusahaan</th>
+            <th class="py-3" style="min-width: 135px;">Jenis</th>
+            <th class="py-3" style="min-width: 165px;">Hubungi</th>
+            <th class="py-3" style="min-width: 155px;">Lokasi Utama</th>
+            <th class="py-3 text-center" style="min-width: 100px;">Status</th>
+            <th class="text-center py-3" style="min-width: 120px;">Aksi</th>
         </x-slot>
     </x-table_card>
 

@@ -10,11 +10,14 @@
                 <span class="text-body-secondary small"><span id="cart_badge_count" class="fw-bold">0</span> Macam Produk</span>
             </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-1.5">
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center p-0 flex-shrink-0" id="btn_reload_cart_prices" style="width: 31px; height: 31px;" title="Perbarui / Reload Harga & Stok Produk">
+                <i class="bi bi-arrow-clockwise fs-6"></i>
+            </button>
             <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1" id="btn_clear_cart" title="Kosongkan Keranjang">
                 <i class="bi bi-trash me-1"></i> Kosongkan
             </button>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            <button type="button" class="btn-close ms-1" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
     </div>
 

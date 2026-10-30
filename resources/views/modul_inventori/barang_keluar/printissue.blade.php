@@ -619,7 +619,7 @@
                             </td>
                             <td class="text-center fw-semibold text-muted">{{ $barang?->satuan?->nama_satuan ?? '-' }}</td>
                             <td class="text-end fw-bold font-monospace" style="font-size: 11px; color: #0f172a;">
-                                {{ number_format($qty, 0, ',', '.') }}
+                                {{ (fmod(round($qty, 2), 1) != 0) ? rtrim(rtrim(number_format(round($qty, 2), 2, ',', '.'), '0'), ',') : number_format(round($qty, 2), 0, ',', '.') }}
                             </td>
                         </tr>
                     @empty
@@ -634,7 +634,7 @@
                             TOTAL BARANG KELUAR:
                         </td>
                         <td class="text-end font-monospace" style="font-size: 11.5px; font-weight: 800;">
-                            {{ number_format($totalQty, 0, ',', '.') }} Unit
+                            {{ (fmod(round($totalQty, 2), 1) != 0) ? rtrim(rtrim(number_format(round($totalQty, 2), 2, ',', '.'), '0'), ',') : number_format(round($totalQty, 2), 0, ',', '.') }} Unit
                         </td>
                     </tr>
                 </tfoot>

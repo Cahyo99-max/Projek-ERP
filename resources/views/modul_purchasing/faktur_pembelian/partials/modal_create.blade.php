@@ -1,38 +1,38 @@
 <!-- ===== MODAL TAMBAH / INPUT FAKTUR PEMBELIAN ===== -->
 <div class="modal fade" id="modalTambahInvoice" aria-labelledby="modalTambahInvoiceLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-focus="false">
-    <div class="modal-dialog modal-fullscreen-xl-down modal-dialog-invoice-wide modal-dialog-scrollable">
-        <div class="modal-content erp-card border-0 shadow-lg">
+    <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
+        <div class="modal-content erp-card border-0 shadow-lg" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
 
             <!-- ── GRADIENT MODAL HEADER ── -->
-            <div class="modal-header inv-modal-header">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="p-2 rounded-3 shadow-sm" style="background:rgba(255,255,255,0.2); backdrop-filter:blur(6px);">
-                        <i class="bi bi-receipt-cutoff fs-4 text-white"></i>
+            <div class="modal-header inv-modal-header border-0 px-3 px-md-4 py-2.5 py-md-3 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #091326 0%, #0f2b5c 50%, #1e40af 100%) !important; color: #fff;">
+                <div class="d-flex align-items-center gap-2 gap-md-3 min-w-0" style="min-width: 0; flex: 1 1 auto; overflow: hidden;">
+                    <div class="p-2 rounded-3 shadow-sm flex-shrink-0" style="background:rgba(255,255,255,0.2); backdrop-filter:blur(6px); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-receipt-cutoff fs-5 text-white"></i>
                     </div>
-                    <div>
-                        <div class="modal-title fs-5 fw-bold" id="modalTambahInvoiceLabel">Input Faktur Pembelian Baru</div>
-                        <div class="text-subtitle" style="font-size:0.75rem; opacity:0.85;">Purchase Invoice (AP) — Pencatatan Tagihan Supplier & Hutang Dagang</div>
+                    <div style="min-width: 0; overflow: hidden;">
+                        <div class="modal-title fs-6 fs-md-5 fw-bold text-truncate text-white" id="modalTambahInvoiceLabel">Input Faktur Pembelian Baru</div>
+                        <div class="text-subtitle text-truncate text-white-50" style="font-size:0.72rem;">Purchase Invoice (AP) — Pencatatan Tagihan Supplier</div>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="inv-status-pill draft shadow-sm" id="badge_status_form">
-                        <i class="bi bi-circle-fill text-warning" style="font-size:0.5rem;"></i> DRAFT
+                <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-2">
+                    <span class="inv-status-pill draft shadow-sm" id="badge_status_form" style="font-size:0.7rem; padding: 0.2rem 0.55rem;">
+                        <i class="bi bi-circle-fill text-warning" style="font-size:0.45rem;"></i> DRAFT
                     </span>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
             </div>
 
             <!-- ── MODAL BODY ── -->
-            <div class="modal-body p-0 bg-body-tertiary">
-                <form id="formTambahInvoice" action="{{ route('purchase-invoices.store') }}" method="POST" enctype="multipart/form-data" autocomplete="off">
+            <div class="modal-body p-0 bg-body-tertiary" style="overflow-x: hidden !important; max-width: 100%; min-width: 0; touch-action: pan-y;">
+                <form id="formTambahInvoice" action="{{ route('purchase-invoices.store') }}" method="POST" enctype="multipart/form-data" autocomplete="off" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                     @csrf
                     <input type="hidden" name="action_type" id="create_action_type" value="draft">
 
                     <!-- ── MAIN FORM BODY ── -->
-                    <div class="p-3 p-md-4">
+                    <div class="p-2.5 p-md-4" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
 
                         <!-- CARD 1: INFORMASI DOKUMEN FAKTUR -->
-                        <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm">
+                        <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                                     <div class="erp-card-header d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-file-earmark-text-fill text-primary"></i>
@@ -42,25 +42,25 @@
                                             <i class="bi bi-shield-check me-1"></i>Form Validasi
                                         </span>
                                     </div>
-                                    <div class="card-body p-3 p-md-4">
+                                    <div class="card-body p-3 p-md-4" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                                         <div class="row g-3">
 
                                             <!-- PILIH SUMBER DOKUMEN REFERENSI (GRN atau PO) -->
                                             <div class="col-12">
-                                                <div class="p-2 px-3 rounded-3 border bg-body-tertiary d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                                <div class="p-2 px-3 rounded-3 border bg-body-tertiary d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2">
                                                     <div class="d-flex align-items-center gap-2">
                                                         <i class="bi bi-diagram-3-fill text-primary"></i>
-                                                        <span class="fw-bold small text-body">Sumber Dokumen Referensi:</span>
+                                                        <span class="fw-bold small text-body">Sumber Dokumen:</span>
                                                     </div>
-                                                    <div class="btn-group btn-group-sm" role="group" aria-label="Sumber Referensi Tagihan">
+                                                    <div class="btn-group btn-group-sm w-100 w-sm-auto d-flex" role="group" aria-label="Sumber Referensi Tagihan">
                                                         <input type="radio" class="btn-check" name="source_type" id="create_source_type_gr" value="gr" checked autocomplete="off">
-                                                        <label class="btn btn-outline-primary fw-semibold px-3" for="create_source_type_gr">
-                                                            <i class="bi bi-box-seam me-1"></i> Penerimaan Barang (GRN / BPB)
+                                                        <label class="btn btn-outline-primary fw-semibold px-2.5 py-1.5 flex-fill text-center small text-nowrap" for="create_source_type_gr">
+                                                            <i class="bi bi-box-seam me-1"></i> Penerimaan (GRN)
                                                         </label>
 
                                                         <input type="radio" class="btn-check" name="source_type" id="create_source_type_po" value="po" autocomplete="off">
-                                                        <label class="btn btn-outline-success fw-semibold px-3" for="create_source_type_po">
-                                                            <i class="bi bi-file-earmark-text me-1"></i> Purchase Order (PO) Langsung
+                                                        <label class="btn btn-outline-success fw-semibold px-2.5 py-1.5 flex-fill text-center small text-nowrap" for="create_source_type_po">
+                                                            <i class="bi bi-file-earmark-text me-1"></i> PO Langsung
                                                         </label>
                                                     </div>
                                                 </div>
@@ -68,34 +68,34 @@
 
                                             <!-- PILIH DOKUMEN PENERIMAAN (GRN/BPB) CONTAINER -->
                                             <div class="col-12" id="create_container_select_gr">
-                                                <label class="form-label fw-bold required text-primary">
+                                                <label class="form-label fw-bold required text-primary small mb-1.5">
                                                     <i class="bi bi-box-seam me-1"></i>Pilih Dokumen Penerimaan Barang (GRN / BPB)
                                                 </label>
                                                 <div class="input-group shadow-sm">
                                                     <span class="input-group-text bg-primary bg-opacity-10 text-primary border-end-0"><i class="bi bi-search"></i></span>
-                                                    <input type="text" class="form-control border-start-0 fw-semibold bg-white" id="create_disp_gr_ref" readonly placeholder="Klik untuk mencari dan memilih dokumen GRN..." style="cursor: pointer;">
+                                                    <input type="text" class="form-control border-start-0 fw-semibold bg-body" id="create_disp_gr_ref" readonly placeholder="Pilih dokumen GRN..." style="cursor: pointer;">
                                                     <input type="hidden" name="gr_id" id="create_gr_id">
-                                                    <button type="button" class="btn btn-primary px-3 fw-semibold" id="create_btn_browse_gr">
-                                                        <i class="bi bi-folder2-open me-1"></i> Pilih Dokumen GRN
+                                                    <button type="button" class="btn btn-primary px-2.5 px-md-3 fw-semibold text-nowrap" id="create_btn_browse_gr">
+                                                        <i class="bi bi-folder2-open me-1"></i> <span class="d-none d-sm-inline">Pilih Dokumen</span> GRN
                                                     </button>
                                                 </div>
-                                                <div class="form-text text-muted small mt-1"><i class="bi bi-info-circle me-1"></i>Hanya menampilkan dokumen Penerimaan Barang (GRN) yang sudah berstatus <strong>Posted</strong> dan belum dibuatkan faktur.</div>
+                                                <div class="form-text text-muted extra-small mt-1"><i class="bi bi-info-circle me-1"></i>Hanya menampilkan dokumen Penerimaan Barang (GRN) berstatus <strong>Posted</strong> dan belum difakturkan.</div>
                                             </div>
 
                                             <!-- PILIH DOKUMEN PURCHASE ORDER (PO) CONTAINER -->
                                             <div class="col-12" id="create_container_select_po" style="display: none;">
-                                                <label class="form-label fw-bold required text-success">
+                                                <label class="form-label fw-bold required text-success small mb-1.5">
                                                     <i class="bi bi-file-earmark-text me-1"></i>Pilih Dokumen Purchase Order (PO)
                                                 </label>
                                                 <div class="input-group shadow-sm">
                                                     <span class="input-group-text bg-success bg-opacity-10 text-success border-end-0"><i class="bi bi-search"></i></span>
-                                                    <input type="text" class="form-control border-start-0 fw-semibold bg-white" id="create_disp_po_ref" readonly placeholder="Klik untuk mencari dan memilih dokumen PO..." style="cursor: pointer;">
+                                                    <input type="text" class="form-control border-start-0 fw-semibold bg-body" id="create_disp_po_ref" readonly placeholder="Pilih dokumen PO..." style="cursor: pointer;">
                                                     <input type="hidden" name="po_id" id="create_po_id">
-                                                    <button type="button" class="btn btn-success px-3 fw-semibold" id="create_btn_browse_po">
-                                                        <i class="bi bi-folder2-open me-1"></i> Pilih Dokumen PO
+                                                    <button type="button" class="btn btn-success px-2.5 px-md-3 fw-semibold text-nowrap" id="create_btn_browse_po">
+                                                        <i class="bi bi-folder2-open me-1"></i> <span class="d-none d-sm-inline">Pilih Dokumen</span> PO
                                                     </button>
                                                 </div>
-                                                <div class="form-text text-muted small mt-1"><i class="bi bi-info-circle me-1"></i>Hanya menampilkan dokumen Purchase Order (PO) yang sudah <strong>Disetujui (Approved)</strong> dan siap dibuatkan faktur tagihan.</div>
+                                                <div class="form-text text-muted extra-small mt-1"><i class="bi bi-info-circle me-1"></i>Hanya menampilkan Purchase Order (PO) yang sudah <strong>Approved</strong>.</div>
                                             </div>
 
                                             <div class="col-12"><hr class="my-1 border-secondary-subtle"></div>
@@ -228,7 +228,7 @@
                                 </div>
 
                                 <!-- CARD 2: RINCIAN ITEM BARANG DARI GRN -->
-                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm">
+                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                                     <div class="erp-card-header d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-box-seam-fill text-primary"></i>
@@ -238,8 +238,14 @@
                                             Tagihan Item
                                         </span>
                                     </div>
-                                    <div class="card-body p-0">
-                                        <div class="table-responsive inv-table-responsive">
+                                    <div class="card-body p-0" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
+                                        <!-- Mobile swipe hint -->
+                                        <div class="d-flex d-md-none align-items-center gap-1.5 text-muted small px-3 pt-2 pb-1" style="font-size: 0.75rem;">
+                                            <i class="bi bi-arrows-expand-vertical text-primary"></i>
+                                            <span>Geser tabel ke samping untuk melihat rincian item barang lengkap</span>
+                                        </div>
+
+                                        <div class="table-responsive inv-table-responsive" style="overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
                                             <table class="table align-middle table-hover mb-0 inv-modern-table" id="tableCreateItems">
                                                 <thead>
                                                     <tr>
@@ -271,7 +277,7 @@
                                 </div>
 
                                 <!-- CARD 3: BIAYA TAMBAHAN & ALOKASI COA -->
-                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm">
+                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                                     <div class="erp-card-header d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-truck text-primary"></i>
@@ -281,8 +287,14 @@
                                             <i class="bi bi-plus-circle me-1"></i> Tambah Biaya
                                         </button>
                                     </div>
-                                    <div class="card-body p-0">
-                                        <div class="table-responsive inv-table-responsive">
+                                    <div class="card-body p-0" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
+                                        <!-- Mobile swipe hint -->
+                                        <div class="d-flex d-md-none align-items-center gap-1.5 text-muted small px-3 pt-2 pb-1" style="font-size: 0.75rem;">
+                                            <i class="bi bi-arrows-expand-vertical text-primary"></i>
+                                            <span>Geser tabel ke samping untuk melihat rincian biaya</span>
+                                        </div>
+
+                                        <div class="table-responsive inv-table-responsive" style="overflow-x: auto !important; width: 100%; max-width: 100%; min-width: 0; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior-x: contain;">
                                             <table class="table align-middle table-hover mb-0 inv-modern-table" id="tableCreateExtraCosts" style="min-width: 950px;">
                                                 <thead>
                                                     <tr>
@@ -548,27 +560,26 @@
                         </div>
 
                     </div><!-- end p-4 -->
-
-                    <!-- ── STICKY BOTTOM MODAL FOOTER ── -->
-                    <div class="modal-footer bg-body border-top py-3 px-4 d-flex flex-wrap justify-content-between align-items-center" style="position: sticky; bottom: 0; z-index: 1020; box-shadow: 0 -4px 12px rgba(0,0,0,0.05);">
-                        <div class="text-muted small d-none d-md-flex align-items-center gap-2">
-                            <i class="bi bi-info-circle text-primary"></i>
-                            <span>Faktur yang diajukan akan dikirim ke WhatsApp Atasan untuk persetujuan (ACC) sebelum diposting ke Jurnal Akuntansi.</span>
-                        </div>
-                        <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
-                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
-                                <i class="bi bi-x-circle me-1"></i> Batal
-                            </button>
-                            <button type="button" class="btn btn-outline-primary rounded-pill px-4 fw-semibold" id="btn_save_draft_invoice">
-                                <i class="bi bi-file-earmark-code me-1"></i> Simpan Draft
-                            </button>
-                            <button type="button" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm" id="btn_submit_post_invoice">
-                                <i class="bi bi-send-check me-1"></i> Simpan & Ajukan
-                            </button>
-                        </div>
-                    </div>
-
                 </form>
+            </div>
+
+            <!-- ── MODAL FOOTER ── -->
+            <div class="modal-footer border-top py-2.5 py-md-3 px-3 px-md-4 d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2" style="background-color: var(--erp-card-bg); border-color: var(--erp-border) !important; flex-shrink: 0;">
+                <div class="text-muted small d-none d-lg-flex align-items-center gap-2">
+                    <i class="bi bi-info-circle text-primary"></i>
+                    <span>Faktur yang diajukan akan dikirim ke WhatsApp Atasan untuk persetujuan (ACC) sebelum diposting ke Jurnal Akuntansi.</span>
+                </div>
+                <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 ms-sm-auto w-100 w-sm-auto">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2 order-2 order-sm-1" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> Batal
+                    </button>
+                    <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold order-1 order-sm-2" id="btn_save_draft_invoice">
+                        <i class="bi bi-file-earmark-code me-1"></i> Simpan Draft
+                    </button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm order-0 order-sm-3" id="btn_submit_post_invoice">
+                        <i class="bi bi-send-check me-1"></i> Simpan &amp; Ajukan
+                    </button>
+                </div>
             </div>
         </div>
     </div>

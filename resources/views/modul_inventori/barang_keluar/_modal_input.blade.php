@@ -3,7 +3,7 @@
 {{-- ════════════════════════════════════════════════════════════ --}}
 @can('tambah-gi')
 <div class="modal fade" id="modalTambahGI" tabindex="-1" aria-labelledby="modalTambahGILabel" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 96vw; width: 96vw;">
         <div class="modal-content border-0 shadow-lg rounded-3">
             <div class="modal-header bg-danger bg-gradient text-white rounded-top-3">
                 <h5 class="modal-title fw-bold" id="modalTambahGILabel">
@@ -164,6 +164,13 @@ $(document).ready(function () {
             });
         }
     });
+
+    // Reset buttons when modal is shown
+    $('#modalTambahGI').on('show.bs.modal', function () {
+        $('#btnSimpanDraftGI').prop('disabled', false).html('<i class="bi bi-file-earmark me-1"></i> Simpan Draf');
+        $('#btnAjukanGI').prop('disabled', false).html('<i class="bi bi-send me-1"></i> Simpan & Ajukan');
+        $('#btnSimpanGI').prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Setujui Langsung');
+    });
 });
 
 let itemCounter = 0;
@@ -203,18 +210,20 @@ function tambahItemGI() {
     }
 
     const idx = itemCounter++;
+    if (!window.giItemSerialsStore) window.giItemSerialsStore = {};
+    window.giItemSerialsStore[idx] = [];
 
     const html = `
     <div class="item-row card p-3 mb-2 border rounded-3 shadow-xs" id="item-row-${idx}">
         <div class="row g-2 align-items-center">
-            <div class="col-12 col-md-5">
+            <div class="col-12 col-md-6 col-lg-6">
                 <label class="form-label small fw-semibold text-secondary">Nama Barang <span class="text-danger">*</span></label>
-                <input type="hidden" id="barang_id_${idx}" name="items[${idx}][barang_id]" required>
+                <input type="hidden" id="barang_id_${idx}" class="gi-input-barang-id" name="items[${idx}][barang_id]" required>
                 <div class="input-group input-group-sm">
                     <div id="foto_preview_wrap_${idx}" class="input-group-text p-1 bg-light border" style="display:none; cursor:pointer;" title="Klik untuk perbesar foto">
                         <img id="foto_preview_img_${idx}" src="" class="rounded" style="width:28px; height:28px; object-fit:cover;">
                     </div>
-                    <input type="text" class="form-control" id="barang_display_${idx}" readonly
+                    <input type="text" class="form-control gi-input-barang-display" id="barang_display_${idx}" readonly
                            placeholder="-- Klik tombol cari barang --" style="cursor: pointer;"
                            onclick="openLookupBarangModal(${idx})">
                     <button class="btn btn-outline-danger px-3" type="button" onclick="openLookupBarangModal(${idx})" title="Cari Barang">
@@ -222,7 +231,7 @@ function tambahItemGI() {
                     </button>
                 </div>
             </div>
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-4 col-lg-4">
                 <label class="form-label small fw-semibold text-secondary">Jumlah <span class="text-danger">*</span></label>
                 <div class="input-group input-group-sm">
                     <input type="number" class="form-control" id="jumlah_${idx}"
@@ -235,10 +244,29 @@ function tambahItemGI() {
                 </div>
                 <div id="stok_error_${idx}"></div>
             </div>
-            <div class="col-12 col-md-3 text-end pt-md-3 pt-1">
+            <div class="col-12 col-md-2 col-lg-2 text-end pt-md-3 pt-1">
                 <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="hapusItemGI(${idx})" title="Hapus baris">
                     <i class="bi bi-trash me-1"></i> Hapus
                 </button>
+            </div>
+        </div>
+
+        <!-- Serial Number Row -->
+        <div class="mt-2.5 pt-2 border-top" id="sn_wrapper_${idx}">
+            <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 bg-light-subtle p-2 rounded-3 border border-light-subtle">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1 btn-open-gi-sn shadow-xs" 
+                        id="btn_open_sn_${idx}" data-idx="${idx}" data-context="input" onclick="openModalSelectSerialsGI(${idx}, 'input')" style="font-size: 0.78rem;">
+                        <i class="bi bi-upc-scan me-1"></i> Pilih Serial Number
+                    </button>
+                    <span class="badge bg-secondary-subtle text-muted border font-monospace px-2 py-1" id="sn_badge_count_${idx}" style="font-size: 0.74rem;">
+                        0 / 0 Unit
+                    </span>
+                    <span id="sn_status_text_${idx}" class="small text-muted font-monospace" style="font-size: 0.72rem;">
+                        <i class="bi bi-dash-circle me-1"></i>Tanpa SN (Opsional)
+                    </span>
+                </div>
+                <div id="sn_chips_preview_${idx}" class="d-flex flex-wrap gap-1 align-items-center"></div>
             </div>
         </div>
     </div>`;
@@ -247,13 +275,14 @@ function tambahItemGI() {
 }
 
 function hapusItemGI(idx) {
+    if (window.giItemSerialsStore) delete window.giItemSerialsStore[idx];
     $(`#item-row-${idx}`).remove();
 }
 
 function formatGIQty(val) {
     if (val === null || val === undefined || isNaN(val)) return '0';
     const num = parseFloat(val);
-    return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+    return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 // When barang is selected: fetch live stok
@@ -326,18 +355,39 @@ function validateJumlah(idx) {
     } else {
         input.removeClass('is-invalid');
     }
+
+    if (typeof updateRowSnBadge === 'function') {
+        updateRowSnBadge(idx, 'input', isNaN(jumlah) ? 0 : jumlah);
+    }
 }
 
 // Submit GI form (Draft, Pending, or Confirmed)
 window.submitGIForm = function (targetStatus) {
     clearGIInputErrors();
-    const $btnDraft  = $('#btnSimpanDraftGI').prop('disabled', true);
-    const $btnAjukan = $('#btnAjukanGI').prop('disabled', true);
-    const $btnConf   = $('#btnSimpanGI').prop('disabled', true);
-    
+    const $btnDraft  = $('#btnSimpanDraftGI');
+    const $btnAjukan = $('#btnAjukanGI');
+    const $btnConf   = $('#btnSimpanGI');
+
+    if ($btnDraft.prop('disabled') || $btnAjukan.prop('disabled') || $btnConf.prop('disabled')) {
+        return; // Cegah double click / duplikasi request
+    }
+
     const activeBtn = targetStatus === 'Confirmed' ? $btnConf : (targetStatus === 'Pending' ? $btnAjukan : $btnDraft);
     const oldHtml   = activeBtn.html();
-    activeBtn.html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan…');
+
+    const restoreInputGIBtns = function() {
+        $btnDraft.prop('disabled', false);
+        $btnAjukan.prop('disabled', false);
+        $btnConf.prop('disabled', false);
+        activeBtn.html(oldHtml);
+    };
+
+    $btnDraft.prop('disabled', true);
+    $btnAjukan.prop('disabled', true);
+    $btnConf.prop('disabled', true);
+
+    const spinnerText = targetStatus === 'Confirmed' ? 'Menyimpan & Konfirmasi…' : (targetStatus === 'Pending' ? 'Mengajukan…' : 'Menyimpan Draf…');
+    activeBtn.html(`<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ${spinnerText}`);
 
     // Collect form data
     const gudangId   = $('#gi_gudang_id').val();
@@ -356,8 +406,8 @@ window.submitGIForm = function (targetStatus) {
     let stokExceededItems = [];
 
     $('#gi_items_container .item-row').each(function () {
-        const barangId   = $(this).find('input[type=hidden]').val();
-        const barangName = $(this).find('input[type=text]').val() || 'Barang';
+        const barangId   = $(this).find('.gi-input-barang-id').val();
+        const barangName = $(this).find('.gi-input-barang-display').val() || $(this).find('input[type=text]').val() || 'Barang';
         const jumlah     = parseFloat($(this).find('input[type=number]').val());
         const satuan     = $(this).find('.input-group-text').last().text() || '';
 
@@ -379,54 +429,46 @@ window.submitGIForm = function (targetStatus) {
             stokExceededItems.push(`<b>${barangName}</b> (Diminta: <b>${formatGIQty(jumlah)}</b>, Stok: <b>${formatGIQty(stok)} ${satuan}</b>)`);
         }
 
-        items.push({ barang_id: barangId, jumlah: jumlah });
+        const rowId = $(this).attr('id');
+        const rIdx = rowId ? rowId.replace('item-row-', '') : null;
+        const serials = (rIdx !== null && window.giItemSerialsStore && window.giItemSerialsStore[rIdx]) ? window.giItemSerialsStore[rIdx] : [];
+
+        items.push({ barang_id: barangId, jumlah: jumlah, serial_numbers: serials });
     });
 
     if (!gudangId) {
         showGIFieldError('gudang_id', 'Gudang wajib dipilih.');
         Swal.fire({ icon: 'warning', title: 'Gudang Belum Dipilih!', text: 'Silakan pilih gudang asal pengeluaran barang terlebih dahulu.', confirmButtonColor: '#ef4444' });
-        $btnDraft.prop('disabled', false);
-        $btnConf.prop('disabled', false);
-        activeBtn.html(oldHtml);
+        restoreInputGIBtns();
         return;
     }
     if (!tanggal) {
         showGIFieldError('tanggal_gi', 'Tanggal wajib diisi.');
         Swal.fire({ icon: 'warning', title: 'Tanggal Wajib Diisi!', text: 'Silakan pilih tanggal transaksi pengeluaran barang.', confirmButtonColor: '#ef4444' });
-        $btnDraft.prop('disabled', false);
-        $btnConf.prop('disabled', false);
-        activeBtn.html(oldHtml);
+        restoreInputGIBtns();
         return;
     }
     if (!tujuan) {
         showGIFieldError('tujuan', 'Tujuan / Penerima wajib diisi.');
         Swal.fire({ icon: 'warning', title: 'Tujuan Belum Diisi!', text: 'Silakan isi tujuan, departemen, atau nama penerima barang.', confirmButtonColor: '#ef4444' });
-        $btnDraft.prop('disabled', false);
-        $btnConf.prop('disabled', false);
-        activeBtn.html(oldHtml);
+        restoreInputGIBtns();
         return;
     }
     if (tujuan.length > 40) {
         showGIFieldError('tujuan', 'Tujuan/Penerima maksimal 40 karakter.');
         Swal.fire({ icon: 'warning', title: 'Peringatan Validasi', text: 'Tujuan / Penerima maksimal 40 karakter!', confirmButtonColor: '#ef4444' });
-        $btnDraft.prop('disabled', false);
-        $btnConf.prop('disabled', false);
-        activeBtn.html(oldHtml);
+        restoreInputGIBtns();
         return;
     }
     if (keterangan.length > 40) {
         Swal.fire({ icon: 'warning', title: 'Peringatan Validasi', text: 'Keterangan maksimal 40 karakter!', confirmButtonColor: '#ef4444' });
-        $btnDraft.prop('disabled', false);
-        $btnConf.prop('disabled', false);
-        activeBtn.html(oldHtml);
+        restoreInputGIBtns();
         return;
     }
     if (!autoNum && !nomorGi) {
         showGIFieldError('nomor_gi', 'Nomor GI wajib diisi.');
         Swal.fire({ icon: 'warning', title: 'Nomor GI Belum Diisi!', text: 'Silakan isi nomor GI manual atau centang opsi Auto.', confirmButtonColor: '#ef4444' });
-        $btnDraft.prop('disabled', false);
-        $btnConf.prop('disabled', false);
-        activeBtn.html(oldHtml);
+        restoreInputGIBtns();
         return;
     }
 
@@ -440,9 +482,7 @@ window.submitGIForm = function (targetStatus) {
             confirmButtonColor: '#ef4444',
             confirmButtonText: '<i class="bi bi-plus-lg me-1"></i> Tambah Barang'
         });
-        $btnDraft.prop('disabled', false);
-        $btnConf.prop('disabled', false);
-        activeBtn.html(oldHtml);
+        restoreInputGIBtns();
         return;
     }
 
@@ -455,9 +495,7 @@ window.submitGIForm = function (targetStatus) {
             confirmButtonColor: '#ef4444',
             confirmButtonText: '<i class="bi bi-pencil-square me-1"></i> Lengkapi Data'
         });
-        $btnDraft.prop('disabled', false);
-        $btnConf.prop('disabled', false);
-        activeBtn.html(oldHtml);
+        restoreInputGIBtns();
         return;
     }
 
@@ -470,10 +508,7 @@ window.submitGIForm = function (targetStatus) {
             confirmButtonColor: '#ef4444',
             confirmButtonText: 'Perbaiki Daftar Barang'
         });
-        $btnDraft.prop('disabled', false);
-        $btnAjukan.prop('disabled', false);
-        $btnConf.prop('disabled', false);
-        activeBtn.html(oldHtml);
+        restoreInputGIBtns();
         return;
     }
 
@@ -486,10 +521,7 @@ window.submitGIForm = function (targetStatus) {
             confirmButtonColor: '#ef4444',
             confirmButtonText: '<i class="bi bi-pencil-square me-1"></i> Perbaiki Jumlah'
         });
-        $btnDraft.prop('disabled', false);
-        $btnAjukan.prop('disabled', false);
-        $btnConf.prop('disabled', false);
-        activeBtn.html(oldHtml);
+        restoreInputGIBtns();
         return;
     }
 
@@ -531,10 +563,10 @@ window.submitGIForm = function (targetStatus) {
             } else {
                 showGIAlert('danger', res.message || 'Terjadi kesalahan server.');
             }
-            $btnDraft.prop('disabled', false);
-            $btnAjukan.prop('disabled', false);
-            $btnConf.prop('disabled', false);
-            activeBtn.html(oldHtml);
+            restoreInputGIBtns();
+        },
+        complete: function() {
+            restoreInputGIBtns();
         }
     });
 };

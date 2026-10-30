@@ -49,7 +49,14 @@ class DeliveryOrderController extends Controller
             ->orderBy('id', 'desc')
             ->get(['id', 'nomor_kontrak', 'nama_tender']);
 
-        return view('modul_marketing.pengiriman.index', compact('gudangs', 'tenders'));
+        $kpis = [
+            'total'     => DeliveryOrder::forActiveCompany()->count(),
+            'menunggu'  => DeliveryOrder::forActiveCompany()->whereIn('status', ['Draft', 'Menunggu Persetujuan'])->count(),
+            'proses'    => DeliveryOrder::forActiveCompany()->whereIn('status', ['Disetujui', 'Siap Dikirim', 'Dalam Perjalanan'])->count(),
+            'selesai'   => DeliveryOrder::forActiveCompany()->whereIn('status', ['Terkirim', 'Selesai'])->count(),
+        ];
+
+        return view('modul_marketing.pengiriman.index', compact('gudangs', 'tenders', 'kpis'));
     }
 
     /**
@@ -70,6 +77,8 @@ class DeliveryOrderController extends Controller
                 'gudang:id,nama_gudang',
                 'creator:id,nama_lengkap,username',
             ])
+            ->withCount('details')
+            ->withSum('details as details_sum_qty_kirim', 'qty_kirim')
             ->orderBy('id', 'desc');
 
         if ($request->filled('status')) {
@@ -133,10 +142,6 @@ class DeliveryOrderController extends Controller
                     });
                 }
             }, true);
-
-        // Optimasi Skala 7 Juta Baris: Hitung qty kirim & total item HANYA untuk baris yang tampil pada halaman saat ini (10-25 baris)
-        // Mencegah MySQL menjalankan 14 juta subquery pada COUNT(*) total tabel
-        $dataTable->results()->loadCount('details')->loadSum('details as details_sum_qty_kirim', 'qty_kirim');
 
         return $dataTable
             ->addIndexColumn()

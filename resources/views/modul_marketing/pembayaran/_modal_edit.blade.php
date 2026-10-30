@@ -7,41 +7,44 @@
             <input type="hidden" id="edit_status" name="status" value="Draft">
 
             <!-- Modal Header -->
-            <div class="modal-header bg-body-tertiary border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-3">
-                    <span class="p-2 rounded-3 text-white d-inline-flex shadow-sm" style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);">
+            <div class="modal-header bg-body-tertiary border-bottom py-3 px-3 px-sm-4 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2.5 overflow-hidden">
+                    <span class="pay-card-icon text-white d-inline-flex shadow-sm flex-shrink-0" style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);">
                         <i class="bi bi-pencil-square fs-5"></i>
                     </span>
-                    <div>
-                        <div class="d-flex align-items-center gap-2">
-                            <h5 class="modal-title fw-bold text-body-emphasis mb-0" id="modalEditPaymentLabel">Edit Penerimaan Pembayaran</h5>
-                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle font-monospace px-2 py-0.5" id="edit_nomor_badge">Draft</span>
+                    <div class="overflow-hidden">
+                        <div class="d-flex align-items-center gap-2 mb-0.5 flex-wrap">
+                            <h5 class="modal-title fw-bold text-body-emphasis mb-0 fs-6 fs-sm-5 text-truncate" id="modalEditPaymentLabel">Edit Penerimaan Pembayaran</h5>
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace px-2 py-0.5" id="edit_nomor_badge">Draft</span>
                         </div>
-                        <small class="text-body-secondary">Perbaiki informasi dan alokasi pembayaran piutang sebelum diposting</small>
+                        <small class="text-body-secondary d-block text-truncate">Perbaiki informasi dan alokasi pembayaran piutang sebelum diposting</small>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="pay-btn-close flex-shrink-0 ms-2" data-bs-dismiss="modal" aria-label="Close" title="Tutup">
+                    <i class="bi bi-x-lg"></i>
+                </button>
             </div>
 
-            <div class="modal-body p-4 bg-body" style="overflow-y: auto;">
+            <div class="modal-body p-3 p-sm-4 bg-body" style="overflow-y: auto;">
                 <!-- General Information Card -->
-                <div class="card border border-body-tertiary shadow-sm rounded-4 mb-4 bg-body-tertiary">
-                    <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex align-items-center justify-content-between">
+                <div class="card border border-body-tertiary shadow-sm rounded-4 mb-3.5 bg-body-tertiary pay-form-card">
+                    <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-info-circle-fill text-warning"></i>
-                            <h6 class="fw-bold mb-0 text-body-emphasis" style="font-size: 0.9rem;">Informasi Penerimaan</h6>
+                            <h6 class="fw-bold mb-0 text-body-emphasis" style="font-size: 0.88rem;">Informasi Penerimaan</h6>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-1" style="font-size: 0.72rem;">
+                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1" style="font-size: 0.72rem;">
                                 <i class="bi bi-pencil me-1"></i>Mode Edit Draft
                             </span>
                         </div>
                     </div>
-                    <div class="card-body p-3.5">
+                    
+                    <div class="card-body p-3 p-sm-3.5">
                         <div class="row g-3">
                             <!-- Nomor Pembayaran -->
-                            <div class="col-md-4">
-                                <label class="form-label small fw-semibold text-body-secondary mb-1">
+                            <div class="col-12 col-md-4">
+                                <label class="pay-form-label mb-1">
                                     <i class="bi bi-hash text-secondary me-1"></i>No. Kwitansi / Bukti Bayar
                                 </label>
                                 <div class="input-group">
@@ -51,8 +54,8 @@
                             </div>
 
                             <!-- Customer / Nama PT -->
-                            <div class="col-md-8">
-                                <label class="form-label small fw-semibold text-body-secondary mb-1">
+                            <div class="col-12 col-md-8">
+                                <label class="pay-form-label mb-1">
                                     <i class="bi bi-building text-primary me-1"></i>Customer / Nama PT <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
@@ -67,19 +70,23 @@
                             </div>
 
                             <!-- Tanggal Bayar -->
-                            <div class="col-md-4">
-                                <label class="form-label small fw-semibold text-body-secondary mb-1">Tanggal Pembayaran <span class="text-danger">*</span></label>
+                            <div class="col-12 col-md-4">
+                                <label class="pay-form-label mb-1">
+                                    <i class="bi bi-calendar3 text-success me-1"></i>Tanggal Pembayaran <span class="text-danger">*</span>
+                                </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-body-secondary"><i class="bi bi-calendar3"></i></span>
+                                    <span class="input-group-text bg-body-secondary"><i class="bi bi-calendar-event"></i></span>
                                     <input type="date" class="form-control" id="edit_tanggal_bayar" name="tanggal_bayar" required>
                                 </div>
                             </div>
 
                             <!-- Akun Kas / Bank Tujuan -->
-                            <div class="col-md-4">
-                                <label class="form-label small fw-semibold text-body-secondary mb-1">Kas / Bank Tujuan <span class="text-danger">*</span></label>
+                            <div class="col-12 col-md-4">
+                                <label class="pay-form-label mb-1">
+                                    <i class="bi bi-bank text-success me-1"></i>Kas / Bank Tujuan <span class="text-danger">*</span>
+                                </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-body-secondary text-success"><i class="bi bi-bank"></i></span>
+                                    <span class="input-group-text bg-body-secondary text-success"><i class="bi bi-wallet2"></i></span>
                                     <select class="form-select" id="edit_kas_bank_id" name="kas_bank_id" required>
                                         <option value="">-- Pilih Rekening Kas/Bank --</option>
                                         @foreach($kasBanks as $kb)
@@ -90,10 +97,12 @@
                             </div>
 
                             <!-- Metode Pembayaran -->
-                            <div class="col-md-4">
-                                <label class="form-label small fw-semibold text-body-secondary mb-1">Metode Pembayaran</label>
+                            <div class="col-12 col-md-4">
+                                <label class="pay-form-label mb-1">
+                                    <i class="bi bi-credit-card text-info me-1"></i>Metode Pembayaran
+                                </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-body-secondary"><i class="bi bi-credit-card"></i></span>
+                                    <span class="input-group-text bg-body-secondary"><i class="bi bi-cash-stack"></i></span>
                                     <select class="form-select" id="edit_payment_method_id" name="payment_method_id">
                                         <option value="">-- Pilih Metode --</option>
                                         @foreach($paymentMethods as $pm)
@@ -104,33 +113,41 @@
                             </div>
 
                             <!-- Nomor Referensi -->
-                            <div class="col-md-6">
-                                <label class="form-label small fw-semibold text-body-secondary mb-1">Nomor Referensi (No. Cek/Giro/Transfer)</label>
+                            <div class="col-12 col-md-6">
+                                <label class="pay-form-label mb-1">
+                                    <i class="bi bi-hash text-secondary me-1"></i>Nomor Referensi (No. Cek/Giro/Transfer)
+                                </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-body-secondary"><i class="bi bi-hash"></i></span>
+                                    <span class="input-group-text bg-body-secondary"><i class="bi bi-card-heading"></i></span>
                                     <input type="text" class="form-control" id="edit_nomor_referensi" name="nomor_referensi" placeholder="Contoh: TRF-BCA-98212">
                                 </div>
                             </div>
 
                             <!-- Bukti Pembayaran / Lampiran -->
-                            <div class="col-md-6">
-                                <label class="form-label small fw-semibold text-body-secondary mb-1">Bukti Transfer / Lampiran <span class="text-danger">*</span></label>
+                            <div class="col-12 col-md-6">
+                                <label class="pay-form-label mb-1">
+                                    <i class="bi bi-paperclip text-primary me-1"></i>Bukti Transfer / Lampiran <span class="text-danger">*</span>
+                                </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-body-secondary"><i class="bi bi-paperclip"></i></span>
+                                    <span class="input-group-text bg-body-secondary"><i class="bi bi-file-earmark-arrow-up"></i></span>
                                     <input type="file" class="form-control" id="edit_lampiran" name="lampiran" accept="image/*,.pdf">
                                     <button type="button" class="btn btn-outline-info d-none align-items-center gap-1.5 px-3" id="btn_preview_edit_lampiran" title="Lihat Bukti Transfer">
                                         <i class="bi bi-eye-fill"></i>
                                         <span class="small fw-semibold">Lihat Bukti</span>
                                     </button>
                                 </div>
-                                <small class="text-body-secondary" style="font-size: 0.74rem;"><i class="bi bi-shield-check text-success me-1"></i>Format: JPG, PNG, WEBP, PDF (<strong class="text-danger">Wajib Disertakan</strong> &bull; Maks 10MB &bull; Kompres Otomatis ke KB). Biarkan kosong jika tidak ingin mengubah berkas yang ada.</small>
+                                <small class="text-body-secondary" style="font-size: 0.74rem;">
+                                    <i class="bi bi-shield-check text-success me-1"></i>Format: JPG, PNG, WEBP, PDF (<strong class="text-danger">Wajib Disertakan</strong> &bull; Maks 10MB &bull; Kompres Otomatis ke KB). Biarkan kosong jika tidak ingin mengubah berkas yang ada.
+                                </small>
                             </div>
 
                             <!-- Keterangan -->
                             <div class="col-12">
-                                <label class="form-label small fw-semibold text-body-secondary mb-1">Keterangan / Memo Pembayaran</label>
+                                <label class="pay-form-label mb-1">
+                                    <i class="bi bi-chat-left-text text-secondary me-1"></i>Keterangan / Memo Pembayaran
+                                </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-body-secondary"><i class="bi bi-chat-left-text"></i></span>
+                                    <span class="input-group-text bg-body-secondary"><i class="bi bi-pencil"></i></span>
                                     <input type="text" class="form-control" id="edit_keterangan" name="keterangan" placeholder="Contoh: Pembayaran faktur penjualan via transfer BCA">
                                 </div>
                             </div>
@@ -139,15 +156,16 @@
                 </div>
 
                 <!-- Invoices Section Card -->
-                <div class="card border border-body-tertiary shadow-sm rounded-4 mb-4 bg-body-tertiary">
+                <div class="card border border-body-tertiary shadow-sm rounded-4 mb-3.5 bg-body-tertiary pay-form-card">
                     <div class="card-header bg-transparent border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-receipt-cutoff text-warning"></i>
-                            <h6 class="fw-bold mb-0 text-body-emphasis" style="font-size: 0.9rem;">Daftar Faktur yang Dialokasikan</h6>
+                            <h6 class="fw-bold mb-0 text-body-emphasis" style="font-size: 0.88rem;">Daftar Faktur yang Dialokasikan</h6>
                         </div>
-                        <span class="badge bg-secondary-subtle text-secondary" id="edit_badge_count_invoices">0 Faktur</span>
+                        <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-1" id="edit_badge_count_invoices">0 Faktur</span>
                     </div>
-                    <div class="card-body p-0">
+                    
+                    <div class="card-body p-3 p-sm-3.5">
                         <!-- Invoices Loading spinner -->
                         <div class="text-center py-5 d-none" id="edit_invoices_loading_state">
                             <div class="spinner-border text-warning" role="status" style="width: 2.2rem; height: 2.2rem;">
@@ -157,15 +175,24 @@
                         </div>
 
                         <!-- Invoices Table -->
-                        <div class="table-responsive border border-body-tertiary rounded-3 shadow-sm overflow-hidden" id="edit_invoices_table_container">
-                            <table class="table table-hover align-middle mb-0" id="table_edit_invoices">
+                        <div class="table-responsive border border-body-tertiary rounded-3 shadow-sm" id="edit_invoices_table_container" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                            <!-- Mobile Swipe Hint Banner -->
+                            <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2 m-2 rounded-3 pay-mobile-swipe-banner shadow-2xs">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-arrow-left-right text-success"></i>
+                                    <span class="fw-semibold small">Geser tabel piutang ke samping</span>
+                                </div>
+                                <span class="badge rounded-pill px-2.5 py-1 fw-bold pay-swipe-pill">Swipe &rarr;</span>
+                            </div>
+
+                            <table class="table table-hover align-middle mb-0 w-100" id="table_edit_invoices" style="min-width: 860px;">
                                 <thead class="bg-body-secondary bg-opacity-75 text-body-secondary text-uppercase border-bottom" style="font-size: 0.74rem; letter-spacing: 0.5px;">
                                     <tr>
                                         <th class="ps-3 py-3 text-center" style="width: 46px;">
                                             <input type="checkbox" class="form-check-input" id="edit_check_all_invoices" title="Pilih Semua Faktur">
                                         </th>
                                         <th style="min-width: 220px;">
-                                            <i class="bi bi-receipt text-primary me-1"></i>No. Faktur & Tanggal
+                                            <i class="bi bi-receipt text-primary me-1"></i>No. Faktur &amp; Tanggal
                                         </th>
                                         <th class="text-end" style="min-width: 140px;">
                                             <i class="bi bi-tag text-secondary me-1"></i>Total Faktur
@@ -193,29 +220,29 @@
                 </div>
 
                 <!-- Summary Card -->
-                <div class="card border-0 shadow-lg rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important;">
-                    <div class="card-body p-4">
+                <div class="card border-0 shadow-lg rounded-4 text-white overflow-hidden mb-2" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important;">
+                    <div class="card-body p-3.5 p-sm-4">
                         <div class="row align-items-center g-3">
-                            <div class="col-md-4 border-end border-secondary border-opacity-25 pe-md-4">
+                            <div class="col-12 col-md-4 pay-summary-col border-md-end border-secondary border-opacity-25 pe-md-4">
                                 <div class="d-flex align-items-center gap-2 mb-1">
                                     <i class="bi bi-receipt text-info"></i>
                                     <small class="text-white-50 text-uppercase font-monospace fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.5px;">Faktur Dipilih</small>
                                 </div>
-                                <h4 class="fw-bold mb-0 text-white font-monospace"><span id="edit_sum_selected_count">0</span> <small class="fs-6 text-white-50 fw-normal">Faktur</small></h4>
+                                <h4 class="fw-bold mb-0 text-white font-monospace fs-4"><span id="edit_sum_selected_count">0</span> <small class="fs-6 text-white-50 fw-normal">Faktur</small></h4>
                             </div>
-                            <div class="col-md-4 border-end border-secondary border-opacity-25 px-md-4">
+                            <div class="col-12 col-md-4 pay-summary-col border-md-end border-secondary border-opacity-25 px-md-4">
                                 <div class="d-flex align-items-center gap-2 mb-1">
                                     <i class="bi bi-percent text-warning"></i>
                                     <small class="text-white-50 text-uppercase font-monospace fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.5px;">Total Potongan / Diskon</small>
                                 </div>
-                                <h4 class="fw-bold mb-0 text-warning font-monospace" id="edit_sum_total_potongan">Rp 0,00</h4>
+                                <h4 class="fw-bold mb-0 text-warning font-monospace fs-4 text-truncate" id="edit_sum_total_potongan">Rp 0,00</h4>
                             </div>
-                            <div class="col-md-4 ps-md-4">
+                            <div class="col-12 col-md-4 pay-summary-col ps-md-4">
                                 <div class="d-flex align-items-center gap-2 mb-1">
                                     <i class="bi bi-cash-stack text-success"></i>
                                     <small class="text-white-50 text-uppercase font-monospace fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.5px;">Total Penerimaan Kas/Bank</small>
                                 </div>
-                                <h3 class="fw-bold mb-0 text-success font-monospace" id="edit_sum_total_bayar">Rp 0,00</h3>
+                                <h3 class="fw-bold mb-0 text-success font-monospace fs-3 text-truncate" id="edit_sum_total_bayar">Rp 0,00</h3>
                                 <div id="edit_sum_lebih_bayar_container" class="d-none mt-1">
                                     <span class="badge bg-info text-dark font-monospace px-2 py-0.5 rounded-pill" style="font-size: 0.74rem;">
                                         <i class="bi bi-arrow-up-right-circle me-1"></i>Lebih Transfer: <span id="edit_sum_total_lebih" class="fw-bold">Rp 0,00</span>
@@ -266,14 +293,14 @@
             </div>
 
             <!-- Modal Footer -->
-            <div class="modal-footer bg-body-tertiary border-top py-3 px-4 d-flex justify-content-between align-items-center">
+            <div class="modal-footer bg-body-tertiary border-top py-2.5 px-3 px-sm-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                     <button type="button" class="btn btn-warning rounded-pill px-4 fw-semibold text-dark shadow-sm" id="btn_update_draft">
                         <i class="bi bi-save me-1"></i> Simpan Draft
                     </button>
                     <button type="button" class="btn btn-info rounded-pill px-4 fw-bold text-dark shadow-sm" id="btn_update_submit">
-                        <i class="bi bi-send me-1"></i> Simpan & Ajukan
+                        <i class="bi bi-send me-1"></i> Simpan &amp; Ajukan
                     </button>
                 </div>
             </div>

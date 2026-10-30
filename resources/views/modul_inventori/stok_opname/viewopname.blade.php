@@ -184,6 +184,7 @@
     {{-- ════════════════════════════════════════════════════════════ --}}
     @include('modul_inventori.stok_opname._modal_input')
     @include('modul_inventori.stok_opname._modal_edit_fisik')
+    @include('modul_inventori.stok_opname._modal_manage_serials')
     @include('modul_inventori.stok_opname._modal_detail')
 
     @push('scripts')
@@ -191,6 +192,17 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
     // ── Global Helper Utilities ──────────────────────────────────────────
+    window.escapeHtml = function(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+    window.escapeHtmlAdj = window.escapeHtml;
+
     function formatRupiah(val) {
         let sign = val < 0 ? '-' : '';
         let absVal = Math.abs(val);

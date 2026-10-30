@@ -206,6 +206,7 @@
 </div>
 
 <!-- ===== INCLUDE MODALS ===== -->
+@push('modals')
 @include('modul_purchasing.faktur_pembelian.partials.modal_create')
 @include('modul_purchasing.faktur_pembelian.partials.modal_edit')
 @include('modul_purchasing.faktur_pembelian.partials.modal_view')
@@ -214,6 +215,7 @@
 @include('modul_purchasing.faktur_pembelian.partials.modal_browse_po')
 @include('modul_purchasing.faktur_pembelian.partials.modal_preview_lampiran')
 @include('modul_purchasing.faktur_pembelian.partials.modal_filter')
+@endpush
 
 @push('scripts')
     <!-- Select2 Searchable Dropdown Library -->

@@ -5,6 +5,7 @@
     <!-- Select2 CSS with Bootstrap 5 Theme -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ asset('modul_smd/piutang.css') }}?v={{ time() }}" />
     <style>
         .select2-container--bootstrap-5 .select2-selection {
             border-radius: 0.625rem;
@@ -505,33 +506,33 @@
 
     <div class="container-fluid py-3 px-3 px-md-4">
         
-        <!-- Header Page Title -->
-        <div class="d-flex flex-row justify-content-between align-items-center gap-2 mb-3">
-            <div class="d-flex align-items-center gap-2 overflow-hidden">
-                <span class="p-2 rounded-3 text-white d-inline-flex shadow-sm flex-shrink-0" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+        <!-- Header Page Title (Simplified & Modern) -->
+        <div class="d-flex align-items-center justify-content-between gap-3 mb-3.5">
+            <div class="d-flex align-items-center gap-2.5 overflow-hidden">
+                <div class="ar-page-icon shadow-sm flex-shrink-0">
                     <i class="bi bi-wallet2 fs-5"></i>
-                </span>
+                </div>
                 <div class="overflow-hidden">
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <h5 class="fw-bold mb-0 text-body-emphasis text-truncate page-title-text" style="font-size: clamp(0.95rem, 3vw, 1.2rem);">
-                            Rekap Piutang &amp; Sisa Tagihan
-                        </h5>
+                    <h4 class="fw-bold mb-0 text-body-emphasis text-truncate" style="font-size: clamp(1.05rem, 3.5vw, 1.25rem);">
+                        Rekap Piutang &amp; Sisa Tagihan
+                    </h4>
+                    <div class="d-flex align-items-center gap-1.5 mt-0.5">
                         @if(session('active_branch_name'))
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2.5 py-1" style="font-size: 0.72rem;">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2 py-0.5 text-truncate" style="font-size: 0.7rem; max-width: 220px;">
                                 <i class="bi bi-geo-alt-fill me-1"></i>Cabang: {{ session('active_branch_name') }}
                             </span>
                         @else
-                            <span class="badge bg-indigo-subtle text-primary border border-primary-subtle font-monospace px-2.5 py-1" style="background: rgba(30, 64, 175, 0.1); color: #1e40af; border-color: rgba(30, 64, 175, 0.25); font-size: 0.72rem;">
+                            <span class="badge bg-indigo-subtle text-primary border border-primary-subtle font-monospace px-2 py-0.5 text-truncate" style="background: rgba(30, 64, 175, 0.1); color: #1e40af; border-color: rgba(30, 64, 175, 0.25); font-size: 0.7rem; max-width: 220px;">
                                 <i class="bi bi-building me-1"></i>Pusat: {{ session('active_company_name') ?? 'PT Pusat' }}
                             </span>
                         @endif
                     </div>
-                    <p class="text-body-secondary mb-0 d-none d-sm-block" style="font-size:0.79rem;">Monitoring piutang khusus entitas aktif, DP, saldo piutang, dan umur tagihan.</p>
                 </div>
             </div>
-            <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-1 flex-shrink-0" id="btn_refresh_table">
-                <i class="bi bi-arrow-clockwise"></i>
-                <span class="d-none d-sm-inline">Refresh</span>
+
+            <!-- Tombol Refresh Bulat Minimalis -->
+            <button type="button" class="btn btn-outline-secondary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" id="btn_refresh_table" style="width: 38px; height: 38px;" title="Segarkan Data">
+                <i class="bi bi-arrow-clockwise fs-6"></i>
             </button>
         </div>
 
@@ -541,88 +542,103 @@
                 @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-sales-payment'))
                 <a href="{{ route('modul_marketing.pembayaran.index') }}" class="nav-link">
                     <i class="bi bi-cash-stack flex-shrink-0"></i>
-                    <span class="nav-label-full">Riwayat Penerimaan Pembayaran</span>
-                    <span class="nav-label-short">Pembayaran</span>
+                    <span>Pembayaran</span>
                 </a>
                 @endif
                 <a href="{{ route('modul_marketing.piutang.index') }}" class="nav-link active">
                     <i class="bi bi-card-checklist flex-shrink-0"></i>
-                    <span class="nav-label-full">Rekap Sisa Tagihan &amp; Piutang Pelanggan</span>
-                    <span class="nav-label-short">Rekap Piutang</span>
+                    <span>Rekap Piutang</span>
                 </a>
             </div>
         </div>
 
-        @php
-            $fmtRupiah = fn($val) => number_format((float)$val, 2, ',', '.');
-        @endphp
-
-        <!-- KPI Cards Summary Row -->
-        <div class="row g-2 g-sm-3 mb-4">
+        <!-- KPI Cards Summary Row (Modern Glassmorphic) -->
+        <div class="row g-3 g-sm-3.5 g-md-4 mb-4 mb-md-4.5">
             <!-- Total Piutang Berjalan -->
             <div class="col-6 col-lg-3">
-                <div class="card kpi-stat-card shadow-sm h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body d-flex align-items-center justify-content-between p-3">
-                        <div class="overflow-hidden pe-1">
-                            <div class="kpi-label text-body-secondary fw-semibold text-uppercase" style="font-size:0.68rem;letter-spacing:.05em;">Total Piutang</div>
-                            <div class="kpi-value fw-bold text-danger font-monospace mt-1" style="font-size:clamp(0.88rem,2.5vw,1.2rem);">Rp {{ $fmtRupiah($kpi->total_piutang_berjalan ?? 0) }}</div>
-                            <div class="kpi-sub text-muted mt-1" style="font-size:0.7rem;">
-                                <span class="fw-semibold text-danger">{{ number_format($kpi->customer_unpaid_count ?? 0) }}</span> Belum Lunas
+                <div class="ar-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="ar-kpi-label">Total Piutang</span>
+                            <div class="ar-kpi-icon ar-kpi-icon-rose">
+                                <i class="bi bi-hourglass-split"></i>
                             </div>
                         </div>
-                        <div class="kpi-icon p-2 rounded-circle bg-danger-subtle text-danger shadow-sm flex-shrink-0" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
-                            <i class="bi bi-hourglass-split"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-danger font-monospace fs-4 fs-md-3 text-truncate" title="Rp {{ number_format((float)($kpi->total_piutang_berjalan ?? 0), 0, ',', '.') }}">
+                            Rp {{ number_format((float)($kpi->total_piutang_berjalan ?? 0), 0, ',', '.') }}
+                        </h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-clock-history me-1"></i>{{ number_format($kpi->customer_unpaid_count ?? 0) }} Belum Lunas
+                        </span>
                     </div>
                 </div>
             </div>
 
             <!-- Total Piutang Jatuh Tempo -->
             <div class="col-6 col-lg-3">
-                <div class="card kpi-stat-card shadow-sm h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body d-flex align-items-center justify-content-between p-3">
-                        <div class="overflow-hidden pe-1">
-                            <div class="kpi-label text-body-secondary fw-semibold text-uppercase" style="font-size:0.68rem;letter-spacing:.05em;">Jatuh Tempo</div>
-                            <div class="kpi-value fw-bold text-warning font-monospace mt-1" style="font-size:clamp(0.88rem,2.5vw,1.2rem);">Rp {{ $fmtRupiah($kpi->total_piutang_overdue ?? 0) }}</div>
-                            <div class="kpi-sub text-muted mt-1" style="font-size:0.7rem;">
-                                <span class="fw-semibold text-warning">{{ number_format($kpi->customer_overdue_count ?? 0) }}</span> Menunggak
+                <div class="ar-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="ar-kpi-label">Jatuh Tempo</span>
+                            <div class="ar-kpi-icon ar-kpi-icon-amber">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
                             </div>
                         </div>
-                        <div class="kpi-icon p-2 rounded-circle bg-warning-subtle text-warning shadow-sm flex-shrink-0" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
-                            <i class="bi bi-exclamation-triangle-fill"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-warning font-monospace fs-4 fs-md-3 text-truncate" title="Rp {{ number_format((float)($kpi->total_piutang_overdue ?? 0), 0, ',', '.') }}">
+                            Rp {{ number_format((float)($kpi->total_piutang_overdue ?? 0), 0, ',', '.') }}
+                        </h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-shield-exclamation me-1"></i>{{ number_format($kpi->customer_overdue_count ?? 0) }} Menunggak
+                        </span>
                     </div>
                 </div>
             </div>
 
             <!-- Pelanggan Menunggak -->
             <div class="col-6 col-lg-3">
-                <div class="card kpi-stat-card shadow-sm h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body d-flex align-items-center justify-content-between p-3">
-                        <div class="overflow-hidden pe-1">
-                            <div class="kpi-label text-body-secondary fw-semibold text-uppercase" style="font-size:0.68rem;letter-spacing:.05em;">Menunggak</div>
-                            <div class="kpi-value fw-bold text-body-emphasis font-monospace mt-1" style="font-size:clamp(0.88rem,2.5vw,1.2rem);">{{ number_format($kpi->customer_overdue_count ?? 0) }} <small class="fw-normal text-muted" style="font-size:0.7rem;">PT</small></div>
-                            <div class="kpi-sub text-muted mt-1" style="font-size:0.7rem;">Perlu Ditindaklanjuti</div>
+                <div class="ar-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="ar-kpi-label">Menunggak</span>
+                            <div class="ar-kpi-icon ar-kpi-icon-indigo">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
                         </div>
-                        <div class="kpi-icon p-2 rounded-circle bg-primary-subtle text-primary shadow-sm flex-shrink-0" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
-                            <i class="bi bi-people-fill"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-body font-monospace fs-4 fs-md-3">
+                            {{ number_format($kpi->customer_overdue_count ?? 0) }}
+                            <small class="fs-7 text-body-secondary font-sans">PT</small>
+                        </h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-exclamation-circle me-1"></i>Perlu Ditindaklanjuti
+                        </span>
                     </div>
                 </div>
             </div>
 
             <!-- Terbayar Bulan Ini -->
             <div class="col-6 col-lg-3">
-                <div class="card kpi-stat-card shadow-sm h-100 overflow-hidden bg-body-tertiary">
-                    <div class="card-body d-flex align-items-center justify-content-between p-3">
-                        <div class="overflow-hidden pe-1">
-                            <div class="kpi-label text-body-secondary fw-semibold text-uppercase" style="font-size:0.68rem;letter-spacing:.05em;">Terbayar</div>
-                            <div class="kpi-value fw-bold text-success font-monospace mt-1" style="font-size:clamp(0.88rem,2.5vw,1.2rem);">Rp {{ $fmtRupiah($totalBayarBulanIni ?? 0) }}</div>
-                            <div class="kpi-sub text-muted mt-1" style="font-size:0.7rem;">{{ now()->translatedFormat('F Y') }}</div>
+                <div class="ar-kpi-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="ar-kpi-label">Terbayar</span>
+                            <div class="ar-kpi-icon ar-kpi-icon-emerald">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
                         </div>
-                        <div class="kpi-icon p-2 rounded-circle bg-success-subtle text-success shadow-sm flex-shrink-0" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
-                            <i class="bi bi-check-circle-fill"></i>
-                        </div>
+                        <h3 class="fw-bold mb-3 text-success font-monospace fs-4 fs-md-3 text-truncate" title="Rp {{ number_format((float)($totalBayarBulanIni ?? 0), 0, ',', '.') }}">
+                            Rp {{ number_format((float)($totalBayarBulanIni ?? 0), 0, ',', '.') }}
+                        </h3>
+                    </div>
+                    <div class="pt-2.5 border-top border-light-subtle d-flex align-items-center justify-content-between">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-calendar2-month me-1"></i>{{ now()->translatedFormat('F Y') }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -745,8 +761,8 @@
         </div>
 
         <!-- Main Card Data Table -->
-        <div class="table-card-modern shadow-sm bg-body">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden ar-table-card">
+            <div class="card-header bg-transparent border-bottom py-3 px-3 px-md-4 d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-2">
                     <span class="p-1.5 rounded-2 bg-primary-subtle text-primary d-inline-flex">
                         <i class="bi bi-table fs-6"></i>
@@ -754,36 +770,38 @@
                     <h6 class="mb-0 fw-bold text-body-emphasis">Daftar Rekap Piutang Pelanggan</h6>
                 </div>
                 <div class="d-flex align-items-center gap-3">
-                    <!-- Scroll hint: visible only on mobile -->
-                    <div class="table-scroll-hint" id="table_scroll_hint">
-                        <i class="bi bi-chevron-double-right"></i>
-                        <span>Geser</span>
-                    </div>
-                    <span class="badge bg-secondary-subtle text-secondary font-monospace border d-none d-sm-inline">Server-side DataTables</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-monospace px-3 py-1 fw-bold d-none d-sm-inline-block">Live Data</span>
                 </div>
             </div>
 
-            <div class="card-body p-0">
-                <div class="table-scroll-wrapper" id="table_scroll_wrapper">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 w-100" id="tableCustomerReceivables">
-                            <thead>
-                                <tr>
-                                    <th class="text-center" style="width:42px;">#</th>
-                                    <th style="min-width:200px;">Pelanggan / PT</th>
-                                    <th class="text-end" style="min-width:130px;">Total Faktur</th>
-                                    <th class="text-end" style="min-width:110px;">Total DP</th>
-                                    <th class="text-end" style="min-width:130px;">Pembayaran Masuk</th>
-                                    <th class="text-end" style="min-width:120px;">Sisa Piutang</th>
-                                    <th class="text-center" style="min-width:130px;">Status / Aging</th>
-                                    <th class="text-center" style="min-width:140px;">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Data loaded via Ajax -->
-                            </tbody>
-                        </table>
+            <div class="card-body p-3 p-md-3.5">
+                <!-- Mobile Swipe Hint Banner -->
+                <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2.5 mb-3 rounded-3 ar-mobile-swipe-banner shadow-2xs">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-arrow-left-right text-success"></i>
+                        <span class="fw-semibold small">Geser tabel piutang ke samping</span>
                     </div>
+                    <span class="badge rounded-pill px-2.5 py-1 fw-bold ar-swipe-pill">Swipe &rarr;</span>
+                </div>
+
+                <div class="table-responsive" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                    <table class="table table-hover align-middle mb-0 w-100" id="tableCustomerReceivables" style="min-width: 960px;">
+                        <thead class="bg-body-secondary text-body-secondary font-monospace text-uppercase" style="font-size: 0.75rem;">
+                            <tr>
+                                <th class="text-center ps-3" style="width: 42px;">No</th>
+                                <th style="min-width: 220px;">Pelanggan / Nama PT</th>
+                                <th class="text-end" style="min-width: 130px;">Total Faktur</th>
+                                <th class="text-end" style="min-width: 110px;">Total DP</th>
+                                <th class="text-end" style="min-width: 130px;">Pembayaran Masuk</th>
+                                <th class="text-end" style="min-width: 130px;">Sisa Piutang</th>
+                                <th class="text-center" style="min-width: 140px;">Status / Aging</th>
+                                <th class="text-center pe-3" style="min-width: 130px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-body-emphasis">
+                            <!-- Data loaded via Ajax -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -794,44 +812,54 @@
          MODAL DETAIL DRILLDOWN PIUTANG PELANGGAN
          ════════════════════════════════════════════════════════════════ -->
     <div class="modal fade" id="modalDetailCustomerReceivable" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down" style="max-width: 95vw; width: 95vw;">
-            <div class="modal-content rounded-0 rounded-md-4 border-0 shadow-lg">
-                <div class="modal-header border-bottom py-2.5 px-3 py-md-3 px-md-4 bg-body-tertiary">
-                    <div class="d-flex align-items-center gap-2 text-truncate pe-2">
-                        <span class="p-2 rounded-3 text-white d-inline-flex shadow-sm flex-shrink-0" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center;">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 1300px; width: 95%;">
+            <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden bg-body">
+                <div class="modal-header bg-body-tertiary border-bottom py-3 px-3 px-sm-4 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2.5 overflow-hidden">
+                        <div class="ar-detail-icon flex-shrink-0">
                             <i class="bi bi-file-earmark-person-fill fs-5"></i>
-                        </span>
-                        <div class="text-truncate">
-                            <h6 class="modal-title fw-bold mb-0 text-body-emphasis text-truncate" id="detail_customer_title">Kartu Piutang Pelanggan</h6>
-                            <p class="text-muted small mb-0 font-monospace text-truncate" id="detail_customer_subtitle">-</p>
+                        </div>
+                        <div class="overflow-hidden">
+                            <h5 class="modal-title fw-bold mb-0 text-body-emphasis text-truncate fs-6 fs-sm-5" id="detail_customer_title">Kartu Piutang Pelanggan</h5>
+                            <small class="text-body-secondary d-block font-monospace text-truncate" id="detail_customer_subtitle" style="font-size: 0.76rem;">-</small>
                         </div>
                     </div>
-                    <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="ar-btn-close flex-shrink-0 ms-2" data-bs-dismiss="modal" aria-label="Close" title="Tutup">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
                 </div>
 
-                <div class="modal-body p-3 p-md-4">
+                <div class="modal-body p-3.5 p-md-4">
                     <!-- Customer Card Header -->
-                    <div class="card border border-body-tertiary rounded-3 rounded-md-4 bg-body-secondary p-3 mb-3">
-                        <div class="row g-2 g-md-3 align-items-center">
+                    <div class="ar-customer-card mb-4">
+                        <div class="row g-3.5 g-md-4 align-items-center">
                             <div class="col-12 col-md-7">
-                                <h6 class="fw-bold text-body-emphasis mb-1" id="detail_nama_customer">-</h6>
-                                <div class="text-body-secondary fw-semibold small mb-1" id="detail_nama_perusahaan">-</div>
-                                <div class="small text-muted mb-1 text-break"><i class="bi bi-geo-alt-fill text-danger me-1"></i><span id="detail_alamat">-</span></div>
-                                <div class="small text-muted font-monospace"><i class="bi bi-telephone-fill text-success me-1"></i><span id="detail_kontak">-</span></div>
+                                <div class="d-flex align-items-center gap-2 mb-1.5">
+                                    <h5 class="fw-bold text-body-emphasis mb-0 fs-5" id="detail_nama_customer">-</h5>
+                                </div>
+                                <div class="text-primary fw-semibold small mb-2.5" id="detail_nama_perusahaan">-</div>
+                                <div class="small text-body-secondary mb-1.5 text-break d-flex align-items-start gap-2">
+                                    <i class="bi bi-geo-alt-fill text-danger mt-0.5 flex-shrink-0"></i>
+                                    <span id="detail_alamat">-</span>
+                                </div>
+                                <div class="small text-body-secondary font-monospace d-flex align-items-center gap-2">
+                                    <i class="bi bi-telephone-fill text-success flex-shrink-0"></i>
+                                    <span id="detail_kontak">-</span>
+                                </div>
                             </div>
-                            <div class="col-12 col-md-5 mt-2 mt-md-0">
-                                <div class="p-2.5 p-md-3 rounded-3 bg-body border border-body-tertiary">
-                                    <div class="d-flex justify-content-between align-items-center small text-muted mb-1">
-                                        <span>Syarat Bayar:</span>
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold" id="detail_term">-</span>
+                            <div class="col-12 col-md-5">
+                                <div class="p-3.5 rounded-3 bg-body-tertiary border border-body-tertiary d-flex flex-column gap-2.5">
+                                    <div class="d-flex justify-content-between align-items-center small text-body-secondary">
+                                        <span>Syarat Pembayaran:</span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold rounded-pill px-2.5 py-1 font-monospace" id="detail_term">-</span>
                                     </div>
-                                    <div class="d-flex justify-content-between align-items-center small text-muted mb-1">
+                                    <div class="d-flex justify-content-between align-items-center small text-body-secondary">
                                         <span>Batas Kredit (Limit):</span>
                                         <span class="fw-bold text-body-emphasis font-monospace" id="detail_credit_limit">Rp 0</span>
                                     </div>
-                                    <div class="d-flex justify-content-between align-items-center small text-muted pt-1 border-top">
-                                        <span class="fw-medium text-danger">Sisa Tagihan:</span>
-                                        <span class="fw-bold text-danger font-monospace fs-6" id="detail_summary_sisa">Rp 0</span>
+                                    <div class="d-flex justify-content-between align-items-center small pt-2.5 border-top">
+                                        <span class="fw-semibold text-danger">Total Sisa Tagihan:</span>
+                                        <span class="fw-bold text-danger font-monospace fs-5" id="detail_summary_sisa">Rp 0</span>
                                     </div>
                                 </div>
                             </div>
@@ -839,76 +867,79 @@
                     </div>
 
                     <!-- Metrics Badges Row (2x2 Grid di HP, 4 di Desktop) -->
-                    <div class="row g-2 mb-3 text-center">
+                    <div class="row g-3 g-md-3.5 mb-4 text-center">
                         <div class="col-6 col-lg-3">
-                            <div class="p-2.5 p-md-3 rounded-3 bg-body border h-100 shadow-2xs">
-                                <div class="text-muted small text-truncate mb-0.5" style="font-size: 0.78rem;">Total Nilai Faktur</div>
-                                <div class="fw-bold font-monospace text-body-emphasis text-truncate" style="font-size: clamp(0.85rem, 2.2vw, 1.05rem);" id="detail_kpi_invoiced">Rp 0</div>
+                            <div class="ar-mini-stat-card h-100 d-flex flex-column justify-content-center p-3">
+                                <div class="text-body-secondary small text-truncate mb-1.5" style="font-size: 0.76rem;">Total Nilai Faktur</div>
+                                <div class="fw-bold font-monospace text-body-emphasis text-truncate" style="font-size: clamp(0.95rem, 2.2vw, 1.2rem);" id="detail_kpi_invoiced">Rp 0</div>
                             </div>
                         </div>
                         <div class="col-6 col-lg-3">
-                            <div class="p-2.5 p-md-3 rounded-3 bg-body border h-100 shadow-2xs">
-                                <div class="text-muted small text-truncate mb-0.5" style="font-size: 0.78rem;">Total Uang Muka (DP)</div>
-                                <div class="fw-bold font-monospace text-info text-truncate" style="font-size: clamp(0.85rem, 2.2vw, 1.05rem);" id="detail_kpi_dp">Rp 0</div>
+                            <div class="ar-mini-stat-card h-100 d-flex flex-column justify-content-center p-3">
+                                <div class="text-body-secondary small text-truncate mb-1.5" style="font-size: 0.76rem;">Total Uang Muka (DP)</div>
+                                <div class="fw-bold font-monospace text-info text-truncate" style="font-size: clamp(0.95rem, 2.2vw, 1.2rem);" id="detail_kpi_dp">Rp 0</div>
                             </div>
                         </div>
                         <div class="col-6 col-lg-3">
-                            <div class="p-2.5 p-md-3 rounded-3 bg-body border h-100 shadow-2xs">
-                                <div class="text-muted small text-truncate mb-0.5" style="font-size: 0.78rem;">Pembayaran Masuk</div>
-                                <div class="fw-bold font-monospace text-success text-truncate" style="font-size: clamp(0.85rem, 2.2vw, 1.05rem);" id="detail_kpi_paid">Rp 0</div>
-                                <div class="font-monospace small text-body-secondary mt-0.5 d-none" id="detail_kpi_potongan_wrapper" style="font-size: 0.72rem;">
+                            <div class="ar-mini-stat-card h-100 d-flex flex-column justify-content-center p-3">
+                                <div class="text-body-secondary small text-truncate mb-1.5" style="font-size: 0.76rem;">Pembayaran Masuk</div>
+                                <div class="fw-bold font-monospace text-success text-truncate" style="font-size: clamp(0.95rem, 2.2vw, 1.2rem);" id="detail_kpi_paid">Rp 0</div>
+                                <div class="font-monospace small text-body-secondary mt-1 d-none" id="detail_kpi_potongan_wrapper" style="font-size: 0.72rem;">
                                     + Diskon/Potongan: <span class="fw-bold text-danger" id="detail_kpi_potongan">Rp 0</span>
                                 </div>
                             </div>
                         </div>
                         <div class="col-6 col-lg-3">
-                            <div class="p-2.5 p-md-3 rounded-3 bg-body border h-100 shadow-2xs">
-                                <div class="text-muted small text-truncate mb-0.5" style="font-size: 0.78rem;">Sisa Piutang</div>
-                                <div class="fw-bold font-monospace text-danger text-truncate" style="font-size: clamp(0.85rem, 2.2vw, 1.05rem);" id="detail_kpi_sisa">Rp 0</div>
+                            <div class="ar-mini-stat-card h-100 d-flex flex-column justify-content-center p-3">
+                                <div class="text-body-secondary small text-truncate mb-1.5" style="font-size: 0.76rem;">Sisa Piutang</div>
+                                <div class="fw-bold font-monospace text-danger text-truncate" style="font-size: clamp(0.95rem, 2.2vw, 1.2rem);" id="detail_kpi_sisa">Rp 0</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Tabs inside Modal (Scrollable di HP) -->
-                    <ul class="nav nav-tabs modal-detail-tabs flex-nowrap overflow-x-auto text-nowrap pb-1 mb-2.5" role="tablist">
-                        <li class="nav-item flex-shrink-0">
-                            <button class="nav-link active fw-semibold py-2 px-3 small" data-bs-toggle="tab" data-bs-target="#tabUnpaidInvoices" type="button">
+                    <ul class="nav nav-tabs ar-modal-tabs mb-3.5" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabUnpaidInvoices" type="button" role="tab">
                                 <i class="bi bi-clock-history me-1 text-warning"></i> Belum Lunas (<span id="count_unpaid">0</span>)
                             </button>
                         </li>
-                        <li class="nav-item flex-shrink-0">
-                            <button class="nav-link fw-semibold py-2 px-3 small" data-bs-toggle="tab" data-bs-target="#tabPaidInvoices" type="button">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPaidInvoices" type="button" role="tab">
                                 <i class="bi bi-check-circle me-1 text-success"></i> Riwayat Lunas (<span id="count_paid">0</span>)
                             </button>
                         </li>
-                        <li class="nav-item flex-shrink-0">
-                            <button class="nav-link fw-semibold py-2 px-3 small" data-bs-toggle="tab" data-bs-target="#tabPaymentHistory" type="button">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPaymentHistory" type="button" role="tab">
                                 <i class="bi bi-receipt me-1 text-primary"></i> Pembayaran Masuk (<span id="count_history">0</span>)
                             </button>
                         </li>
                     </ul>
 
-                    <!-- Hint geser tabel untuk layar HP -->
-                    <div class="d-md-none text-muted small py-1 px-1 mb-1.5 d-flex align-items-center gap-1.5 fst-italic" style="font-size: 0.73rem;">
-                        <i class="bi bi-arrow-left-right text-primary"></i>
-                        <span>Geser tabel ke samping untuk melihat rincian lengkap</span>
+                    <!-- Mobile Swipe Hint Banner inside Detail Modal -->
+                    <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2 mb-2.5 rounded-3 ar-mobile-swipe-banner shadow-2xs">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-arrow-left-right text-success"></i>
+                            <span class="fw-semibold small">Geser tabel rincian piutang ke samping</span>
+                        </div>
+                        <span class="badge rounded-pill px-2.5 py-1 fw-bold ar-swipe-pill">Swipe &rarr;</span>
                     </div>
 
                     <div class="tab-content">
                         <!-- Tab 1: Faktur Belum Lunas -->
-                        <div class="tab-pane fade show active" id="tabUnpaidInvoices">
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover align-middle mb-0 text-nowrap" style="font-size: 0.8rem; min-width: 680px;">
-                                    <thead class="table-light">
+                        <div class="tab-pane fade show active" id="tabUnpaidInvoices" role="tabpanel">
+                            <div class="table-responsive rounded-3 border border-body-tertiary" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                                <table class="table table-hover align-middle mb-0 text-nowrap w-100" style="font-size: 0.82rem; min-width: 820px;">
+                                    <thead class="bg-body-secondary text-body-secondary font-monospace text-uppercase" style="font-size: 0.74rem;">
                                         <tr>
-                                            <th>No. Faktur</th>
+                                            <th class="ps-3 py-2.5">No. Faktur</th>
                                             <th>Tgl Faktur</th>
                                             <th>Jatuh Tempo</th>
                                             <th class="text-end">Grand Total</th>
                                             <th class="text-end">Uang Muka (DP)</th>
                                             <th class="text-end">Pelunasan Masuk</th>
                                             <th class="text-end">Sisa Tagihan</th>
-                                            <th class="text-center">Status / Aging</th>
+                                            <th class="text-center pe-3">Status / Aging</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbody_unpaid_invoices">
@@ -919,18 +950,18 @@
                         </div>
 
                         <!-- Tab 2: Faktur Lunas -->
-                        <div class="tab-pane fade" id="tabPaidInvoices">
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover align-middle mb-0 text-nowrap" style="font-size: 0.8rem; min-width: 620px;">
-                                    <thead class="table-light">
+                        <div class="tab-pane fade" id="tabPaidInvoices" role="tabpanel">
+                            <div class="table-responsive rounded-3 border border-body-tertiary" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                                <table class="table table-hover align-middle mb-0 text-nowrap w-100" style="font-size: 0.82rem; min-width: 750px;">
+                                    <thead class="bg-body-secondary text-body-secondary font-monospace text-uppercase" style="font-size: 0.74rem;">
                                         <tr>
-                                            <th>No. Faktur</th>
+                                            <th class="ps-3 py-2.5">No. Faktur</th>
                                             <th>Tgl Faktur</th>
                                             <th>Jatuh Tempo</th>
                                             <th class="text-end">Grand Total</th>
                                             <th class="text-end">Uang Muka (DP)</th>
                                             <th class="text-end">Total Pelunasan</th>
-                                            <th class="text-center">Status</th>
+                                            <th class="text-center pe-3">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbody_paid_invoices">
@@ -941,12 +972,12 @@
                         </div>
 
                         <!-- Tab 3: Riwayat Pembayaran Masuk -->
-                        <div class="tab-pane fade" id="tabPaymentHistory">
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover align-middle mb-0 text-nowrap" style="font-size: 0.8rem; min-width: 650px;">
-                                    <thead class="table-light">
+                        <div class="tab-pane fade" id="tabPaymentHistory" role="tabpanel">
+                            <div class="table-responsive rounded-3 border border-body-tertiary" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                                <table class="table table-hover align-middle mb-0 text-nowrap w-100" style="font-size: 0.82rem; min-width: 880px;">
+                                    <thead class="bg-body-secondary text-body-secondary font-monospace text-uppercase" style="font-size: 0.74rem;">
                                         <tr>
-                                            <th>No. Pembayaran</th>
+                                            <th class="ps-3 py-2.5">No. Pembayaran</th>
                                             <th>Tgl Bayar</th>
                                             <th>Akun Kas / Bank</th>
                                             <th>Metode</th>
@@ -954,7 +985,7 @@
                                             <th class="text-end">Kas Masuk</th>
                                             <th class="text-end">Potongan</th>
                                             <th class="text-end">Total Pelunasan</th>
-                                            <th class="text-center">Status</th>
+                                            <th class="text-center pe-3">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbody_payment_history">
@@ -966,11 +997,11 @@
                     </div>
                 </div>
 
-                <div class="modal-footer border-top py-2.5 px-3 py-md-3 px-md-4 bg-body-tertiary d-flex flex-column-reverse flex-sm-row justify-content-between align-items-center gap-2">
+                <div class="modal-footer bg-body-tertiary border-top py-2.5 px-3 px-sm-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-4 py-2" data-bs-dismiss="modal">Tutup</button>
                     @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('cetak-piutang'))
-                    <a href="#" target="_blank" class="btn btn-outline-purple rounded-pill px-4 py-2 fw-semibold d-flex align-items-center justify-content-center gap-1.5" id="btn_modal_print">
-                        <i class="bi bi-printer-fill text-purple"></i> Cetak Kartu Piutang
+                    <a href="#" target="_blank" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold d-flex align-items-center justify-content-center gap-1.5 shadow-2xs" id="btn_modal_print">
+                        <i class="bi bi-printer-fill"></i> <span>Cetak Kartu Piutang</span>
                     </a>
                     @endif
                 </div>
@@ -1073,6 +1104,8 @@
                 responsive: false,
                 autoWidth: false,
                 scrollX: false,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
                 ajax: {
                     url: "{{ route('modul_marketing.piutang.index') }}",
                     data: function(d) {
@@ -1092,14 +1125,24 @@
                 ],
                 order: [[5, 'desc']],
                 language: {
-                    search: "Cari:",
-                    searchPlaceholder: "Ketik nama, PT, atau nomor telepon...",
+                    search: "",
+                    searchPlaceholder: "Cari pelanggan, PT, atau nomor telepon...",
                     lengthMenu: "Tampilkan _MENU_ data",
-                    info: "_START_–_END_ dari _TOTAL_ pelanggan",
-                    infoEmpty: "Tidak ada data piutang ditemukan",
+                    info: "Menampilkan _START_ - _END_ dari _TOTAL_ data",
+                    infoEmpty: "Menampilkan 0 data",
+                    infoFiltered: "(disaring dari _MAX_ total data)",
                     emptyTable: "Belum ada riwayat faktur atau piutang",
                     processing: '<div class="spinner-border spinner-border-sm text-primary" role="status"></div> Memuat data...'
                 }
+            });
+
+            // Debounce input pencarian
+            $('#tableCustomerReceivables_filter input').unbind().bind('input', function(e) {
+                const val = $(this).val();
+                clearTimeout(window.piutangSearchDebounceTimer);
+                window.piutangSearchDebounceTimer = setTimeout(function() {
+                    table.search(val).draw();
+                }, 400);
             });
 
             // ── Apply Filter dari Modal ───────────────────────────────────

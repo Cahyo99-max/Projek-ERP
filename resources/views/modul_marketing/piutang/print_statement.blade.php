@@ -286,6 +286,125 @@
         .no-print {
             max-width: 840px;
             margin: 15px auto;
+            padding: 0 10px;
+        }
+
+        .toolbar-card {
+            background: #ffffff;
+            padding: 10px 14px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .meta-left-col {
+            border-right: 1px solid #dbeafe;
+        }
+
+        /* ── Table Wrapper & Mobile Scroll ──────────────────────────── */
+        .statement-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 14px;
+        }
+        .statement-table-wrapper::-webkit-scrollbar {
+            height: 5px;
+        }
+        .statement-table-wrapper::-webkit-scrollbar-thumb {
+            background: #bfdbfe;
+            border-radius: 4px;
+        }
+
+        .statement-swipe-banner {
+            background: #eff6ff;
+            border: 1px dashed #93c5fd;
+            color: #1e40af;
+        }
+
+        /* ── Export Canvas Helper ───────────────────────────────────── */
+        .exporting-canvas {
+            max-width: 840px !important;
+            width: 840px !important;
+        }
+        .exporting-canvas .statement-table-wrapper {
+            overflow: visible !important;
+        }
+        .exporting-canvas .table-statement {
+            min-width: 100% !important;
+            width: 100% !important;
+        }
+
+        /* ── Screen Responsive (Tablet & Mobile) ────────────────────── */
+        @media screen and (max-width: 767.98px) {
+            body {
+                padding: 4px 6px;
+            }
+            .statement-card {
+                margin: 8px auto 20px auto;
+                padding: 16px 14px;
+                border-radius: 10px;
+                box-shadow: 0 2px 12px rgba(30, 64, 175, 0.06);
+            }
+            .meta-left-col {
+                border-right: none;
+                border-bottom: 1px dashed #dbeafe;
+                padding-bottom: 8px;
+                margin-bottom: 6px;
+            }
+            .table-statement {
+                min-width: 760px;
+            }
+            .doc-title {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media screen and (max-width: 575.98px) {
+            .no-print {
+                margin: 6px auto;
+                padding: 0 4px;
+            }
+            .toolbar-card {
+                padding: 8px 10px;
+            }
+            .toolbar-actions {
+                width: 100%;
+                display: flex;
+                gap: 6px;
+            }
+            .toolbar-actions .btn {
+                flex: 1;
+                padding-left: 6px !important;
+                padding-right: 6px !important;
+                font-size: 0.76rem !important;
+                text-align: center;
+                justify-content: center;
+            }
+            .company-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 10px;
+            }
+            .company-header .header-right {
+                width: 100%;
+                padding-top: 6px;
+                border-top: 1px dashed #dbeafe;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                text-align: left !important;
+            }
+            .signature-title {
+                font-size: 8.5px;
+                margin-bottom: 30px;
+            }
+            .signature-block .fw-bold {
+                font-size: 9px !important;
+            }
+            .signature-block .text-muted {
+                font-size: 8px !important;
+            }
         }
 
         /* ── Print Styles (Clean A4 Fit) ────────────────────────────── */
@@ -304,6 +423,7 @@
             }
             .statement-card {
                 max-width: 100% !important;
+                width: 100% !important;
                 margin: 0 !important;
                 padding: 10mm 12mm !important;
                 border: none !important;
@@ -312,18 +432,68 @@
                 border-radius: 0 !important;
             }
             .company-header {
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
                 border-bottom: 2.5px solid #1e40af !important;
+            }
+            .company-header .header-right {
+                text-align: right !important;
+                width: auto !important;
+                border-top: none !important;
+                padding-top: 0 !important;
+                display: block !important;
+            }
+            .meta-box .row {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+            }
+            .meta-left-col {
+                width: 58.333333% !important;
+                border-right: 1px solid #dbeafe !important;
+                border-bottom: none !important;
+                padding-bottom: 0 !important;
+                margin-bottom: 0 !important;
+            }
+            .meta-right-col {
+                width: 41.666667% !important;
+            }
+            .statement-table-wrapper {
+                overflow: visible !important;
+                margin-bottom: 14px !important;
+            }
+            .table-statement {
+                min-width: 100% !important;
+                width: 100% !important;
             }
             .table-statement thead th {
                 background-color: #1e40af !important;
                 color: #ffffff !important;
+            }
+            .row.g-2.mb-2 {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+            }
+            .row.g-2.mb-2 > .col-12.col-md-7 {
+                width: 58.333333% !important;
+            }
+            .row.g-2.mb-2 > .col-12.col-md-5 {
+                width: 41.666667% !important;
+            }
+            .signatures-row {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+            }
+            .signatures-row > .col-4 {
+                width: 33.333333% !important;
             }
             .editable-field, .table-statement tbody td {
                 background-color: transparent !important;
                 outline: none !important;
                 box-shadow: none !important;
             }
-            .no-print, #edit_mode_banner {
+            .no-print, #edit_mode_banner, .statement-swipe-banner {
                 display: none !important;
             }
         }
@@ -359,19 +529,19 @@
 
     <!-- Tombol Aksi / Kontrol Cetak (Hidden saat Print) -->
     <div class="no-print">
-        <div class="d-flex flex-wrap justify-content-between align-items-center bg-white p-2.5 px-3 rounded-3 shadow-sm border gap-2">
+        <div class="d-flex flex-wrap justify-content-between align-items-center bg-white p-2.5 px-3 rounded-3 shadow-sm border gap-2 toolbar-card">
             <div class="d-flex flex-wrap align-items-center gap-2">
                 @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-piutang'))
                 <a href="{{ route('modul_marketing.piutang.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Rekap
+                    <i class="bi bi-arrow-left me-1"></i> <span class="d-none d-sm-inline">Kembali ke Rekap</span><span class="d-inline d-sm-none">Kembali</span>
                 </a>
                 @endif
 
                 @if(empty($sessionBranchId))
                     <!-- Dropdown Pilihan Entitas Cetak (Khusus Akses Manajemen PT Pusat) -->
-                    <div class="d-flex align-items-center gap-1.5 ms-sm-2">
+                    <div class="d-flex align-items-center gap-1.5 ms-sm-2 flex-grow-1 flex-sm-grow-0">
                         <span class="small fw-bold text-muted d-none d-sm-inline"><i class="bi bi-filter-circle-fill text-primary"></i> Entitas Cetak:</span>
-                        <select class="form-select form-select-sm rounded-pill fw-semibold border-primary-subtle" style="width: auto; min-width: 220px;" onchange="window.location.href=this.value">
+                        <select class="form-select form-select-sm rounded-pill fw-semibold border-primary-subtle" style="width: auto; min-width: 200px;" onchange="window.location.href=this.value">
                             <option value="{{ route('modul_marketing.piutang.print_statement', $customer->id) }}" {{ $printScope === 'pusat' ? 'selected' : '' }}>
                                 🏢 Transaksi PT Pusat
                             </option>
@@ -391,14 +561,14 @@
                     </span>
                 @endif
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 toolbar-actions">
                 <button type="button" class="btn btn-outline-warning btn-sm rounded-pill px-3 fw-semibold" id="btn_toggle_edit" onclick="toggleEditMode()" title="Edit teks langsung di halaman sebelum dicetak">
                     <i class="bi bi-pencil-square me-1"></i> <span id="text_edit_mode">Edit Manual</span>
                 </button>
                 <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold" id="btn_export_image">
                     <i class="bi bi-image me-1"></i> Unduh PNG
                 </button>
-                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold shadow-sm" onclick="prepareAndPrint()">
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3.5 fw-bold shadow-sm" onclick="prepareAndPrint()">
                     <i class="bi bi-printer-fill me-1"></i> Cetak (A4)
                 </button>
             </div>
@@ -450,7 +620,7 @@
                     @endif
                 </div>
             </div>
-            <div class="text-end">
+            <div class="text-end header-right">
                 <div class="doc-title editable-field" spellcheck="false">KARTU PIUTANG</div>
                
                 <div class="text-muted font-mono small" style="font-size: 10px;">
@@ -462,7 +632,7 @@
         <!-- Informasi Pelanggan & Ketentuan (Clean Compact Grid) -->
         <div class="meta-box">
             <div class="row g-2">
-                <div class="col-7 pe-2 border-end" style="border-color: #dbeafe !important;">
+                <div class="col-12 col-md-7 pe-md-2 meta-left-col">
                     <div class="text-uppercase fw-bold mb-0.5" style="font-size: 9px; letter-spacing: 0.5px; color: #1e40af;">Kepada (Debitur):</div>
                     <div class="fw-bold text-dark editable-field" style="font-size: 12.5px;" spellcheck="false">{{ $customer->nama_perusahaan ?: $customer->nama_customer }}</div>
                     @if($customer->nama_perusahaan && $customer->nama_customer)
@@ -475,7 +645,7 @@
                         Kontak: <span class="editable-field" spellcheck="false">{{ $customer->hp ?: ($customer->telepon ?: '-') }}</span>
                     </div>
                 </div>
-                <div class="col-5 ps-2">
+                <div class="col-12 col-md-5 ps-md-2 meta-right-col">
                     <div class="text-uppercase fw-bold mb-0.5" style="font-size: 9px; letter-spacing: 0.5px; color: #1e40af;">Informasi Piutang:</div>
                     <table class="table table-sm table-borderless mb-0" style="font-size: 10.5px;">
                         <tr>
@@ -499,7 +669,17 @@
             </div>
         </div>
 
-        <!-- Rincian Faktur Penjualan (Clean Table 100% Fit A4 Tanpa Scrollbar) -->
+        <!-- Mobile Swipe Hint Banner on Screen -->
+        <div class="d-flex d-md-none align-items-center justify-content-between px-2.5 py-1.5 mb-2 rounded-2 statement-swipe-banner no-print">
+            <div class="d-flex align-items-center gap-1.5">
+                <i class="bi bi-arrow-left-right text-primary" style="font-size: 0.8rem;"></i>
+                <span class="fw-semibold" style="font-size: 0.72rem; color: #1e40af;">Geser tabel rincian piutang ke samping</span>
+            </div>
+            <span class="badge rounded-pill fw-bold" style="font-size: 0.68rem; background: #dbeafe; color: #1e40af;">Swipe &rarr;</span>
+        </div>
+
+        <!-- Rincian Faktur Penjualan (Scrollable on Mobile, 100% Fit A4 on Print) -->
+        <div class="statement-table-wrapper">
         <table class="table-statement">
             <thead>
                 <tr>
@@ -604,10 +784,11 @@
                 </tr>
             </tfoot>
         </table>
+        </div>
 
-        <!-- Instruksi Pembayaran & Total Bayar (Compact 2-Column) -->
+        <!-- Instruksi Pembayaran & Total Bayar (Compact 2-Column Responsive) -->
         <div class="row g-2 mb-2">
-            <div class="col-7">
+            <div class="col-12 col-md-7">
                 <div class="bottom-card">
                     <div class="fw-bold mb-1" style="font-size: 10px; color: #1e3a8a;">
                         <i class="bi bi-bank2 me-1" style="color: #1e40af;"></i> REKENING PEMBAYARAN RESMI:
@@ -631,7 +812,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-5">
+            <div class="col-12 col-md-5">
                 <div class="total-highlight-card">
                     <div class="fw-bold text-uppercase editable-field" style="font-size: 9.5px; letter-spacing: 0.5px; color: #1e40af;" spellcheck="false">
                         Total Tagihan Harus Dibayar:
@@ -650,7 +831,7 @@
         </div>
 
         <!-- Tanda Tangan Resmi Sesuai Entitas Penerbit -->
-        <div class="row text-center signatures-row">
+        <div class="row text-center signatures-row g-2 g-md-3">
             <div class="col-4">
                 <div class="signature-block">
                     <div class="signature-title editable-field" spellcheck="false">
@@ -762,6 +943,7 @@
             if (wasEditing) {
                 element.classList.remove('editing-active');
             }
+            element.classList.add('exporting-canvas');
             
             html2canvas(element, {
                 scale: 2,
@@ -776,6 +958,7 @@
             }).catch(err => {
                 alert('Gagal mengekspor gambar kartu piutang.');
             }).finally(() => {
+                element.classList.remove('exporting-canvas');
                 if (wasEditing) {
                     element.classList.add('editing-active');
                 }

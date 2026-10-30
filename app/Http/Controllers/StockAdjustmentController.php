@@ -8,6 +8,7 @@ use App\Models\StokGudang;
 use App\Models\KartuStok;
 use App\Models\MasterBarang;
 use App\Models\MasterGudang;
+use App\Models\SpkPenerimaanBarangJadiSerial;
 use App\Models\Jurnal;
 use App\Models\JurnalDetail;
 use App\Models\ChartOfAccount;
@@ -319,9 +320,23 @@ class StockAdjustmentController extends Controller
                         ->orWhere('nama_barang', 'like', "%{$q}%");
                 }
             })
-            ->select('id', 'kode_barang', 'nama_barang', 'satuan_id', 'parent_id')
+            ->select('id', 'kode_barang', 'nama_barang', 'satuan_id', 'parent_id', 'tipe_pelacakan')
             ->take(100)
             ->get();
+
+        $snBarangIds = [];
+        if ($gudangId) {
+            $snBarangIds = SpkPenerimaanBarangJadiSerial::where('status', 'Tersedia')
+                ->where(function($q) use ($gudangId) {
+                    $q->whereHas('penerimaan', function($p) use ($gudangId) {
+                        $p->where('gudang_id', $gudangId);
+                    })->orWhere('gudang_id', $gudangId);
+                })
+                ->whereIn('barang_jadi_id', $query->pluck('id'))
+                ->distinct()
+                ->pluck('barang_jadi_id')
+                ->toArray();
+        }
 
         $result = [];
         foreach ($query as $b) {
@@ -338,18 +353,156 @@ class StockAdjustmentController extends Controller
             $foto = $b->primaryFoto;
             $fotoUrl = ($foto && $foto->foto_path) ? asset('storage/' . $foto->foto_path) : null;
 
+            $hasSerials = ($b->tipe_pelacakan === 'Serial Number') || in_array($b->id, $snBarangIds);
+
             $result[] = [
-                'id'           => $b->id,
-                'kode_barang'  => $b->kode_barang,
-                'nama_barang'  => $b->nama_barang,
-                'satuan_name'  => $b->satuan ? $b->satuan->nama_satuan : 'Pcs',
-                'hpp_satuan'   => $canSeeHpp ? $hpp : 0,
-                'stok_aktual'  => $stokAktual,
-                'foto_url'     => $fotoUrl,
+                'id'             => $b->id,
+                'kode_barang'    => $b->kode_barang,
+                'nama_barang'    => $b->nama_barang,
+                'satuan_name'    => $b->satuan ? $b->satuan->nama_satuan : 'Pcs',
+                'hpp_satuan'     => $canSeeHpp ? $hpp : 0,
+                'stok_aktual'    => $stokAktual,
+                'foto_url'       => $fotoUrl,
+                'tipe_pelacakan' => $b->tipe_pelacakan ?? 'None',
+                'has_serials'    => $hasSerials,
             ];
         }
 
         return response()->json($result);
+    }
+
+    /**
+     * Dapatkan daftar Serial Number yang tersedia di gudang tertentu untuk barang tersebut.
+     */
+    public function getAvailableSerials(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->can('lihat-stok-adjustment') && !$user->can('tambah-stok-adjustment') && !$user->can('edit-stok-adjustment') && !$user->hasAnyRole(['Super Admin', 'Owner']))) {
+            return response()->json(['success' => false, 'message' => 'Akses tidak diizinkan.'], 403);
+        }
+
+        $request->validate([
+            'barang_id' => 'required|integer',
+        ]);
+
+        $query = SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $request->barang_id)
+            ->where('status', 'Tersedia')
+            ->with(['penerimaan.gudang:id,nama_gudang,kode_gudang', 'gudang:id,nama_gudang,kode_gudang', 'adjustment:id,nomor_adjustment']);
+
+        if ($request->filled('gudang_id')) {
+            $gudangId = (int) $request->gudang_id;
+            $gudang = $this->resolveGudang($gudangId);
+            if (!$gudang) {
+                return response()->json(['success' => false, 'serials' => []], 403);
+            }
+            $query->where(function($q) use ($gudangId) {
+                $q->whereHas('penerimaan', function($p) use ($gudangId) {
+                    $p->where('gudang_id', $gudangId);
+                })->orWhere('gudang_id', $gudangId);
+            });
+        } else {
+            $query->forActiveCompany();
+        }
+
+        // Kecualikan SN yang sedang dialokasikan di Adjustment lain yang masih Draft / Pending (tipe Pengurangan)
+        $ignoreAdjId = $request->input('stock_adjustment_id');
+        $allocatedSerialsQuery = StockAdjustmentDetail::where('barang_id', $request->barang_id)
+            ->whereHas('adjustment', function($q) use ($ignoreAdjId) {
+                $q->whereIn('status', ['Draft', 'Pending'])->where('tipe_adjustment', 'Pengurangan');
+                if ($ignoreAdjId) {
+                    $q->where('id', '!=', $ignoreAdjId);
+                }
+            })
+            ->whereNotNull('serial_numbers');
+
+        $allocatedSerials = [];
+        foreach ($allocatedSerialsQuery->pluck('serial_numbers') as $sns) {
+            if (is_array($sns)) {
+                foreach ($sns as $sn) {
+                    if (!empty($sn)) $allocatedSerials[] = $sn;
+                }
+            } elseif (is_string($sns)) {
+                $decoded = json_decode($sns, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $sn) {
+                        if (!empty($sn)) $allocatedSerials[] = $sn;
+                    }
+                }
+            }
+        }
+
+        // Juga kecualikan SN yang sedang dialokasikan di Goods Issue (Draft/Pending)
+        $giSerialsQuery = \App\Models\GoodsIssueDetail::where('barang_id', $request->barang_id)
+            ->whereHas('gi', function($q) {
+                $q->whereIn('status', ['Draft', 'Pending']);
+            })
+            ->whereNotNull('serial_numbers');
+        foreach ($giSerialsQuery->pluck('serial_numbers') as $sns) {
+            if (is_array($sns)) {
+                foreach ($sns as $sn) {
+                    if (!empty($sn)) $allocatedSerials[] = $sn;
+                }
+            } elseif (is_string($sns)) {
+                $decoded = json_decode($sns, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $sn) {
+                        if (!empty($sn)) $allocatedSerials[] = $sn;
+                    }
+                }
+            }
+        }
+
+        if (!empty($allocatedSerials)) {
+            $query->whereNotIn('serial_number', array_values(array_unique($allocatedSerials)));
+        }
+
+        $serials = $query->orderBy('id', 'asc')->limit(1000)->get()->map(function($s) {
+            return [
+                'id'            => $s->id,
+                'serial_number' => $s->serial_number,
+                'nomor_batch'   => $s->nomor_batch,
+                'gudang'        => $s->gudang?->nama_gudang ?? ($s->penerimaan?->gudang?->nama_gudang ?? 'Gudang Utama'),
+                'penerimaan_no' => $s->penerimaan?->nomor_penerimaan ?? ($s->stock_adjustment_id ? "Adj #{$s->adjustment?->nomor_adjustment}" : '-'),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'serials' => $serials,
+        ]);
+    }
+
+    /**
+     * Validasi nomor seri baru untuk penambahan stok agar tidak duplikat dengan yang sudah aktif di sistem.
+     */
+    public function validateNewSerials(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->can('tambah-stok-adjustment') && !$user->can('edit-stok-adjustment') && !$user->hasAnyRole(['Super Admin', 'Owner']))) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        $request->validate([
+            'barang_id' => 'required|integer',
+            'serials'   => 'required|array',
+        ]);
+
+        $sns = array_values(array_filter(array_map('trim', $request->serials)));
+        if (empty($sns)) {
+            return response()->json(['success' => true, 'duplicates' => []]);
+        }
+
+        $duplicates = SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $request->barang_id)
+            ->whereIn('serial_number', $sns)
+            ->where('status', 'Tersedia')
+            ->forActiveCompany()
+            ->pluck('serial_number')
+            ->toArray();
+
+        return response()->json([
+            'success'    => true,
+            'duplicates' => $duplicates,
+        ]);
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -386,33 +539,51 @@ class StockAdjustmentController extends Controller
                 $month  = date('m', strtotime($request->tanggal_adjustment));
                 $prefix = "ADJ/{$year}/{$month}/";
 
-                $latest = StockAdjustment::where('nomor_adjustment', 'like', $prefix . '%')
+                $latest = StockAdjustment::withTrashed()
+                    ->where('nomor_adjustment', 'like', $prefix . '%')
                     ->lockForUpdate()
-                    ->orderBy('nomor_adjustment', 'desc')
+                    ->orderByRaw('LENGTH(nomor_adjustment) DESC, nomor_adjustment DESC')
                     ->first();
 
                 $number   = !$latest ? 1 : ((int) substr($latest->nomor_adjustment, strlen($prefix))) + 1;
                 $nomorAdj = $prefix . str_pad($number, 4, '0', STR_PAD_LEFT);
+
+                // Anti-collision guarantee (lewati nomor jika sudah pernah ada/terdaftar termasuk soft-deleted)
+                while (StockAdjustment::withTrashed()->where('nomor_adjustment', $nomorAdj)->exists()) {
+                    $number++;
+                    $nomorAdj = $prefix . str_pad($number, 4, '0', STR_PAD_LEFT);
+                }
             } else {
-                $request->validate([
-                    'nomor_adjustment' => 'required|string|max:50|unique:stock_adjustments,nomor_adjustment',
-                ]);
+                $exists = StockAdjustment::withTrashed()->where('nomor_adjustment', $request->nomor_adjustment)->exists();
+                if ($exists) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'Nomor Adjustment sudah pernah digunakan atau terdaftar di sistem (termasuk riwayat yang pernah dihapus)!'
+                    ], 422);
+                }
                 $nomorAdj = $request->nomor_adjustment;
             }
 
             $submitAction = strtolower($request->input('submit_action', 'draft'));
             $statusToSet  = (in_array($submitAction, ['pending', 'pos', 'submit'])) ? 'Pending' : 'Draft';
 
+            // High Performance Batch Preloading (Mengurangi latency roundtrip SQL hingga 80%)
+            $itemBarangIds = array_unique(array_column($request->items, 'barang_id'));
+            $barangsMap = MasterBarang::whereIn('id', $itemBarangIds)->get()->keyBy('id');
+            $stokGudangMap = StokGudang::where('gudang_id', $request->gudang_id)
+                ->whereIn('barang_id', $itemBarangIds)
+                ->get()
+                ->keyBy('barang_id');
+
             // Validasi Keamanan: Pengurangan Stok Tidak Boleh Melebihi Stok Aktual di Gudang
             if ($request->tipe_adjustment === 'Pengurangan') {
                 foreach ($request->items as $item) {
                     $qty = round((float)$item['jumlah'], 4);
-                    $stokAktual = (float)(StokGudang::where('gudang_id', $request->gudang_id)
-                        ->where('barang_id', $item['barang_id'])
-                        ->value('stok_aktual') ?? 0);
+                    $sg = $stokGudangMap->get($item['barang_id']);
+                    $stokAktual = $sg ? (float)$sg->stok_aktual : 0;
 
                     if ($qty > $stokAktual) {
-                        $barang = MasterBarang::find($item['barang_id']);
+                        $barang = $barangsMap->get($item['barang_id']);
                         $namaBarang = $barang ? $barang->nama_barang : 'Barang #' . $item['barang_id'];
                         DB::rollBack();
                         return response()->json([
@@ -428,22 +599,79 @@ class StockAdjustmentController extends Controller
 
             foreach ($request->items as $item) {
                 $qty = round((float)$item['jumlah'], 4);
+                $barang = $barangsMap->get($item['barang_id']);
+                $namaBarang = $barang ? $barang->nama_barang : 'Barang #' . $item['barang_id'];
+
+                // Handle serial_numbers
+                $sns = [];
+                if (!empty($item['serial_numbers'])) {
+                    if (is_array($item['serial_numbers'])) {
+                        $sns = array_values(array_filter(array_map('trim', $item['serial_numbers'])));
+                    } elseif (is_string($item['serial_numbers'])) {
+                        $decoded = json_decode($item['serial_numbers'], true);
+                        $sns = is_array($decoded) ? array_values(array_filter(array_map('trim', $decoded))) : [];
+                    }
+                }
+
+                if (!empty($sns)) {
+                    if (count($sns) !== (int)$qty) {
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => "Jumlah Serial Number (" . count($sns) . ") harus sama persis dengan Qty penyesuaian (" . (int)$qty . ") untuk barang '{$namaBarang}'!"
+                        ], 422);
+                    }
+
+                    if (count($sns) !== count(array_unique($sns))) {
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => "Terdapat Serial Number duplikat di dalam daftar input barang '{$namaBarang}'!"
+                        ], 422);
+                    }
+
+                    if ($request->tipe_adjustment === 'Penambahan') {
+                        $existingSn = SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $item['barang_id'])
+                            ->whereIn('serial_number', $sns)
+                            ->where('status', 'Tersedia')
+                            ->forActiveCompany()
+                            ->pluck('serial_number')
+                            ->toArray();
+
+                        if (!empty($existingSn)) {
+                            DB::rollBack();
+                            return response()->json([
+                                'message' => "Serial Number berikut sudah terdaftar & aktif ('Tersedia') di sistem: " . implode(', ', $existingSn) . ". Harap gunakan nomor seri unik!"
+                            ], 422);
+                        }
+                    } elseif ($request->tipe_adjustment === 'Pengurangan') {
+                        $availCount = SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $item['barang_id'])
+                            ->whereIn('serial_number', $sns)
+                            ->where('status', 'Tersedia')
+                            ->where(function($q) use ($request) {
+                                $q->whereHas('penerimaan', function($p) use ($request) {
+                                    $p->where('gudang_id', $request->gudang_id);
+                                })->orWhere('gudang_id', $request->gudang_id);
+                            })
+                            ->count();
+
+                        if ($availCount < count($sns)) {
+                            DB::rollBack();
+                            return response()->json([
+                                'message' => "Salah satu Serial Number yang dipilih untuk barang '{$namaBarang}' tidak tersedia di gudang ini atau sudah keluar!"
+                            ], 422);
+                        }
+                    }
+                }
 
                 // Proteksi HPP: Jika sistem/gudang sudah memiliki HPP (> 0), kunci HPP tersebut. Jika 0, gunakan HPP yang diinput.
-                $stokGudang = StokGudang::where('gudang_id', $request->gudang_id)
-                    ->where('barang_id', $item['barang_id'])
-                    ->first();
+                $stokGudang = $stokGudangMap->get($item['barang_id']);
                 $systemHpp = $stokGudang ? (float)$stokGudang->harga_pokok_rata_rata : 0;
                 if ($systemHpp <= 0) {
-                    $masterBarang = MasterBarang::find($item['barang_id']);
-                    $systemHpp = $masterBarang ? (float)$masterBarang->hpp : 0;
+                    $systemHpp = $barang ? (float)$barang->hpp : 0;
                 }
 
                 $harga      = ($systemHpp > 0) ? round($systemHpp, 6) : round((float)($item['harga_satuan'] ?? 0), 6);
 
                 if ($request->tipe_adjustment === 'Penambahan' && $harga <= 0) {
-                    $barang = MasterBarang::find($item['barang_id']);
-                    $namaBarang = $barang ? $barang->nama_barang : 'Barang #' . $item['barang_id'];
                     DB::rollBack();
                     return response()->json([
                         'message' => "HPP / Harga Satuan untuk barang '{$namaBarang}' tidak boleh Rp 0 pada penyesuaian penambahan barang masuk! Silakan masukkan nilai HPP yang valid."
@@ -462,6 +690,7 @@ class StockAdjustmentController extends Controller
                     'harga_satuan'      => $harga,
                     'nilai_total'       => $nilaiTotal,
                     'keterangan_detail' => $item['keterangan_detail'] ?? null,
+                    'serial_numbers'    => !empty($sns) ? $sns : null,
                 ];
             }
 
@@ -485,10 +714,7 @@ class StockAdjustmentController extends Controller
                 'total_nilai'        => $totalNilai,
             ]);
 
-            foreach ($detailsData as $detail) {
-                $detail['stock_adjustment_id'] = $adj->id;
-                StockAdjustmentDetail::create($detail);
-            }
+            $adj->details()->createMany($detailsData);
 
             DB::commit();
 
@@ -653,16 +879,23 @@ class StockAdjustmentController extends Controller
             $submitAction = strtolower($request->input('submit_action', strtolower($stockAdjustment->status)));
             $statusToSet  = (in_array($submitAction, ['pending', 'pos', 'submit'])) ? 'Pending' : 'Draft';
 
+            // High Performance Batch Preloading (Mengurangi latency roundtrip SQL)
+            $itemBarangIds = array_unique(array_column($request->items, 'barang_id'));
+            $barangsMap = MasterBarang::whereIn('id', $itemBarangIds)->get()->keyBy('id');
+            $stokGudangMap = StokGudang::where('gudang_id', $stockAdjustment->gudang_id)
+                ->whereIn('barang_id', $itemBarangIds)
+                ->get()
+                ->keyBy('barang_id');
+
             // Validasi Keamanan: Pengurangan Stok Tidak Boleh Melebihi Stok Aktual di Gudang
             if ($request->tipe_adjustment === 'Pengurangan') {
                 foreach ($request->items as $item) {
                     $qty = round((float)$item['jumlah'], 4);
-                    $stokAktual = (float)(StokGudang::where('gudang_id', $stockAdjustment->gudang_id)
-                        ->where('barang_id', $item['barang_id'])
-                        ->value('stok_aktual') ?? 0);
+                    $stokGudangItem = $stokGudangMap->get($item['barang_id']);
+                    $stokAktual = $stokGudangItem ? (float)$stokGudangItem->stok_aktual : 0;
 
                     if ($qty > $stokAktual) {
-                        $barang = MasterBarang::find($item['barang_id']);
+                        $barang = $barangsMap->get($item['barang_id']);
                         $namaBarang = $barang ? $barang->nama_barang : 'Barang #' . $item['barang_id'];
                         DB::rollBack();
                         return response()->json([
@@ -674,27 +907,85 @@ class StockAdjustmentController extends Controller
 
             $stockAdjustment->details()->delete();
 
-            $totalQty   = 0;
-            $totalNilai = 0;
+            $totalQty     = 0;
+            $totalNilai   = 0;
+            $detailsData  = [];
 
             foreach ($request->items as $item) {
                 $qty = round((float)$item['jumlah'], 4);
+                $barang = $barangsMap->get($item['barang_id']);
+                $namaBarang = $barang ? $barang->nama_barang : 'Barang #' . $item['barang_id'];
+
+                // Handle serial_numbers
+                $sns = [];
+                if (!empty($item['serial_numbers'])) {
+                    if (is_array($item['serial_numbers'])) {
+                        $sns = array_values(array_filter(array_map('trim', $item['serial_numbers'])));
+                    } elseif (is_string($item['serial_numbers'])) {
+                        $decoded = json_decode($item['serial_numbers'], true);
+                        $sns = is_array($decoded) ? array_values(array_filter(array_map('trim', $decoded))) : [];
+                    }
+                }
+
+                if (!empty($sns)) {
+                    if (count($sns) !== (int)$qty) {
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => "Jumlah Serial Number (" . count($sns) . ") harus sama persis dengan Qty penyesuaian (" . (int)$qty . ") untuk barang '{$namaBarang}'!"
+                        ], 422);
+                    }
+
+                    if (count($sns) !== count(array_unique($sns))) {
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => "Terdapat Serial Number duplikat di dalam daftar input barang '{$namaBarang}'!"
+                        ], 422);
+                    }
+
+                    if ($request->tipe_adjustment === 'Penambahan') {
+                        $existingSn = SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $item['barang_id'])
+                            ->whereIn('serial_number', $sns)
+                            ->where('status', 'Tersedia')
+                            ->forActiveCompany()
+                            ->pluck('serial_number')
+                            ->toArray();
+
+                        if (!empty($existingSn)) {
+                            DB::rollBack();
+                            return response()->json([
+                                'message' => "Serial Number berikut sudah terdaftar & aktif ('Tersedia') di sistem: " . implode(', ', $existingSn) . ". Harap gunakan nomor seri unik!"
+                            ], 422);
+                        }
+                    } elseif ($request->tipe_adjustment === 'Pengurangan') {
+                        $availCount = SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $item['barang_id'])
+                            ->whereIn('serial_number', $sns)
+                            ->where('status', 'Tersedia')
+                            ->where(function($q) use ($stockAdjustment) {
+                                $q->whereHas('penerimaan', function($p) use ($stockAdjustment) {
+                                    $p->where('gudang_id', $stockAdjustment->gudang_id);
+                                })->orWhere('gudang_id', $stockAdjustment->gudang_id);
+                            })
+                            ->count();
+
+                        if ($availCount < count($sns)) {
+                            DB::rollBack();
+                            return response()->json([
+                                'message' => "Salah satu Serial Number yang dipilih untuk barang '{$namaBarang}' tidak tersedia di gudang ini atau sudah keluar!"
+                            ], 422);
+                        }
+                    }
+                }
 
                 // Proteksi HPP: Jika sistem/gudang sudah memiliki HPP (> 0), kunci HPP tersebut. Jika 0, gunakan HPP yang diinput.
-                $stokGudang = StokGudang::where('gudang_id', $stockAdjustment->gudang_id)
-                    ->where('barang_id', $item['barang_id'])
-                    ->first();
+                $stokGudang = $stokGudangMap->get($item['barang_id']);
                 $systemHpp = $stokGudang ? (float)$stokGudang->harga_pokok_rata_rata : 0;
                 if ($systemHpp <= 0) {
-                    $masterBarang = MasterBarang::find($item['barang_id']);
-                    $systemHpp = $masterBarang ? (float)$masterBarang->hpp : 0;
+                    $systemHpp = $barang ? (float)$barang->hpp : 0;
                 }
 
                 $harga      = ($systemHpp > 0) ? round($systemHpp, 6) : round((float)($item['harga_satuan'] ?? 0), 6);
 
                 if ($request->tipe_adjustment === 'Penambahan' && $harga <= 0) {
-                    $barang = MasterBarang::find($item['barang_id']);
-                    $namaBarang = $barang ? $barang->nama_barang : 'Barang #' . $item['barang_id'];
                     DB::rollBack();
                     return response()->json([
                         'message' => "HPP / Harga Satuan untuk barang '{$namaBarang}' tidak boleh Rp 0 pada penyesuaian penambahan barang masuk! Silakan masukkan nilai HPP yang valid."
@@ -706,15 +997,18 @@ class StockAdjustmentController extends Controller
                 $totalQty   += $qty;
                 $totalNilai += $nilaiTotal;
 
-                StockAdjustmentDetail::create([
+                $detailsData[] = [
                     'stock_adjustment_id' => $stockAdjustment->id,
                     'barang_id'           => $item['barang_id'],
                     'jumlah'              => $qty,
                     'harga_satuan'        => $harga,
                     'nilai_total'         => $nilaiTotal,
                     'keterangan_detail'   => $item['keterangan_detail'] ?? null,
-                ]);
+                    'serial_numbers'      => !empty($sns) ? $sns : null,
+                ];
             }
+
+            $stockAdjustment->details()->createMany($detailsData);
 
             $stockAdjustment->update([
                 'tanggal_adjustment' => $request->tanggal_adjustment,
@@ -850,6 +1144,42 @@ class StockAdjustmentController extends Controller
                     'keterangan'      => "Adjustment ({$stockAdjustment->kategori_alasan}): " . ($stockAdjustment->keterangan ?? '-'),
                     'created_at'      => $nowStr,
                 ]);
+
+                // Kelola pergerakan status Serial Number jika ada
+                if (!empty($detail->serial_numbers) && is_array($detail->serial_numbers)) {
+                    if ($isTambah) {
+                        // Penambahan: Daftarkan nomor seri baru ke SpkPenerimaanBarangJadiSerial
+                        foreach ($detail->serial_numbers as $sn) {
+                            $snTrim = trim($sn);
+                            if (!empty($snTrim)) {
+                                SpkPenerimaanBarangJadiSerial::create([
+                                    'barang_jadi_id'      => $barangId,
+                                    'gudang_id'           => $gudangId,
+                                    'stock_adjustment_id' => $stockAdjustment->id,
+                                    'serial_number'       => $snTrim,
+                                    'status'              => 'Tersedia',
+                                    'catatan'             => "Penambahan Stok via Adjusmen {$stockAdjustment->nomor_adjustment}",
+                                ]);
+                            }
+                        }
+                    } else {
+                        // Pengurangan: Ubah status SN yang dipilih sesuai kategori alasan
+                        $targetStatus = 'Dikeluarkan';
+                        if ($stockAdjustment->kategori_alasan === 'Barang Rusak') {
+                            $targetStatus = 'Rusak';
+                        } elseif ($stockAdjustment->kategori_alasan === 'Barang Hilang') {
+                            $targetStatus = 'Hilang';
+                        }
+
+                        SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $barangId)
+                            ->whereIn('serial_number', $detail->serial_numbers)
+                            ->where('status', 'Tersedia')
+                            ->update([
+                                'status'  => $targetStatus,
+                                'catatan' => "Pengurangan Stok via Adjusmen {$stockAdjustment->nomor_adjustment} ({$stockAdjustment->kategori_alasan})",
+                            ]);
+                    }
+                }
             }
 
             $stockAdjustment->update([
@@ -930,6 +1260,25 @@ class StockAdjustmentController extends Controller
 
                         StokGudang::syncMasterHpp($detail->barang_id);
                     }
+
+                    // Revert Serial Numbers jika adjustment confirmed dihapus
+                    if (!empty($detail->serial_numbers) && is_array($detail->serial_numbers)) {
+                        if ($isTambah) {
+                            // Hapus serial yang didaftarkan oleh adjustment ini
+                            SpkPenerimaanBarangJadiSerial::where('stock_adjustment_id', $stockAdjustment->id)
+                                ->where('barang_jadi_id', $detail->barang_id)
+                                ->whereIn('serial_number', $detail->serial_numbers)
+                                ->delete();
+                        } else {
+                            // Kembalikan status serial yang sebelumnya dikurangkan menjadi Tersedia
+                            SpkPenerimaanBarangJadiSerial::where('barang_jadi_id', $detail->barang_id)
+                                ->whereIn('serial_number', $detail->serial_numbers)
+                                ->update([
+                                    'status'  => 'Tersedia',
+                                    'catatan' => "Batal penyesuaian pengurangan {$stockAdjustment->nomor_adjustment}",
+                                ]);
+                        }
+                    }
                 }
 
                 KartuStok::where('referensi_jenis', 'Penyesuaian Stok')
@@ -970,7 +1319,11 @@ class StockAdjustmentController extends Controller
         }
 
         $user = auth()->user();
-        if ($stockAdjustment->isDraft() && (!$user || $stockAdjustment->created_by !== $user->id)) {
+        if (!$user || (!$user->hasAnyRole(['Super Admin', 'Owner']) && !$user->can('lihat-stok-adjustment'))) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mencetak Stock Adjustment.');
+        }
+
+        if ($stockAdjustment->isDraft() && $stockAdjustment->created_by !== $user->id) {
             abort(403, 'Dokumen Draft hanya bisa diakses oleh pembuatnya.');
         }
 

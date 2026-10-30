@@ -199,8 +199,17 @@
                 return fmod($num, 1) == 0 ? number_format($num, 0, ',', '.') : rtrim(rtrim(number_format($num, 2, ',', '.'), '0'), ',');
             };
         @endphp
-        <div class="table-responsive mb-4">
-            <table class="table table-bordered align-middle">
+        <!-- Mobile Swipe Hint Banner -->
+        <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2 mb-2.5 rounded-3 si-mobile-swipe-banner shadow-2xs">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-arrow-left-right text-success"></i>
+                <span class="fw-semibold small">Geser tabel barang ke samping</span>
+            </div>
+            <span class="badge rounded-pill px-2.5 py-1 fw-bold si-swipe-pill">Swipe &rarr;</span>
+        </div>
+
+        <div class="table-responsive rounded-3 border mb-4" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+            <table class="table table-hover align-middle mb-0" style="min-width: 880px;">
                 <thead class="bg-body-secondary small text-uppercase font-monospace fw-bold text-body-secondary">
                     <tr>
                         <th style="width: 40px;" class="text-center">No</th>
@@ -310,15 +319,15 @@
 
         <!-- Biaya Tambahan Breakdown Section -->
         @if($invoice->costs && $invoice->costs->count() > 0)
-        <div class="card border border-body-tertiary bg-body-tertiary rounded-3 p-3 p-sm-4 mb-4 shadow-sm">
+        <div class="card border border-body-tertiary bg-body-tertiary rounded-4 p-3 p-sm-4 mb-4 shadow-sm">
             <h6 class="fw-bold text-body-emphasis mb-3 d-flex align-items-center gap-2">
                 <span class="p-1.5 rounded-2 text-primary d-inline-flex bg-primary-subtle">
                     <i class="bi bi-truck fs-6"></i>
                 </span>
                 <span>Rincian Biaya Tambahan</span>
             </h6>
-            <div class="table-responsive">
-                <table class="table table-sm table-bordered align-middle mb-0 font-monospace small">
+            <div class="table-responsive rounded-3 border" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                <table class="table table-hover align-middle mb-0 font-monospace small" style="min-width: 600px;">
                     <thead class="bg-body-secondary small text-uppercase font-monospace fw-bold text-body-secondary">
                         <tr>
                             <th style="min-width: 180px;">Jenis Biaya</th>
@@ -381,8 +390,17 @@
             </div>
 
             @if($dpNominal > 0 || $validPayments->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered align-middle mb-0 font-monospace small">
+                <!-- Mobile Swipe Hint Banner -->
+                <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2 mb-2.5 rounded-3 si-mobile-swipe-banner shadow-2xs">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-arrow-left-right text-success"></i>
+                        <span class="fw-semibold small">Geser tabel pembayaran ke samping</span>
+                    </div>
+                    <span class="badge rounded-pill px-2.5 py-1 fw-bold si-swipe-pill">Swipe &rarr;</span>
+                </div>
+
+                <div class="table-responsive rounded-3 border" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                    <table class="table table-hover align-middle mb-0 font-monospace small" style="min-width: 920px;">
                         <thead class="bg-body-secondary small text-uppercase font-monospace fw-bold text-body-secondary">
                             <tr>
                                 <th class="text-center text-nowrap" style="width: 45px;">No.</th>
@@ -663,32 +681,77 @@
 
         <!-- Accounting Journal Tab Section -->
         @if($invoice->jurnal && (auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-jurnal-sales-invoice')))
-        <div class="card border border-body-tertiary bg-body-tertiary rounded-3 p-3 p-sm-4 mb-3 shadow-sm">
-            <h6 class="fw-bold text-body-emphasis mb-3 d-flex align-items-center gap-2">
-                <span class="p-1.5 rounded-2 text-primary d-inline-flex bg-primary-subtle">
-                    <i class="bi bi-journal-bookmark-fill fs-6"></i>
-                </span>
-                <span>Jurnal Otomatis Akuntansi</span>
-                <span class="badge bg-secondary-subtle text-secondary font-monospace ms-auto" style="font-size:0.72rem;">Ref: {{ $invoice->jurnal->nomor_jurnal }}</span>
-            </h6>
-            <div class="table-responsive">
-                <table class="table table-sm table-bordered align-middle mb-0 font-monospace small">
+        <div class="card border border-body-tertiary bg-body-tertiary rounded-4 p-3 p-sm-4 mb-3 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-body-tertiary flex-wrap gap-2">
+                <h6 class="fw-bold text-body-emphasis mb-0 d-flex align-items-center gap-2">
+                    <span class="p-1.5 rounded-2 text-primary d-inline-flex bg-primary-subtle">
+                        <i class="bi bi-journal-bookmark-fill fs-6"></i>
+                    </span>
+                    <span>Jurnal Otomatis Akuntansi</span>
+                </h6>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2.5 py-1" style="font-size:0.75rem;">
+                        <i class="bi bi-hash me-0.5"></i>Ref: {{ $invoice->jurnal->nomor_jurnal }}
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 fw-bold btn-view-jurnal" data-id="{{ $invoice->id }}" data-nomor="{{ $invoice->nomor_faktur }}">
+                        <i class="bi bi-printer me-1"></i> Cetak Voucher
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Swipe Hint Banner -->
+            <div class="d-flex d-md-none align-items-center justify-content-between px-3 py-2 mb-2.5 rounded-3 si-mobile-swipe-banner shadow-2xs">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-arrow-left-right text-success"></i>
+                    <span class="fw-semibold small">Geser tabel jurnal ke samping</span>
+                </div>
+                <span class="badge rounded-pill px-2.5 py-1 fw-bold si-swipe-pill">Swipe &rarr;</span>
+            </div>
+
+            <div class="table-responsive rounded-3 border" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100%;">
+                <table class="table table-hover align-middle mb-0 font-monospace small" style="min-width: 620px;">
                     <thead class="bg-body-secondary small text-uppercase font-monospace fw-bold text-body-secondary">
                         <tr>
-                            <th>Kode / Nama Akun</th>
-                            <th class="text-end text-nowrap" style="width: 170px;">Debit</th>
-                            <th class="text-end text-nowrap" style="width: 170px;">Kredit</th>
+                            <th style="min-width: 280px;">Kode &amp; Nama Akun COA</th>
+                            <th class="text-end text-nowrap" style="width: 170px;">Debit (Rp)</th>
+                            <th class="text-end text-nowrap" style="width: 170px;">Kredit (Rp)</th>
                         </tr>
                     </thead>
                     <tbody>
+                        @php
+                            $totalDeb = 0;
+                            $totalKred = 0;
+                        @endphp
                         @foreach($invoice->jurnal->details as $jdet)
+                        @php
+                            $totalDeb += (float)$jdet->debit;
+                            $totalKred += (float)$jdet->kredit;
+                        @endphp
                         <tr>
-                            <td class="text-body-emphasis">{{ $jdet->account?->code ?? '-' }} - {{ $jdet->account?->name ?? 'Akun' }}</td>
-                            <td class="text-end text-nowrap {{ $jdet->debit > 0 ? 'fw-bold text-success' : '' }}">Rp {{ number_format($jdet->debit, 2, ',', '.') }}</td>
-                            <td class="text-end text-nowrap {{ $jdet->kredit > 0 ? 'fw-bold text-primary' : '' }}">Rp {{ number_format($jdet->kredit, 2, ',', '.') }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2 text-nowrap">
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle font-monospace px-2 py-0.5" style="font-size: 0.75rem;">
+                                        {{ $jdet->account?->code ?? '-' }}
+                                    </span>
+                                    <span class="fw-semibold text-body-emphasis font-sans">{{ $jdet->account?->name ?? 'Akun' }}</span>
+                                </div>
+                            </td>
+                            <td class="text-end text-nowrap font-monospace {{ $jdet->debit > 0 ? 'fw-bold text-success' : 'text-body-secondary' }}">
+                                Rp {{ number_format($jdet->debit, 2, ',', '.') }}
+                            </td>
+                            <td class="text-end text-nowrap font-monospace {{ $jdet->kredit > 0 ? 'fw-bold text-primary' : 'text-body-secondary' }}">
+                                Rp {{ number_format($jdet->kredit, 2, ',', '.') }}
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
+                    <tfoot class="bg-body-secondary border-top">
+                        <tr class="fw-bold">
+                            <td class="text-end small text-uppercase text-body-secondary font-sans">Total Jurnal:</td>
+                            <td class="text-end text-nowrap font-monospace text-success">Rp {{ number_format($totalDeb, 2, ',', '.') }}</td>
+                            <td class="text-end text-nowrap font-monospace text-primary">Rp {{ number_format($totalKred, 2, ',', '.') }}</td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>

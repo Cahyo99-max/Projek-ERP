@@ -1,6 +1,6 @@
 {{-- MODAL EDIT STOCK ADJUSTMENT --}}
 <div class="modal fade" id="modalEditAdjustment" tabindex="-1" aria-labelledby="modalEditAdjustmentLabel" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 96vw; width: 96vw;">
         <form id="formEditAdjustment" autocomplete="off" class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
             @csrf
             <input type="hidden" id="edit_adjustment_id">
@@ -138,12 +138,14 @@
     const canSeeHppEdit = @json($canSeeHpp);
 
     function editAdjustment(id) {
-        $('#btnDraftEditAdjustment, #btnPosEditAdjustment').prop('disabled', false);
+        $('#btnDraftEditAdjustment').prop('disabled', false).html('<i class="bi bi-file-earmark-text me-1"></i> Simpan Sebagai Draft');
+        $('#btnPosEditAdjustment').prop('disabled', false).html('<i class="bi bi-send-fill me-1"></i> Simpan & Pos / Ajukan');
         $.ajax({
             url: `/stock-adjustment/${id}/edit`,
             method: 'GET',
             success: function(res) {
-                $('#btnDraftEditAdjustment, #btnPosEditAdjustment').prop('disabled', false);
+                $('#btnDraftEditAdjustment').prop('disabled', false).html('<i class="bi bi-file-earmark-text me-1"></i> Simpan Sebagai Draft');
+                $('#btnPosEditAdjustment').prop('disabled', false).html('<i class="bi bi-send-fill me-1"></i> Simpan & Pos / Ajukan');
                 $('#edit_adjustment_id').val(res.id);
                 $('#edit_gudang_name').val(res.gudang ? res.gudang.nama_gudang : '-');
                 editGudangId = res.gudang_id;
@@ -212,10 +214,15 @@
                     <input type="text" name="items[${editRowIndex}][harga_satuan]" class="form-control form-control-sm text-end font-monospace fw-semibold inp-hpp-edit inp-hpp-formatted rounded-end-2 ${bgClass}" value="${hppFormatted}" placeholder="0" required data-row="${rowId}" ${readonlyAttr} title="${titleAttr}">
                 </div>
             </td>
-            <td class="text-end fw-bold text-success font-monospace inp-total-${rowId}">Rp ${numberFormatID(nilaiNum)}</td>
+            <td class="text-end fw-bold text-success font-monospace inp-total-${rowId}">Rp ${numberFormatCurrencyID(nilaiNum)}</td>
         ` : `
             <input type="hidden" name="items[${editRowIndex}][harga_satuan]" class="inp-hpp-edit" value="${hppNum}" data-row="${rowId}">
         `;
+
+        const existingSns = (itemData && itemData.serial_numbers) ? itemData.serial_numbers : [];
+        const hasSerials = (existingSns.length > 0) || (itemData && itemData.barang && (itemData.barang.tipe_pelacakan === 'Serial Number' || itemData.barang.has_serials));
+        const snBtnText = `Serial (${existingSns.length}/${parseInt(qtyNum, 10)})`;
+        const snBtnClass = (existingSns.length === parseInt(qtyNum, 10) && existingSns.length > 0) ? 'btn-outline-success text-success' : 'btn-outline-danger text-danger';
 
         const trHtml = `
             <tr id="${rowId}" data-stok="${stokAktual}">
@@ -229,15 +236,24 @@
                             <i class="bi bi-image text-muted fs-6 icon-no-photo-${rowId} ${fotoUrl ? 'd-none' : ''}"></i>
                         </div>
 
-                        <div class="input-group input-group-sm flex-grow-1 shadow-xs">
-                            <input type="hidden" name="items[${editRowIndex}][barang_id]" class="inp-barang-id" value="${itemData ? itemData.barang_id : ''}" required data-row="${rowId}">
-                            <input type="hidden" id="foto_url_${rowId}" class="inp-foto-url" value="${fotoUrl}">
-                            <input type="text" class="form-control form-control-sm bg-light inp-barang-name cursor-pointer" 
-                                   value="${dispName}" placeholder="-- Klik 🔍 untuk cari barang --" readonly required data-row="${rowId}"
-                                   onclick="bukaModalLookupBarangAdj('${rowId}', 'edit')">
-                            <button type="button" class="btn btn-warning text-dark btn-search-barang-adj px-2.5" onclick="bukaModalLookupBarangAdj('${rowId}', 'edit')" title="Cari Barang">
-                                <i class="bi bi-search"></i>
-                            </button>
+                        <div class="d-flex flex-column flex-grow-1">
+                            <div class="input-group input-group-sm shadow-xs">
+                                <input type="hidden" name="items[${editRowIndex}][barang_id]" class="inp-barang-id" value="${itemData ? itemData.barang_id : ''}" required data-row="${rowId}">
+                                <input type="hidden" name="items[${editRowIndex}][serial_numbers]" class="inp-serial-numbers" value='${escapeHtmlAdj(JSON.stringify(existingSns))}' data-row="${rowId}">
+                                <input type="hidden" class="inp-has-serials" value="${hasSerials ? '1' : '0'}">
+                                <input type="hidden" id="foto_url_${rowId}" class="inp-foto-url" value="${fotoUrl}">
+                                <input type="text" class="form-control form-control-sm bg-light inp-barang-name cursor-pointer" 
+                                       value="${dispName}" placeholder="-- Klik 🔍 untuk cari barang --" readonly required data-row="${rowId}"
+                                       onclick="bukaModalLookupBarangAdj('${rowId}', 'edit')">
+                                <button type="button" class="btn btn-warning text-dark btn-search-barang-adj px-2.5" onclick="bukaModalLookupBarangAdj('${rowId}', 'edit')" title="Cari Barang">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <div class="mt-1 d-flex align-items-center">
+                                <button type="button" class="btn btn-manage-sn ${snBtnClass} rounded-pill px-2.5 py-0.5 fw-semibold ${hasSerials ? '' : 'd-none'}" style="font-size: 0.72rem;" onclick="openModalManageSerialsAdj('${rowId}', 'edit')">
+                                    <i class="bi bi-upc-scan me-1"></i><span class="sn-btn-text">${snBtnText}</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </td>
@@ -314,7 +330,7 @@
         const hpp = unformatNumberID($(`#${rowId} .inp-hpp-edit`).val());
         const total = qty * hpp;
 
-        $(`.inp-total-${rowId}`).text('Rp ' + numberFormatID(total));
+        $(`.inp-total-${rowId}`).text('Rp ' + numberFormatCurrencyID(total));
         kalkulasiTotalEdit();
     }
 
@@ -335,9 +351,14 @@
             });
 
             $('#lblTotalQtyEdit').text(numberFormatID(totalQty) + ' Qty');
-            $('#lblTotalNilaiEdit').text('Rp ' + numberFormatID(totalNilai));
+            $('#lblTotalNilaiEdit').text('Rp ' + numberFormatCurrencyID(totalNilai));
             isCalcEditPending = false;
         });
+    }
+
+    function numberFormatCurrencyID(val) {
+        let num = (typeof val === 'number') ? val : (parseFloat(val) || 0);
+        return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
     }
 
     // Submit Form Edit AJAX
@@ -350,10 +371,27 @@
 
         const id = $('#edit_adjustment_id').val();
         const $btnDraft = $('#btnDraftEditAdjustment');
-        const $btnPos = $('#btnPosEditAdjustment');
-        
+        const $btnPos   = $('#btnPosEditAdjustment');
+
+        // Cegah klik ganda / duplikasi request
+        if ($btnDraft.prop('disabled') || $btnPos.prop('disabled')) {
+            return;
+        }
+
+        const oldDraftHtml = '<i class="bi bi-file-earmark-text me-1"></i> Simpan Sebagai Draft';
+        const oldPosHtml   = '<i class="bi bi-send-fill me-1"></i> Simpan & Pos / Ajukan';
+        const $activeBtn   = (submitAction === 'draft') ? $btnDraft : $btnPos;
+
+        const restoreBtns = function() {
+            $btnDraft.prop('disabled', false).html(oldDraftHtml);
+            $btnPos.prop('disabled', false).html(oldPosHtml);
+        };
+
+        // Kunci kedua tombol & munculkan loading spinner pada tombol aktif
         $btnDraft.prop('disabled', true);
         $btnPos.prop('disabled', true);
+        const spinnerText = (submitAction === 'draft') ? 'Menyimpan Draft...' : 'Mengajukan...';
+        $activeBtn.html(`<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ${spinnerText}`);
 
         const formData = {
             _token: '{{ csrf_token() }}',
@@ -388,8 +426,7 @@
             });
 
             if (adaMinus) {
-                $btnDraft.prop('disabled', false);
-                $btnPos.prop('disabled', false);
+                restoreBtns();
                 Swal.fire({
                     icon: 'error',
                     title: 'Stok Tidak Mencukupi!',
@@ -402,14 +439,33 @@
 
         let invalidHpp = false;
         let invalidBarangName = '';
+        let invalidSn = false;
+        let invalidSnMessage = '';
 
         $('#tbodyItemEdit tr').each(function() {
             const barangId = $(this).find('.inp-barang-id').val();
             const barangName = $(this).find('.inp-barang-name').val() || 'Barang';
             const qty = parseFloat($(this).find('.inp-qty-edit').val()) || 0;
             const hpp = unformatNumberID($(this).find('.inp-hpp-edit').val());
+            const hasSerials = $(this).find('.inp-has-serials').val() == '1';
+
+            let serials = [];
+            const rawSns = $(this).find('.inp-serial-numbers').val();
+            if (rawSns) {
+                try {
+                    serials = Array.isArray(rawSns) ? rawSns : JSON.parse(rawSns);
+                } catch(e) {
+                    serials = [];
+                }
+            }
 
             if (barangId && qty > 0) {
+                if (hasSerials && serials.length !== parseInt(qty, 10)) {
+                    invalidSn = true;
+                    invalidSnMessage = `Barang <b>${barangName}</b> memiliki pelacakan Serial Number. Diperlukan <b>${parseInt(qty, 10)}</b> serial, namun baru <b>${serials.length}</b> serial yang dialokasikan. Harap lengkapi nomor seri terlebih dahulu!`;
+                    $(this).find('.btn-manage-sn').removeClass('btn-outline-success text-success').addClass('btn-outline-danger text-danger');
+                }
+
                 if (formData.tipe_adjustment === 'Penambahan' && canSeeHppEdit && hpp <= 0) {
                     invalidHpp = true;
                     invalidBarangName = barangName;
@@ -421,14 +477,25 @@
                 formData.items.push({
                     barang_id: barangId,
                     jumlah: qty,
-                    harga_satuan: hpp
+                    harga_satuan: hpp,
+                    serial_numbers: (serials.length > 0) ? serials : null
                 });
             }
         });
 
+        if (invalidSn) {
+            restoreBtns();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Serial Number Belum Lengkap!',
+                html: invalidSnMessage,
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+
         if (invalidHpp) {
-            $btnDraft.prop('disabled', false);
-            $btnPos.prop('disabled', false);
+            restoreBtns();
             Swal.fire({
                 icon: 'warning',
                 title: 'HPP Wajib Diisi!',
@@ -439,8 +506,7 @@
         }
 
         if (formData.items.length === 0) {
-            $btnDraft.prop('disabled', false);
-            $btnPos.prop('disabled', false);
+            restoreBtns();
             Swal.fire('Validasi Gagal', 'Silakan pilih minimal 1 item barang yang valid!', 'warning');
             return;
         }
@@ -453,15 +519,14 @@
             success: function(res) {
                 if (typeof window.hideLoader === 'function') window.hideLoader();
                 $('#modalEditAdjustment').modal('hide');
+                reloadTableAdjustment();
                 Swal.fire({
                     icon: 'success',
                     title: 'Berhasil!',
                     text: res.message,
-                    timer: 2200,
+                    timer: 1500,
                     showConfirmButton: false,
                     position: 'center'
-                }).then(() => {
-                    reloadTableAdjustment();
                 });
             },
             error: function(xhr) {
@@ -469,10 +534,27 @@
                 Swal.fire('Gagal', res.message || 'Terjadi kesalahan server.', 'error');
             },
             complete: function() {
-                $btnDraft.prop('disabled', false);
-                $btnPos.prop('disabled', false);
+                restoreBtns();
             }
         });
     }
+
+    // Sync serial button counter saat QTY berubah di form edit
+    $(document).on('input change', '.inp-qty-edit', function() {
+        const $row = $(this).closest('tr');
+        const hasSerials = ($row.find('.inp-has-serials').val() == '1');
+        if (hasSerials) {
+            const targetQty = parseInt($(this).val() || 0, 10);
+            let sns = [];
+            try {
+                sns = JSON.parse($row.find('.inp-serial-numbers').val() || '[]');
+            } catch(e) {}
+            const count = sns.length;
+            const btnClass = (count === targetQty && targetQty > 0) ? 'btn-outline-success text-success' : 'btn-outline-danger text-danger';
+            $row.find('.btn-manage-sn').removeClass('btn-outline-success text-success btn-outline-danger text-danger')
+                .addClass(btnClass)
+                .find('.sn-btn-text').text(`Serial (${count}/${targetQty})`);
+        }
+    });
 </script>
 @endpush

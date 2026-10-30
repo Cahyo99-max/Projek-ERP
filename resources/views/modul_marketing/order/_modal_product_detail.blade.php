@@ -4,8 +4,8 @@
         <div class="modal-content cinematic-modal-content border-0 shadow-2xl overflow-hidden">
             
             <!-- Modal Header with Ambient Glow & Badges -->
-            <div class="modal-header border-0 pb-2 pt-3.5 px-4 d-flex justify-content-between align-items-center position-relative z-3">
-                <div class="d-flex align-items-center gap-2.5">
+            <div class="modal-header border-0 pb-2 pt-3 px-3 px-sm-4 d-flex justify-content-between align-items-center position-relative z-3">
+                <div class="d-flex flex-wrap align-items-center gap-2 pe-2 min-w-0 flex-grow-1">
                     <span class="badge cinematic-type-badge rounded-pill fw-bold" id="modal_prod_type_badge">
                         <i class="bi bi-box-seam me-1"></i> Produk Fisik
                     </span>
@@ -13,7 +13,9 @@
                         <i class="bi bi-check-circle-fill me-1"></i> Stok Tersedia
                     </span>
                 </div>
-                <button type="button" class="btn-close cinematic-btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn cinematic-btn-close rounded-circle p-0 d-inline-flex align-items-center justify-content-center shadow-xs flex-shrink-0" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
             </div>
 
             <div class="modal-body p-4 pt-2">
@@ -71,39 +73,75 @@
                                 <h2 class="fw-black mb-1 cinematic-title" id="modal_prod_title">-</h2>
                                 <div class="text-muted small mb-3.5 fst-italic" id="modal_prod_alias"></div>
 
-                                <!-- 3-TIER NEON PRICING GRID -->
-                                <div class="cinematic-tier-container p-3.5 rounded-4 mb-3.5">
+                                <!-- 3-TIER NEON PRICING (VERTICAL STACK & SPACED) -->
+                                <div class="cinematic-tier-container p-3 p-sm-3.5 rounded-4 mb-4">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <div class="cinematic-section-label">
                                             <i class="bi bi-tags-fill me-1.5 text-success"></i> TINGKAT HARGA JUAL (3-TIER PRICING)
                                         </div>
-                                        <span class="badge bg-dark-subtle text-muted small font-monospace" style="font-size:0.7rem;">Auto-Sync Tier</span>
+                                        <span class="badge bg-dark-subtle text-muted small font-monospace" style="font-size:0.72rem;">Auto-Sync Tier</span>
                                     </div>
                                     
-                                    <div class="row g-3">
-                                        <div class="col-4">
-                                            <div class="cinematic-tier-card tier-retail text-center p-3 rounded-3" id="modal_tier_retail">
-                                                <div class="tier-label text-success"><i class="bi bi-tag-fill me-1"></i>Retail</div>
-                                                <div class="tier-price text-success font-monospace" id="modal_prod_price_retail">Rp 0,00</div>
+                                    <!-- Susunan Card Harga Menurun Vertikal dengan Jarak Tegas -->
+                                    <div class="cinematic-tier-list d-flex flex-column" style="gap: 12px !important;">
+                                        <!-- Tier Retail -->
+                                        <div class="cinematic-tier-card tier-retail p-3 rounded-3" id="modal_tier_retail">
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <div class="d-flex align-items-center gap-2.5">
+                                                    <div class="tier-icon-wrap rounded-2 d-inline-flex align-items-center justify-content-center text-success bg-success bg-opacity-10" style="width: 34px; height: 34px; flex-shrink: 0;">
+                                                        <i class="bi bi-tag-fill fs-6"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="tier-label text-success fw-bold mb-0" style="font-size: 0.88rem;">Harga Retail</div>
+                                                        <div class="text-body-secondary small" style="font-size: 0.72rem;">Eceran &amp; Umum</div>
+                                                    </div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <div class="tier-price text-success font-monospace fw-bold" id="modal_prod_price_retail">Rp 0,00</div>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="col-4">
-                                            <div class="cinematic-tier-card tier-grosir text-center p-3 rounded-3" id="modal_tier_grosir">
-                                                <div class="tier-label text-primary"><i class="bi bi-boxes me-1"></i>Grosir</div>
-                                                <div class="tier-price text-primary font-monospace" id="modal_prod_price_grosir">Rp 0,00</div>
+
+                                        <!-- Tier Grosir -->
+                                        <div class="cinematic-tier-card tier-grosir p-3 rounded-3" id="modal_tier_grosir">
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <div class="d-flex align-items-center gap-2.5">
+                                                    <div class="tier-icon-wrap rounded-2 d-inline-flex align-items-center justify-content-center text-primary bg-primary bg-opacity-10" style="width: 34px; height: 34px; flex-shrink: 0;">
+                                                        <i class="bi bi-boxes fs-6"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="tier-label text-primary fw-bold mb-0" style="font-size: 0.88rem;">Harga Grosir</div>
+                                                        <div class="text-body-secondary small" style="font-size: 0.72rem;">Jumlah Partai / Toko</div>
+                                                    </div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <div class="tier-price text-primary font-monospace fw-bold" id="modal_prod_price_grosir">Rp 0,00</div>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="col-4">
-                                            <div class="cinematic-tier-card tier-tender text-center p-3 rounded-3" id="modal_tier_tender">
-                                                <div class="tier-label text-warning"><i class="bi bi-briefcase-fill me-1"></i>Tender</div>
-                                                <div class="tier-price text-warning font-monospace" id="modal_prod_price_tender">Rp 0,00</div>
+
+                                        <!-- Tier Tender -->
+                                        <div class="cinematic-tier-card tier-tender p-3 rounded-3" id="modal_tier_tender">
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <div class="d-flex align-items-center gap-2.5">
+                                                    <div class="tier-icon-wrap rounded-2 d-inline-flex align-items-center justify-content-center text-warning bg-warning bg-opacity-10" style="width: 34px; height: 34px; flex-shrink: 0;">
+                                                        <i class="bi bi-briefcase-fill fs-6"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="tier-label text-warning fw-bold mb-0" style="font-size: 0.88rem;">Harga Tender</div>
+                                                        <div class="text-body-secondary small" style="font-size: 0.72rem;">Proyek Khusus &amp; Institusi</div>
+                                                    </div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <div class="tier-price text-warning font-monospace fw-bold" id="modal_prod_price_tender">Rp 0,00</div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- PHYSICAL SPECIFICATIONS CARDS -->
-                                <div class="row g-3 mb-3.5">
+                                <div class="row g-3 mb-4">
                                     <div class="col-6 col-md-3">
                                         <div class="cinematic-spec-card text-center p-3 rounded-3">
                                             <div class="spec-label">UKURAN</div>
@@ -134,7 +172,7 @@
                                 </div>
 
                                 <!-- BUNDLE COMPONENTS BOX (IF APPLICABLE) -->
-                                <div class="mb-3.5 d-none" id="modal_prod_bundle_wrap">
+                                <div class="mb-4 d-none" id="modal_prod_bundle_wrap">
                                     <div class="d-flex justify-content-between align-items-center mb-2.5">
                                         <div class="cinematic-section-label text-primary d-flex align-items-center gap-1.5">
                                             <i class="bi bi-collection-fill fs-6"></i>
@@ -143,7 +181,7 @@
                                         <span class="badge bg-primary-subtle text-primary font-monospace rounded-pill px-2.5 py-1" style="font-size:0.7rem;">Paket Rakitan</span>
                                     </div>
                                     <!-- Dynamic Individual Bundle Cards Container -->
-                                    <div class="d-flex flex-column gap-2.5" id="modal_prod_bundle_items">
+                                    <div class="d-flex flex-column" style="gap: 12px !important;" id="modal_prod_bundle_items">
                                         <!-- Dynamic bundle cards rendered here by JS -->
                                     </div>
                                 </div>
@@ -249,12 +287,36 @@
     }
 
     .cinematic-btn-close {
-        transition: all 0.2s ease;
-        opacity: 0.75;
+        width: 34px;
+        height: 34px;
+        border-radius: 50% !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        font-size: 0.85rem;
+        cursor: pointer;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        background: rgba(0, 0, 0, 0.04);
+        color: #64748b;
+        flex-shrink: 0;
+        margin-left: 8px;
     }
     .cinematic-btn-close:hover {
-        opacity: 1;
-        transform: rotate(90deg);
+        background: rgba(239, 68, 68, 0.12) !important;
+        color: #ef4444 !important;
+        border-color: rgba(239, 68, 68, 0.25) !important;
+        transform: rotate(90deg) scale(1.05);
+    }
+    [data-bs-theme="dark"] .cinematic-btn-close {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.12);
+        color: #cbd5e1;
+    }
+    [data-bs-theme="dark"] .cinematic-btn-close:hover {
+        background: rgba(239, 68, 68, 0.2) !important;
+        color: #f87171 !important;
+        border-color: rgba(239, 68, 68, 0.4) !important;
     }
 
     /* CINEMATIC IMAGE STAGE */
@@ -440,21 +502,86 @@
         border: 1px solid rgba(0, 0, 0, 0.06);
     }
 
+    .cinematic-tier-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px !important;
+    }
+
     .cinematic-tier-card {
         transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         border: 1.5px solid transparent;
+        border-radius: 14px;
         position: relative;
     }
+    .cinematic-tier-card:hover {
+        transform: translateY(-1.5px);
+    }
     .cinematic-tier-card .tier-label {
-        font-size: 0.75rem;
-        font-weight: 700;
-        margin-bottom: 8px;
         letter-spacing: 0.02em;
     }
     .cinematic-tier-card .tier-price {
-        font-size: 1.05rem;
+        font-size: 1.15rem;
         font-weight: 800;
         letter-spacing: -0.01em;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 575.98px) {
+        .cinematic-type-badge, .cinematic-stock-badge {
+            font-size: 0.72rem !important;
+            padding: 5px 10px !important;
+        }
+        .cinematic-btn-close {
+            width: 30px !important;
+            height: 30px !important;
+            font-size: 0.78rem !important;
+            margin-left: 6px !important;
+        }
+        .cinematic-tier-container {
+            padding: 14px !important;
+            margin-bottom: 22px !important;
+        }
+        .cinematic-tier-list {
+            gap: 12px !important;
+        }
+        .cinematic-tier-card {
+            padding: 12px 14px !important;
+            border-radius: 12px !important;
+        }
+        .cinematic-tier-card .tier-price {
+            font-size: 1.05rem !important;
+            letter-spacing: -0.2px !important;
+        }
+        .cinematic-spec-card {
+            padding: 12px 10px !important;
+            border-radius: 12px !important;
+        }
+        .cinematic-spec-card .spec-label {
+            font-size: 0.65rem !important;
+            margin-bottom: 4px !important;
+        }
+        .cinematic-spec-card .spec-val {
+            font-size: 0.85rem !important;
+        }
+        .cinematic-title {
+            font-size: 1.25rem !important;
+        }
+        .cinematic-stage {
+            padding-top: 75% !important;
+            max-height: 250px !important;
+        }
+        .cinematic-component-card {
+            padding: 12px 14px !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+            border-radius: 12px !important;
+        }
+        .cinematic-component-card .comp-stock-badge {
+            font-size: 0.72rem !important;
+            padding: 4px 10px !important;
+        }
     }
 
     /* Retail Glow */

@@ -347,7 +347,7 @@ $(document).ready(function () {
                                     '<div class="val-item-alokasi-biaya-unit text-muted font-monospace opacity-75 mt-0.5" style="font-size: 0.68rem;"></div>' +
                                 '</td>' +
                                 '<td class="text-end col-item-hpp-akhir bg-success bg-opacity-10">' +
-                                    '<span class="val-item-hpp-akhir font-monospace text-success fw-bold small">-</span>' +
+                                    '<span class="val-item-hpp-akhir inv-badge-hpp" style="background: rgba(148, 163, 184, 0.12) !important; color: inherit !important; border-color: rgba(148, 163, 184, 0.25) !important;">-</span>' +
                                     '<div class="val-item-hpp-akhir-total text-muted font-monospace opacity-75 mt-0.5" style="font-size: 0.68rem;"></div>' +
                                 '</td>' +
                             '</tr>';
@@ -784,7 +784,7 @@ $(document).ready(function () {
             let satuanText = $(this).find('.inv-badge-unit').text().trim() || 'unit';
 
             if (biayaHppTotal > 0) {
-                $(this).find('.val-item-alokasi-biaya').html('<span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle px-2 py-1">+ ' + formatMoney(alokasiBiayaLine, editCurrencyCode, editCurrencySymbol) + '</span>');
+                $(this).find('.val-item-alokasi-biaya').html('<span class="inv-badge-alokasi">+ ' + formatMoney(alokasiBiayaLine, editCurrencyCode, editCurrencySymbol) + '</span>');
                 $(this).find('.val-item-alokasi-biaya-unit').text('≈ +' + formatMoney(alokasiPerUnit, editCurrencyCode, editCurrencySymbol) + ' / ' + satuanText).show();
             } else {
                 $(this).find('.val-item-alokasi-biaya').html('<span class="text-muted opacity-50">-</span>');
@@ -792,10 +792,10 @@ $(document).ready(function () {
             }
 
             if (biayaHppTotal > 0) {
-                $(this).find('.val-item-hpp-akhir').html('<span class="badge bg-success bg-opacity-15 text-success border border-success-subtle px-2 py-1 fw-bold">' + formatMoney(hppAkhirPerUnit, editCurrencyCode, editCurrencySymbol) + '</span>');
+                $(this).find('.val-item-hpp-akhir').html('<span class="inv-badge-hpp">' + formatMoney(hppAkhirPerUnit, editCurrencyCode, editCurrencySymbol) + '</span>');
                 $(this).find('.val-item-hpp-akhir-total').html('Total: <strong>' + formatMoney(lineNet + alokasiBiayaLine, editCurrencyCode, editCurrencySymbol) + '</strong>').show();
             } else {
-                $(this).find('.val-item-hpp-akhir').html('<span class="font-monospace text-body fw-semibold">' + formatMoney(hppAkhirPerUnit, editCurrencyCode, editCurrencySymbol) + '</span>');
+                $(this).find('.val-item-hpp-akhir').html('<span class="inv-badge-hpp" style="background: rgba(148, 163, 184, 0.12) !important; color: inherit !important; border-color: rgba(148, 163, 184, 0.25) !important;">' + formatMoney(hppAkhirPerUnit, editCurrencyCode, editCurrencySymbol) + '</span>');
                 $(this).find('.val-item-hpp-akhir-total').hide().empty();
             }
         });

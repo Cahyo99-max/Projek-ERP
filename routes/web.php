@@ -57,6 +57,7 @@ use App\Http\Controllers\AkuntansiSettingsController;
 use App\Http\Controllers\BomController;
 use App\Http\Controllers\MainDashboardController;
 use App\Http\Controllers\UserActivityLogController;
+use App\Http\Controllers\PeminjamanBarangController;
 use Illuminate\Support\Facades\Route;
 
 // ===== PUBLIC/GUEST ROUTES =====
@@ -664,6 +665,7 @@ Route::middleware('auth')->group(function () {
 
         // Goods Issue (Barang Keluar)
         Route::get('/goods-issue', [GoodsIssueController::class, 'index'])->name('gi.index');
+        Route::get('/goods-issue/available-serials', [GoodsIssueController::class, 'getAvailableSerials'])->name('gi.available-serials');
         Route::get('/goods-issue/stok/{gudang}/{barang}', [GoodsIssueController::class, 'getStokBarang'])->name('gi.stok');
         Route::get('/goods-issue/barangs-by-gudang/{gudang}', [GoodsIssueController::class, 'getBarangsByGudang'])->name('gi.barangs-by-gudang');
         Route::post('/goods-issue/store', [GoodsIssueController::class, 'store'])->name('gi.store');
@@ -688,6 +690,28 @@ Route::middleware('auth')->group(function () {
         Route::post('/warehouse-transfer/{warehouseTransfer}/confirm', [WarehouseTransferController::class, 'confirm'])->name('transfer.confirm');
         Route::delete('/warehouse-transfer/{warehouseTransfer}/delete', [WarehouseTransferController::class, 'destroy'])->name('transfer.destroy');
 
+        // Peminjaman Barang Pameran (Loan for Exhibition)
+        Route::prefix('peminjaman-barang')->name('peminjaman.')->group(function () {
+            Route::get('/', [PeminjamanBarangController::class, 'index'])->name('index');
+            Route::get('/create', [PeminjamanBarangController::class, 'create'])->name('create');
+            Route::post('/store', [PeminjamanBarangController::class, 'store'])->name('store')->middleware('throttle:60,1');
+            Route::get('/generate-nomor', [PeminjamanBarangController::class, 'generateNomorAjax'])->name('generateNomor');
+            Route::get('/check-nomor', [PeminjamanBarangController::class, 'checkNomorUnique'])->name('checkNomor');
+            Route::get('/barangs/{gudang}', [PeminjamanBarangController::class, 'getBarangsByGudang'])->name('barangs')->whereNumber('gudang');
+            Route::get('/{id}', [PeminjamanBarangController::class, 'show'])->name('show')->whereNumber('id');
+            Route::get('/{id}/edit', [PeminjamanBarangController::class, 'edit'])->name('edit')->whereNumber('id');
+            Route::put('/{id}', [PeminjamanBarangController::class, 'update'])->name('update')->whereNumber('id')->middleware('throttle:60,1');
+            Route::post('/{id}/submit', [PeminjamanBarangController::class, 'submit'])->name('submit')->whereNumber('id')->middleware('throttle:60,1');
+            Route::post('/{id}/approve', [PeminjamanBarangController::class, 'approve'])->name('approve')->whereNumber('id')->middleware('throttle:60,1');
+            Route::post('/{id}/reject', [PeminjamanBarangController::class, 'reject'])->name('reject')->whereNumber('id')->middleware('throttle:60,1');
+            Route::post('/{id}/barang-siap', [PeminjamanBarangController::class, 'barangSiap'])->name('barang-siap')->whereNumber('id')->middleware('throttle:60,1');
+            Route::post('/{id}/siapkan', [PeminjamanBarangController::class, 'barangSiap'])->name('siapkan')->whereNumber('id')->middleware('throttle:60,1');
+            Route::post('/{id}/serah-terima', [PeminjamanBarangController::class, 'serahTerima'])->name('serah-terima')->whereNumber('id')->middleware('throttle:60,1');
+            Route::post('/{id}/kembalikan', [PeminjamanBarangController::class, 'kembalikan'])->name('kembalikan')->whereNumber('id')->middleware('throttle:60,1');
+            Route::get('/{id}/print-surat-jalan', [PeminjamanBarangController::class, 'printSuratJalan'])->name('print-surat-jalan')->whereNumber('id');
+            Route::delete('/{id}', [PeminjamanBarangController::class, 'destroy'])->name('destroy')->whereNumber('id')->middleware('throttle:60,1');
+        });
+
         // Stock Opname (Penyesuaian Stok)
         Route::get('/stock-opname', [StockOpnameController::class, 'index'])->name('opname.index');
         Route::get('/stock-opname/search-barang', [StockOpnameController::class, 'searchBarang'])->name('opname.search-barang');
@@ -701,6 +725,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/stock-opname/{stockOpname}/approve', [StockOpnameController::class, 'approve'])->name('opname.approve');
         Route::post('/stock-opname/{stockOpname}/reject', [StockOpnameController::class, 'reject'])->name('opname.reject');
         Route::post('/stock-opname/{stockOpname}/save-physical', [StockOpnameController::class, 'savePhysical'])->name('opname.save-physical');
+        Route::get('/stock-opname/{stockOpname}/available-serials', [StockOpnameController::class, 'getAvailableSerials'])->name('opname.available-serials');
         Route::post('/stock-opname/{stockOpname}/complete', [StockOpnameController::class, 'complete'])->name('opname.complete');
         Route::post('/stock-opname/{stockOpname}/close', [StockOpnameController::class, 'close'])->name('opname.close');
         Route::get('/stock-opname/{stockOpname}/details-datatable', [StockOpnameController::class, 'detailsDatatable'])->name('opname.details-datatable');
@@ -726,6 +751,8 @@ Route::middleware('auth')->group(function () {
         // Stock Adjustment (Penyesuaian Stok)
         Route::get('/stock-adjustment', [\App\Http\Controllers\StockAdjustmentController::class, 'index'])->name('stock-adjustment.index');
         Route::get('/stock-adjustment/search-barang', [\App\Http\Controllers\StockAdjustmentController::class, 'searchBarang'])->name('stock-adjustment.search-barang');
+        Route::get('/stock-adjustment/available-serials', [\App\Http\Controllers\StockAdjustmentController::class, 'getAvailableSerials'])->name('stock-adjustment.available-serials');
+        Route::post('/stock-adjustment/validate-new-serials', [\App\Http\Controllers\StockAdjustmentController::class, 'validateNewSerials'])->name('stock-adjustment.validate-new-serials');
         Route::post('/stock-adjustment/store', [\App\Http\Controllers\StockAdjustmentController::class, 'store'])->name('stock-adjustment.store');
         Route::get('/stock-adjustment/{stockAdjustment}', [\App\Http\Controllers\StockAdjustmentController::class, 'show'])->name('stock-adjustment.show');
         Route::get('/stock-adjustment/{stockAdjustment}/edit', [\App\Http\Controllers\StockAdjustmentController::class, 'edit'])->name('stock-adjustment.edit');

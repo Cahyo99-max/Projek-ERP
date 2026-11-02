@@ -37,8 +37,14 @@ $(document).ready(function () {
                 } else {
                     $('#view_disp_supplier_npwp').html('<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle font-monospace px-2 py-0.5"><i class="bi bi-dash-circle me-1"></i>Non-PKP (Tanpa NPWP)</span>');
                 }
-                $('#view_disp_ref_gr').text(inv.goods_receipt ? (grnNum + ' (' + gdg + ')') : '— (Langsung dari PO)');
-                $('#view_disp_ref_po').text('Ref. PO: ' + (po ? (po.nomor_po || '-') : '-'));
+                if (inv.is_saldo_awal) {
+                    $('#view_disp_ref_gr').html('<span class="badge bg-warning bg-opacity-15 text-warning border border-warning-subtle font-monospace px-2.5 py-1 rounded-pill"><i class="bi bi-clock-history me-1"></i>Saldo Awal Hutang (Migrasi)</span>');
+                    let coaDebitName = inv.saldo_awal_coa ? (inv.saldo_awal_coa.code + ' - ' + inv.saldo_awal_coa.name) : '-';
+                    $('#view_disp_ref_po').text('Akun Penyeimbang: ' + coaDebitName);
+                } else {
+                    $('#view_disp_ref_gr').text(inv.goods_receipt ? (grnNum + ' (' + gdg + ')') : '— (Langsung dari PO)');
+                    $('#view_disp_ref_po').text('Ref. PO: ' + (po ? (po.nomor_po || '-') : '-'));
+                }
 
                 // Resolve Tender Info
                 let tenderObj = inv.tender || (inv.goods_receipt && inv.goods_receipt.tender ? inv.goods_receipt.tender : ((po && po.tender) ? po.tender : (inv.goods_receipt && inv.goods_receipt.po ? inv.goods_receipt.po.tender : null)));

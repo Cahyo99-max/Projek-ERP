@@ -205,6 +205,7 @@ class RolePermissionController extends Controller
             // Faktur Pembelian (Purchase Invoice / AP)
             'lihat-purchase-invoice'        => 'Faktur Pembelian (Purchase Invoice / AP)',
             'tambah-purchase-invoice'       => 'Faktur Pembelian (Purchase Invoice / AP)',
+            'akses-saldo-awal-hutang'       => 'Faktur Pembelian (Purchase Invoice / AP)',
             'edit-purchase-invoice'         => 'Faktur Pembelian (Purchase Invoice / AP)',
             'hapus-purchase-invoice'        => 'Faktur Pembelian (Purchase Invoice / AP)',
             'approve-purchase-invoice'      => 'Faktur Pembelian (Purchase Invoice / AP)',
@@ -265,6 +266,7 @@ class RolePermissionController extends Controller
             // Faktur Penjualan (Sales Invoice)
             'lihat-sales-invoice'         => 'Faktur Penjualan (Sales Invoice)',
             'tambah-sales-invoice'        => 'Faktur Penjualan (Sales Invoice)',
+            'akses-saldo-awal-piutang'    => 'Faktur Penjualan (Sales Invoice)',
             'edit-sales-invoice'          => 'Faktur Penjualan (Sales Invoice)',
             'hapus-sales-invoice'         => 'Faktur Penjualan (Sales Invoice)',
             'cetak-sales-invoice'         => 'Faktur Penjualan (Sales Invoice)',
@@ -372,11 +374,17 @@ class RolePermissionController extends Controller
             'edit-payment-method'   => 'Master Metode Pembayaran (Payment Method)',
             'hapus-payment-method'  => 'Master Metode Pembayaran (Payment Method)',
 
+            // User Management (Akun Pengguna)
+            'lihat-user'      => 'Manajemen User (Akun Pengguna)',
+            'tambah-user'     => 'Manajemen User (Akun Pengguna)',
+            'edit-user'       => 'Manajemen User (Akun Pengguna)',
+            'hapus-user'      => 'Manajemen User (Akun Pengguna)',
+
             // Karyawan
-            'lihat-karyawan'  => 'Pengguna & Karyawan',
-            'tambah-karyawan' => 'Pengguna & Karyawan',
-            'edit-karyawan'   => 'Pengguna & Karyawan',
-            'hapus-karyawan'  => 'Pengguna & Karyawan',
+            'lihat-karyawan'  => 'Data Karyawan (HRD)',
+            'tambah-karyawan' => 'Data Karyawan (HRD)',
+            'edit-karyawan'   => 'Data Karyawan (HRD)',
+            'hapus-karyawan'  => 'Data Karyawan (HRD)',
 
             // Hak Akses
             'lihat-hak-akses' => 'Pengaturan Hak Akses',
@@ -477,9 +485,9 @@ class RolePermissionController extends Controller
             'lihat-hutang','cetak-hutang',
             'lihat-supplier','tambah-supplier','edit-supplier','hapus-supplier',
             'lihat-alokasi-biaya','tambah-alokasi-biaya','detail-alokasi-biaya','posting-alokasi-biaya','lihat-jurnal-alokasi-biaya','batalkan-alokasi-biaya',
-            'lihat-purchase-invoice','tambah-purchase-invoice','edit-purchase-invoice','hapus-purchase-invoice','approve-purchase-invoice','batalkan-purchase-invoice','cetak-purchase-invoice','lihat-jurnal-purchase-invoice',
+            'lihat-purchase-invoice','tambah-purchase-invoice','akses-saldo-awal-hutang','edit-purchase-invoice','hapus-purchase-invoice','approve-purchase-invoice','batalkan-purchase-invoice','cetak-purchase-invoice','lihat-jurnal-purchase-invoice',
         ];
-        if (in_array($permissionName, $purchasing) || str_contains($permissionName, 'pembayaran-utang') || str_contains($permissionName, 'alokasi-biaya') || str_contains($permissionName, 'purchase-invoice')) return 'purchasing';
+        if (in_array($permissionName, $purchasing) || str_contains($permissionName, 'pembayaran-utang') || str_contains($permissionName, 'alokasi-biaya') || str_contains($permissionName, 'purchase-invoice') || str_contains($permissionName, 'saldo-awal-hutang')) return 'purchasing';
 
         // Sales
         $sales = [
@@ -488,18 +496,23 @@ class RolePermissionController extends Controller
             'lihat-penawaran','tambah-penawaran','edit-penawaran','hapus-penawaran','revisi-penawaran','approve-penawaran','cetak-penawaran','konversi-so-penawaran','lihat-hpp-penawaran',
             'lihat-sales-order','tambah-sales-order','edit-sales-order','hapus-sales-order','cetak-sales-order',
             'lihat-delivery-order','tambah-delivery-order','edit-delivery-order','cetak-delivery-order','approve-delivery-order','selesai-delivery-order','lihat-jurnal-delivery-order',
-            'lihat-sales-invoice','tambah-sales-invoice','edit-sales-invoice','hapus-sales-invoice','cetak-sales-invoice','approve-sales-invoice','lihat-jurnal-sales-invoice',
+            'lihat-sales-invoice','tambah-sales-invoice','akses-saldo-awal-piutang','edit-sales-invoice','hapus-sales-invoice','cetak-sales-invoice','approve-sales-invoice','lihat-jurnal-sales-invoice',
             'lihat-sales-payment','tambah-sales-payment','edit-sales-payment','lihat-jurnal-sales-payment','batalkan-sales-payment','hapus-sales-payment','approve-sales-payment','cetak-sales-payment',
             'lihat-piutang','cetak-piutang',
         ];
         if (in_array($permissionName, $sales) || str_contains($permissionName, 'sales-invoice') || str_contains($permissionName, 'sales-payment') || str_contains($permissionName, 'piutang')) return 'sales';
 
-        // Karyawan
+        // Karyawan (HRD)
         $karyawan = ['lihat-karyawan','tambah-karyawan','edit-karyawan','hapus-karyawan'];
         if (in_array($permissionName, $karyawan)) return 'karyawan';
 
-        // Hak Akses & Pengaturan Sistem
-        if (in_array($permissionName, ['lihat-hak-akses','edit-hak-akses','lihat-pengaturan-aplikasi','edit-pengaturan-aplikasi'])) return 'hak';
+        // Hak Akses & Pengaturan Pengguna (Pengaturan Akses Pengguna)
+        $hak = [
+            'lihat-user','tambah-user','edit-user','hapus-user',
+            'lihat-hak-akses','edit-hak-akses',
+            'lihat-pengaturan-aplikasi','edit-pengaturan-aplikasi'
+        ];
+        if (in_array($permissionName, $hak)) return 'hak';
 
         // Audit & Keamanan
         if (in_array($permissionName, ['lihat-monitor','lihat-log-aktivitas','lihat-monitor-aktif','lihat-log-aktivitas-user','hapus-log-aktivitas-user'])) return 'keamanan_audit';
@@ -574,7 +587,7 @@ class RolePermissionController extends Controller
             'master_gudang'      => ['label' => 'Master Gudang & Cabang',          'icon' => 'bi-building-gear', 'color' => 'info'],
             'master_produk'      => ['label' => 'Master Barang & Produk',          'icon' => 'bi-boxes',         'color' => 'primary'],
             'master_organisasi'  => ['label' => 'Master Organisasi & Departemen',  'icon' => 'bi-diagram-3',     'color' => 'dark'],
-            'karyawan'           => ['label' => 'Akun Pengguna & Karyawan',        'icon' => 'bi-people',        'color' => 'success'],
+            'karyawan'           => ['label' => 'Data Karyawan (HRD)',            'icon' => 'bi-people',        'color' => 'success'],
             'master_keuangan'    => ['label' => 'Keuangan, Pajak & Mata Uang',     'icon' => 'bi-wallet2',       'color' => 'secondary'],
             'inventory'          => ['label' => 'Modul Inventory & Stok',          'icon' => 'bi-house-gear',    'color' => 'warning'],
             'purchasing'         => ['label' => 'Modul Purchasing & Pembelian',    'icon' => 'bi-cart-check',    'color' => 'success'],
@@ -755,6 +768,27 @@ class RolePermissionController extends Controller
             $modules['sales']['subgroups'] = $sortedSalesSubgroups;
         }
 
+        // Sort subgroups in Pengaturan Akses Pengguna module
+        if (isset($modules['hak']['subgroups'])) {
+            $hakSubgroupOrder = [
+                'Manajemen User (Akun Pengguna)',
+                'Pengaturan Hak Akses',
+                'Pengaturan Aplikasi',
+            ];
+            $sortedHakSubgroups = [];
+            foreach ($hakSubgroupOrder as $subName) {
+                if (isset($modules['hak']['subgroups'][$subName])) {
+                    $sortedHakSubgroups[$subName] = $modules['hak']['subgroups'][$subName];
+                }
+            }
+            foreach ($modules['hak']['subgroups'] as $subName => $perms) {
+                if (!isset($sortedHakSubgroups[$subName])) {
+                    $sortedHakSubgroups[$subName] = $perms;
+                }
+            }
+            $modules['hak']['subgroups'] = $sortedHakSubgroups;
+        }
+
         // Sort permissions within each subgroup in all modules (CRUD + Workflow order)
         $actionOrderWeight = function ($permName) {
             // Akses Dashboard specific ordering
@@ -846,10 +880,11 @@ class RolePermissionController extends Controller
             // Faktur Penjualan (Sales Invoice)
             if ($permName === 'lihat-sales-invoice') return 1;
             if ($permName === 'tambah-sales-invoice') return 2;
-            if ($permName === 'edit-sales-invoice') return 3;
-            if ($permName === 'hapus-sales-invoice') return 4;
-            if ($permName === 'cetak-sales-invoice') return 5;
-            if ($permName === 'approve-sales-invoice') return 6;
+            if ($permName === 'akses-saldo-awal-piutang') return 3;
+            if ($permName === 'edit-sales-invoice') return 4;
+            if ($permName === 'hapus-sales-invoice') return 5;
+            if ($permName === 'cetak-sales-invoice') return 6;
+            if ($permName === 'approve-sales-invoice') return 7;
 
             // Penerimaan Pembayaran Penjualan (Sales Payment)
             if ($permName === 'lihat-sales-payment') return 1;

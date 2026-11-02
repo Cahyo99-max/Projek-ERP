@@ -419,6 +419,8 @@ Route::middleware('auth')->group(function () {
         // Faktur Penjualan (Sales Invoice)
         Route::prefix('modul-marketing/faktur-penjualan')->name('modul_marketing.faktur_penjualan.')->group(function () {
             Route::get('/check-sync', [SalesInvoiceController::class, 'checkSync'])->name('check_sync')->middleware('permission:lihat-sales-invoice');
+            Route::get('/generate-nomor', [SalesInvoiceController::class, 'generateNomorAjax'])->name('generate_nomor')->middleware('permission:tambah-sales-invoice|akses-saldo-awal-piutang');
+            Route::get('/check-nomor', [SalesInvoiceController::class, 'checkNomorUnique'])->name('check_nomor')->middleware('permission:tambah-sales-invoice|akses-saldo-awal-piutang');
             Route::get('/', [SalesInvoiceController::class, 'index'])->name('index')->middleware('permission:lihat-sales-invoice');
             Route::get('/get-delivery-orders', [SalesInvoiceController::class, 'getDeliveryOrders'])->name('get_delivery_orders')->middleware('permission:tambah-sales-invoice');
             Route::get('/do-details/{id}', [SalesInvoiceController::class, 'getDeliveryOrderDetails'])->name('do_details')->middleware('permission:tambah-sales-invoice');
@@ -579,6 +581,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/purchase-invoices/eligible-pos', [\App\Http\Controllers\PurchaseInvoiceController::class, 'getEligiblePos'])->name('purchase-invoices.eligible-pos');
         Route::get('/purchase-invoices/po/{po}/details', [\App\Http\Controllers\PurchaseInvoiceController::class, 'getPoDetailForInvoice'])->name('purchase-invoices.po-details');
         Route::get('/purchase-invoices/po-detail/{po}', [\App\Http\Controllers\PurchaseInvoiceController::class, 'getPoDetailForInvoice'])->name('purchase-invoices.po-detail');
+        Route::get('/purchase-invoices/generate-nomor', [\App\Http\Controllers\PurchaseInvoiceController::class, 'generateNomorAjax'])->name('purchase-invoices.generate-nomor');
+        Route::get('/purchase-invoices/check-nomor', [\App\Http\Controllers\PurchaseInvoiceController::class, 'checkNomorUnique'])->name('purchase-invoices.check-nomor');
         Route::post('/purchase-invoices/store', [\App\Http\Controllers\PurchaseInvoiceController::class, 'store'])->name('purchase-invoices.store');
         Route::get('/purchase-invoices/{purchaseInvoice}', [\App\Http\Controllers\PurchaseInvoiceController::class, 'show'])->name('purchase-invoices.show');
         Route::get('/purchase-invoices/{purchaseInvoice}/edit', [\App\Http\Controllers\PurchaseInvoiceController::class, 'edit'])->name('purchase-invoices.edit');

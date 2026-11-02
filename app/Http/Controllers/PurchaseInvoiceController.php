@@ -18,6 +18,8 @@ use App\Models\PurchasePaymentDetail;
 use App\Models\ChartOfAccount;
 use App\Models\KasBank;
 use App\Models\KasMutasi;
+use App\Models\MasterCurrency;
+use App\Models\Tender;
 use App\Helpers\AccountMappingHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,10 +31,49 @@ use App\Http\Controllers\WhatsAppGatewayController;
 
 class PurchaseInvoiceController extends Controller
 {
-    private function canViewInvoice(): bool
+    /**
+     * Verifikasi isolasi multi-tenant & cabang (Mencegah IDOR / Celah Kebocoran Data Antar Cabang)
+     */
+    protected function checkTenantAccess(?PurchaseInvoice $invoice = null): bool
+    {
+        if (!$invoice) return true;
+        $u = auth()->user();
+        if (!$u) return false;
+        if ($u->hasAnyRole(['Super Admin', 'Owner'])) return true;
+
+        $activeBranchId  = session('active_branch_id');
+        $activeCompanyId = session('active_company_id');
+
+        if (!empty($activeBranchId) && !empty($invoice->branch_id) && $invoice->branch_id != $activeBranchId) {
+            return false;
+        }
+        if (!empty($activeCompanyId) && !empty($invoice->company_id) && $invoice->company_id != $activeCompanyId) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function canViewInvoice(?PurchaseInvoice $inv = null): bool
     {
         $u = auth()->user();
-        return $u && $u->can('lihat-purchase-invoice');
+        if (!$u || !$u->can('lihat-purchase-invoice')) {
+            return false;
+        }
+
+        if ($inv) {
+            // Isolasi Cabang & Perusahaan (Anti-IDOR)
+            if (!$this->checkTenantAccess($inv)) {
+                return false;
+            }
+
+            // Status Draft hanya boleh dilihat oleh pembuatnya (kecuali Super Admin / Owner)
+            if ($inv->status === 'Draft' && $inv->created_by != $u->id && !$u->hasAnyRole(['Super Admin', 'Owner'])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function canViewJurnal(): bool
@@ -55,20 +96,17 @@ class PurchaseInvoiceController extends Controller
         }
 
         if ($inv) {
-            if (!in_array($inv->status, ['Draft', 'Rejected', 'Menunggu Persetujuan', 'Menunggu Approval'])) {
+            $isEditableSaldoAwal = $inv->is_saldo_awal && $inv->status === 'Posted' && !$inv->paymentDetails()->whereHas('payment', function($q) {
+                $q->whereNotIn('status', ['Cancelled', 'Void', 'Dibatalkan'])->whereNull('deleted_at');
+            })->exists();
+
+            if (!$isEditableSaldoAwal && !in_array($inv->status, ['Draft', 'Rejected', 'Menunggu Persetujuan', 'Menunggu Approval'])) {
                 return false;
             }
 
             // Isolasi Cabang / Tenant (Mencegah IDOR Antar Cabang)
-            if (!$u->hasAnyRole(['Super Admin', 'Owner'])) {
-                $activeBranchId  = session('active_branch_id');
-                $activeCompanyId = session('active_company_id');
-                if (!empty($activeBranchId) && !empty($inv->branch_id) && $inv->branch_id != $activeBranchId) {
-                    return false;
-                }
-                if (!empty($activeCompanyId) && !empty($inv->company_id) && $inv->company_id != $activeCompanyId) {
-                    return false;
-                }
+            if (!$this->checkTenantAccess($inv)) {
+                return false;
             }
         }
 
@@ -83,20 +121,17 @@ class PurchaseInvoiceController extends Controller
         }
 
         if ($inv) {
-            if (!in_array($inv->status, ['Draft', 'Rejected'])) {
+            $isDeletableSaldoAwal = $inv->is_saldo_awal && $inv->status === 'Posted' && !$inv->paymentDetails()->whereHas('payment', function($q) {
+                $q->whereNotIn('status', ['Cancelled', 'Void', 'Dibatalkan'])->whereNull('deleted_at');
+            })->exists();
+
+            if (!$isDeletableSaldoAwal && !in_array($inv->status, ['Draft', 'Rejected'])) {
                 return false;
             }
 
             // Isolasi Cabang / Tenant (Mencegah IDOR Antar Cabang)
-            if (!$u->hasAnyRole(['Super Admin', 'Owner'])) {
-                $activeBranchId  = session('active_branch_id');
-                $activeCompanyId = session('active_company_id');
-                if (!empty($activeBranchId) && !empty($inv->branch_id) && $inv->branch_id != $activeBranchId) {
-                    return false;
-                }
-                if (!empty($activeCompanyId) && !empty($inv->company_id) && $inv->company_id != $activeCompanyId) {
-                    return false;
-                }
+            if (!$this->checkTenantAccess($inv)) {
+                return false;
             }
         }
 
@@ -233,6 +268,12 @@ class PurchaseInvoiceController extends Controller
                 ->editColumn('nomor_faktur', function ($i) {
                     return '<a href="javascript:void(0)" class="fw-bold text-primary btn-view-invoice text-decoration-none" data-id="' . $i->id . '" title="Lihat Detail">' . e($i->nomor_faktur) . '</a>';
                 })
+                ->filterColumn('nomor_faktur', function ($query, $keyword) {
+                    $query->where(function ($q) use ($keyword) {
+                        $q->where('purchase_invoices.nomor_faktur', 'like', "%{$keyword}%")
+                          ->orWhere('purchase_invoices.nomor_faktur_supplier', 'like', "%{$keyword}%");
+                    });
+                })
                 ->addColumn('supplier_name', fn($i) => $i->supplier?->nama_supplier ?? '-')
                 ->filterColumn('supplier_name', function ($query, $keyword) {
                     $query->whereHas('supplier', function ($sq) use ($keyword) {
@@ -249,6 +290,9 @@ class PurchaseInvoiceController extends Controller
                     );
                 })
                 ->addColumn('nomor_gr', function ($i) {
+                    if ($i->is_saldo_awal) {
+                        return '<div><span class="badge bg-warning bg-opacity-15 text-warning border border-warning-subtle font-monospace px-2.5 py-1 rounded-pill" style="font-size:0.75rem;"><i class="bi bi-clock-history me-1"></i>Saldo Awal Hutang</span></div>';
+                    }
                     $refText = $i->goodsReceipt?->nomor_gr ?: ($i->po ? ('PO: ' . $i->po->nomor_po) : '-');
                     $tenderObj = $i->tender ?? $i->goodsReceipt?->tender ?? $i->po?->tender;
                     $tenderNomor = $tenderObj ? (!empty($tenderObj->nomor_kontrak) && $tenderObj->nomor_kontrak !== '-' ? ($tenderObj->nomor_kontrak . (!empty($tenderObj->nama_tender) ? ' - ' . $tenderObj->nama_tender : '')) : ($tenderObj->nomor_kontrak ?: ($tenderObj->nama_tender ?: ('Tender #' . $tenderObj->id)))) : null;
@@ -280,6 +324,15 @@ class PurchaseInvoiceController extends Controller
                     );
                 })
                 ->addColumn('tanggal_faktur_fmt', fn($i) => $i->tanggal_faktur ? $i->tanggal_faktur->format('d/m/Y') : '-')
+                ->filterColumn('tanggal_faktur_fmt', function ($query, $keyword) {
+                    $trimmed = trim($keyword);
+                    if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/', $trimmed, $m)) {
+                        $dbDate = sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
+                        $query->whereDate('purchase_invoices.tanggal_faktur', $dbDate);
+                    } else {
+                        $query->where('purchase_invoices.tanggal_faktur', 'like', "%{$trimmed}%");
+                    }
+                })
                 ->addColumn('tanggal_jatuh_tempo_fmt', function ($i) {
                     if (!$i->tanggal_jatuh_tempo) {
                         return '<span class="text-muted font-monospace">-</span>';
@@ -346,11 +399,11 @@ class PurchaseInvoiceController extends Controller
                     return '<div class="fw-bold text-body font-monospace">Rp ' . number_format($i->grand_total, 2, ',', '.') . '</div>';
                 })
                 ->addColumn('sisa_hutang_fmt', function ($i) {
-                    if (in_array($i->status, ['Draft', 'Menunggu Persetujuan', 'Menunggu Approval', 'Rejected'])) {
-                        return '<span class="text-muted font-monospace small">-</span>';
-                    }
                     if ($i->status === 'Cancelled' || $i->status === 'Void') {
                         return '<span class="badge rounded-pill fw-semibold px-2 py-1" style="font-size:0.7rem;background:rgba(148,163,184,0.15);color:#cbd5e1;border:1px solid rgba(148,163,184,0.45);"><i class="bi bi-slash-circle me-1"></i>Dibatalkan</span>';
+                    }
+                    if ($i->status === 'Rejected') {
+                        return '<span class="text-muted font-monospace small">-</span>';
                     }
 
                     $cur = $i->currency ?? $i->po?->currency;
@@ -480,34 +533,57 @@ class PurchaseInvoiceController extends Controller
         $kpi = $this->calculateKpiSummary($userId, $activeBranchId, $activeCompanyId);
         extract($kpi);
 
-        // Fetch eligible posted GRs for invoice creation dropdown (dibatasi 30 data teratas agar super cepat)
-        $eligibleGrs = $this->queryEligibleGrs()->limit(30)->get();
-        // Fetch eligible approved POs for invoice creation dropdown (dibatasi 30 data teratas agar super cepat)
-        $eligiblePos = $this->queryEligiblePos()->limit(30)->get();
+        // Dokumen GRN & PO di-load secara dinamis via AJAX saat modal Browse dibuka (super cepat & hemat memori)
+        $eligibleGrs = collect([]);
+        $eligiblePos = collect([]);
 
         $suppliers = MasterSupplier::orderBy('nama_supplier')->get(['id', 'kode_supplier', 'nama_supplier']);
         $pajaks = MasterPajak::orderBy('nama_pajak')->get(['id', 'nama_pajak', 'tarif']);
         $paymentTerms = PaymentTerm::orderBy('nama_term')->get(['id', 'nama_term', 'jumlah_hari']);
         $coas = ChartOfAccount::where('is_header', 0)->orderBy('code')->get(['id', 'code', 'name']);
 
+        // In-memory matcher untuk mencari COA tanpa melakukan query SQL berulang
+        $findCoaId = function (array $codePrefixes, array $nameKeywords, $fallback = null) use ($coas) {
+            $match = $coas->first(function ($c) use ($codePrefixes, $nameKeywords) {
+                foreach ($codePrefixes as $prefix) {
+                    if (str_starts_with($c->code, $prefix)) return true;
+                }
+                $lower = strtolower($c->name);
+                foreach ($nameKeywords as $kw) {
+                    if (str_contains($lower, strtolower($kw))) return true;
+                }
+                return false;
+            });
+            return $match ? $match->id : $fallback;
+        };
+
+        $firstCoaId = $coas->first()?->id;
+
         $defaultGrniCoaId = \App\Helpers\AccountMappingHelper::getCoaId('default', 'default_gr_clearing')
             ?? \App\Helpers\AccountMappingHelper::getCoaId('default', 'unbilled_ap')
-            ?? ChartOfAccount::where('code', 'like', '2102%')->orWhere('name', 'like', '%GR/IR%')->orWhere('name', 'like', '%Penerimaan Barang%')->value('id')
-            ?? ChartOfAccount::where('is_header', 0)->value('id');
+            ?? $findCoaId(['2102'], ['GR/IR', 'Penerimaan Barang'], $firstCoaId);
 
         $defaultPpnCoaId = \App\Helpers\AccountMappingHelper::getCoaId('tax', 'tax_ppn_masukan')
-            ?? ChartOfAccount::where('code', 'like', '1107%')->orWhere('code', 'like', '114%')->orWhere('name', 'like', '%PPN Masukan%')->value('id')
-            ?? ChartOfAccount::where('is_header', 0)->value('id');
+            ?? $findCoaId(['1107', '114'], ['PPN Masukan'], $firstCoaId);
 
-        $defaultFreightCoaId = ChartOfAccount::where('code', 'like', '5103%')->orWhere('name', 'like', '%Biaya Angkut%')->orWhere('name', 'like', '%Freight%')->value('id')
-            ?? ChartOfAccount::where('code', 'like', '6104%')->orWhere('name', 'like', '%Pengiriman%')->value('id')
-            ?? $defaultGrniCoaId;
+        $defaultFreightCoaId = $findCoaId(['5103'], ['Biaya Angkut', 'Freight'])
+            ?? $findCoaId(['6104'], ['Pengiriman'], $defaultGrniCoaId);
 
         // Default COA Utang PPh (PPh dipotong atas pembelian, mis. PPh 23)
-        $defaultPphCoaId = $this->resolveDefaultPphCoaId();
+        $defaultPphCoaId = \App\Helpers\AccountMappingHelper::getCoaId('tax', 'tax_pph_payable')
+            ?? $findCoaId([], ['Utang PPh', 'Hutang PPh', 'PPh 23', 'PPh Pasal 23', 'PPh'], $firstCoaId);
 
         // Default COA Uang Muka Pembelian (DP Supplier)
-        $defaultUangMukaCoaId = $this->resolveDefaultUangMukaCoaId();
+        $defaultUangMukaCoaId = AccountMappingHelper::getCoaId('default', 'supplier_down_payment', 'default_supplier_down_payment')
+            ?? $findCoaId(['1111'], ['Uang Muka Pembelian', 'DP Supplier'], 208);
+
+        // Default COA Saldo Awal / Ekuitas Pembukaan & Hutang Usaha (AP)
+        $defaultSaldoAwalCoaId = \App\Helpers\AccountMappingHelper::getCoaId('default', 'opening_balance_equity')
+            ?? $findCoaId(['3202', '3100'], ['Saldo Awal', 'Opening Balance', 'Modal'], $firstCoaId);
+
+        $defaultHutangCoaId = \App\Helpers\AccountMappingHelper::getCoaId('default', 'accounts_payable')
+            ?? \App\Helpers\AccountMappingHelper::getCoaId('default', 'default_ap')
+            ?? $findCoaId(['2101', '210-10'], ['Hutang Usaha', 'Hutang Dagang', 'Utang Usaha'], $firstCoaId);
 
         // Map pajak_id => COA hasil pemetaan sisi Pembelian (tax_{id}_in) untuk auto-pilih COA PPh
         $pphCoaMap = [];
@@ -547,10 +623,23 @@ class PurchaseInvoiceController extends Controller
                 ->get();
         }
 
+        $currencies = MasterCurrency::where('status', 'Active')->get();
+
+        // Master Tender / Kontrak Aktif (Strict Entity Isolation: PT Pusat vs Cabang)
+        $tenderQuery = Tender::with(['branch:id,nama_cabang', 'company:id,nama_perusahaan']);
+        if (!empty($activeBranchId)) {
+            $tenderQuery->where('branch_id', $activeBranchId);
+        } else {
+            $tenderQuery->where('company_id', $activeCompanyId)->whereNull('branch_id');
+        }
+        $tenders = $tenderQuery->orderBy('nomor_kontrak', 'asc')->orderBy('nama_tender', 'asc')->get();
+
         return view('modul_purchasing.faktur_pembelian.index', compact(
             'eligibleGrs',
             'eligiblePos',
             'suppliers',
+            'currencies',
+            'tenders',
             'pajaks',
             'paymentTerms',
             'coas',
@@ -560,6 +649,8 @@ class PurchaseInvoiceController extends Controller
             'defaultFreightCoaId',
             'defaultPphCoaId',
             'defaultUangMukaCoaId',
+            'defaultSaldoAwalCoaId',
+            'defaultHutangCoaId',
             'pphCoaMap',
             'expenseTypeCoaMap',
             'totalInvoiceCount',
@@ -590,7 +681,7 @@ class PurchaseInvoiceController extends Controller
 
         $cacheKey = 'pi_kpi_summary_' . ($activeBranchId ?: 'all') . '_' . ($activeCompanyId ?: 'all') . '_' . ($userId ?: '0');
 
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 4, function () use ($userId, $activeBranchId, $activeCompanyId) {
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($userId, $activeBranchId, $activeCompanyId) {
             $baseKpiQuery = PurchaseInvoice::query()
                 ->forActiveBranch()
                 ->forActiveCompany()
@@ -981,6 +1072,7 @@ class PurchaseInvoiceController extends Controller
             'po.supplier',
             'po.currency',
             'po.pajak',
+            'po.pphPajak',
             'po.paymentTerm',
             'po.tender',
             'po.details',
@@ -1143,15 +1235,6 @@ class PurchaseInvoiceController extends Controller
             $grSubtotalNet = round($grSubtotalNet, 2);
 
             $ratio = ($poSubtotalNet > 0) ? min(1.0, max(0.0, $grSubtotalNet / $poSubtotalNet)) : 1.0;
-
-            // Cek apakah seluruh kuantitas PO sudah selesai diterima pada GR ini (last GR)
-            $totalPoQty = $po->details ? $po->details->sum('jumlah') : 0;
-            $totalReceivedQty = GoodsReceiptDetail::whereHas('goodsReceipt', function($q) use ($po) {
-                $q->where('po_id', $po->id)->whereNotIn('status', ['Dibatalkan', 'Cancelled']);
-            })->sum('jumlah');
-
-            $isLastGr = ($totalPoQty > 0 && $totalReceivedQty >= ($totalPoQty - 0.0001));
-            $isFull = ($ratio >= 0.9995) || $isLastGr;
         }
 
         // 3. Ambil seluruh faktur aktif sebelumnya dari PO yang sama
@@ -1162,13 +1245,28 @@ class PurchaseInvoiceController extends Controller
         }
         $existingInvoices = $invQuery->with('details')->get();
 
+        // Hitung total nilai bersih barang yang sudah pernah difakturkan pada faktur sebelumnya
+        $pastBilledNet = 0;
+        foreach ($existingInvoices as $pastInv) {
+            foreach ($pastInv->details as $pastDet) {
+                if (!empty($pastDet->barang_id) || $pastDet->jenis === 'Barang') {
+                    $pastBilledNet += floatval($pastDet->subtotal);
+                }
+            }
+        }
+        $pastBilledNet = round($pastBilledNet, 2);
+
+        // Sebuah faktur dianggap FAKTUR TERAKHIR / FULL jika dokumen ini sendiri mencakup >= 99.95% PO,
+        // ATAU jika akumulasi faktur sebelumnya + dokumen ini sudah menagihkan seluruh sisa nilai barang PO.
+        $isFull = ($ratio >= 0.9995) || ($poSubtotalNet > 0 && ($pastBilledNet + $grSubtotalNet) >= ($poSubtotalNet - 0.01));
+
         // 4. Hitung Pro-Rata & Sisa Kuota Uang Muka (DP)
         $poDp = floatval($po->down_payment ?? 0);
         $claimedDp = floatval($existingInvoices->sum('uang_muka'));
         $remainingDp = max(0, round($poDp - $claimedDp, 2));
 
         $proRataDp = round($poDp * $ratio, 2);
-        $effectiveDp = ($isFull || $proRataDp > $remainingDp) ? $remainingDp : min($remainingDp, $proRataDp);
+        $effectiveDp = $isFull ? $remainingDp : min($remainingDp, $proRataDp);
 
         // 5. Hitung Pro-Rata & Sisa Kuota Biaya Tambahan (Ongkir dll)
         $rawBiayaLain = $this->resolveBiayaLainFromPo($po);
@@ -1177,6 +1275,7 @@ class PurchaseInvoiceController extends Controller
         });
 
         $proratedBiayaLain = [];
+        $totalProratedExtra = 0;
         foreach ($rawBiayaLain as $item) {
             $jenisName = trim(strval($item['jenis'] ?? $item['keterangan'] ?? 'Biaya Tambahan'));
             $poNominal = floatval($item['nominal'] ?? 0);
@@ -1195,7 +1294,7 @@ class PurchaseInvoiceController extends Controller
             $remainingUnbilled = max(0, round($poNominal - $alreadyBilled, 2));
             $proRataNominal = round($poNominal * $ratio, 2);
 
-            $effectiveNominal = ($isFull || $proRataNominal > $remainingUnbilled)
+            $effectiveNominal = $isFull
                 ? $remainingUnbilled
                 : min($remainingUnbilled, $proRataNominal);
 
@@ -1207,7 +1306,14 @@ class PurchaseInvoiceController extends Controller
             $item['ratio']                = $ratio;
             $item['gr_ratio_pct']         = round($ratio * 100, 1);
 
+            $totalProratedExtra += $effectiveNominal;
             $proratedBiayaLain[] = $item;
+        }
+
+        // Pengaman: Uang Muka DP tidak boleh melebihi estimasi tagihan faktur ini (agar tidak memicu error minus / sisa 0)
+        $estInvoiceTagihan = $grSubtotalNet + $totalProratedExtra;
+        if ($estInvoiceTagihan > 0 && $effectiveDp > $estInvoiceTagihan) {
+            $effectiveDp = round($estInvoiceTagihan, 2);
         }
 
         return [
@@ -1464,7 +1570,94 @@ class PurchaseInvoiceController extends Controller
         return floatval($s);
     }
 
+    /**
+     * Generate nomor faktur internal otomatis berformat INV/YYYY/MM/XXXX
+     */
+    public static function generateNomorFaktur($tanggalFaktur = null): string
+    {
+        return PurchaseInvoice::generateNomorFaktur($tanggalFaktur);
+    }
 
+    /**
+     * Resolve nomor faktur: apakah manual atau otomatis, dan pastikan tidak ada duplikasi.
+     */
+    protected function resolveNomorFaktur(?string $inputNomor, $tanggalFaktur = null, ?int $ignoreId = null): array
+    {
+        $trimmed = trim($inputNomor ?? '');
+        $isManual = ($trimmed !== '' && !str_contains($trimmed, 'Otomatis'));
+
+        if ($isManual) {
+            $existsQuery = PurchaseInvoice::withTrashed()->where('nomor_faktur', $trimmed);
+            if ($ignoreId) {
+                $existsQuery->where('id', '!=', $ignoreId);
+            }
+            if ($existsQuery->exists()) {
+                return [
+                    'success' => false,
+                    'message' => "Nomor Faktur Internal '{$trimmed}' sudah digunakan oleh faktur lain! Silakan gunakan nomor faktur manual yang berbeda atau kosongkan untuk penomoran otomatis sistem."
+                ];
+            }
+            return [
+                'success' => true,
+                'nomor'   => $trimmed,
+                'manual'  => true
+            ];
+        }
+
+        $autoNomor = self::generateNomorFaktur($tanggalFaktur);
+        return [
+            'success' => true,
+            'nomor'   => $autoNomor,
+            'manual'  => false
+        ];
+    }
+
+    /**
+     * Endpoint AJAX untuk generate nomor faktur otomatis.
+     */
+    public function generateNomorAjax(Request $request)
+    {
+        if (!$this->canCreateInvoice()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $nomor = self::generateNomorFaktur($request->tanggal_faktur);
+        return response()->json([
+            'status'       => 'success',
+            'nomor_faktur' => $nomor,
+        ]);
+    }
+
+    /**
+     * Endpoint AJAX untuk cek keunikan nomor faktur manual.
+     */
+    public function checkNomorUnique(Request $request)
+    {
+        $nomor = trim($request->get('nomor', ''));
+        $ignoreId = $request->get('ignore_id');
+
+        if (empty($nomor) || str_contains($nomor, 'Otomatis')) {
+            return response()->json([
+                'is_manual' => false,
+                'is_unique' => true,
+                'message'   => 'Akan digenerate otomatis oleh sistem.'
+            ]);
+        }
+
+        $query = PurchaseInvoice::withTrashed()->where('nomor_faktur', $nomor);
+        if ($ignoreId) {
+            $query->where('id', '!=', $ignoreId);
+        }
+        $exists = $query->exists();
+
+        return response()->json([
+            'is_manual' => true,
+            'is_unique' => !$exists,
+            'message'   => $exists
+                ? "Nomor faktur '{$nomor}' sudah digunakan pada faktur lain! Silakan gunakan nomor lain."
+                : "Nomor faktur '{$nomor}' tersedia (belum pernah digunakan)."
+        ]);
+    }
 
     public function store(Request $request)
     {
@@ -1503,10 +1696,137 @@ class PurchaseInvoiceController extends Controller
             $request->merge(['kurs' => $this->unformatNumber($request->kurs)]);
         }
 
+        if ($request->filled('nilai_faktur_asli')) {
+            $request->merge(['nilai_faktur_asli' => $this->unformatNumber($request->nilai_faktur_asli)]);
+        }
+
         $uangMukaCheck = 0;
         if ($request->filled('uang_muka')) {
             $uangMukaCheck = $this->unformatNumber($request->uang_muka);
             $request->merge(['uang_muka' => $uangMukaCheck]);
+        }
+
+        // =========================================================================
+        // KHUSUS: SUMBER DOKUMEN SALDO AWAL HUTANG (MIGRASI DATA AWAL) - CREATE
+        // =========================================================================
+        if ($request->input('source_type') === 'saldo_awal') {
+            if (!auth()->user()?->can('akses-saldo-awal-hutang') && !auth()->user()?->hasAnyRole(['Super Admin', 'Owner'])) {
+                return response()->json(['message' => 'Anda tidak memiliki hak akses untuk mencatat Saldo Awal Hutang.'], 403);
+            }
+
+            $request->validate([
+                'supplier_id'           => 'required|exists:master_suppliers,id',
+                'nomor_faktur_supplier' => 'required|string|max:100',
+                'nilai_faktur_asli'     => 'required|numeric|min:0.01',
+                'uang_muka'             => 'nullable|numeric|min:0',
+                'saldo_awal_coa_id'     => 'required|exists:chart_of_accounts,id',
+                'hutang_coa_id'         => 'nullable|exists:chart_of_accounts,id',
+                'currency_id'           => 'nullable|exists:master_currencies,id',
+                'kurs'                  => 'nullable|numeric|min:0.0001',
+                'tender_id'             => 'nullable|exists:tenders,id',
+                'tanggal_faktur'        => 'required|date',
+                'tanggal_jatuh_tempo'   => 'required|date',
+                'keterangan'            => 'nullable|string|max:1000',
+                'lampiran_faktur'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            ], [
+                'supplier_id.required'           => 'Pilih Supplier terlebih dahulu untuk Saldo Awal Hutang.',
+                'nilai_faktur_asli.required'     => 'Nilai Total Faktur Asli wajib diisi.',
+                'nilai_faktur_asli.min'          => 'Nilai Total Faktur Asli harus lebih besar dari 0.',
+                'saldo_awal_coa_id.required'     => 'Akun Penyeimbang Saldo Awal (Debit) wajib dipilih.',
+                'nomor_faktur_supplier.required' => 'Nomor Faktur Supplier / Nota Asli wajib diisi.',
+                'tanggal_jatuh_tempo.required'   => 'Tanggal Jatuh Tempo wajib diisi.',
+                'lampiran_faktur.mimes'          => 'Format foto/dokumen bukti harus JPG, JPEG, PNG, atau PDF.',
+                'lampiran_faktur.max'            => 'Ukuran foto/dokumen bukti maksimal 5 MB.',
+            ]);
+
+            try {
+                DB::beginTransaction();
+
+                $nilaiAsli   = round(floatval($request->nilai_faktur_asli), 2);
+                $uangMukaVal = round(floatval($request->uang_muka ?? 0), 2);
+
+                if ($uangMukaVal >= $nilaiAsli) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'Uang Muka / Pembayaran Masa Lalu tidak boleh sama dengan atau melebihi Total Faktur Asli! Jika sudah lunas, tidak perlu dicatat sebagai Saldo Awal Hutang.'
+                    ], 422);
+                }
+
+                $nomorResult = $this->resolveNomorFaktur($request->nomor_faktur, $request->tanggal_faktur);
+                if (!$nomorResult['success']) {
+                    DB::rollBack();
+                    return response()->json(['message' => $nomorResult['message']], 422);
+                }
+                $nomorFaktur = $nomorResult['nomor'];
+
+                $lampiranPath = null;
+                if ($request->hasFile('lampiran_faktur')) {
+                    $path = $this->compressAndStoreAttachment($request->file('lampiran_faktur'), 'purchase_invoices');
+                    $lampiranPath = 'storage/' . $path;
+                }
+
+                $activeBranchId  = session('active_branch_id');
+                $activeCompanyId = session('active_company_id');
+                // Saldo awal hutang langsung Posted jika bukan draft, agar bisa langsung dicicil/dilunasi
+                $status          = ($request->action_type === 'draft') ? 'Draft' : 'Posted';
+
+                $purchaseInvoice = PurchaseInvoice::create([
+                    'nomor_faktur'          => $nomorFaktur,
+                    'nomor_faktur_supplier' => $request->nomor_faktur_supplier,
+                    'tanggal_faktur'        => $request->tanggal_faktur,
+                    'tanggal_jatuh_tempo'   => $request->tanggal_jatuh_tempo,
+                    'is_saldo_awal'         => true,
+                    'nilai_faktur_asli'     => $nilaiAsli,
+                    'uang_muka'             => $uangMukaVal,
+                    'saldo_awal_coa_id'     => $request->saldo_awal_coa_id,
+                    'hutang_coa_id'         => $request->hutang_coa_id,
+                    'subtotal'              => $nilaiAsli,
+                    'grand_total'           => $nilaiAsli,
+                    'currency_id'           => $request->currency_id ?: null,
+                    'kurs'                  => (floatval($request->kurs ?: 1.0) > 0) ? floatval($request->kurs) : 1.0,
+                    'supplier_id'           => $request->supplier_id,
+                    'tender_id'             => $request->tender_id ?: null,
+                    'branch_id'             => !empty($activeBranchId) ? $activeBranchId : null,
+                    'company_id'            => !empty($activeBranchId) ? null : ($activeCompanyId ?: (auth()->user()?->company_id ?? 1)),
+                    'status'                => $status,
+                    'keterangan'            => $request->keterangan ?: 'Saldo Awal Hutang Usaha (Migrasi Data Awal)',
+                    'lampiran_faktur'       => $lampiranPath,
+                    'created_by'            => auth()->id(),
+                    'approved_by'           => ($status === 'Posted') ? auth()->id() : null,
+                    'approved_at'           => ($status === 'Posted') ? now() : null,
+                ]);
+
+                // 1 Detail row
+                $supplier = MasterSupplier::find($request->supplier_id);
+                PurchaseInvoiceDetail::create([
+                    'purchase_invoice_id' => $purchaseInvoice->id,
+                    'jenis'               => 'Saldo Awal',
+                    'keterangan'          => 'Saldo Awal Hutang: ' . $request->nomor_faktur_supplier . ($supplier ? ' (' . $supplier->nama_supplier . ')' : ''),
+                    'barang_id'           => null,
+                    'jumlah'              => 1,
+                    'harga_satuan'        => $nilaiAsli,
+                    'subtotal'            => $nilaiAsli,
+                    'coa_id'              => $request->saldo_awal_coa_id,
+                ]);
+
+                if ($status === 'Posted') {
+                    $this->createJournalForInvoice($purchaseInvoice);
+                }
+
+                DB::commit();
+                self::clearKpiCache();
+
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => "Faktur Saldo Awal Hutang {$purchaseInvoice->nomor_faktur} berhasil disimpan!" . ($status === 'Posted' ? ' dan Jurnal Akuntansi telah diterbitkan.' : ''),
+                    'data'    => $purchaseInvoice,
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Gagal simpan Saldo Awal Faktur: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                $errMsg = config('app.debug') ? $e->getMessage() : 'Terjadi kesalahan sistem saat memproses transaksi.';
+                return response()->json(['message' => 'Gagal menyimpan Saldo Awal Faktur: ' . $errMsg], 500);
+            }
         }
 
         $request->validate([
@@ -1596,31 +1916,13 @@ class PurchaseInvoiceController extends Controller
                 ], 422);
             }
 
-            // Generate Invoice Number (Custom Manual or Auto System INV/YYYY/MM/XXXX)
-            if ($request->filled('nomor_faktur') && trim($request->nomor_faktur) !== '' && !str_contains($request->nomor_faktur, 'Otomatis')) {
-                $nomorFaktur = trim($request->nomor_faktur);
-            } else {
-                $year   = date('Y', strtotime($request->tanggal_faktur));
-                $month  = date('m', strtotime($request->tanggal_faktur));
-                $prefix = "INV/{$year}/{$month}/";
-                
-                $latestInv = PurchaseInvoice::withTrashed()
-                    ->where('nomor_faktur', 'like', $prefix . '%')
-                    ->orderByDesc('id')
-                    ->first();
-
-                $nextNum = 1;
-                if ($latestInv && preg_match('/(\d+)$/', $latestInv->nomor_faktur, $matches)) {
-                    $nextNum = ((int) $matches[1]) + 1;
-                }
-
-                $nomorFaktur = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
-
-                while (PurchaseInvoice::withTrashed()->where('nomor_faktur', $nomorFaktur)->exists()) {
-                    $nextNum++;
-                    $nomorFaktur = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
-                }
+            // Generate Invoice Number (Custom Manual or Auto System INV/YYYY/MM/XXXX, terproteksi anti-duplikasi)
+            $nomorResult = $this->resolveNomorFaktur($request->nomor_faktur, $request->tanggal_faktur);
+            if (!$nomorResult['success']) {
+                DB::rollBack();
+                return response()->json(['message' => $nomorResult['message']], 422);
             }
+            $nomorFaktur = $nomorResult['nomor'];
 
             // Calculate Due Date (prioritize user input, fallback to term calculation)
             $dueDate = $request->filled('tanggal_jatuh_tempo') ? $request->tanggal_jatuh_tempo : $request->tanggal_faktur;
@@ -1919,14 +2221,15 @@ class PurchaseInvoiceController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('PurchaseInvoice Store Exception: ' . $e->getMessage());
-            return response()->json(['message' => 'Gagal membuat Faktur Pembelian: ' . $e->getMessage()], 500);
+            $errMsg = config('app.debug') ? $e->getMessage() : 'Terjadi kesalahan sistem saat memproses transaksi.';
+            return response()->json(['message' => 'Gagal membuat Faktur Pembelian: ' . $errMsg], 500);
         }
     }
 
     public function show(PurchaseInvoice $purchaseInvoice)
     {
-        if (!$this->canViewInvoice()) {
-            return response()->json(['message' => 'Anda tidak memiliki hak akses untuk melihat Faktur Pembelian.'], 403);
+        if (!$this->canViewInvoice($purchaseInvoice)) {
+            return response()->json(['message' => 'Anda tidak memiliki hak akses untuk melihat Faktur Pembelian ini.'], 403);
         }
 
         $canViewJurnal = $this->canViewJurnal();
@@ -1946,6 +2249,8 @@ class PurchaseInvoiceController extends Controller
             'pajak',
             'pphPajak',
             'pphCoa',
+            'saldoAwalCoa',
+            'hutangCoa',
             'paymentTerm',
             'details.barang.satuan',
             'details.coa',
@@ -2045,7 +2350,11 @@ class PurchaseInvoiceController extends Controller
             return response()->json(['message' => 'Anda tidak memiliki hak akses untuk mengubah Faktur Pembelian ini.'], 403);
         }
 
-        if (!in_array($purchaseInvoice->status, ['Draft', 'Menunggu Persetujuan', 'Menunggu Approval', 'Rejected'])) {
+        $isEditableSaldoAwal = $purchaseInvoice->is_saldo_awal && $purchaseInvoice->status === 'Posted' && !$purchaseInvoice->paymentDetails()->whereHas('payment', function($q) {
+            $q->whereNotIn('status', ['Cancelled', 'Void', 'Dibatalkan'])->whereNull('deleted_at');
+        })->exists();
+
+        if (!$isEditableSaldoAwal && !in_array($purchaseInvoice->status, ['Draft', 'Menunggu Persetujuan', 'Menunggu Approval', 'Rejected'])) {
             return response()->json(['message' => 'Hanya Faktur berstatus Draft, Menunggu Persetujuan, atau Ditolak yang dapat diubah!'], 400);
         }
 
@@ -2080,10 +2389,135 @@ class PurchaseInvoiceController extends Controller
             $request->merge(['kurs' => $this->unformatNumber($request->kurs)]);
         }
 
+        if ($request->filled('nilai_faktur_asli')) {
+            $request->merge(['nilai_faktur_asli' => $this->unformatNumber($request->nilai_faktur_asli)]);
+        }
+
         $uangMukaCheck = 0;
         if ($request->filled('uang_muka')) {
             $uangMukaCheck = $this->unformatNumber($request->uang_muka);
             $request->merge(['uang_muka' => $uangMukaCheck]);
+        }
+
+        // =========================================================================
+        // KHUSUS: SUMBER DOKUMEN SALDO AWAL HUTANG (MIGRASI DATA AWAL) - UPDATE
+        // =========================================================================
+        if ($request->input('source_type') === 'saldo_awal' || $purchaseInvoice->is_saldo_awal) {
+            if (!auth()->user()?->can('akses-saldo-awal-hutang') && !auth()->user()?->hasAnyRole(['Super Admin', 'Owner'])) {
+                return response()->json(['message' => 'Anda tidak memiliki hak akses untuk mengubah Saldo Awal Hutang.'], 403);
+            }
+
+            $request->validate([
+                'supplier_id'           => 'required|exists:master_suppliers,id',
+                'nomor_faktur_supplier' => 'required|string|max:100',
+                'nilai_faktur_asli'     => 'required|numeric|min:0.01',
+                'uang_muka'             => 'nullable|numeric|min:0',
+                'saldo_awal_coa_id'     => 'required|exists:chart_of_accounts,id',
+                'hutang_coa_id'         => 'nullable|exists:chart_of_accounts,id',
+                'currency_id'           => 'nullable|exists:master_currencies,id',
+                'kurs'                  => 'nullable|numeric|min:0.0001',
+                'tender_id'             => 'nullable|exists:tenders,id',
+                'tanggal_faktur'        => 'required|date',
+                'tanggal_jatuh_tempo'   => 'required|date',
+                'keterangan'            => 'nullable|string|max:1000',
+                'lampiran_faktur'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            ], [
+                'supplier_id.required'           => 'Pilih Supplier terlebih dahulu untuk Saldo Awal Hutang.',
+                'nilai_faktur_asli.required'     => 'Nilai Total Faktur Asli wajib diisi.',
+                'nilai_faktur_asli.min'          => 'Nilai Total Faktur Asli harus lebih besar dari 0.',
+                'saldo_awal_coa_id.required'     => 'Akun Penyeimbang Saldo Awal (Debit) wajib dipilih.',
+                'nomor_faktur_supplier.required' => 'Nomor Faktur Supplier / Nota Asli wajib diisi.',
+                'tanggal_jatuh_tempo.required'   => 'Tanggal Jatuh Tempo wajib diisi.',
+                'lampiran_faktur.mimes'          => 'Format foto/dokumen bukti harus JPG, JPEG, PNG, atau PDF.',
+                'lampiran_faktur.max'            => 'Ukuran foto/dokumen bukti maksimal 5 MB.',
+            ]);
+
+            try {
+                DB::beginTransaction();
+
+                $nilaiAsli   = round(floatval($request->nilai_faktur_asli), 2);
+                $uangMukaVal = round(floatval($request->uang_muka ?? 0), 2);
+
+                if ($uangMukaVal >= $nilaiAsli) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'Uang Muka / Pembayaran Masa Lalu tidak boleh sama dengan atau melebihi Total Faktur Asli! Jika sudah lunas, tidak perlu dicatat sebagai Saldo Awal Hutang.'
+                    ], 422);
+                }
+
+                $nomorResult = $this->resolveNomorFaktur($request->nomor_faktur, $request->tanggal_faktur, $purchaseInvoice->id);
+                if (!$nomorResult['success']) {
+                    DB::rollBack();
+                    return response()->json(['message' => $nomorResult['message']], 422);
+                }
+                $nomorFaktur = $nomorResult['nomor'];
+
+                $lampiranPath = null;
+                if ($request->hasFile('lampiran_faktur')) {
+                    $path = $this->compressAndStoreAttachment($request->file('lampiran_faktur'), 'purchase_invoices');
+                    $lampiranPath = 'storage/' . $path;
+                }
+
+                $activeBranchId  = session('active_branch_id');
+                $activeCompanyId = session('active_company_id');
+                // Saldo awal hutang langsung Posted jika bukan draft, agar bisa langsung dicicil/dilunasi
+                $status          = ($request->action_type === 'draft') ? 'Draft' : 'Posted';
+
+                $purchaseInvoice->update([
+                    'nomor_faktur'          => $nomorFaktur ?: $purchaseInvoice->nomor_faktur,
+                    'nomor_faktur_supplier' => $request->nomor_faktur_supplier,
+                    'tanggal_faktur'        => $request->tanggal_faktur,
+                    'tanggal_jatuh_tempo'   => $request->tanggal_jatuh_tempo,
+                    'is_saldo_awal'         => true,
+                    'nilai_faktur_asli'     => $nilaiAsli,
+                    'uang_muka'             => $uangMukaVal,
+                    'saldo_awal_coa_id'     => $request->saldo_awal_coa_id,
+                    'hutang_coa_id'         => $request->hutang_coa_id,
+                    'subtotal'              => $nilaiAsli,
+                    'grand_total'           => $nilaiAsli,
+                    'currency_id'           => $request->currency_id ?: null,
+                    'kurs'                  => (floatval($request->kurs ?: 1.0) > 0) ? floatval($request->kurs) : 1.0,
+                    'supplier_id'           => $request->supplier_id,
+                    'tender_id'             => $request->tender_id ?: null,
+                    'status'                => $status,
+                    'keterangan'            => $request->keterangan ?: 'Saldo Awal Hutang Usaha (Migrasi Data Awal)',
+                    'lampiran_faktur'       => $lampiranPath ?: $purchaseInvoice->lampiran_faktur,
+                    'approved_by'           => ($status === 'Posted') ? auth()->id() : null,
+                    'approved_at'           => ($status === 'Posted') ? now() : null,
+                ]);
+
+                // 1 Detail row
+                $purchaseInvoice->details()->delete();
+                $supplier = MasterSupplier::find($request->supplier_id);
+                PurchaseInvoiceDetail::create([
+                    'purchase_invoice_id' => $purchaseInvoice->id,
+                    'jenis'               => 'Saldo Awal',
+                    'keterangan'          => 'Saldo Awal Hutang: ' . $request->nomor_faktur_supplier . ($supplier ? ' (' . $supplier->nama_supplier . ')' : ''),
+                    'barang_id'           => null,
+                    'jumlah'              => 1,
+                    'harga_satuan'        => $nilaiAsli,
+                    'subtotal'            => $nilaiAsli,
+                    'coa_id'              => $request->saldo_awal_coa_id,
+                ]);
+
+                if ($status === 'Posted') {
+                    $this->createJournalForInvoice($purchaseInvoice);
+                }
+
+                DB::commit();
+                self::clearKpiCache();
+
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => "Faktur Saldo Awal Hutang {$purchaseInvoice->nomor_faktur} berhasil diperbarui!" . ($status === 'Posted' ? ' dan Jurnal Akuntansi telah diterbitkan.' : ''),
+                    'data'    => $purchaseInvoice,
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Gagal simpan Saldo Awal Faktur: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                $errMsg = config('app.debug') ? $e->getMessage() : 'Terjadi kesalahan sistem saat memproses transaksi.';
+                return response()->json(['message' => 'Gagal menyimpan Saldo Awal Faktur: ' . $errMsg], 500);
+            }
         }
 
         $request->validate([
@@ -2325,8 +2759,15 @@ class PurchaseInvoiceController extends Controller
             // Pertahankan tender yang sudah tertaut bila dokumen acuan tidak memiliki tender
             $tenderId = $tenderId ?: $purchaseInvoice->tender_id;
 
+            $nomorResult = $this->resolveNomorFaktur($request->nomor_faktur, $request->tanggal_faktur, $purchaseInvoice->id);
+            if (!$nomorResult['success']) {
+                DB::rollBack();
+                return response()->json(['message' => $nomorResult['message']], 422);
+            }
+            $nomorFaktur = $nomorResult['nomor'];
+
             $purchaseInvoice->update([
-                'nomor_faktur'          => ($request->filled('nomor_faktur') && !str_contains($request->nomor_faktur, 'Otomatis')) ? trim($request->nomor_faktur) : $purchaseInvoice->nomor_faktur,
+                'nomor_faktur'          => $nomorFaktur,
                 'nomor_faktur_supplier' => $request->nomor_faktur_supplier,
                 'tanggal_faktur'        => $request->tanggal_faktur,
                 'tanggal_jatuh_tempo'   => $dueDate,
@@ -2410,14 +2851,15 @@ class PurchaseInvoiceController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('PurchaseInvoice Update Exception: ' . $e->getMessage());
-            return response()->json(['message' => 'Gagal memperbarui Faktur Pembelian: ' . $e->getMessage()], 500);
+            $errMsg = config('app.debug') ? $e->getMessage() : 'Terjadi kesalahan sistem saat memproses transaksi.';
+            return response()->json(['message' => 'Gagal memperbarui Faktur Pembelian: ' . $errMsg], 500);
         }
     }
 
     public function approve(Request $request, PurchaseInvoice $purchaseInvoice)
     {
-        if (!$this->isInvoiceApprover()) {
-            return response()->json(['message' => 'Anda tidak memiliki hak akses (otoritas) untuk menyetujui Faktur Pembelian.'], 403);
+        if (!$this->isInvoiceApprover() || !$this->checkTenantAccess($purchaseInvoice)) {
+            return response()->json(['message' => 'Anda tidak memiliki hak akses (otoritas) untuk menyetujui Faktur Pembelian ini.'], 403);
         }
 
         if (!in_array($purchaseInvoice->status, ['Menunggu Persetujuan', 'Menunggu Approval', 'Draft'])) {
@@ -2500,8 +2942,8 @@ class PurchaseInvoiceController extends Controller
 
     public function reject(Request $request, PurchaseInvoice $purchaseInvoice)
     {
-        if (!$this->isInvoiceApprover()) {
-            return response()->json(['message' => 'Anda tidak memiliki hak akses (otoritas) untuk menolak Faktur Pembelian.'], 403);
+        if (!$this->isInvoiceApprover() || !$this->checkTenantAccess($purchaseInvoice)) {
+            return response()->json(['message' => 'Anda tidak memiliki hak akses (otoritas) untuk menolak Faktur Pembelian ini.'], 403);
         }
 
         if (!in_array($purchaseInvoice->status, ['Menunggu Persetujuan', 'Menunggu Approval'])) {
@@ -2548,8 +2990,8 @@ class PurchaseInvoiceController extends Controller
 
     public function sendWhatsApp(PurchaseInvoice $purchaseInvoice)
     {
-        if (!$this->canViewInvoice()) {
-            return response()->json(['message' => 'Anda tidak memiliki hak akses untuk mengirim notifikasi Faktur Pembelian.'], 403);
+        if (!$this->canViewInvoice($purchaseInvoice)) {
+            return response()->json(['message' => 'Anda tidak memiliki hak akses untuk mengirim notifikasi Faktur Pembelian ini.'], 403);
         }
 
         try {
@@ -2923,10 +3365,10 @@ class PurchaseInvoiceController extends Controller
      */
     public function getJurnalData(PurchaseInvoice $purchaseInvoice)
     {
-        if (!$this->canViewJurnal()) {
+        if (!$this->canViewJurnal() || !$this->checkTenantAccess($purchaseInvoice)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Anda tidak memiliki hak akses untuk melihat rincian jurnal akuntansi.'
+                'message' => 'Anda tidak memiliki hak akses untuk melihat rincian jurnal akuntansi faktur ini.'
             ], 403);
         }
 
@@ -2956,8 +3398,8 @@ class PurchaseInvoiceController extends Controller
     public function post(PurchaseInvoice $purchaseInvoice)
     {
         // Posting langsung (tanpa alur ACC) hanya boleh dilakukan oleh Approver
-        if (!$this->isInvoiceApprover()) {
-            return response()->json(['message' => 'Anda tidak memiliki hak akses untuk memposting Faktur Pembelian.'], 403);
+        if (!$this->isInvoiceApprover() || !$this->checkTenantAccess($purchaseInvoice)) {
+            return response()->json(['message' => 'Anda tidak memiliki hak akses untuk memposting Faktur Pembelian ini.'], 403);
         }
 
         if ($purchaseInvoice->status !== 'Draft') {
@@ -3006,7 +3448,11 @@ class PurchaseInvoiceController extends Controller
             return response()->json(['message' => 'Anda tidak memiliki hak akses untuk menghapus Faktur Pembelian ini.'], 403);
         }
 
-        if ($purchaseInvoice->status !== 'Draft') {
+        $isDeletableSaldoAwal = $purchaseInvoice->is_saldo_awal && $purchaseInvoice->status === 'Posted' && !$purchaseInvoice->paymentDetails()->whereHas('payment', function($q) {
+            $q->whereNotIn('status', ['Cancelled', 'Void', 'Dibatalkan'])->whereNull('deleted_at');
+        })->exists();
+
+        if (!$isDeletableSaldoAwal && !in_array($purchaseInvoice->status, ['Draft', 'Rejected'])) {
             return response()->json(['message' => 'Faktur yang sudah diposting tidak dapat dihapus!'], 400);
         }
 
@@ -3127,6 +3573,81 @@ class PurchaseInvoiceController extends Controller
         while (Jurnal::withTrashed()->where('nomor_jurnal', $nomorJurnal)->exists()) {
             $nextNum++;
             $nomorJurnal = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+        }
+
+        // =========================================================================
+        // JURNAL KHUSUS: SALDO AWAL HUTANG USAHA (MIGRASI DATA AWAL)
+        // =========================================================================
+        if ($invoice->is_saldo_awal) {
+            $supplierName = $invoice->supplier?->nama_supplier ?? 'Supplier';
+            $kurs         = (float) ($invoice->kurs ?: 1);
+            if ($kurs <= 0) $kurs = 1.0;
+
+            // Sisa hutang bersih (Net AP yang diakui di neraca awal)
+            $netRemaining = max(0, floatval($invoice->grand_total) - floatval($invoice->uang_muka));
+            $netRemainingIdr = round($netRemaining * $kurs, 2);
+
+            if ($netRemainingIdr <= 0) {
+                return; // Tidak ada saldo hutang yang perlu dijurnal
+            }
+
+            $debitCoaId = $invoice->saldo_awal_coa_id
+                ?? AccountMappingHelper::getCoaId('default', 'opening_balance_equity')
+                ?? ChartOfAccount::forActiveCompany()->detailOnly()->where(function($q) {
+                    $q->where('code', 'like', '3202%')->orWhere('code', 'like', '3100%')->orWhere('name', 'like', '%Saldo Awal%')->orWhere('name', 'like', '%Opening Balance%');
+                })->value('id')
+                ?? $firstCoa?->id;
+
+            $creditCoaId = $invoice->hutang_coa_id
+                ?? $apCoaId
+                ?? $firstCoa?->id;
+
+            $tenderObj = $invoice->tender;
+            $nomorTender = null;
+            if ($tenderObj) {
+                $nomorTender = !empty($tenderObj->nomor_kontrak) && $tenderObj->nomor_kontrak !== '-'
+                    ? ($tenderObj->nomor_kontrak . (!empty($tenderObj->nama_tender) ? ' - ' . $tenderObj->nama_tender : ''))
+                    : ($tenderObj->nomor_kontrak ?: ($tenderObj->nama_tender ?: ('Tender #' . $tenderObj->id)));
+            }
+
+            $cur = $invoice->currency;
+            $curCode = strtoupper($cur?->kode_currency ?? ($cur?->code ?? 'IDR'));
+            $isForeign = ($curCode !== 'IDR' || abs($kurs - 1.0) > 0.0001);
+            $valasNote = $isForeign ? " [{$curCode} " . number_format($netRemaining, 2, ',', '.') . " @ Kurs " . number_format($kurs, 2, ',', '.') . "]" : "";
+
+            $jurnal = Jurnal::create([
+                'nomor_jurnal'   => $nomorJurnal,
+                'tanggal_jurnal' => $invoice->tanggal_faktur,
+                'referensi_tipe' => 'Purchase Invoice',
+                'referensi_id'   => $invoice->id,
+                'no_tender'      => $nomorTender,
+                'branch_id'      => $invoice->branch_id,
+                'company_id'     => $invoice->branch_id ? null : ($invoice->company_id ?: session('active_company_id')),
+                'total_debit'    => $netRemainingIdr,
+                'total_kredit'   => $netRemainingIdr,
+                'keterangan'     => "Saldo Awal Hutang Usaha: {$invoice->nomor_faktur_supplier} ({$supplierName}){$valasNote}" . ($nomorTender ? " [Tender: {$nomorTender}]" : ""),
+                'created_by'     => auth()->id() ?? $invoice->created_by,
+            ]);
+
+            // 1. DEBIT: Akun Saldo Awal / Ekuitas Pembukaan (Opening Balance Equity)
+            JurnalDetail::create([
+                'jurnal_id'  => $jurnal->id,
+                'account_id' => $debitCoaId,
+                'debit'      => $netRemainingIdr,
+                'kredit'     => 0,
+                'keterangan' => "Saldo Awal Hutang - {$supplierName} (Nota: {$invoice->nomor_faktur_supplier}){$valasNote}",
+            ]);
+
+            // 2. KREDIT: Hutang Usaha (Accounts Payable)
+            JurnalDetail::create([
+                'jurnal_id'  => $jurnal->id,
+                'account_id' => $creditCoaId,
+                'debit'      => 0,
+                'kredit'     => $netRemainingIdr,
+                'keterangan' => "Pengakuan Hutang Usaha Saldo Awal - {$supplierName}{$valasNote}",
+            ]);
+
+            return;
         }
 
         $supplierName = $invoice->supplier?->nama_supplier ?? 'Supplier';
@@ -3492,6 +4013,10 @@ class PurchaseInvoiceController extends Controller
      */
     private function syncInvoiceDpKasMutation(PurchaseInvoice $invoice)
     {
+        if ($invoice->is_saldo_awal) {
+            return; // DP saldo awal adalah historis sebelum ERP dipakai, tidak memotong kas/bank berjalan
+        }
+
         $dpNominal = (float) ($invoice->uang_muka ?? 0);
         if ($dpNominal <= 0) {
             return;
@@ -3675,6 +4200,7 @@ class PurchaseInvoiceController extends Controller
             $cacheKey = 'pi_kpi_summary_' . ($activeBranchId ?: 'all') . '_' . ($activeCompanyId ?: 'all') . '_' . ($userId ?: '0');
             \Illuminate\Support\Facades\Cache::forget($cacheKey);
             \Illuminate\Support\Facades\Cache::forget('pi_kpi_summary_all_all_0');
+            \Illuminate\Support\Facades\Cache::forget('pi_kpi_summary_' . ($activeBranchId ?: 'all') . '_' . ($activeCompanyId ?: 'all') . '_0');
         } catch (\Throwable $e) {
             // Silently ignore cache forget exceptions
         }

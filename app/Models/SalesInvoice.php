@@ -24,6 +24,7 @@ class SalesInvoice extends Model
         'tanggal_jatuh_tempo',
         'sales_order_id',
         'delivery_order_id',
+        'is_saldo_awal',
         'tender_id',
         'customer_id',
         'branch_id',
@@ -42,8 +43,11 @@ class SalesInvoice extends Model
         'biaya_lain',
         'biaya_lain_coa_id',
         'grand_total',
+        'nilai_faktur_asli',
         'uang_muka',
         'uang_muka_coa_id',
+        'saldo_awal_coa_id',
+        'piutang_coa_id',
         'kas_bank_id',
         'sisa_tagihan',
         'status',
@@ -71,8 +75,10 @@ class SalesInvoice extends Model
         'pph_nominal'         => 'decimal:2',
         'biaya_lain'          => 'decimal:2',
         'grand_total'         => 'decimal:2',
+        'nilai_faktur_asli'   => 'decimal:2',
         'uang_muka'           => 'decimal:2',
         'sisa_tagihan'        => 'decimal:2',
+        'is_saldo_awal'       => 'boolean',
     ];
 
     protected static function booted()
@@ -241,6 +247,16 @@ class SalesInvoice extends Model
     public function uangMukaCoa(): BelongsTo
     {
         return $this->belongsTo(ChartOfAccount::class, 'uang_muka_coa_id');
+    }
+
+    public function saldoAwalCoa(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'saldo_awal_coa_id');
+    }
+
+    public function piutangCoa(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'piutang_coa_id');
     }
 
     public function kasBank(): BelongsTo

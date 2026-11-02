@@ -15,9 +15,30 @@ use Shuchkin\SimpleXLSXGen;
 
 class KaryawanController extends Controller
 {
+    /**
+     * Otorisasi hak akses modul Manajemen User.
+     */
+    private function checkPermission(string $action): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        if ($user->hasAnyRole(['Super Admin', 'Owner'])) {
+            return;
+        }
+
+        if ($user->can("{$action}-user")) {
+            return;
+        }
+
+        abort(403, "Aksi tidak diizinkan. Anda tidak memiliki hak akses {$action}-user.");
+    }
+
     public function index()
     {
-        $this->authorize('lihat-karyawan');
+        $this->checkPermission('lihat');
         $totalUsers = User::count();
         $aktifUsers = User::where('status', 'Aktif')->count();
         $nonaktifUsers = User::where('status', 'Nonaktif')->count();
@@ -38,7 +59,7 @@ class KaryawanController extends Controller
 
     public function data(Request $request)
     {
-        $this->authorize('lihat-karyawan');
+        $this->checkPermission('lihat');
 
         $draw     = (int) $request->get('draw', 1);
         $start    = (int) $request->get('start', 0);
@@ -76,10 +97,12 @@ class KaryawanController extends Controller
 
         $rows = $query->orderBy($orderColumn, $orderDir)->skip($start)->take($length)->get();
 
-        $data = $rows->map(function ($u, $index) use ($start) {
-            $roleCanEdit = auth()->user()->can('edit-karyawan');
-            $roleCanHapus = auth()->user()->can('hapus-karyawan');
+        $currentUser = auth()->user();
+        $isSuperUser = $currentUser && $currentUser->hasAnyRole(['Super Admin', 'Owner']);
+        $roleCanEdit = $isSuperUser || ($currentUser && $currentUser->can('edit-user'));
+        $roleCanHapus = $isSuperUser || ($currentUser && $currentUser->can('hapus-user'));
 
+        $data = $rows->map(function ($u, $index) use ($start, $roleCanEdit, $roleCanHapus) {
             $userCompanies = $u->companies->pluck('nama_perusahaan')->toArray();
             $userBranches  = $u->branches->pluck('nama_cabang')->toArray();
 
@@ -110,7 +133,7 @@ class KaryawanController extends Controller
 
     public function store(Request $request)
     {
-        $this->authorize('tambah-karyawan');
+        $this->checkPermission('tambah');
         $request->validate([
             'karyawan_id' => 'nullable|exists:karyawans,id|unique:users,karyawan_id',
             'kode_karyawan' => 'nullable|string|max:4|unique:users,kode_karyawan',
@@ -227,7 +250,7 @@ class KaryawanController extends Controller
 
     public function edit(User $karyawan)
     {
-        $this->authorize('edit-karyawan');
+        $this->checkPermission('edit');
         $karyawan->load(['department', 'position', 'branches', 'companies', 'roles', 'activeSignature']);
         
         $roles = Role::all();
@@ -264,7 +287,7 @@ class KaryawanController extends Controller
 
     public function update(Request $request, User $karyawan)
     {
-        $this->authorize('edit-karyawan');
+        $this->checkPermission('edit');
         $request->validate([
             'karyawan_id' => 'nullable|exists:karyawans,id|unique:users,karyawan_id,' . $karyawan->id,
             'kode_karyawan' => 'nullable|string|max:4|unique:users,kode_karyawan,' . $karyawan->id,
@@ -386,7 +409,7 @@ class KaryawanController extends Controller
 
     public function destroy(User $karyawan)
     {
-        $this->authorize('hapus-karyawan');
+        $this->checkPermission('hapus');
         try {
             DB::beginTransaction();
 
@@ -408,7 +431,7 @@ class KaryawanController extends Controller
 
     public function exportExcel()
     {
-        $this->authorize('lihat-karyawan');
+        $this->checkPermission('lihat');
 
         $users = User::with(['roles', 'department', 'position', 'branches'])
             ->orderBy('id', 'desc')
@@ -473,7 +496,7 @@ class KaryawanController extends Controller
 
     public function downloadTemplate()
     {
-        $this->authorize('lihat-karyawan');
+        $this->checkPermission('lihat');
 
         $rows = [
             [
@@ -532,7 +555,7 @@ class KaryawanController extends Controller
 
     public function importExcel(Request $request)
     {
-        $this->authorize('tambah-karyawan');
+        $this->checkPermission('tambah');
 
         try {
             $request->validate([
@@ -765,7 +788,7 @@ class KaryawanController extends Controller
 
     public function resetPassword(User $karyawan)
     {
-        $this->authorize('edit-karyawan');
+        $this->checkPermission('edit');
         
         try {
             $defaultPassword = 'Satriaerp828#';

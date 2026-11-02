@@ -23,6 +23,7 @@ class PurchaseInvoice extends Model
         'tanggal_jatuh_tempo',
         'po_id',
         'gr_id',
+        'is_saldo_awal',
         'tender_id',
         'supplier_id',
         'company_id',
@@ -40,8 +41,11 @@ class PurchaseInvoice extends Model
         'pph_coa_id',
         'biaya_lain',
         'grand_total',
+        'nilai_faktur_asli',
         'uang_muka',
         'uang_muka_coa_id',
+        'saldo_awal_coa_id',
+        'hutang_coa_id',
         'kas_bank_id',
         'lampiran_faktur',
         'status',
@@ -72,7 +76,9 @@ class PurchaseInvoice extends Model
         'pph_nominal'         => 'decimal:2',
         'biaya_lain'          => 'decimal:2',
         'grand_total'         => 'decimal:2',
+        'nilai_faktur_asli'   => 'decimal:2',
         'uang_muka'           => 'decimal:2',
+        'is_saldo_awal'       => 'boolean',
     ];
 
     protected $appends = [
@@ -213,6 +219,16 @@ class PurchaseInvoice extends Model
         return $this->belongsTo(ChartOfAccount::class, 'uang_muka_coa_id');
     }
 
+    public function saldoAwalCoa(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'saldo_awal_coa_id');
+    }
+
+    public function hutangCoa(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'hutang_coa_id');
+    }
+
     public function kasBank(): BelongsTo
     {
         return $this->belongsTo(KasBank::class, 'kas_bank_id');
@@ -279,5 +295,46 @@ class PurchaseInvoice extends Model
     public function reversalJurnal(): HasOne
     {
         return $this->hasOne(Jurnal::class, 'referensi_id')->where('referensi_tipe', 'Purchase Invoice Reversal');
+    }
+
+    /**
+     * Generate nomor faktur internal otomatis (INV/YYYY/MM/XXXX) dengan garansi keunikan DB Lock.
+     */
+    public static function generateNomorFaktur($tanggalFaktur = null): string
+    {
+        $date = $tanggalFaktur ? \Carbon\Carbon::parse($tanggalFaktur) : \Carbon\Carbon::today();
+        $year   = $date->format('Y');
+        $month  = $date->format('m');
+        $prefix = "INV/{$year}/{$month}/";
+
+        $lockKey = 'pi_nomor_faktur_lock_' . md5($prefix);
+        $gotLock = false;
+        try {
+            $lockRes = \Illuminate\Support\Facades\DB::select("SELECT GET_LOCK(?, 5) as lk", [$lockKey]);
+            $gotLock = !empty($lockRes) && $lockRes[0]->lk == 1;
+
+            $latestInv = self::withTrashed()
+                ->where('nomor_faktur', 'like', $prefix . '%')
+                ->orderByDesc('id')
+                ->first(['id', 'nomor_faktur']);
+
+            $nextNum = 1;
+            if ($latestInv && preg_match('/(\d+)$/', $latestInv->nomor_faktur, $matches)) {
+                $nextNum = ((int) $matches[1]) + 1;
+            }
+
+            $nomorFaktur = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+
+            while (self::withTrashed()->where('nomor_faktur', $nomorFaktur)->exists()) {
+                $nextNum++;
+                $nomorFaktur = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+            }
+
+            return $nomorFaktur;
+        } finally {
+            if ($gotLock) {
+                \Illuminate\Support\Facades\DB::select("SELECT RELEASE_LOCK(?)", [$lockKey]);
+            }
+        }
     }
 }

@@ -127,7 +127,8 @@ $(document).ready(function () {
                 $('#formEditInvoice').attr('action', '/purchase-invoices/' + inv.id + '/update');
                 $('#modalEditInvoiceLabel').html('Edit Faktur Pembelian (' + escapeHtml(inv.nomor_faktur) + ')');
 
-                $('#edit_disp_nomor_faktur_internal').val(inv.nomor_faktur || '');
+                $('#edit_disp_nomor_faktur_internal').val(inv.nomor_faktur || '').removeClass('is-invalid is-valid');
+                $('#edit_nomor_faktur_feedback').hide().empty();
                 $('#edit_nomor_faktur_supplier').val(inv.nomor_faktur_supplier || '');
                 let editNoFakturLen = (inv.nomor_faktur_supplier || '').length;
                 $('#edit_no_faktur_sup_char_count').text(editNoFakturLen + '/100');
@@ -981,6 +982,38 @@ $(document).ready(function () {
         }
     });
 
+    // Live Uniqueness Check for Manual Internal Invoice Number in Edit Modal
+    let checkEditNomorDebounceTimer = null;
+    $(document).on('input', '#edit_disp_nomor_faktur_internal', function () {
+        clearTimeout(checkEditNomorDebounceTimer);
+        let val = $(this).val().trim();
+        let $input = $(this);
+        let $feedback = $('#edit_nomor_faktur_feedback');
+        let currentInvId = $('#edit_invoice_id').val();
+
+        if (!val || val.indexOf('Otomatis') > -1) {
+            $input.removeClass('is-invalid is-valid');
+            $feedback.hide();
+            return;
+        }
+
+        checkEditNomorDebounceTimer = setTimeout(function () {
+            $.ajax({
+                url: '{{ route("purchase-invoices.check-nomor") }}',
+                data: { nomor: val, ignore_id: currentInvId },
+                success: function (res) {
+                    if (res.is_unique) {
+                        $input.removeClass('is-invalid').addClass('is-valid');
+                        $feedback.html('<span class="text-success"><i class="bi bi-check-circle me-1"></i>' + res.message + '</span>').show();
+                    } else {
+                        $input.removeClass('is-valid').addClass('is-invalid');
+                        $feedback.html('<span class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle-fill me-1"></i>' + res.message + '</span>').show();
+                    }
+                }
+            });
+        }, 350);
+    });
+
     // Live Character Counter Listeners in Edit Modal
     $(document).on('input keyup', '#edit_nomor_faktur_supplier', function () {
         let len = ($(this).val() || '').length;
@@ -1033,6 +1066,17 @@ $(document).ready(function () {
         e.preventDefault();
 
         if (isEditingInvoice) return false;
+
+        // Validasi Nomor Faktur Internal (Cegah Submit Jika Duplikat)
+        if ($('#edit_disp_nomor_faktur_internal').hasClass('is-invalid')) {
+            Swal.fire({
+                title: 'Nomor Faktur Duplikat!',
+                text: 'Nomor faktur internal yang Anda masukkan sudah digunakan faktur lain. Harap gunakan nomor faktur yang berbeda.',
+                icon: 'warning'
+            });
+            $('#edit_disp_nomor_faktur_internal').focus();
+            return false;
+        }
 
         // Validasi Nomor Faktur Supplier (Wajib & Maks 100 Karakter)
         let noFakturSup = ($('#edit_nomor_faktur_supplier').val() || '').trim();

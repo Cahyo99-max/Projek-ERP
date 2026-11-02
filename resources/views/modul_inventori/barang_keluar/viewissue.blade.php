@@ -272,6 +272,64 @@
     window.escapeHtml = escapeHtml;
 
     // ══════════════════════════════════════════════════════════════════════════
+    // HAPUS DOKUMEN GOODS ISSUE (BARANG KELUAR)
+    // ══════════════════════════════════════════════════════════════════════════
+    window.hapusGI = function (id, nomorGI) {
+        Swal.fire({
+            title: 'Hapus Pengeluaran Barang?',
+            html: `Apakah Anda yakin ingin menghapus dokumen <b>${escapeHtml(nomorGI)}</b>?<br><br><small class="text-muted">Dokumen draf yang dihapus tidak dapat dikembalikan.</small>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="bi bi-trash3 me-1"></i> Ya, Hapus!',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Menghapus Dokumen...',
+                    text: 'Harap tunggu, proses penghapusan sedang berjalan...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                $.ajax({
+                    url: `/goods-issue/${id}/delete`,
+                    type: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'
+                    },
+                    success: function (res) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil Dihapus!',
+                            text: res.message || 'Dokumen pengeluaran barang berhasil dihapus.',
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            reloadTableGI(false);
+                        });
+                    },
+                    error: function (xhr) {
+                        const msg = xhr.responseJSON?.message || (xhr.status === 403 ? 'Akun Anda tidak memiliki hak akses untuk menghapus dokumen pengeluaran barang ini.' : 'Gagal menghapus dokumen.');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal Menghapus',
+                            text: msg,
+                            confirmButtonColor: '#ef4444'
+                        });
+                    }
+                });
+            }
+        });
+    };
+
+    // ══════════════════════════════════════════════════════════════════════════
     // SERIAL NUMBER (SN) MANAGEMENT LOGIC FOR GOODS ISSUE (BARANG KELUAR)
     // ══════════════════════════════════════════════════════════════════════════
     window.giItemSerialsStore = window.giItemSerialsStore || {};

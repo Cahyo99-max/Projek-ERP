@@ -138,6 +138,16 @@ class PermissionDetailSeeder extends Seeder
             'hapus-sales-order',
             'cetak-sales-order',
 
+            // ---- Penjualan: Faktur Penjualan (Sales Invoice) ----
+            'lihat-sales-invoice',
+            'tambah-sales-invoice',
+            'akses-saldo-awal-piutang',
+            'edit-sales-invoice',
+            'hapus-sales-invoice',
+            'approve-sales-invoice',
+            'cetak-sales-invoice',
+            'lihat-jurnal-sales-invoice',
+
             // ---- Pembelian: Purchase Requisition ----
             'lihat-pr',
             'tambah-pr',
@@ -158,6 +168,7 @@ class PermissionDetailSeeder extends Seeder
             // ---- Purchasing: Faktur Pembelian (Purchase Invoice / AP) ----
             'lihat-purchase-invoice',
             'tambah-purchase-invoice',
+            'akses-saldo-awal-hutang',
             'edit-purchase-invoice',
             'hapus-purchase-invoice',
             'approve-purchase-invoice',

@@ -733,8 +733,19 @@
         <!-- FOOTER TERBILANG & SALDO SUMMARY -->
         @php
             $poSubtotal = floatval($goodsReceipt->po->subtotal ?? 0);
-            $ratio = $poSubtotal > 0 ? ($subtotalReport / $poSubtotal) : 1;
-            $isFull = abs($ratio - 1) < 0.0001;
+            $poTotalDiskon = floatval($goodsReceipt->po->total_diskon ?? 0);
+            $poNetSubtotal = max(0, $poSubtotal - $poTotalDiskon);
+            $ratio = 1;
+            if ($poNetSubtotal > 0) {
+                $ratio = $subtotalReport / $poNetSubtotal;
+            } elseif ($poSubtotal > 0) {
+                $ratio = $subtotalReport / $poSubtotal;
+            }
+            $ratio = min(1.0, max(0.0, $ratio));
+            $isFull = abs($ratio - 1) < 0.0001 || $ratio >= 0.9999;
+            if ($isFull) {
+                $ratio = 1;
+            }
 
             $poPphTarif = $goodsReceipt->po ? floatval($goodsReceipt->po->tarif_pph ?? 0) : 0;
             $poPphNominal = $goodsReceipt->po ? floatval($goodsReceipt->po->pph_nominal ?? $goodsReceipt->po->total_pph ?? 0) : 0;

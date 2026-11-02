@@ -27,6 +27,12 @@
                     <span id="badge_active_filter" class="badge bg-success rounded-pill px-2 py-0.5 small d-none" style="font-size: 0.72rem;">0</span>
                 </button>
 
+                @can('akses-saldo-awal-piutang')
+                <button type="button" class="btn btn-warning rounded-pill px-3.5 py-2 fw-bold shadow-sm d-flex align-items-center gap-2 text-dark" id="btn_open_modal_saldo_awal" data-bs-toggle="modal" data-bs-target="#modalSaldoAwalPiutang">
+                    <i class="bi bi-clock-history fs-6"></i> Saldo Awal Piutang
+                </button>
+                @endcan
+
                 @can('tambah-sales-invoice')
                 <button type="button" class="btn btn-success rounded-pill px-3.5 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" id="btn_open_modal_create" data-bs-toggle="modal" data-bs-target="#modalCreateInvoice">
                     <i class="bi bi-plus-circle-fill fs-6"></i> Buat Faktur Penjualan
@@ -164,6 +170,7 @@
     <!-- Include Modal Component Blade Files -->
     @include('modul_marketing.faktur_penjualan._modal_filter')
     @include('modul_marketing.faktur_penjualan._modal_create')
+    @include('modul_marketing.faktur_penjualan._modal_saldo_awal')
     @include('modul_marketing.faktur_penjualan._modal_detail')
     @include('modul_marketing.faktur_penjualan._modal_edit')
     @include('modul_marketing.faktur_penjualan._modal_jurnal')

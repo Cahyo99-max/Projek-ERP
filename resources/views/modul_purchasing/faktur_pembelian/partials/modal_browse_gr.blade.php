@@ -58,79 +58,13 @@
                                     Memuat daftar dokumen penerimaan barang...
                                 </td>
                             </tr>
-                            @forelse($eligibleGrs as $gr)
-                            @php
-                                $grTender = $gr->tender ?? $gr->po?->tender;
-                                $grTenderNomor = $grTender ? (!empty($grTender->nomor_kontrak) && $grTender->nomor_kontrak !== '-' ? ($grTender->nomor_kontrak . (!empty($grTender->nama_tender) ? ' - ' . $grTender->nama_tender : '')) : ($grTender->nomor_kontrak ?: ($grTender->nama_tender ?: ('Tender #' . $grTender->id)))) : null;
-                            @endphp
-                            <tr class="row-gr-item"
-                                data-id="{{ $gr->id }}"
-                                data-nomor="{{ $gr->nomor_gr }}"
-                                data-supplier="{{ $gr->po?->supplier?->nama_supplier }}"
-                                data-gudang="{{ $gr->gudang?->nama_gudang }}"
-                                data-po="{{ $gr->po?->nomor_po }}"
-                                data-currency="{{ $gr->po?->currency?->kode_currency ? ($gr->po->currency->kode_currency . ' (' . ($gr->po->currency->nama_currency ?? $gr->po->currency->kode_currency) . ')') : 'IDR (Rupiah)' }}"
-                                data-currency-code="{{ $gr->po?->currency?->kode_currency ?? 'IDR' }}"
-                                data-currency-symbol="{{ $gr->po?->currency?->simbol ?? ($gr->po?->currency?->kode_currency === 'USD' ? '$' : 'Rp') }}"
-                                data-kurs="{{ ($gr->kurs && floatval($gr->kurs) > 0) ? number_format($gr->kurs, 4, '.', '') : ($gr->po?->kurs ? number_format($gr->po->kurs, 4, '.', '') : '1.0000') }}"
-                                data-payment-term="{{ $gr->po?->payment_term_id }}"
-                                data-pajak="{{ $gr->po?->pajak_id }}"
-                                data-supplier-npwp="{{ $gr->po?->supplier?->npwp ?? '' }}"
-                                data-tender-id="{{ $grTender?->id }}"
-                                data-tender-nomor="{{ $grTenderNomor }}"
-                                style="cursor: pointer;">
-                                <td class="px-3">
-                                    <span class="badge font-monospace fw-bold px-2.5 py-1 rounded-pill" style="background: rgba(37, 99, 235, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); font-size: 0.82rem;">
-                                        {{ $gr->nomor_gr }}
-                                    </span>
-                                </td>
-                                <td class="px-3">
-                                    <span class="font-monospace fw-medium text-body"><i class="bi bi-calendar3 me-1 text-primary small"></i>{{ $gr->tanggal_gr ? date('d/m/Y', strtotime($gr->tanggal_gr)) : '-' }}</span>
-                                </td>
-                                <td class="px-3">
-                                    <div class="fw-bold text-body fs-6 mb-0.5">{{ $gr->po?->supplier?->nama_supplier ?? '-' }}</div>
-                                    @if(!empty($gr->po?->supplier?->npwp) && $gr->po->supplier->npwp !== '-')
-                                    <div class="mt-1">
-                                        <span class="badge font-monospace px-2 py-0.5 rounded-pill" style="background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.72rem; font-weight: 600;" title="NPWP Terdaftar">
-                                            <i class="bi bi-card-text me-1 text-success"></i>NPWP: {{ $gr->po->supplier->npwp }}
-                                        </span>
-                                    </div>
-                                    @endif
-                                    <div class="mt-1 small" style="color: #94a3b8; font-size: 0.75rem;">
-                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>Gudang: <strong class="text-body-secondary">{{ $gr->gudang?->nama_gudang ?? '-' }}</strong>
-                                    </div>
-                                </td>
-                                <td class="px-3">
-                                    <div>
-                                        <span class="badge font-monospace fw-semibold px-2.5 py-1 rounded-pill" style="background: rgba(100, 116, 139, 0.18); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 0.8rem;">
-                                            <i class="bi bi-file-earmark-text me-1 text-info"></i>{{ $gr->po?->nomor_po ?? '-' }}
-                                        </span>
-                                    </div>
-                                    @if($grTenderNomor)
-                                    <div class="mt-1.5">
-                                        <span class="badge font-monospace px-2.5 py-1 rounded-pill d-inline-flex align-items-center gap-1" style="background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.45); font-size: 0.74rem; font-weight: 600;" title="Terkait Proyek Tender">
-                                            <i class="bi bi-briefcase-fill text-warning"></i>
-                                            <span>{{ $grTenderNomor }}</span>
-                                        </span>
-                                    </div>
-                                    @endif
-                                </td>
-                                <td class="px-3 text-end">
-                                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-semibold shadow-sm btn-select-gr-row d-inline-flex align-items-center gap-1">
-                                        <i class="bi bi-check-lg fs-6"></i>
-                                        <span>Pilih</span>
-                                    </button>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
+                            <tr class="no-gr-row" id="empty_browse_gr_row" style="display:none;">
                                 <td colspan="5" class="text-center text-muted py-5">
                                     <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
                                     <div class="fw-semibold">Tidak ada dokumen GRN/BPB yang siap ditagihkan</div>
                                     <small class="text-muted">Semua penerimaan barang telah dibuatkan faktur atau belum ada penerimaan barang yang berstatus selesai.</small>
                                 </td>
                             </tr>
-                            @endforelse
                         </tbody>
                     </table>
                 </div>

@@ -423,6 +423,8 @@
                 }
 
                 $('#edit_card_nomor_po').text(res.po.nomor_po);
+                window.poTotalQty = parseFloat(res.po.total_qty) || 0;
+                window.poTotalReceivedSoFar = parseFloat(res.po.total_received_so_far) || 0;
                 window.currentPoKurs = parseFloat(res.po.kurs) || 1;
                 window.currentCurrencySymbol = res.po.currency_symbol || 'Rp';
                 window.currentPoPajakTarif = parseFloat(res.po.pajak_tarif) || 0;
@@ -755,8 +757,19 @@
             let dpp = totalNetItemSubtotal;
             let taxVal = totalPajakBarang;
 
-            let ratio = (window.currentPoSubtotal > 0) ? (totalNetItemSubtotal / window.currentPoSubtotal) : 0;
-            let isFullReceipt = Math.abs(ratio - 1) < 0.0001;
+            let poNetSubtotal = Math.max(0, (window.currentPoSubtotal || 0) - (window.currentPoTotalDiskon || 0));
+            let ratio = 0;
+            if (poNetSubtotal > 0) {
+                ratio = totalNetItemSubtotal / poNetSubtotal;
+            } else if (window.currentPoSubtotal > 0) {
+                ratio = totalNilaiBarang / window.currentPoSubtotal;
+            }
+
+            ratio = Math.min(1, Math.max(0, ratio));
+            let isFullReceipt = Math.abs(ratio - 1) < 0.0001 || ratio >= 0.9999;
+            if (isFullReceipt) {
+                ratio = 1;
+            }
 
             let pphVal = 0;
             if (window.currentPoPphTarif > 0) {

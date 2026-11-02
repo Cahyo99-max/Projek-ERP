@@ -563,8 +563,19 @@
                     totalTaxVal = Math.round(totalTaxVal * 100) / 100;
 
                     let poSubtotal = gr.po ? parseFloat(gr.po.subtotal || 0) : 0;
-                    let ratio = (poSubtotal > 0) ? (totalDpp / poSubtotal) : 0;
-                    let isFull = Math.abs(ratio - 1) < 0.00001;
+                    let poTotalDiskon = gr.po ? parseFloat(gr.po.total_diskon || 0) : 0;
+                    let poNetSubtotal = Math.max(0, poSubtotal - poTotalDiskon);
+                    let ratio = 0;
+                    if (poNetSubtotal > 0) {
+                        ratio = totalDpp / poNetSubtotal;
+                    } else if (poSubtotal > 0) {
+                        ratio = subtotalGross / poSubtotal;
+                    }
+                    ratio = Math.min(1, Math.max(0, ratio));
+                    let isFull = Math.abs(ratio - 1) < 0.0001 || ratio >= 0.9999;
+                    if (isFull) {
+                        ratio = 1;
+                    }
 
                     let rawBiayaLain = gr.po ? parseFloat(gr.po.biaya_lain || 0) : 0;
                     let biayaLain = isFull ? rawBiayaLain : (rawBiayaLain * ratio);

@@ -62,6 +62,13 @@
                                                         <label class="btn btn-outline-success fw-semibold px-2.5 py-1.5 flex-fill text-center small text-nowrap" for="create_source_type_po">
                                                             <i class="bi bi-file-earmark-text me-1"></i> PO Langsung
                                                         </label>
+
+                                                        @can('akses-saldo-awal-hutang')
+                                                            <input type="radio" class="btn-check" name="source_type" id="create_source_type_saldo_awal" value="saldo_awal" autocomplete="off">
+                                                            <label class="btn btn-outline-warning fw-semibold px-2.5 py-1.5 flex-fill text-center small text-nowrap" for="create_source_type_saldo_awal">
+                                                                <i class="bi bi-clock-history me-1"></i> Saldo Awal Hutang
+                                                            </label>
+                                                        @endcan
                                                     </div>
                                                 </div>
                                             </div>
@@ -98,6 +105,150 @@
                                                 <div class="form-text text-muted extra-small mt-1"><i class="bi bi-info-circle me-1"></i>Hanya menampilkan Purchase Order (PO) yang sudah <strong>Approved</strong>.</div>
                                             </div>
 
+                                            <!-- CONTAINER KHUSUS: SALDO AWAL HUTANG (MIGRASI DATA) -->
+                                            <div class="col-12" id="create_container_select_saldo_awal" style="display: none;">
+                                                <div class="alert alert-warning border border-warning-subtle bg-warning bg-opacity-10 d-flex align-items-center gap-2.5 py-2 px-3 mb-3 rounded-3 small">
+                                                    <i class="bi bi-clock-history text-warning fs-5 flex-shrink-0"></i>
+                                                    <div>
+                                                        <strong>Mode Migrasi Saldo Awal Hutang Usaha:</strong>
+                                                        Gunakan opsi ini untuk mencatat sisa tagihan/hutang masa lalu sebelum sistem ERP digunakan. Transaksi ini <strong>tidak menambah stok gudang</strong> dan <strong>tidak memotong kas/bank berjalan</strong>.
+                                                    </div>
+                                                </div>
+
+                                                <div class="row g-3">
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label fw-bold required text-warning-emphasis small mb-1.5">
+                                                            <i class="bi bi-building me-1"></i>Pilih Supplier / Vendor <span class="text-danger">*</span>
+                                                        </label>
+                                                        <select name="supplier_id" id="create_sa_supplier_id" class="form-select select2-sa-select">
+                                                            <option value="">-- Pilih Supplier --</option>
+                                                            @foreach($suppliers as $sup)
+                                                                <option value="{{ $sup->id }}">{{ $sup->kode_supplier ? '['.$sup->kode_supplier.'] ' : '' }}{{ $sup->nama_supplier }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label fw-bold required text-warning-emphasis small mb-1.5">
+                                                            <i class="bi bi-journal-arrow-down me-1"></i>Akun Penyeimbang Saldo Awal (Debit) <span class="text-danger">*</span>
+                                                        </label>
+                                                        <select name="saldo_awal_coa_id" id="create_sa_coa_debit" class="form-select select2-sa-select">
+                                                            <option value="">-- Pilih Akun COA (Debit) --</option>
+                                                            @foreach($coas as $c)
+                                                                <option value="{{ $c->id }}" {{ ($defaultSaldoAwalCoaId ?? null) == $c->id ? 'selected' : '' }}>
+                                                                    {{ $c->code }} - {{ $c->name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                        <div class="form-text text-muted extra-small">Default: Akun Saldo Awal / Ekuitas Pembukaan / Modal.</div>
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label fw-semibold text-body small mb-1.5">
+                                                            <i class="bi bi-journal-check me-1"></i>Akun Hutang Usaha (Kredit)
+                                                        </label>
+                                                        <select name="hutang_coa_id" id="create_sa_coa_kredit" class="form-select select2-sa-select">
+                                                            <option value="">-- Default Hutang Usaha (Utang Dagang) --</option>
+                                                            @foreach($coas as $c)
+                                                                <option value="{{ $c->id }}" {{ ($defaultHutangCoaId ?? null) == $c->id ? 'selected' : '' }}>
+                                                                    {{ $c->code }} - {{ $c->name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                        <div class="form-text text-muted extra-small">Default: Akun Hutang Usaha (AP).</div>
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label fw-semibold text-body small mb-1.5">
+                                                            <i class="bi bi-briefcase me-1"></i>Keterangan Proyek / Tender (Opsional)
+                                                        </label>
+                                                        <select name="tender_id" id="create_sa_tender_id" class="form-select select2-sa-select">
+                                                            <option value="">-- Tanpa Proyek / Non-Tender --</option>
+                                                            @if(isset($tenders) && $tenders->isNotEmpty())
+                                                                @foreach($tenders as $t)
+                                                                    @php
+                                                                        $ownerLabel = $t->branch ? ('Cabang ' . $t->branch->nama_cabang) : ($t->company ? $t->company->nama_perusahaan : 'PT Pusat');
+                                                                    @endphp
+                                                                    <option value="{{ $t->id }}">
+                                                                        {{ $t->nomor_kontrak ? $t->nomor_kontrak . ' - ' : '' }}{{ $t->nama_tender }} [{{ $ownerLabel }}]
+                                                                    </option>
+                                                                @endforeach
+                                                            @endif
+                                                        </select>
+                                                        <div class="form-text text-muted extra-small">Pilih kontrak/proyek aktif untuk alokasi biaya & kartu proyek.</div>
+                                                    </div>
+
+                                                    <!-- MATA UANG & KURS SALDO AWAL -->
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label fw-bold required text-warning-emphasis small mb-1.5">
+                                                            <i class="bi bi-cash-stack me-1"></i>Mata Uang Tagihan <span class="text-danger">*</span>
+                                                        </label>
+                                                        <select name="currency_id" id="create_sa_currency_id" class="form-select select2-sa-select">
+                                                            @foreach($currencies as $curr)
+                                                                <option value="{{ $curr->id }}"
+                                                                    data-code="{{ strtoupper($curr->kode_currency) }}"
+                                                                    data-symbol="{{ $curr->simbol }}"
+                                                                    {{ strtoupper($curr->kode_currency) === 'IDR' ? 'selected' : '' }}>
+                                                                    {{ strtoupper($curr->kode_currency) }} - {{ $curr->nama_currency }} ({{ $curr->simbol }})
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                        <div class="form-text text-muted extra-small">Pilih IDR (Rupiah) atau Valas (Dolar USD / dsb).</div>
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label fw-bold required text-warning-emphasis small mb-1.5 d-flex justify-content-between align-items-center">
+                                                            <span><i class="bi bi-currency-exchange me-1"></i>Nilai Kurs (Rate) <span class="text-danger">*</span></span>
+                                                            <span class="text-muted extra-small fw-normal font-monospace" id="create_sa_kurs_hint">1 IDR = Rp 1</span>
+                                                        </label>
+                                                        <div class="input-group input-group-sm">
+                                                            <span class="input-group-text bg-body font-monospace fw-semibold" id="create_sa_kurs_addon">IDR</span>
+                                                            <input type="text" class="form-control form-control-sm text-end fw-bold font-monospace bg-body-tertiary number-format" name="kurs" id="create_sa_kurs" value="1" placeholder="1" readonly autocomplete="off">
+                                                        </div>
+                                                        <div class="form-text text-muted extra-small">Kurs konversi ke IDR untuk pembukuan jurnal akuntansi.</div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- KALKULASI NILAI SALDO AWAL -->
+                                                <div class="mt-3 p-3 rounded-3 border bg-body-tertiary">
+                                                    <h6 class="fw-bold small text-body mb-2 d-flex align-items-center gap-1.5">
+                                                        <i class="bi bi-calculator-fill text-warning"></i>
+                                                        <span>Kalkulasi Saldo Awal Hutang</span>
+                                                    </h6>
+                                                    <div class="row g-2.5">
+                                                        <div class="col-12 col-md-4">
+                                                            <label class="form-label fw-semibold text-body small mb-1">
+                                                                1. Nilai Total Faktur Asli <span class="create-sa-curr-code-label font-monospace">(IDR)</span> <span class="text-danger">*</span>
+                                                            </label>
+                                                            <div class="input-group input-group-sm">
+                                                                <span class="input-group-text bg-body font-monospace fw-semibold create-sa-curr-symbol">Rp</span>
+                                                                <input type="text" class="form-control form-control-sm text-end fw-bold font-monospace number-format" name="nilai_faktur_asli" id="create_sa_nilai_asli" placeholder="0,00" autocomplete="off">
+                                                            </div>
+                                                            <div class="form-text text-muted extra-small">Nilai total di lembar faktur fisik supplier.</div>
+                                                        </div>
+                                                        <div class="col-12 col-md-4">
+                                                            <label class="form-label fw-semibold text-body small mb-1">
+                                                                2. Sudah Dibayar / DP Masa Lalu <span class="create-sa-curr-code-label font-monospace">(IDR)</span>
+                                                            </label>
+                                                            <div class="input-group input-group-sm">
+                                                                <span class="input-group-text bg-body font-monospace fw-semibold create-sa-curr-symbol">Rp</span>
+                                                                <input type="text" class="form-control form-control-sm text-end font-monospace number-format text-muted" name="uang_muka" id="create_sa_uang_muka" placeholder="0,00" value="0,00" autocomplete="off">
+                                                            </div>
+                                                            <div class="form-text text-muted extra-small">Catatan historis, tidak potong kas ERP berjalan.</div>
+                                                        </div>
+                                                        <div class="col-12 col-md-4">
+                                                            <label class="form-label fw-bold text-warning-emphasis small mb-1">
+                                                                3. Sisa Hutang yang Diakui <span class="create-sa-curr-code-label font-monospace">(IDR)</span>
+                                                            </label>
+                                                            <div class="input-group input-group-sm">
+                                                                <span class="input-group-text bg-warning bg-opacity-10 text-warning border-warning-subtle font-monospace fw-semibold create-sa-curr-symbol">Rp</span>
+                                                                <input type="text" class="form-control form-control-sm fw-bold text-end font-monospace bg-warning bg-opacity-10 text-warning border-warning-subtle" id="create_sa_sisa_hutang" readonly placeholder="0,00" value="0,00">
+                                                            </div>
+                                                            <div class="form-text text-warning extra-small fw-semibold">Nominal ini yang masuk ke Kartu Hutang & Jurnal.</div>
+                                                            <div class="form-text text-info extra-small fw-bold font-monospace mt-1" id="create_sa_idr_equiv_container" style="display: none;">
+                                                                <i class="bi bi-arrow-repeat me-1"></i>Setara IDR: <span id="create_sa_idr_equiv_val">Rp 0,00</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             <div class="col-12"><hr class="my-1 border-secondary-subtle"></div>
 
                                             <!-- NOMOR FAKTUR INTERNAL & SUPPLIER -->
@@ -113,7 +264,8 @@
                                                         <i class="bi bi-magic me-1"></i>Otomatis
                                                     </button>
                                                 </div>
-                                                <div class="form-text text-muted extra-small">Kosongkan untuk penomoran otomatis sistem (<code>INV/YYYY/MM/XXXX</code>) atau ketik nomor manual.</div>
+                                                <div class="form-text text-muted extra-small" id="create_nomor_faktur_hint">Kosongkan untuk penomoran otomatis sistem (<code>INV/YYYY/MM/XXXX</code>) atau ketik nomor manual.</div>
+                                                <div id="create_nomor_faktur_feedback" class="extra-small mt-1" style="display: none;"></div>
                                             </div>
                                             <div class="col-12 col-md-6">
                                                 <label class="form-label fw-semibold text-body small required d-flex justify-content-between align-items-center">
@@ -228,7 +380,7 @@
                                 </div>
 
                                 <!-- CARD 2: RINCIAN ITEM BARANG DARI GRN -->
-                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
+                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" id="create_card_items_wrapper" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                                     <div class="erp-card-header d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-box-seam-fill text-primary"></i>
@@ -277,7 +429,7 @@
                                 </div>
 
                                 <!-- CARD 3: BIAYA TAMBAHAN & ALOKASI COA -->
-                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
+                                <div class="erp-card mb-3 mb-md-4 bg-body shadow-sm" id="create_card_extra_costs_wrapper" style="overflow-x: hidden !important; max-width: 100%; min-width: 0;">
                                     <div class="erp-card-header d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-truck text-primary"></i>
@@ -474,7 +626,7 @@
                                         </div>
 
                                         <!-- PANEL UANG MUKA / DOWN PAYMENT (DP) -->
-                                        <div class="inv-pph-panel mb-3 border-success-subtle bg-success bg-opacity-10">
+                                        <div class="inv-pph-panel mb-3 border-success-subtle bg-success bg-opacity-10" id="create_dp_panel_wrapper">
                                             <div class="d-flex align-items-center gap-2 mb-2">
                                                 <i class="bi bi-wallet2 text-success"></i>
                                                 <span class="fw-bold small text-body">Uang Muka Pembelian (Down Payment / DP)</span>

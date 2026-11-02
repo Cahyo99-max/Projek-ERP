@@ -58,112 +58,13 @@
                                     Memuat daftar dokumen Purchase Order...
                                 </td>
                             </tr>
-                            @forelse($eligiblePos ?? [] as $po)
-                            @php
-                                $poCur = $po->currency;
-                                $poCurCode = strtoupper($poCur?->kode_currency ?? ($poCur?->code ?? 'IDR'));
-                                $poCurName = $poCur?->nama_currency ?? ($poCur?->name ?? $poCurCode);
-                                $poCurSymbol = $poCur?->simbol ?? ($poCur?->symbol ?? ($poCurCode === 'USD' ? '$' : 'Rp'));
-                                $poKurs = ($po->kurs && floatval($po->kurs) > 0) ? number_format($po->kurs, 4, '.', '') : '1.0000';
-                                $poTender = $po->tender;
-                                $poTenderNomor = $poTender ? (!empty($poTender->nomor_kontrak) && $poTender->nomor_kontrak !== '-' ? ($poTender->nomor_kontrak . (!empty($poTender->nama_tender) ? ' - ' . $poTender->nama_tender : '')) : ($poTender->nomor_kontrak ?: ($poTender->nama_tender ?: ('Tender #' . $poTender->id)))) : null;
-                                
-                                $totalQtyOrdered = floatval($po->details->sum('jumlah'));
-                                $totalQtyReceived = floatval($po->details->sum(function($d) {
-                                    return $d->grDetails ? $d->grDetails->where('goodsReceipt.status', '!=', 'Dibatalkan')->sum('jumlah') : 0;
-                                }));
-                                
-                                if ($totalQtyReceived == 0) {
-                                    $receiptBadgeStyle = 'background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.35);';
-                                    $receiptIcon = 'bi-clock-history';
-                                    $receiptLabel = 'Belum Ada Penerimaan (' . number_format($totalQtyReceived, 0, ',', '.') . ' / ' . number_format($totalQtyOrdered, 0, ',', '.') . ')';
-                                } elseif ($totalQtyReceived < $totalQtyOrdered) {
-                                    $receiptBadgeStyle = 'background: rgba(14, 165, 233, 0.18); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.45);';
-                                    $receiptIcon = 'bi-pie-chart-fill';
-                                    $receiptLabel = 'Diterima Sebagian (' . number_format($totalQtyReceived, 0, ',', '.') . ' / ' . number_format($totalQtyOrdered, 0, ',', '.') . ')';
-                                } else {
-                                    $receiptBadgeStyle = 'background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.45);';
-                                    $receiptIcon = 'bi-check2-circle';
-                                    $receiptLabel = 'Diterima Lengkap (' . number_format($totalQtyReceived, 0, ',', '.') . ' / ' . number_format($totalQtyOrdered, 0, ',', '.') . ')';
-                                }
-                            @endphp
-                            <tr class="row-po-item"
-                                data-id="{{ $po->id }}"
-                                data-nomor="{{ $po->nomor_po }}"
-                                data-supplier="{{ $po->supplier?->nama_supplier }}"
-                                data-currency="{{ $poCurCode . ($poCurName ? ' (' . $poCurName . ')' : '') }}"
-                                data-currency-code="{{ $poCurCode }}"
-                                data-currency-symbol="{{ $poCurSymbol }}"
-                                data-kurs="{{ $poKurs }}"
-                                data-payment-term="{{ $po->payment_term_id }}"
-                                data-pajak="{{ $po->pajak_id }}"
-                                data-supplier-npwp="{{ $po->supplier?->npwp ?? '' }}"
-                                data-tender-id="{{ $poTender?->id }}"
-                                data-tender-nomor="{{ $poTenderNomor }}"
-                                style="cursor: pointer;">
-                                <td class="px-3">
-                                    <span class="badge font-monospace fw-bold px-2.5 py-1 rounded-pill" style="background: rgba(16, 185, 129, 0.16); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 0.82rem;">
-                                        {{ $po->nomor_po }}
-                                    </span>
-                                </td>
-                                <td class="px-3">
-                                    <span class="font-monospace fw-medium text-body"><i class="bi bi-calendar3 me-1 text-success small"></i>{{ $po->tanggal_po ? date('d/m/Y', strtotime($po->tanggal_po)) : '-' }}</span>
-                                </td>
-                                <td class="px-3">
-                                    <div class="fw-bold text-body fs-6 mb-0.5">{{ $po->supplier?->nama_supplier ?? '-' }}</div>
-                                    @if(!empty($po->supplier?->npwp) && $po->supplier->npwp !== '-')
-                                    <div class="mt-1">
-                                        <span class="badge font-monospace px-2 py-0.5 rounded-pill" style="background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.72rem; font-weight: 600;" title="NPWP Terdaftar">
-                                            <i class="bi bi-card-text me-1 text-success"></i>NPWP: {{ $po->supplier->npwp }}
-                                        </span>
-                                    </div>
-                                    @endif
-                                    <div class="mt-1 d-flex flex-wrap align-items-center gap-1.5">
-                                        <span class="badge bg-secondary bg-opacity-25 text-body border border-secondary-subtle px-2 py-0.5 rounded-pill font-monospace" style="font-size:0.7rem;">
-                                            {{ $po->status }}
-                                        </span>
-                                        <span class="text-muted extra-small" style="font-size: 0.74rem;">
-                                            <i class="bi bi-boxes me-1"></i>{{ $po->details->count() }} item barang
-                                        </span>
-                                    </div>
-                                    <div class="mt-1">
-                                        <span class="badge font-monospace px-2.5 py-0.5 rounded-pill" style="{{ $receiptBadgeStyle }}; font-size: 0.7rem;" title="Status Penerimaan Barang">
-                                            <i class="bi {{ $receiptIcon }} me-1"></i>{{ $receiptLabel }}
-                                        </span>
-                                    </div>
-                                    @if($poTenderNomor)
-                                    <div class="mt-1.5">
-                                        <span class="badge font-monospace px-2.5 py-1 rounded-pill d-inline-flex align-items-center gap-1" style="background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.45); font-size: 0.74rem; font-weight: 600;" title="Terkait Proyek Tender">
-                                            <i class="bi bi-briefcase-fill text-warning"></i>
-                                            <span>{{ $poTenderNomor }}</span>
-                                        </span>
-                                    </div>
-                                    @endif
-                                </td>
-                                <td class="px-3 text-end">
-                                    <div class="fw-bold font-monospace text-body fs-6">{{ $poCurSymbol }} {{ number_format($po->grand_total, 2, ',', '.') }}</div>
-                                    @if($poCurCode !== 'IDR' && $po->kurs > 0)
-                                    <div class="text-muted font-monospace extra-small" style="font-size: 0.72rem;">
-                                        ≈ Rp {{ number_format($po->grand_total * $po->kurs, 2, ',', '.') }}
-                                    </div>
-                                    @endif
-                                </td>
-                                <td class="px-3 text-end">
-                                    <button type="button" class="btn btn-sm btn-success rounded-pill px-3 py-1.5 fw-semibold shadow-sm btn-select-po-row d-inline-flex align-items-center gap-1">
-                                        <i class="bi bi-check-lg fs-6"></i>
-                                        <span>Pilih</span>
-                                    </button>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr class="no-po-row">
+                            <tr class="no-po-row" id="empty_browse_po_row" style="display:none;">
                                 <td colspan="5" class="text-center text-muted py-5">
                                     <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
                                     <div class="fw-semibold">Tidak ada dokumen Purchase Order (PO) yang siap ditagihkan</div>
                                     <small class="text-muted">Semua Purchase Order telah dibuatkan faktur atau belum ada PO yang berstatus disetujui.</small>
                                 </td>
                             </tr>
-                            @endforelse
                         </tbody>
                     </table>
                 </div>

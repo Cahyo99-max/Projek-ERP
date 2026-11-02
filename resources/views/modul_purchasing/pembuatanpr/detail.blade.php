@@ -83,6 +83,77 @@
 
                 <!-- Items Detail Table -->
                 <style>
+                    .pr-detail-table-wrapper {
+                        overflow-x: auto !important;
+                        -webkit-overflow-scrolling: touch;
+                        scrollbar-width: thin;
+                        scrollbar-color: #cbd5e1 #f1f5f9;
+                    }
+                    .pr-detail-table-wrapper::-webkit-scrollbar {
+                        height: 7px;
+                    }
+                    .pr-detail-table-wrapper::-webkit-scrollbar-track {
+                        background: #f1f5f9;
+                        border-radius: 4px;
+                    }
+                    .pr-detail-table-wrapper::-webkit-scrollbar-thumb {
+                        background: #cbd5e1;
+                        border-radius: 4px;
+                    }
+                    .pr-detail-table-wrapper::-webkit-scrollbar-thumb:hover {
+                        background: #94a3b8;
+                    }
+                    html[data-bs-theme="dark"] .pr-detail-table-wrapper,
+                    .dark-mode .pr-detail-table-wrapper {
+                        background-color: #1e293b !important;
+                        border-color: rgba(255, 255, 255, 0.1) !important;
+                        scrollbar-color: #475569 #0f172a;
+                    }
+                    html[data-bs-theme="dark"] .pr-detail-table-wrapper::-webkit-scrollbar-track,
+                    .dark-mode .pr-detail-table-wrapper::-webkit-scrollbar-track {
+                        background: #0f172a;
+                    }
+                    html[data-bs-theme="dark"] .pr-detail-table-wrapper::-webkit-scrollbar-thumb,
+                    .dark-mode .pr-detail-table-wrapper::-webkit-scrollbar-thumb {
+                        background: #475569;
+                    }
+
+                    /* Paksa modal detail table selalu berbentuk tabel murni & bisa digeser ke samping */
+                    .modal-detail-table {
+                        width: 100% !important;
+                        min-width: 980px !important;
+                        display: table !important;
+                        table-layout: auto !important;
+                        border-collapse: separate !important;
+                        border-spacing: 0 !important;
+                    }
+                    .modal-detail-table thead {
+                        display: table-header-group !important;
+                    }
+                    .modal-detail-table tbody {
+                        display: table-row-group !important;
+                        width: auto !important;
+                    }
+                    .modal-detail-table tr {
+                        display: table-row !important;
+                        flex-direction: row !important;
+                        background: transparent !important;
+                        border: none !important;
+                        margin-bottom: 0 !important;
+                        box-shadow: none !important;
+                    }
+                    .modal-detail-table th,
+                    .modal-detail-table td {
+                        display: table-cell !important;
+                        vertical-align: middle !important;
+                        order: unset !important;
+                        width: auto !important;
+                    }
+                    .modal-detail-table td::before,
+                    .modal-detail-table th::before {
+                        display: none !important;
+                        content: none !important;
+                    }
                     .modal-detail-table thead th {
                         background-color: #1e3a8a !important;
                         color: #ffffff !important;
@@ -92,28 +163,43 @@
                         vertical-align: middle !important;
                         border-bottom: 2px solid #3b82f6 !important;
                         border-right: 1px solid rgba(255, 255, 255, 0.18) !important;
-                        padding-top: 8px !important;
-                        padding-bottom: 8px !important;
+                        padding: 9px 12px !important;
+                        white-space: nowrap !important;
                     }
                     .modal-detail-table thead th:last-child {
                         border-right: none !important;
                     }
+                    .modal-detail-table tbody td {
+                        padding: 8px 12px !important;
+                        border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+                        font-size: 0.82rem !important;
+                    }
+                    html[data-bs-theme="dark"] .modal-detail-table tbody td,
+                    .dark-mode .modal-detail-table tbody td {
+                        border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+                        color: #cbd5e1 !important;
+                    }
                 </style>
-                <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-list-ol me-1.5"></i> Daftar Barang Pengadaan</h6>
-                <div class="table-responsive border rounded-3 overflow-hidden bg-white mb-3 shadow-2xs">
-                    <table class="table table-sm table-striped align-middle mb-0 responsive-pr-table modal-detail-table">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-list-ol me-1.5"></i> Daftar Barang Pengadaan</h6>
+                    <small class="text-muted d-flex align-items-center gap-1 font-monospace" style="font-size: 0.72rem;">
+                        <i class="bi bi-arrows-left-right text-primary"></i> <span class="d-none d-sm-inline">Tabel dapat digeser ke samping</span><span class="d-sm-none">Geser samping</span>
+                    </small>
+                </div>
+                <div class="table-responsive border rounded-3 bg-white mb-3 shadow-2xs pr-detail-table-wrapper">
+                    <table class="table table-sm table-striped align-middle mb-0 modal-detail-table">
                         <thead>
                             <tr>
-                                <th width="4%" class="text-center py-2">No</th>
-                                <th width="6%" class="text-center">Foto</th>
-                                <th width="12%">Kode Barang</th>
-                                <th width="20%">Nama Barang</th>
-                                <th width="8%">Tipe</th>
-                                <th width="8%">Satuan</th>
-                                <th width="8%" class="text-center">Jumlah</th>
-                                <th width="14%" class="text-end">Estimasi Harga</th>
-                                <th width="14%" class="text-end">Subtotal</th>
-                                <th>Catatan</th>
+                                <th style="width: 45px;" class="text-center py-2">No</th>
+                                <th style="width: 65px;" class="text-center">Foto</th>
+                                <th style="min-width: 120px;">Kode Barang</th>
+                                <th style="min-width: 200px;">Nama Barang</th>
+                                <th style="min-width: 100px;">Tipe</th>
+                                <th style="min-width: 85px;">Satuan</th>
+                                <th style="min-width: 85px;" class="text-center">Jumlah</th>
+                                <th style="min-width: 140px;" class="text-end">Estimasi Harga</th>
+                                <th style="min-width: 145px;" class="text-end">Subtotal</th>
+                                <th style="min-width: 160px;">Catatan</th>
                             </tr>
                         </thead>
                         <tbody id="detail_items_tbody">
@@ -358,8 +444,8 @@
 
                             detailRows += `
                                 <tr>
-                                    <td class="text-center py-2 font-weight-bold pr-row-number-td" data-label="No">${index + 1}</td>
-                                    <td class="text-center py-1" data-label="Foto">
+                                    <td class="text-center py-2 fw-bold font-monospace text-secondary" style="white-space: nowrap;">${index + 1}</td>
+                                    <td class="text-center py-1">
                                          <div class="product-img-frame mx-auto ${fotoUrl ? 'img-thumbnail-preview cursor-pointer' : ''}" 
                                               title="${fotoUrl ? 'Klik untuk memperbesar foto' : ''}"
                                               data-nama="${safeEscapeHtml(namaBarang)}"
@@ -367,17 +453,17 @@
                                              ${fotoHtml}
                                          </div>
                                     </td>
-                                    <td class="font-monospace small" data-label="Kode Barang">${safeEscapeHtml(kodeBarang)}</td>
-                                    <td class="fw-semibold text-dark" data-label="Nama Barang">${safeEscapeHtml(namaBarang)}</td>
-                                    <td data-label="Tipe">${itemTipeBadge}${itemWarnaBadge}</td>
-                                    <td data-label="Satuan"><span class="badge bg-light text-dark px-2.5 py-1 fw-semibold">${safeEscapeHtml(namaSatuan)}</span></td>
-                                    <td class="text-center fw-bold text-dark" data-label="Jumlah">
+                                    <td class="font-monospace small fw-semibold text-secondary" style="white-space: nowrap;">${safeEscapeHtml(kodeBarang)}</td>
+                                    <td class="fw-semibold text-dark" style="min-width: 200px;">${safeEscapeHtml(namaBarang)}</td>
+                                    <td style="white-space: nowrap;">${itemTipeBadge}${itemWarnaBadge}</td>
+                                    <td style="white-space: nowrap;"><span class="badge bg-light text-dark px-2.5 py-1 fw-semibold border">${safeEscapeHtml(namaSatuan)}</span></td>
+                                    <td class="text-center fw-bold text-dark font-monospace" style="white-space: nowrap;">
                                         <div>${jumlah.toLocaleString('id-ID')}</div>
                                         ${konversiHint}
                                     </td>
-                                    <td class="text-end fw-semibold" data-label="Estimasi Harga">${safeFormatRupiah(harga)}</td>
-                                    <td class="text-end fw-bold text-primary" data-label="Subtotal">${safeFormatRupiah(sub)}</td>
-                                    <td class="small text-muted" data-label="Catatan">${item.keterangan ? safeEscapeHtml(item.keterangan) : '—'}</td>
+                                    <td class="text-end fw-semibold font-monospace" style="white-space: nowrap;">${safeFormatRupiah(harga)}</td>
+                                    <td class="text-end fw-bold text-primary font-monospace" style="white-space: nowrap;">${safeFormatRupiah(sub)}</td>
+                                    <td class="small text-muted" style="min-width: 160px; word-break: break-word;">${item.keterangan ? safeEscapeHtml(item.keterangan) : '—'}</td>
                                 </tr>
                             `;
                         });

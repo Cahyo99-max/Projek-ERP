@@ -31,16 +31,20 @@
             background-color: var(--bg-dark);
             color: var(--text-light);
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             position: relative;
+            padding: 1.5rem 1rem;
         }
 
         /* ===== BACKGROUND COSMIC EFFECT ===== */
         .nebula {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -50,6 +54,7 @@
                 radial-gradient(circle at 70% 80%, rgba(139, 92, 246, 0.12) 0%, transparent 50%);
             filter: blur(80px);
             z-index: 1;
+            pointer-events: none;
             animation: nebulaPulse 10s ease-in-out infinite alternate;
         }
 
@@ -59,7 +64,9 @@
         }
 
         .stars {
-            position: absolute;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             background-image: 
@@ -70,6 +77,7 @@
             background-position: 0 0, 30px 40px, 90px 180px;
             opacity: 0.25;
             z-index: 1;
+            pointer-events: none;
             animation: starsMove 150s linear infinite;
         }
 
@@ -82,34 +90,36 @@
         .container {
             width: 100%;
             max-width: 1000px;
-            margin: 0 auto;
-            padding: 2rem;
+            margin: auto;
+            padding: 1rem 0;
             display: flex;
             flex-direction: column-reverse;
             align-items: center;
             justify-content: space-between;
             position: relative;
             z-index: 10;
-            gap: 3rem;
+            gap: 1.25rem;
         }
 
         @media (min-width: 768px) {
             .container {
                 flex-direction: row;
                 gap: 4rem;
+                padding: 2rem;
             }
         }
 
         /* ===== CONTENT BOX ===== */
         .content-box {
             text-align: center;
+            width: 100%;
             max-width: 480px;
-            padding: 2.5rem;
+            padding: 1.6rem 1.25rem;
             background: rgba(255, 255, 255, 0.02);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 24px;
+            border-radius: 20px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
             animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -118,6 +128,7 @@
             .content-box {
                 text-align: left;
                 padding: 3rem;
+                border-radius: 24px;
             }
         }
 
@@ -133,44 +144,77 @@
             background: rgba(244, 63, 94, 0.1);
             border: 1px solid rgba(244, 63, 94, 0.2);
             color: var(--accent);
-            padding: 0.4rem 1.2rem;
+            padding: 0.35rem 1rem;
             border-radius: 50px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.2rem;
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
 
+        @media (min-width: 768px) {
+            .error-badge {
+                padding: 0.4rem 1.2rem;
+                font-size: 0.85rem;
+                margin-bottom: 1.5rem;
+            }
+        }
+
         .error-title {
-            font-size: 1.75rem;
+            font-size: 1.35rem;
             font-weight: 800;
             color: var(--text-light);
-            margin-bottom: 1.2rem;
+            margin-bottom: 0.75rem;
             line-height: 1.3;
         }
 
+        @media (min-width: 768px) {
+            .error-title {
+                font-size: 1.75rem;
+                margin-bottom: 1.2rem;
+            }
+        }
+
         .error-desc {
-            font-size: 0.98rem;
+            font-size: 0.88rem;
             color: var(--text-muted);
-            line-height: 1.6;
-            margin-bottom: 2.2rem;
+            line-height: 1.55;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .error-desc {
+                font-size: 0.98rem;
+                line-height: 1.6;
+                margin-bottom: 2.2rem;
+            }
         }
 
         .btn-logout {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 0.75rem;
             background: linear-gradient(135deg, var(--primary), #e11d48);
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 0.9rem 2.2rem;
+            padding: 0.8rem 1.75rem;
             border-radius: 50px;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             cursor: pointer;
             box-shadow: 0 10px 20px rgba(244, 63, 94, 0.25);
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            width: 100%;
+        }
+
+        @media (min-width: 576px) {
+            .btn-logout {
+                width: auto;
+                padding: 0.9rem 2.2rem;
+                font-size: 0.95rem;
+            }
         }
 
         .btn-logout:hover {
@@ -182,12 +226,13 @@
         /* ===== ART BOX ===== */
         .art-box {
             position: relative;
-            width: 280px;
-            height: 280px;
+            width: 190px;
+            height: 190px;
             display: flex;
             align-items: center;
             justify-content: center;
             animation: fadeIn 1.2s ease-in-out;
+            flex-shrink: 0;
         }
 
         @media (min-width: 768px) {
@@ -204,7 +249,7 @@
 
         /* Floating Lock / Shield */
         .space-shield {
-            width: 140px;
+            width: 75px;
             height: auto;
             position: absolute;
             z-index: 4;
@@ -212,21 +257,35 @@
             filter: drop-shadow(0 10px 20px rgba(244, 63, 94, 0.3));
         }
 
+        @media (min-width: 768px) {
+            .space-shield {
+                width: 140px;
+            }
+        }
+
         @keyframes floatLock {
             0% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-15px) rotate(4deg); }
-            100% { transform: translateY(8px) rotate(-4deg); }
+            50% { transform: translateY(-12px) rotate(4deg); }
+            100% { transform: translateY(6px) rotate(-4deg); }
         }
 
         /* Red warning planet */
         .planet-red {
-            width: 120px;
-            height: 120px;
+            width: 80px;
+            height: 80px;
             background: linear-gradient(135deg, #4c0519, #9f1239);
             border-radius: 50%;
             position: absolute;
             z-index: 2;
-            box-shadow: inset -15px -15px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(159, 18, 57, 0.4);
+            box-shadow: inset -10px -10px 20px rgba(0, 0, 0, 0.6), 0 0 20px rgba(159, 18, 57, 0.4);
+        }
+
+        @media (min-width: 768px) {
+            .planet-red {
+                width: 120px;
+                height: 120px;
+                box-shadow: inset -15px -15px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(159, 18, 57, 0.4);
+            }
         }
 
         .c1 { width: 35px; height: 35px; top: 15%; left: 20%; background-color: rgba(0,0,0,0.15); border-radius: 50%; position: absolute; }
@@ -234,14 +293,22 @@
 
         /* Orbiting warning alert ring */
         .orbit-ring {
-            width: 240px;
-            height: 80px;
-            border: 4px dashed rgba(244, 63, 94, 0.3);
+            width: 160px;
+            height: 55px;
+            border: 3px dashed rgba(244, 63, 94, 0.3);
             border-radius: 50%;
             position: absolute;
             transform: rotate(-15deg);
             z-index: 3;
             animation: spinOrbit 40s linear infinite;
+        }
+
+        @media (min-width: 768px) {
+            .orbit-ring {
+                width: 240px;
+                height: 80px;
+                border-width: 4px;
+            }
         }
 
         @keyframes spinOrbit {

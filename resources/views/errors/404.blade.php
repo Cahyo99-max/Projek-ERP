@@ -31,16 +31,20 @@
             background-color: var(--bg-dark);
             color: var(--text-light);
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             position: relative;
+            padding: 1.5rem 1rem;
         }
 
         /* ===== BACKGROUND COSMIC EFFECT ===== */
         .nebula {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -51,6 +55,7 @@
             filter: blur(80px);
             z-index: 1;
             animation: nebulaPulse 12s ease-in-out infinite alternate;
+            pointer-events: none;
         }
 
         @keyframes nebulaPulse {
@@ -60,7 +65,9 @@
 
         /* Stars background */
         .stars {
-            position: absolute;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             background-image: 
@@ -72,6 +79,7 @@
             opacity: 0.3;
             z-index: 1;
             animation: starsMove 180s linear infinite;
+            pointer-events: none;
         }
 
         @keyframes starsMove {
@@ -81,7 +89,7 @@
 
         /* Twinkling Stars */
         .star-sparkle {
-            position: absolute;
+            position: fixed;
             width: 4px;
             height: 4px;
             background: #fff;
@@ -89,6 +97,7 @@
             box-shadow: 0 0 10px #fff, 0 0 20px var(--accent);
             z-index: 2;
             animation: sparkle 4s ease-in-out infinite;
+            pointer-events: none;
         }
         .s1 { top: 20%; left: 15%; animation-delay: 0s; }
         .s2 { top: 75%; left: 10%; animation-delay: 1.5s; }
@@ -105,35 +114,38 @@
         .container {
             width: 100%;
             max-width: 1100px;
-            margin: 0 auto;
-            padding: 2rem;
+            margin: auto;
+            padding: 0.5rem;
             display: flex;
             flex-direction: column-reverse;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             position: relative;
             z-index: 10;
-            gap: 2rem;
+            gap: 1.25rem;
         }
 
         @media (min-width: 768px) {
             .container {
                 flex-direction: row;
+                justify-content: space-between;
                 gap: 4rem;
+                padding: 2rem;
             }
         }
 
         /* ===== CONTENT COLUMN (Glassmorphism) ===== */
         .content-box {
             text-align: center;
-            max-width: 500px;
-            padding: 2.5rem;
+            width: 100%;
+            max-width: 480px;
+            padding: 1.6rem 1.25rem;
             background: rgba(255, 255, 255, 0.02);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 24px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
             animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -141,6 +153,8 @@
             .content-box {
                 text-align: left;
                 padding: 3rem;
+                border-radius: 24px;
+                max-width: 500px;
             }
         }
 
@@ -150,66 +164,109 @@
         }
 
         .error-code {
-            font-size: 6rem;
+            font-size: 3.75rem;
             font-weight: 800;
             line-height: 1;
-            margin-bottom: 1rem;
+            margin-bottom: 0.65rem;
             background: linear-gradient(135deg, #ffffff 30%, var(--accent) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            letter-spacing: -2px;
+            letter-spacing: -1.5px;
             position: relative;
             display: inline-block;
+        }
+
+        @media (min-width: 576px) {
+            .error-code {
+                font-size: 4.5rem;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .error-code {
+                font-size: 6rem;
+                margin-bottom: 1rem;
+                letter-spacing: -2px;
+            }
         }
 
         .error-code::after {
             content: '';
             position: absolute;
             bottom: -5px;
-            left: 0;
-            width: 40px;
-            height: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 36px;
+            height: 3.5px;
             background: var(--accent);
             border-radius: 2px;
         }
-        @media (max-width: 767px) {
+        @media (min-width: 768px) {
             .error-code::after {
-                left: 50%;
-                transform: translateX(-50%);
+                left: 0;
+                transform: none;
+                width: 40px;
+                height: 4px;
             }
         }
 
         .error-title {
-            font-size: 1.8rem;
+            font-size: 1.3rem;
             font-weight: 600;
             color: var(--text-light);
-            margin-bottom: 1rem;
+            margin-bottom: 0.65rem;
+            line-height: 1.3;
+        }
+
+        @media (min-width: 768px) {
+            .error-title {
+                font-size: 1.8rem;
+                margin-bottom: 1rem;
+            }
         }
 
         .error-desc {
-            font-size: 1rem;
+            font-size: 0.88rem;
             color: var(--text-muted);
-            line-height: 1.6;
-            margin-bottom: 2rem;
+            line-height: 1.55;
+            margin-bottom: 1.4rem;
+        }
+
+        @media (min-width: 768px) {
+            .error-desc {
+                font-size: 1rem;
+                line-height: 1.6;
+                margin-bottom: 2rem;
+            }
         }
 
         /* Button Glassmorphism and Hover */
         .btn-back {
             display: inline-flex;
             align-items: center;
-            gap: 0.75rem;
+            justify-content: center;
+            gap: 0.65rem;
             background: linear-gradient(135deg, var(--primary), #1d4ed8);
             color: #fff;
             text-decoration: none;
-            padding: 0.9rem 2.2rem;
+            padding: 0.85rem 1.6rem;
             border-radius: 50px;
             font-weight: 600;
-            font-size: 0.95rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.92rem;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25);
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
             overflow: hidden;
+            width: 100%;
+        }
+
+        @media (min-width: 576px) {
+            .btn-back {
+                width: auto;
+                padding: 0.9rem 2.2rem;
+                font-size: 0.95rem;
+            }
         }
 
         .btn-back::before {
@@ -230,7 +287,8 @@
         .btn-back:hover {
             transform: translateY(-3px);
             box-shadow: 0 15px 30px rgba(37, 99, 235, 0.4);
-            border-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #fff;
         }
 
         .btn-back:active {
@@ -240,18 +298,26 @@
         /* ===== ART COLUMN (Space Illustration) ===== */
         .art-box {
             position: relative;
-            width: 320px;
-            height: 320px;
+            width: 200px;
+            height: 200px;
             display: flex;
             align-items: center;
             justify-content: center;
             animation: fadeIn 1.2s ease-in-out;
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 576px) and (max-width: 767.98px) {
+            .art-box {
+                width: 250px;
+                height: 250px;
+            }
         }
 
         @media (min-width: 768px) {
             .art-box {
-                width: 480px;
-                height: 480px;
+                width: 460px;
+                height: 460px;
             }
         }
 
@@ -262,13 +328,27 @@
 
         /* Floating Astronaut */
         .astronaut-svg {
-            width: 160px;
+            width: 95px;
             height: auto;
             position: absolute;
-            top: 10%;
-            right: 15%;
+            top: 8%;
+            right: 12%;
             z-index: 4;
             animation: floatAstronaut 6s ease-in-out infinite alternate;
+        }
+
+        @media (min-width: 576px) and (max-width: 767.98px) {
+            .astronaut-svg {
+                width: 120px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .astronaut-svg {
+                width: 160px;
+                top: 10%;
+                right: 15%;
+            }
         }
 
         @keyframes floatAstronaut {
@@ -294,13 +374,29 @@
         /* Launching Rocket */
         .rocket-container {
             position: absolute;
-            bottom: 15%;
-            left: 15%;
-            width: 180px;
+            bottom: 8%;
+            left: 8%;
+            width: 105px;
             height: auto;
             z-index: 5;
             transform: rotate(-15deg);
             animation: rocketHover 4s ease-in-out infinite alternate;
+        }
+
+        @media (min-width: 576px) and (max-width: 767.98px) {
+            .rocket-container {
+                width: 135px;
+                bottom: 10%;
+                left: 10%;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .rocket-container {
+                width: 180px;
+                bottom: 15%;
+                left: 15%;
+            }
         }
 
         @keyframes rocketHover {
@@ -321,16 +417,26 @@
 
         /* Moon / Planet background */
         .planet {
-            width: 100px;
-            height: 100px;
+            width: 58px;
+            height: 58px;
             background: linear-gradient(135deg, #1e3a8a, #0369a1);
             border-radius: 50%;
             position: absolute;
-            top: 15%;
-            left: 20%;
+            top: 12%;
+            left: 16%;
             z-index: 2;
-            box-shadow: inset -15px -15px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(30, 58, 138, 0.5);
+            box-shadow: inset -10px -10px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(30, 58, 138, 0.5);
             overflow: hidden;
+        }
+
+        @media (min-width: 768px) {
+            .planet {
+                width: 100px;
+                height: 100px;
+                top: 15%;
+                left: 20%;
+                box-shadow: inset -15px -15px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(30, 58, 138, 0.5);
+            }
         }
 
         .planet-crater {
@@ -338,35 +444,55 @@
             border-radius: 50%;
             position: absolute;
         }
-        .c1 { width: 30px; height: 30px; top: 20%; left: 20%; }
-        .c2 { width: 15px; height: 15px; top: 60%; left: 55%; }
-        .c3 { width: 20px; height: 20px; top: 40%; left: 65%; }
+        .c1 { width: 30%; height: 30%; top: 20%; left: 20%; }
+        .c2 { width: 15%; height: 15%; top: 60%; left: 55%; }
+        .c3 { width: 20%; height: 20%; top: 40%; left: 65%; }
 
         /* Saturn-like planet */
         .planet-saturn {
-            width: 70px;
-            height: 70px;
+            width: 44px;
+            height: 44px;
             background: linear-gradient(135deg, #3730a3, #4338ca);
             border-radius: 50%;
             position: absolute;
-            bottom: 20%;
-            right: 15%;
+            bottom: 16%;
+            right: 12%;
             z-index: 2;
-            box-shadow: inset -10px -10px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(55, 48, 163, 0.4);
+            box-shadow: inset -6px -6px 12px rgba(0, 0, 0, 0.5), 0 0 10px rgba(55, 48, 163, 0.4);
             transform: rotate(-25deg);
         }
+
+        @media (min-width: 768px) {
+            .planet-saturn {
+                width: 70px;
+                height: 70px;
+                bottom: 20%;
+                right: 15%;
+                box-shadow: inset -10px -10px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(55, 48, 163, 0.4);
+            }
+        }
+
         /* Planet Ring */
         .ring {
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 130px;
-            height: 24px;
-            border: 8px solid rgba(139, 92, 246, 0.5);
+            width: 76px;
+            height: 15px;
+            border: 4.5px solid rgba(139, 92, 246, 0.5);
             border-radius: 50%;
             transform: translate(-50%, -50%) rotate(25deg);
             z-index: 1;
-            box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+            box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+        }
+
+        @media (min-width: 768px) {
+            .ring {
+                width: 130px;
+                height: 24px;
+                border-width: 8px;
+                box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+            }
         }
     </style>
 </head>

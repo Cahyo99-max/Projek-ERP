@@ -5,7 +5,12 @@
         </span>
         <div>
             <h5 class="modal-title fw-bold text-body-emphasis mb-0">Detail Faktur Penjualan</h5>
-            <p class="text-body-secondary small mb-0 font-monospace">No. Faktur: <strong class="text-primary">{{ $invoice->nomor_faktur ?? '-' }}</strong></p>
+            <p class="text-body-secondary small mb-0 font-monospace d-flex align-items-center gap-1.5 flex-wrap">
+                No. Faktur: <strong class="text-primary">{{ $invoice->nomor_faktur ?? '-' }}</strong>
+                @if($invoice->is_saldo_awal)
+                <span style="display:inline-flex; align-items:center; gap:4px; background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.45); border-radius: 9999px; padding: 1px 8px; font-size: 11px; font-weight: 700; line-height: 1;"><i class="bi bi-clock-history"></i> Saldo Awal Piutang</span>
+                @endif
+            </p>
         </div>
     </div>
     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

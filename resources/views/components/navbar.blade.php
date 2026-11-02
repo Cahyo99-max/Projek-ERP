@@ -492,8 +492,7 @@
              <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2"
                  style="border-radius: var(--border-radius-md);">
                  <li><a class="dropdown-item py-2" href="{{ route('profile.index') }}"><i class="bi bi-person me-2"></i> My Profile</a></li>
-                 <li><a class="dropdown-item py-2" href="{{ route('profile.index') }}"><i class="bi bi-gear me-2"></i> Account Settings</a>
-                 </li>
+               
                  <li>
                      <hr class="dropdown-divider">
                  </li>

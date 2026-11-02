@@ -390,6 +390,8 @@ class GoodsReceiptController extends Controller
                 'diskon_persen' => floatval($po->diskon_persen ?? 0),
                 'diskon_nominal' => floatval($po->diskon_nominal ?? 0),
                 'total_diskon' => floatval($po->total_diskon ?? 0),
+                'dpp' => floatval($po->dpp ?? max(0, floatval($po->subtotal) - floatval($po->total_diskon ?? 0))),
+                'net_subtotal' => max(0, floatval($po->subtotal) - floatval($po->total_diskon ?? 0)),
                 'pajak_nama' => $summaryPajakNama,
                 'pajak_tarif' => $summaryPajakTarif,
                 'total_pajak' => floatval($po->total_pajak ?? 0),

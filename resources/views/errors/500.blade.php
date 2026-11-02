@@ -31,16 +31,20 @@
             background-color: var(--bg-dark);
             color: var(--text-light);
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             position: relative;
+            padding: 1.5rem 1rem;
         }
 
         /* ===== BACKGROUND COSMIC EFFECT ===== */
         .nebula {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -50,6 +54,7 @@
                 radial-gradient(circle at 70% 80%, rgba(239, 68, 68, 0.12) 0%, transparent 50%);
             filter: blur(80px);
             z-index: 1;
+            pointer-events: none;
             animation: nebulaPulse 10s ease-in-out infinite alternate;
         }
 
@@ -60,7 +65,9 @@
 
         /* Stars background */
         .stars {
-            position: absolute;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             background-image: 
@@ -71,6 +78,7 @@
             background-position: 0 0, 30px 50px, 120px 200px;
             opacity: 0.35;
             z-index: 1;
+            pointer-events: none;
             animation: starsMove 150s linear infinite;
         }
 
@@ -81,13 +89,14 @@
 
         /* Twinkling Warning Sparks */
         .star-sparkle {
-            position: absolute;
+            position: fixed;
             width: 5px;
             height: 5px;
             background: #fef3c7;
             border-radius: 50%;
             box-shadow: 0 0 10px #fef3c7, 0 0 20px var(--accent);
             z-index: 2;
+            pointer-events: none;
             animation: sparkle 4s ease-in-out infinite;
         }
         .s1 { top: 25%; left: 18%; animation-delay: 0s; }
@@ -105,34 +114,36 @@
         .container {
             width: 100%;
             max-width: 1050px;
-            margin: 0 auto;
-            padding: 2rem;
+            margin: auto;
+            padding: 1rem 0;
             display: flex;
             flex-direction: column-reverse;
             align-items: center;
             justify-content: space-between;
             position: relative;
             z-index: 10;
-            gap: 2rem;
+            gap: 1.25rem;
         }
 
         @media (min-width: 768px) {
             .container {
                 flex-direction: row;
                 gap: 4rem;
+                padding: 2rem;
             }
         }
 
         /* ===== CONTENT COLUMN (Glassmorphism) ===== */
         .content-box {
             text-align: center;
+            width: 100%;
             max-width: 500px;
-            padding: 2.5rem;
+            padding: 1.6rem 1.25rem;
             background: rgba(255, 255, 255, 0.015);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(249, 115, 22, 0.10);
-            border-radius: 24px;
+            border: 1px solid rgba(249, 115, 22, 0.15);
+            border-radius: 20px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
             animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -141,6 +152,7 @@
             .content-box {
                 text-align: left;
                 padding: 3rem;
+                border-radius: 24px;
             }
         }
 
@@ -150,66 +162,102 @@
         }
 
         .error-code {
-            font-size: 6rem;
+            font-size: 3.75rem;
             font-weight: 800;
             line-height: 1;
-            margin-bottom: 1rem;
+            margin-bottom: 0.85rem;
             background: linear-gradient(135deg, #ffffff 40%, var(--accent) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            letter-spacing: -2px;
+            letter-spacing: -1.5px;
             position: relative;
             display: inline-block;
+        }
+
+        @media (min-width: 768px) {
+            .error-code {
+                font-size: 6rem;
+                letter-spacing: -2px;
+                margin-bottom: 1rem;
+            }
         }
 
         .error-code::after {
             content: '';
             position: absolute;
             bottom: -5px;
-            left: 0;
-            width: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 36px;
             height: 4px;
             background: var(--primary);
             border-radius: 2px;
         }
-        @media (max-width: 767px) {
+        @media (min-width: 768px) {
             .error-code::after {
-                left: 50%;
-                transform: translateX(-50%);
+                left: 0;
+                transform: none;
+                width: 40px;
             }
         }
 
         .error-title {
-            font-size: 1.8rem;
+            font-size: 1.35rem;
             font-weight: 600;
             color: var(--text-light);
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
+        }
+
+        @media (min-width: 768px) {
+            .error-title {
+                font-size: 1.8rem;
+                margin-bottom: 1rem;
+            }
         }
 
         .error-desc {
-            font-size: 0.98rem;
+            font-size: 0.88rem;
             color: var(--text-muted);
-            line-height: 1.6;
-            margin-bottom: 2rem;
+            line-height: 1.55;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .error-desc {
+                font-size: 0.98rem;
+                line-height: 1.6;
+                margin-bottom: 2rem;
+            }
         }
 
         /* Button Glassmorphism and Hover */
         .btn-back {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 0.75rem;
             background: linear-gradient(135deg, var(--primary), #d97706);
             color: #fff;
             text-decoration: none;
-            padding: 0.9rem 2.2rem;
+            padding: 0.8rem 1.75rem;
             border-radius: 50px;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 10px 20px rgba(249, 115, 22, 0.25);
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
             overflow: hidden;
+            width: 100%;
+        }
+
+        @media (min-width: 576px) {
+            .btn-back {
+                width: auto;
+                padding: 0.9rem 2.2rem;
+                font-size: 0.95rem;
+            }
         }
 
         .btn-back::before {
@@ -240,12 +288,13 @@
         /* ===== ART COLUMN (Space Shield) ===== */
         .art-box {
             position: relative;
-            width: 320px;
-            height: 320px;
+            width: 190px;
+            height: 190px;
             display: flex;
             align-items: center;
             justify-content: center;
             animation: fadeIn 1.2s ease-in-out;
+            flex-shrink: 0;
         }
 
         @media (min-width: 768px) {
@@ -263,23 +312,39 @@
         /* Glowing Shield Gate */
         .shield-gate {
             position: absolute;
-            width: 200px;
-            height: 200px;
-            border: 4px dashed rgba(249, 115, 22, 0.4);
+            width: 130px;
+            height: 130px;
+            border: 3px dashed rgba(249, 115, 22, 0.4);
             border-radius: 50%;
             z-index: 2;
             animation: rotateShield 20s linear infinite;
-            box-shadow: 0 0 30px rgba(249, 115, 22, 0.2);
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.2);
+        }
+
+        @media (min-width: 768px) {
+            .shield-gate {
+                width: 200px;
+                height: 200px;
+                border-width: 4px;
+                box-shadow: 0 0 30px rgba(249, 115, 22, 0.2);
+            }
         }
 
         .shield-gate-inner {
             position: absolute;
-            width: 150px;
-            height: 150px;
+            width: 100px;
+            height: 100px;
             border: 2px solid rgba(239, 68, 68, 0.3);
             border-radius: 50%;
             z-index: 2;
             animation: rotateShieldReverse 15s linear infinite;
+        }
+
+        @media (min-width: 768px) {
+            .shield-gate-inner {
+                width: 150px;
+                height: 150px;
+            }
         }
 
         @keyframes rotateShield {
@@ -297,32 +362,52 @@
             z-index: 4;
             animation: floatLock 5s ease-in-out infinite alternate;
             filter: drop-shadow(0 0 15px rgba(249, 115, 22, 0.5));
+            width: 75px;
+            height: 75px;
+        }
+
+        @media (min-width: 768px) {
+            .hologram-lock {
+                width: 160px;
+                height: 160px;
+            }
         }
 
         @keyframes floatLock {
             0% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
-            100% { transform: translateY(5px); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(4px); }
         }
 
         /* Background Warning Node */
         .warning-node {
-            width: 80px;
-            height: 80px;
+            width: 52px;
+            height: 52px;
             background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(217, 119, 6, 0.08));
             border-radius: 50%;
             position: absolute;
-            top: 10%;
-            right: 15%;
+            top: 5%;
+            right: 10%;
             z-index: 1;
-            box-shadow: 0 0 25px rgba(249, 115, 22, 0.25);
+            box-shadow: 0 0 18px rgba(249, 115, 22, 0.25);
             border: 1px solid rgba(249, 115, 22, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 1.3rem;
             color: var(--primary);
             animation: pulseWarning 2s infinite alternate;
+        }
+
+        @media (min-width: 768px) {
+            .warning-node {
+                width: 80px;
+                height: 80px;
+                top: 10%;
+                right: 15%;
+                font-size: 2rem;
+                box-shadow: 0 0 25px rgba(249, 115, 22, 0.25);
+            }
         }
 
         @keyframes pulseWarning {
@@ -331,17 +416,27 @@
         }
 
         .warning-node-2 {
-            width: 60px;
-            height: 60px;
+            width: 40px;
+            height: 40px;
             background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(220, 38, 38, 0.05));
             border-radius: 50%;
             position: absolute;
-            bottom: 12%;
-            left: 10%;
+            bottom: 8%;
+            left: 8%;
             z-index: 1;
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
             border: 1px solid rgba(239, 68, 68, 0.15);
             animation: pulseWarning 2.5s infinite alternate-reverse;
+        }
+
+        @media (min-width: 768px) {
+            .warning-node-2 {
+                width: 60px;
+                height: 60px;
+                bottom: 12%;
+                left: 10%;
+                box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+            }
         }
     </style>
 </head>

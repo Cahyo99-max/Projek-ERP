@@ -132,7 +132,60 @@ $(document).ready(function () {
     }
 
     $(document).on('click', '#create_btn_auto_nomor_faktur', function () {
-        $('#create_disp_nomor_faktur_internal').val('').attr('placeholder', '[Otomatis dari Sistem]').focus();
+        let $btn = $(this);
+        let origHtml = $btn.html();
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Memuat...');
+        let tgl = $('#create_tanggal_faktur').val() || '';
+
+        $.ajax({
+            url: '{{ route("purchase-invoices.generate-nomor") }}',
+            data: { tanggal_faktur: tgl },
+            success: function (res) {
+                if (res.nomor_faktur) {
+                    $('#create_disp_nomor_faktur_internal').val(res.nomor_faktur).removeClass('is-invalid').addClass('is-valid');
+                    $('#create_nomor_faktur_feedback')
+                        .html('<span class="text-success"><i class="bi bi-check-circle me-1"></i>Nomor otomatis sistem disiapkan: <strong>' + res.nomor_faktur + '</strong> (Bisa Anda ubah manual bila diperlukan).</span>')
+                        .show();
+                }
+            },
+            error: function () {
+                $('#create_disp_nomor_faktur_internal').val('').attr('placeholder', '[Otomatis dari Sistem]').removeClass('is-invalid is-valid');
+                $('#create_nomor_faktur_feedback').hide();
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html(origHtml);
+            }
+        });
+    });
+
+    let checkNomorDebounceTimer = null;
+    $(document).on('input', '#create_disp_nomor_faktur_internal', function () {
+        clearTimeout(checkNomorDebounceTimer);
+        let val = $(this).val().trim();
+        let $input = $(this);
+        let $feedback = $('#create_nomor_faktur_feedback');
+
+        if (!val || val.indexOf('Otomatis') > -1) {
+            $input.removeClass('is-invalid is-valid');
+            $feedback.hide();
+            return;
+        }
+
+        checkNomorDebounceTimer = setTimeout(function () {
+            $.ajax({
+                url: '{{ route("purchase-invoices.check-nomor") }}',
+                data: { nomor: val },
+                success: function (res) {
+                    if (res.is_unique) {
+                        $input.removeClass('is-invalid').addClass('is-valid');
+                        $feedback.html('<span class="text-success"><i class="bi bi-check-circle me-1"></i>' + res.message + '</span>').show();
+                    } else {
+                        $input.removeClass('is-valid').addClass('is-invalid');
+                        $feedback.html('<span class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle-fill me-1"></i>' + res.message + '</span>').show();
+                    }
+                }
+            });
+        }, 350);
     });
 
     $(document).on('input keyup', '#create_nomor_faktur_supplier', function () {
@@ -162,7 +215,8 @@ $(document).ready(function () {
             }
         });
         $('#formTambahInvoice')[0].reset();
-        $('#create_disp_nomor_faktur_internal').val('').attr('placeholder', '[Otomatis dari Sistem]');
+        $('#create_disp_nomor_faktur_internal').val('').attr('placeholder', '[Otomatis dari Sistem]').removeClass('is-invalid is-valid');
+        $('#create_nomor_faktur_feedback').hide().empty();
         $('#create_nomor_faktur_supplier').val('');
         $('#create_no_faktur_sup_char_count').text('0/100').removeClass('text-danger fw-bold').addClass('text-muted');
         $('#create_keterangan').val('');
@@ -170,6 +224,50 @@ $(document).ready(function () {
         $('#create_source_type_gr').prop('checked', true);
         $('#create_container_select_gr').show();
         $('#create_container_select_po').hide();
+        $('#create_container_select_saldo_awal').hide();
+        $('#create_card_items_wrapper').show();
+        $('#create_card_extra_costs_wrapper').show();
+        $('#create_dp_panel_wrapper').show();
+        $('#create_uang_muka').prop('disabled', false);
+        $('#create_sa_uang_muka').prop('disabled', true);
+        if ($('#create_sa_supplier_id').data('select2')) {
+            $('#create_sa_supplier_id').val('').trigger('change.select2');
+        } else {
+            $('#create_sa_supplier_id').val('');
+        }
+        if ($('#create_sa_currency_id').data('select2')) {
+            let firstCurr = $('#create_sa_currency_id option:first').val();
+            $('#create_sa_currency_id').val(firstCurr).trigger('change.select2');
+        } else if ($('#create_sa_currency_id').length) {
+            $('#create_sa_currency_id').val($('#create_sa_currency_id option:first').val());
+        }
+        $('#create_sa_kurs').val('1').prop('readonly', true).addClass('bg-body-tertiary');
+        $('#create_sa_kurs_hint').text('1 IDR = Rp 1');
+        $('#create_sa_kurs_addon').text('IDR');
+        $('.create-sa-curr-symbol').text('Rp');
+        $('.create-sa-curr-code-label').text('(IDR)');
+        $('#create_sa_idr_equiv_container').hide();
+
+        let defaultSaCoa = '{{ $defaultSaldoAwalCoaId ?? "" }}';
+        let defaultHutangCoa = '{{ $defaultHutangCoaId ?? "" }}';
+        if ($('#create_sa_coa_debit').data('select2')) {
+            $('#create_sa_coa_debit').val(defaultSaCoa).trigger('change.select2');
+        } else {
+            $('#create_sa_coa_debit').val(defaultSaCoa);
+        }
+        if ($('#create_sa_coa_kredit').data('select2')) {
+            $('#create_sa_coa_kredit').val(defaultHutangCoa).trigger('change.select2');
+        } else {
+            $('#create_sa_coa_kredit').val(defaultHutangCoa);
+        }
+        $('#create_sa_nilai_asli').val('');
+        $('#create_sa_uang_muka').val('0,00');
+        $('#create_sa_sisa_hutang').val('0,00');
+        if ($('#create_sa_tender_id').data('select2')) {
+            $('#create_sa_tender_id').val('').trigger('change.select2');
+        } else {
+            $('#create_sa_tender_id').val('');
+        }
         $('#create_card_items_title').html('<i class="bi bi-box-seam text-primary"></i> 2. Rincian Barang yang Ditagihkan');
         $('#create_gr_id').val('');
         $('#create_disp_gr_ref').val('');
@@ -226,25 +324,304 @@ $(document).ready(function () {
         recalculateCreateSummary();
     }
 
-    // Toggle Source Type (GRN vs Direct PO)
-    $('input[name="source_type"]').on('change', function () {
+    // Toggle Source Type (GRN vs Direct PO vs Saldo Awal Hutang)
+    $(document).on('change', 'input[name="source_type"]', function () {
         let src = $(this).val();
-        if (src === 'po') {
+        if (src === 'saldo_awal') {
+            $('#create_container_select_gr').hide();
+            $('#create_container_select_po').hide();
+            $('#create_container_select_saldo_awal').slideDown(200, function() {
+                initSaldoAwalSelect2();
+            });
+
+            // Sembunyikan tabel rincian barang, biaya tambahan, dan panel DP kas/bank reguler
+            $('#create_card_items_wrapper').hide();
+            $('#create_card_extra_costs_wrapper').hide();
+            $('#create_dp_panel_wrapper').hide();
+
+            // Toggle active input names to prevent collision
+            $('#create_uang_muka').prop('disabled', true);
+            $('#create_sa_uang_muka').prop('disabled', false);
+
+            // Update supplier badge on summary card
+            let supText = $('#create_sa_supplier_id option:selected').text();
+            if ($('#create_sa_supplier_id').val()) {
+                $('#create_disp_supplier_txt').text(supText);
+                $('#create_sb_supplier').text(supText);
+                $('#create_disp_supplier').val($('#create_sa_supplier_id').val());
+            } else {
+                $('#create_disp_supplier_txt').text('-');
+                $('#create_sb_supplier').text('-');
+                $('#create_disp_supplier').val('');
+            }
+
+            recalculateSaldoAwal();
+        } else if (src === 'po') {
+            $('#create_container_select_saldo_awal').hide();
             $('#create_container_select_gr').hide();
             $('#create_container_select_po').slideDown(200);
+
+            $('#create_card_items_wrapper').show();
+            $('#create_card_extra_costs_wrapper').show();
+            $('#create_dp_panel_wrapper').show();
+
+            $('#create_uang_muka').prop('disabled', false);
+            $('#create_sa_uang_muka').prop('disabled', true);
+
             $('#create_card_items_title').html('<i class="bi bi-box-seam text-success"></i> 2. Rincian Barang yang Ditagihkan (dari PO Langsung)');
             if (!$('#create_po_id').val()) {
                 $('#create_items_tbody').html('<tr id="create_empty_item_row"><td colspan="12" class="text-center text-muted py-4"><i class="bi bi-box-arrow-in-down fs-3 d-block mb-2 text-secondary opacity-50"></i>Pilih Dokumen Purchase Order (PO) terlebih dahulu untuk memuat daftar barang yang ditagihkan.</td></tr>');
                 recalculateCreateSummary();
             }
         } else {
+            $('#create_container_select_saldo_awal').hide();
             $('#create_container_select_po').hide();
             $('#create_container_select_gr').slideDown(200);
+
+            $('#create_card_items_wrapper').show();
+            $('#create_card_extra_costs_wrapper').show();
+            $('#create_dp_panel_wrapper').show();
+
+            $('#create_uang_muka').prop('disabled', false);
+            $('#create_sa_uang_muka').prop('disabled', true);
+
             $('#create_card_items_title').html('<i class="bi bi-box-seam text-primary"></i> 2. Rincian Barang yang Ditagihkan (dari GRN / BPB)');
             if (!$('#create_gr_id').val()) {
                 $('#create_items_tbody').html('<tr id="create_empty_item_row"><td colspan="12" class="text-center text-muted py-4"><i class="bi bi-box-arrow-in-down fs-3 d-block mb-2 text-secondary opacity-50"></i>Pilih Dokumen Penerimaan Barang (GRN) terlebih dahulu untuk memuat daftar barang yang ditagihkan.</td></tr>');
                 recalculateCreateSummary();
             }
+        }
+    });
+
+    // Helper & Initializer Searchable Select2 Saldo Awal Hutang
+    function initSaldoAwalSelect2() {
+        let $modal = $('#modalTambahInvoice');
+        let $sup = $('#create_sa_supplier_id');
+        let $debit = $('#create_sa_coa_debit');
+        let $kredit = $('#create_sa_coa_kredit');
+        let $curr = $('#create_sa_currency_id');
+        let $tender = $('#create_sa_tender_id');
+
+        if (!$.fn.select2) return;
+
+        // 1. Supplier Searchable Select2
+        if ($sup.length) {
+            if ($sup.data('select2')) {
+                $sup.select2('destroy');
+            }
+            $sup.off('select2:open.sa_sup');
+            $sup.select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $modal,
+                placeholder: '-- Pilih Supplier / Vendor --',
+                allowClear: true,
+                width: '100%',
+                dropdownAutoWidth: false,
+                minimumResultsForSearch: 0,
+                closeOnSelect: true,
+                matcher: function(params, data) {
+                    if (!params.term || $.trim(params.term) === '') return data;
+                    if (!data || typeof data.text === 'undefined' || data.text === null) return null;
+                    let term = params.term.toLowerCase().trim();
+                    let text = String(data.text).toLowerCase();
+                    let words = term.split(/\s+/).filter(Boolean);
+                    let matched = words.every(function(word) {
+                        return text.indexOf(word) > -1;
+                    });
+                    return matched ? data : null;
+                }
+            });
+
+            $sup.on('select2:open.sa_sup', function() {
+                let data = $(this).data('select2');
+                if (data && data.$dropdown) {
+                    data.$dropdown.css('z-index', 1070);
+                }
+                setTimeout(function() {
+                    let searchField = document.querySelector('.select2-container--open .select2-search__field') || document.querySelector('.select2-dropdown .select2-search__field');
+                    if (searchField) {
+                        searchField.setAttribute('placeholder', 'Ketik kode atau nama supplier...');
+                        searchField.focus();
+                    }
+                }, 40);
+            });
+        }
+
+        // 2. Mata Uang (Currency) Select2
+        if ($curr.length) {
+            if ($curr.data('select2')) {
+                $curr.select2('destroy');
+            }
+            $curr.select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $modal,
+                width: '100%',
+                dropdownAutoWidth: false,
+                minimumResultsForSearch: 0,
+                closeOnSelect: true
+            });
+        }
+
+        // 3. Proyek / Tender Searchable Select2 (Aktif Sesuai PT / Cabang)
+        if ($tender.length) {
+            if ($tender.data('select2')) {
+                $tender.select2('destroy');
+            }
+            $tender.off('select2:open.sa_tender');
+            $tender.select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $modal,
+                placeholder: '-- Tanpa Proyek / Non-Tender --',
+                allowClear: true,
+                width: '100%',
+                dropdownAutoWidth: false,
+                minimumResultsForSearch: 0,
+                closeOnSelect: true,
+                matcher: function(params, data) {
+                    if (!params.term || $.trim(params.term) === '') return data;
+                    if (!data || typeof data.text === 'undefined' || data.text === null) return null;
+                    let term = params.term.toLowerCase().trim();
+                    let text = String(data.text).toLowerCase();
+                    let words = term.split(/\s+/).filter(Boolean);
+                    let matched = words.every(function(word) {
+                        return text.indexOf(word) > -1;
+                    });
+                    return matched ? data : null;
+                }
+            });
+
+            $tender.on('select2:open.sa_tender', function() {
+                let data = $(this).data('select2');
+                if (data && data.$dropdown) {
+                    data.$dropdown.css('z-index', 1070);
+                }
+                setTimeout(function() {
+                    let searchField = document.querySelector('.select2-container--open .select2-search__field') || document.querySelector('.select2-dropdown .select2-search__field');
+                    if (searchField) {
+                        searchField.setAttribute('placeholder', 'Cari no. kontrak atau nama tender...');
+                        searchField.focus();
+                    }
+                }, 40);
+            });
+        }
+
+        // 4. Akun Penyeimbang & Akun Hutang Select2
+        if (typeof window.initCoaSelect2 === 'function') {
+            window.initCoaSelect2($debit.add($kredit), $modal);
+        }
+    }
+
+    // Sync Proyek / Tender Saldo Awal ke Summary & Hidden Input
+    $(document).on('change', '#create_sa_tender_id', function () {
+        let tVal = $(this).val();
+        $('#create_tender_id').val(tVal || '');
+        if (tVal) {
+            let tText = $(this).find('option:selected').text().trim();
+            $('#create_box_tender').show();
+            $('#create_disp_tender_txt').text(tText);
+        } else {
+            $('#create_box_tender').hide();
+            $('#create_disp_tender_txt').text('—');
+        }
+    });
+
+    // Currency Switcher untuk Saldo Awal
+    $(document).on('change', '#create_sa_currency_id', function () {
+        let $opt = $(this).find('option:selected');
+        let code = ($opt.data('code') || 'IDR').toUpperCase();
+        let symbol = $opt.data('symbol') || (code === 'USD' ? '$' : 'Rp');
+        let isValas = !['IDR', 'RP'].includes(code);
+
+        $('.create-sa-curr-symbol').text(symbol);
+        $('.create-sa-curr-code-label').text('(' + code + ')');
+
+        if (isValas) {
+            $('#create_sa_kurs').prop('readonly', false).removeClass('bg-body-tertiary');
+            let curKurs = unformatNumber($('#create_sa_kurs').val());
+            if (curKurs <= 1.0) {
+                $('#create_sa_kurs').val(formatNumber(16000));
+            }
+            $('#create_sa_kurs_addon').text(code);
+            $('#create_sa_kurs_hint').text('Kurs konversi 1 ' + code + ' ke Rupiah');
+            $('#create_sa_idr_equiv_container').show();
+
+            let currentKurs = unformatNumber($('#create_sa_kurs').val()) || 16000;
+            updateCreateCurrencyDisplay(code, symbol, currentKurs);
+        } else {
+            $('#create_sa_kurs').val('1').prop('readonly', true).addClass('bg-body-tertiary');
+            $('#create_sa_kurs_addon').text('IDR');
+            $('#create_sa_kurs_hint').text('1 IDR = Rp 1');
+            $('#create_sa_idr_equiv_container').hide();
+
+            updateCreateCurrencyDisplay('IDR', 'Rp', 1.0);
+        }
+
+        recalculateSaldoAwal();
+    });
+
+    $(document).on('input change blur', '#create_sa_kurs', function () {
+        let code = ($('#create_sa_currency_id option:selected').data('code') || 'IDR').toUpperCase();
+        let symbol = $('#create_sa_currency_id option:selected').data('symbol') || (code === 'USD' ? '$' : 'Rp');
+        let isValas = !['IDR', 'RP'].includes(code);
+        let kursVal = isValas ? (unformatNumber($(this).val()) || 1.0) : 1.0;
+        updateCreateCurrencyDisplay(code, symbol, kursVal);
+        recalculateSaldoAwal();
+    });
+
+    // Helper & Kalkulasi Saldo Awal Hutang
+    function recalculateSaldoAwal() {
+        let nilaiAsli = unformatNumber($('#create_sa_nilai_asli').val());
+        let dp = unformatNumber($('#create_sa_uang_muka').val());
+
+        let $currOpt = $('#create_sa_currency_id option:selected');
+        let curCode = ($currOpt.data('code') || 'IDR').toUpperCase();
+        let curSymbol = $currOpt.data('symbol') || (curCode === 'USD' ? '$' : 'Rp');
+        let isValas = !['IDR', 'RP'].includes(curCode);
+        let kurs = isValas ? (unformatNumber($('#create_sa_kurs').val()) || 1.0) : 1.0;
+
+        if (dp > nilaiAsli && nilaiAsli > 0) {
+            dp = nilaiAsli;
+            $('#create_sa_uang_muka').val(formatNumber(dp));
+        }
+
+        let sisa = Math.max(0, nilaiAsli - dp);
+        $('#create_sa_sisa_hutang').val(formatNumber(sisa));
+
+        if (isValas && kurs > 0) {
+            let idrEquiv = sisa * kurs;
+            $('#create_sa_idr_equiv_container').show();
+            $('#create_sa_idr_equiv_val').text(formatMoney(idrEquiv, 'IDR', 'Rp'));
+        } else {
+            $('#create_sa_idr_equiv_container').hide();
+        }
+
+        // Update bottom summary cards
+        $('#create_sb_subtotal_gross').text(formatMoney(nilaiAsli, curCode, curSymbol));
+        $('#create_sb_total_dpp').text(formatMoney(nilaiAsli, curCode, curSymbol));
+        $('#create_sb_grand_total').text(formatMoney(nilaiAsli, curCode, curSymbol));
+        $('#create_sb_uang_muka_dp').text(formatMoney(dp, curCode, curSymbol));
+        $('#create_sb_sisa_tagihan').text(formatMoney(sisa, curCode, curSymbol));
+        $('#create_disp_grand_total').text(formatMoney(nilaiAsli, curCode, curSymbol));
+
+        $('#create_sb_total_barang').text(nilaiAsli > 0 ? '1' : '0');
+        $('#create_sb_total_qty').text(nilaiAsli > 0 ? '1' : '0');
+    }
+
+    $(document).on('input change blur', '#create_sa_nilai_asli, #create_sa_uang_muka', function () {
+        recalculateSaldoAwal();
+    });
+
+    $(document).on('change', '#create_sa_supplier_id', function () {
+        let supText = $(this).find('option:selected').text();
+        let supVal = $(this).val();
+        if (supVal) {
+            $('#create_disp_supplier_txt').text(supText);
+            $('#create_sb_supplier').text(supText);
+            $('#create_disp_supplier').val(supVal);
+        } else {
+            $('#create_disp_supplier_txt').text('-');
+            $('#create_sb_supplier').text('-');
+            $('#create_disp_supplier').val('');
         }
     });
 
@@ -311,6 +688,9 @@ $(document).ready(function () {
         let tbody = $('#tableBrowseGR_tbody');
         let loadingRow = $('#browse_gr_loading_row');
 
+        // Bersihkan semua baris selain baris loading
+        tbody.find('tr:not(#browse_gr_loading_row)').remove();
+
         if (showLoading || tbody.find('tr.row-gr-item').length === 0) {
             loadingRow.show();
         }
@@ -322,8 +702,8 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (res) {
                 loadingRow.hide();
+                tbody.find('tr:not(#browse_gr_loading_row)').remove();
                 if (res && res.status === 'success' && res.data) {
-                    tbody.find('tr.row-gr-item, tr.no-gr-row').remove();
                     if (res.data.length > 0) {
                         let html = '';
                         res.data.forEach(function (gr) {
@@ -331,12 +711,14 @@ $(document).ready(function () {
                         });
                         tbody.append(html);
                     } else {
-                        tbody.append('<tr class="no-gr-row"><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i><div class="fw-semibold">Tidak ada dokumen GRN/BPB yang sesuai pencarian</div><small class="text-muted">Coba ubah kata kunci pencarian Anda.</small></td></tr>');
+                        tbody.append('<tr class="no-gr-row"><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i><div class="fw-semibold">Tidak ada dokumen GRN/BPB yang siap ditagihkan</div><small class="text-muted">' + (searchQuery ? 'Coba ubah kata kunci pencarian Anda.' : 'Semua penerimaan barang telah dibuatkan faktur atau belum ada penerimaan barang yang berstatus selesai.') + '</small></td></tr>');
                     }
                 }
             },
             error: function (xhr) {
                 loadingRow.hide();
+                tbody.find('tr:not(#browse_gr_loading_row)').remove();
+                tbody.append('<tr class="no-gr-row"><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle fs-2 d-block mb-1"></i>Gagal memuat dokumen penerimaan barang. Silakan klik tombol Segarkan di atas.</td></tr>');
                 console.error('Gagal memuat dokumen GR:', xhr);
             }
         });
@@ -351,7 +733,7 @@ $(document).ready(function () {
     // Auto-refresh when browse modal opens
     $('#modalBrowseGR').on('show.bs.modal', function () {
         let curQuery = $('#search_gr_lookup').val();
-        reloadBrowseGrTable(curQuery, false);
+        reloadBrowseGrTable(curQuery, true);
     });
 
     // When modalBrowseGR is closed/hidden, preserve modal-open on body so modalTambahInvoice stays open and scrollable
@@ -459,6 +841,9 @@ $(document).ready(function () {
         let tbody = $('#tableBrowsePO_tbody');
         let loadingRow = $('#browse_po_loading_row');
 
+        // Bersihkan semua baris selain baris loading
+        tbody.find('tr:not(#browse_po_loading_row)').remove();
+
         if (showLoading || tbody.find('tr.row-po-item').length === 0) {
             loadingRow.show();
         }
@@ -470,8 +855,8 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (res) {
                 loadingRow.hide();
+                tbody.find('tr:not(#browse_po_loading_row)').remove();
                 if (res && res.status === 'success' && res.data) {
-                    tbody.find('tr.row-po-item, tr.no-po-row').remove();
                     if (res.data.length > 0) {
                         let html = '';
                         res.data.forEach(function (po) {
@@ -479,12 +864,14 @@ $(document).ready(function () {
                         });
                         tbody.append(html);
                     } else {
-                        tbody.append('<tr class="no-po-row"><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>Tidak ada dokumen Purchase Order (PO) yang siap ditagihkan.</td></tr>');
+                        tbody.append('<tr class="no-po-row"><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i><div class="fw-semibold">Tidak ada dokumen Purchase Order (PO) yang siap ditagihkan</div><small class="text-muted">' + (searchQuery ? 'Coba ubah kata kunci pencarian Anda.' : 'Semua Purchase Order telah dibuatkan faktur atau belum ada PO yang berstatus disetujui.') + '</small></td></tr>');
                     }
                 }
             },
             error: function (xhr) {
                 loadingRow.hide();
+                tbody.find('tr:not(#browse_po_loading_row)').remove();
+                tbody.append('<tr class="no-po-row"><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle fs-2 d-block mb-1"></i>Gagal memuat dokumen Purchase Order. Silakan klik tombol Segarkan di atas.</td></tr>');
                 console.error('Gagal memuat dokumen PO:', xhr);
             }
         });
@@ -499,7 +886,7 @@ $(document).ready(function () {
     // Auto-refresh when browse PO modal opens
     $('#modalBrowsePO').on('show.bs.modal', function () {
         let curQuery = $('#search_po_lookup').val();
-        reloadBrowsePoTable(curQuery, false);
+        reloadBrowsePoTable(curQuery, true);
     });
 
     // When modalBrowsePO is closed/hidden, preserve modal-open on body so modalTambahInvoice stays open and scrollable
@@ -830,6 +1217,12 @@ $(document).ready(function () {
                     } else {
                         $('#create_uang_muka_partial_hint').hide().empty();
                     }
+                }
+
+                // Prefill PPh from PO if exists
+                if (res.gr && res.gr.po && res.gr.po.pph_pajak_id && typeof window.setPphState === 'function') {
+                    let pphTarif = res.gr.po.pph_pajak ? parseFloat(res.gr.po.pph_pajak.tarif || 0) : (parseFloat(res.gr.po.pph_tarif || 0));
+                    window.setPphState('create', res.gr.po.pph_pajak_id, pphTarif, 0, null);
                 }
 
                 recalculateCreateSummary();
@@ -1852,6 +2245,17 @@ $(document).ready(function () {
 
         if (isCreatingInvoice) return false;
 
+        // Validasi Nomor Faktur Internal (Cegah Submit Jika Duplikat)
+        if ($('#create_disp_nomor_faktur_internal').hasClass('is-invalid')) {
+            Swal.fire({
+                title: 'Nomor Faktur Duplikat!',
+                text: 'Nomor faktur internal yang Anda masukkan sudah digunakan faktur lain. Harap gunakan nomor manual yang berbeda atau klik tombol Otomatis.',
+                icon: 'warning'
+            });
+            $('#create_disp_nomor_faktur_internal').focus();
+            return false;
+        }
+
         // Validasi Nomor Faktur Supplier (Wajib & Maks 100 Karakter)
         let noFakturSup = ($('#create_nomor_faktur_supplier').val() || '').trim();
         if (!noFakturSup) {
@@ -1885,86 +2289,121 @@ $(document).ready(function () {
             return false;
         }
 
-        // Validasi Pemilihan Dokumen Sumber (GRN vs Direct PO)
+        // Validasi Pemilihan Dokumen Sumber (GRN vs Direct PO vs Saldo Awal)
         let sourceType = $('input[name="source_type"]:checked').val() || 'gr';
-        if (sourceType === 'gr' && !$('#create_gr_id').val()) {
-            Swal.fire({
-                title: 'Dokumen GRN Belum Dipilih',
-                text: 'Silakan pilih dokumen Penerimaan Barang (GRN/BPB) terlebih dahulu.',
-                icon: 'warning'
-            });
-            return false;
-        }
-        if (sourceType === 'po' && !$('#create_po_id').val()) {
-            Swal.fire({
-                title: 'Dokumen PO Belum Dipilih',
-                text: 'Silakan pilih dokumen Purchase Order (PO) terlebih dahulu.',
-                icon: 'warning'
-            });
-            return false;
-        }
-        if ($('#create_items_tbody tr.row-item-barang').length === 0) {
-            Swal.fire({
-                title: 'Item Barang Kosong',
-                text: 'Faktur harus memiliki setidaknya satu rincian barang yang ditagihkan.',
-                icon: 'warning'
-            });
-            return false;
-        }
-
-        // Validasi Uang Muka tidak boleh melebihi Grand Total
-        let dpVal = unformatNumber($('#create_uang_muka').val());
-        let currentTotal = (typeof window.currentCreateTotalInvoice !== 'undefined')
-            ? window.currentCreateTotalInvoice
-            : unformatNumber($('#create_sum_total_invoice').text());
-        if (currentTotal > 0 && dpVal > currentTotal + 0.005) {
-            Swal.fire({
-                title: 'Validasi Uang Muka',
-                text: 'Nominal Uang Muka (DP) sebesar ' + formatMoney(dpVal, createCurrencyCode, createCurrencySymbol) + ' tidak boleh melebihi Total Pembelian sebesar ' + formatMoney(currentTotal, createCurrencyCode, createCurrencySymbol) + '!',
-                icon: 'warning'
-            });
-            $('#create_uang_muka').focus();
-            return false;
-        }
-
-        // Validasi Kas / Bank Pengeluaran DP jika Uang Muka > 0
-        if (dpVal > 0.005) {
-            if (!$('#create_kas_bank_id').val()) {
-                validateCreateKasBankDp();
+        if (sourceType === 'saldo_awal') {
+            if (!$('#create_sa_supplier_id').val()) {
                 Swal.fire({
-                    title: 'Kas / Bank Wajib Dipilih',
-                    text: 'Karena terdapat Uang Muka (DP) sebesar ' + formatMoney(dpVal, createCurrencyCode, createCurrencySymbol) + ', silakan pilih Rekening Kas / Bank untuk pengeluaran uang muka.',
+                    title: 'Supplier Belum Dipilih',
+                    text: 'Silakan pilih Supplier / Vendor terlebih dahulu untuk Saldo Awal Hutang.',
                     icon: 'warning'
                 });
-                $('#create_kas_bank_id').select2('open');
+                return false;
+            }
+            let saNilaiAsli = unformatNumber($('#create_sa_nilai_asli').val());
+            if (saNilaiAsli <= 0) {
+                Swal.fire({
+                    title: 'Nilai Faktur Kosong',
+                    text: 'Nilai Total Faktur Asli harus lebih besar dari 0.',
+                    icon: 'warning'
+                });
+                return false;
+            }
+            if (!$('#create_sa_coa_debit').val()) {
+                Swal.fire({
+                    title: 'Akun Penyeimbang Belum Dipilih',
+                    text: 'Silakan pilih Akun Penyeimbang Saldo Awal (Debit).',
+                    icon: 'warning'
+                });
+                return false;
+            }
+        } else {
+            if (sourceType === 'gr' && !$('#create_gr_id').val()) {
+                Swal.fire({
+                    title: 'Dokumen GRN Belum Dipilih',
+                    text: 'Silakan pilih dokumen Penerimaan Barang (GRN/BPB) terlebih dahulu.',
+                    icon: 'warning'
+                });
+                return false;
+            }
+            if (sourceType === 'po' && !$('#create_po_id').val()) {
+                Swal.fire({
+                    title: 'Dokumen PO Belum Dipilih',
+                    text: 'Silakan pilih dokumen Purchase Order (PO) terlebih dahulu.',
+                    icon: 'warning'
+                });
+                return false;
+            }
+            if ($('#create_items_tbody tr.row-item-barang').length === 0) {
+                Swal.fire({
+                    title: 'Item Barang Kosong',
+                    text: 'Faktur harus memiliki setidaknya satu rincian barang yang ditagihkan.',
+                    icon: 'warning'
+                });
+                return false;
+            }
+        }
+
+        // Validasi Uang Muka & Kas Bank (khusus GRN & PO, saldo awal tidak memotong kas/bank)
+        if (sourceType !== 'saldo_awal') {
+            let dpVal = unformatNumber($('#create_uang_muka').val());
+            let currentTotal = (typeof window.currentCreateTotalInvoice !== 'undefined')
+                ? window.currentCreateTotalInvoice
+                : unformatNumber($('#create_sum_total_invoice').text());
+            if (currentTotal > 0 && dpVal > currentTotal + 0.005) {
+                Swal.fire({
+                    title: 'Validasi Uang Muka',
+                    text: 'Nominal Uang Muka (DP) sebesar ' + formatMoney(dpVal, createCurrencyCode, createCurrencySymbol) + ' tidak boleh melebihi Total Pembelian sebesar ' + formatMoney(currentTotal, createCurrencyCode, createCurrencySymbol) + '!',
+                    icon: 'warning'
+                });
+                $('#create_uang_muka').focus();
                 return false;
             }
 
-            let $selectedOpt = $('#create_kas_bank_id option:selected');
-            let saldoKasBank = parseFloat($selectedOpt.data('saldo')) || 0;
-            let namaRekening = $selectedOpt.text().trim() || 'Kas/Bank';
-            let kurs = (typeof createKurs !== 'undefined' && createKurs > 0) ? createKurs : 1;
-            let dpNominalIdr = Math.round(dpVal * kurs * 100) / 100;
+            // Validasi Kas / Bank Pengeluaran DP jika Uang Muka > 0
+            if (dpVal > 0.005) {
+                if (!$('#create_kas_bank_id').val()) {
+                    validateCreateKasBankDp();
+                    Swal.fire({
+                        title: 'Kas / Bank Wajib Dipilih',
+                        text: 'Karena terdapat Uang Muka (DP) sebesar ' + formatMoney(dpVal, createCurrencyCode, createCurrencySymbol) + ', silakan pilih Rekening Kas / Bank untuk pengeluaran uang muka.',
+                        icon: 'warning'
+                    });
+                    $('#create_kas_bank_id').select2('open');
+                    return false;
+                }
 
-            if (saldoKasBank < dpNominalIdr) {
-                validateCreateKasBankDp();
-                Swal.fire({
-                    title: 'Saldo Kas / Bank Tidak Cukup!',
-                    html: 'Saldo pada rekening <strong>' + escapeHtml(namaRekening) + '</strong> tidak mencukupi untuk pembayaran Uang Muka (DP).<br><br>' +
-                          '<div class="text-start bg-light p-3 rounded border">' +
-                          '• Saldo Kas/Bank saat ini: <strong class="text-danger">Rp ' + formatMoney(saldoKasBank, 'IDR', 'Rp') + '</strong><br>' +
-                          '• Total DP yang harus dipotong: <strong class="text-primary">Rp ' + formatMoney(dpNominalIdr, 'IDR', 'Rp') + '</strong>' +
-                          (createCurrencyCode !== 'IDR' ? ' (' + formatMoney(dpVal, createCurrencyCode, createCurrencySymbol) + ' @ kurs ' + formatMoney(kurs, 'IDR', 'Rp') + ')' : '') +
-                          '</div><br>Silakan pilih rekening lain yang memiliki saldo mencukupi atau sesuaikan nominal DP.',
-                    icon: 'error'
-                });
-                return false;
+                let $selectedOpt = $('#create_kas_bank_id option:selected');
+                let saldoKasBank = parseFloat($selectedOpt.data('saldo')) || 0;
+                let namaRekening = $selectedOpt.text().trim() || 'Kas/Bank';
+                let kurs = (typeof createKurs !== 'undefined' && createKurs > 0) ? createKurs : 1;
+                let dpNominalIdr = Math.round(dpVal * kurs * 100) / 100;
+
+                if (saldoKasBank < dpNominalIdr) {
+                    validateCreateKasBankDp();
+                    Swal.fire({
+                        title: 'Saldo Kas / Bank Tidak Cukup!',
+                        html: 'Saldo pada rekening <strong>' + escapeHtml(namaRekening) + '</strong> tidak mencukupi untuk pembayaran Uang Muka (DP).<br><br>' +
+                              '<div class="text-start bg-light p-3 rounded border">' +
+                              '• Saldo Kas/Bank saat ini: <strong class="text-danger">Rp ' + formatMoney(saldoKasBank, 'IDR', 'Rp') + '</strong><br>' +
+                              '• Total DP yang harus dipotong: <strong class="text-primary">Rp ' + formatMoney(dpNominalIdr, 'IDR', 'Rp') + '</strong>' +
+                              (createCurrencyCode !== 'IDR' ? ' (' + formatMoney(dpVal, createCurrencyCode, createCurrencySymbol) + ' @ kurs ' + formatMoney(kurs, 'IDR', 'Rp') + ')' : '') +
+                              '</div><br>Silakan pilih rekening lain yang memiliki saldo mencukupi atau sesuaikan nominal DP.',
+                        icon: 'error'
+                    });
+                    return false;
+                }
             }
         }
 
         let actionUrl = $(this).attr('action');
         let formData = new FormData(this);
         let actionType = $('#create_action_type').val() || 'draft';
+
+        if (sourceType === 'saldo_awal') {
+            let saTenderId = $('#create_sa_tender_id').val() || '';
+            formData.set('tender_id', saTenderId);
+        }
 
         // Aktifkan loading spinner & disable tombol simpan untuk cegah duplikasi data
         setCreateButtonsLoading(true, actionType);
@@ -2037,6 +2476,9 @@ $(document).ready(function () {
         if (typeof window.initCoaSelect2 === 'function') {
             window.initCoaSelect2($('#create_items_tbody .select-item-coa, #create_extra_costs_tbody .select-coa-extra'), $('#modalTambahInvoice'));
         }
+        if ($('input[name="source_type"]:checked').val() === 'saldo_awal') {
+            initSaldoAwalSelect2();
+        }
     });
 
     // Reset loading state if modal is closed
@@ -2044,7 +2486,7 @@ $(document).ready(function () {
         if (typeof setCreateButtonsLoading === 'function') {
             setCreateButtonsLoading(false);
         }
-        $('#create_items_tbody .select-item-ppn, #create_items_tbody .select-item-coa, #create_extra_costs_tbody .select-coa-extra').each(function () {
+        $('#create_items_tbody .select-item-ppn, #create_items_tbody .select-item-coa, #create_extra_costs_tbody .select-coa-extra, #create_sa_supplier_id, #create_sa_coa_debit, #create_sa_coa_kredit, #create_sa_currency_id').each(function () {
             if ($(this).data('select2')) {
                 $(this).select2('destroy');
             }

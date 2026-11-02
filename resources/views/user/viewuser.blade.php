@@ -110,22 +110,30 @@
         </div>
     </div>
 
-    <x-table_card tableId="tableKaryawan" title="Manajemen User / Akun Pengguna" icon="bi-people-fill" btnTarget="#modalTambah"
-        btnText="Tambah User Baru">
+    @php
+        $currentUser = auth()->user();
+        $isSuperUser = $currentUser && $currentUser->hasAnyRole(['Super Admin', 'Owner']);
+        $canTambahUser = $isSuperUser || ($currentUser && $currentUser->can('tambah-user'));
+        $canLihatUser = $isSuperUser || ($currentUser && $currentUser->can('lihat-user'));
+    @endphp
+
+    <x-table_card tableId="tableKaryawan" title="Manajemen User / Akun Pengguna" icon="bi-people-fill" 
+        :btnTarget="$canTambahUser ? '#modalTambah' : null"
+        :btnText="$canTambahUser ? 'Tambah User Baru' : null">
 
         <x-slot name="extraActions">
-            @can('lihat-karyawan')
+            @if($canLihatUser)
                 <a href="{{ route('karyawan.export') }}" class="btn btn-sm btn-outline-success rounded-pill d-flex align-items-center gap-2 px-3 py-1.5 fw-semibold no-loader btn-export-kry" style="font-size: 0.8rem; border-color: #10b981 !important; color: #10b981 !important; background: transparent;">
                     <i class="bi bi-file-earmark-excel-fill"></i>
                     <span>Export Excel</span>
                 </a>
-            @endcan
-            @can('tambah-karyawan')
+            @endif
+            @if($canTambahUser)
                 <button type="button" class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center gap-2 px-3 py-1.5 fw-semibold" style="font-size: 0.8rem; border-color: #3b82f6 !important; color: #3b82f6 !important; background: transparent;" data-bs-toggle="modal" data-bs-target="#modalImportKaryawan">
                     <i class="bi bi-file-earmark-arrow-up-fill"></i>
                     <span>Import Excel</span>
                 </button>
-            @endcan
+            @endif
         </x-slot>
 
         <x-slot name="thead">

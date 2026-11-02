@@ -357,7 +357,7 @@
                 </a>
             </li> -->
             <!-- Accordion Menu: Pengaturan -->
-            @canany(['lihat-karyawan','tambah-karyawan','lihat-hak-akses','edit-hak-akses','lihat-pengaturan-aplikasi','edit-pengaturan-aplikasi','lihat-log-aktivitas-user','akses-whatsapp-gateway','kelola-kategori-bundle'])
+            @canany(['lihat-user','lihat-hak-akses','edit-hak-akses','lihat-pengaturan-aplikasi','edit-pengaturan-aplikasi','lihat-log-aktivitas-user','akses-whatsapp-gateway','kelola-kategori-bundle'])
             <li class="nav-item">
                 <a href="#menuSettings" class="nav-link {{ request()->is('viewusers*') || request()->is('roles*') || request()->is('app-settings*') || request()->is('activity-logs*') || request()->is('settings/whatsapp*') || request()->is('master-bundle/pengaturan*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" aria-expanded="{{ request()->is('viewusers*') || request()->is('roles*') || request()->is('app-settings*') || request()->is('activity-logs*') || request()->is('settings/whatsapp*') || request()->is('master-bundle/pengaturan*') ? 'true' : 'false' }}"
                     data-tooltip-title="{{ __('messages.settings') }}">
@@ -367,9 +367,9 @@
                 </a>
                 <div class="collapse {{ request()->is('viewusers*') || request()->is('roles*') || request()->is('app-settings*') || request()->is('activity-logs*') || request()->is('settings/whatsapp*') || request()->is('master-bundle/pengaturan*') ? 'show' : '' }}" id="menuSettings">
                     <ul class="sub-menu">
-                        @can('lihat-karyawan')
+                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Owner']) || auth()->user()->can('lihat-user'))
                         <li><a href="/viewusers" class="nav-link {{ request()->is('viewusers*') ? 'active' : '' }}"><i class="bi bi-people"></i> Manajemen User</a></li>
-                        @endcan
+                        @endif
                         @can('lihat-hak-akses')
                         <li><a href="/roles" class="nav-link {{ request()->is('roles*') ? 'active' : '' }}"><i class="bi bi-shield-lock"></i> {{ __('messages.roles') }}</a></li>
                         @endcan

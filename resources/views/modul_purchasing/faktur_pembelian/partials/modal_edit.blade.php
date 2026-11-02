@@ -72,6 +72,7 @@
                                                     <input type="text" class="form-control font-monospace fw-bold text-primary" id="edit_disp_nomor_faktur_internal" name="nomor_faktur" autocomplete="off">
                                                 </div>
                                                 <div class="form-text text-muted extra-small">Nomor identitas faktur internal pada sistem.</div>
+                                                <div id="edit_nomor_faktur_feedback" class="extra-small mt-1" style="display: none;"></div>
                                             </div>
                                             <div class="col-12 col-md-6">
                                                 <label class="form-label fw-semibold text-body small required d-flex justify-content-between align-items-center">

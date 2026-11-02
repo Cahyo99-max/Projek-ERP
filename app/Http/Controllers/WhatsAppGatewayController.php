@@ -6517,127 +6517,129 @@ class WhatsAppGatewayController extends Controller
      */
     public static function sendPurchaseInvoiceSubmissionNotification($purchaseInvoice)
     {
-        try {
-            if (!$purchaseInvoice) return;
-            $purchaseInvoice->loadMissing(['supplier', 'creator.karyawan', 'details.barang', 'branch', 'currency']);
+        self::runAsync(function () use ($purchaseInvoice) {
+            try {
+                if (!$purchaseInvoice) return;
+                $purchaseInvoice->loadMissing(['supplier', 'creator.karyawan', 'details.barang', 'branch', 'currency']);
 
-            $companyId = $purchaseInvoice->company_id ?: ($purchaseInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
-            $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
-            $apiToken = self::getDecryptedToken($companyId);
+                $companyId = $purchaseInvoice->company_id ?: ($purchaseInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
+                $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+                $apiToken = self::getDecryptedToken($companyId);
 
-            if (!$enabled || !$apiToken) return;
+                if (!$enabled || !$apiToken) return;
 
-            $entity = self::resolveEntityDisplay($purchaseInvoice, $companyId);
-            $headerEntitas = $entity['headerEntitas'];
+                $entity = self::resolveEntityDisplay($purchaseInvoice, $companyId);
+                $headerEntitas = $entity['headerEntitas'];
 
-            $noFaktur       = $purchaseInvoice->nomor_faktur;
-            $noFakSupplier  = $purchaseInvoice->nomor_faktur_supplier ?: '-';
-            $supplierName   = $purchaseInvoice->supplier?->nama_perusahaan ?: ($purchaseInvoice->supplier?->nama_supplier ?: 'Supplier');
-            $tglFaktur      = $purchaseInvoice->tanggal_faktur ? \Carbon\Carbon::parse($purchaseInvoice->tanggal_faktur)->format('d/m/Y') : '-';
-            $tglJatuhTempo  = $purchaseInvoice->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($purchaseInvoice->tanggal_jatuh_tempo)->format('d/m/Y') : '-';
-            $mataUang       = $purchaseInvoice->currency?->kode_mata_uang ?: ($purchaseInvoice->mata_uang ?: 'IDR');
-            $kurs           = (float)($purchaseInvoice->kurs ?: 1);
+                $noFaktur       = $purchaseInvoice->nomor_faktur;
+                $noFakSupplier  = $purchaseInvoice->nomor_faktur_supplier ?: '-';
+                $supplierName   = $purchaseInvoice->supplier?->nama_perusahaan ?: ($purchaseInvoice->supplier?->nama_supplier ?: 'Supplier');
+                $tglFaktur      = $purchaseInvoice->tanggal_faktur ? \Carbon\Carbon::parse($purchaseInvoice->tanggal_faktur)->format('d/m/Y') : '-';
+                $tglJatuhTempo  = $purchaseInvoice->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($purchaseInvoice->tanggal_jatuh_tempo)->format('d/m/Y') : '-';
+                $mataUang       = $purchaseInvoice->currency?->kode_mata_uang ?: ($purchaseInvoice->mata_uang ?: 'IDR');
+                $kurs           = (float)($purchaseInvoice->kurs ?: 1);
 
-            $totalNominalVal = (float)($purchaseInvoice->grand_total ?: ($purchaseInvoice->total_tagihan ?: ($purchaseInvoice->total ?: 0)));
-            $totalStr = $mataUang . ' ' . number_format($totalNominalVal, 2, ',', '.');
-            if ($mataUang !== 'IDR' && $kurs > 1) {
-                $totalStr .= ' (Rp ' . number_format($totalNominalVal * $kurs, 0, ',', '.') . ')';
-            }
-
-            $creatorName = $purchaseInvoice->creator?->nama_lengkap ?: ($purchaseInvoice->creator?->karyawan?->nama_lengkap ?: 'Staff Purchasing');
-
-            // Ringkasan item (maksimal 5 item)
-            $itemText = "";
-            if ($purchaseInvoice->details && $purchaseInvoice->details->isNotEmpty()) {
-                $itemRows = $purchaseInvoice->details->where('jenis', '!=', 'PPN');
-                foreach ($itemRows->take(5) as $idx => $d) {
-                    $itemName = $d->barang?->nama_barang ?: ($d->keterangan ?: 'Item');
-                    $qtyVal   = (float)($d->jumlah ?: ($d->qty ?: 0));
-                    $satuan   = $d->barang?->satuanBesar?->nama_satuan ?: ($d->barang?->satuan?->nama_satuan ?: ($d->satuan ?: 'unit'));
-                    $qtyFmt   = number_format($qtyVal, 0, ',', '.') . ' ' . $satuan;
-                    $itemText .= "   " . ($idx + 1) . ". {$itemName} ({$qtyFmt})\n";
+                $totalNominalVal = (float)($purchaseInvoice->grand_total ?: ($purchaseInvoice->total_tagihan ?: ($purchaseInvoice->total ?: 0)));
+                $totalStr = $mataUang . ' ' . number_format($totalNominalVal, 2, ',', '.');
+                if ($mataUang !== 'IDR' && $kurs > 1) {
+                    $totalStr .= ' (Rp ' . number_format($totalNominalVal * $kurs, 0, ',', '.') . ')';
                 }
-                if ($itemRows->count() > 5) {
-                    $remaining = $itemRows->count() - 5;
-                    $itemText .= "   _... dan {$remaining} barang lainnya_\n";
+
+                $creatorName = $purchaseInvoice->creator?->nama_lengkap ?: ($purchaseInvoice->creator?->karyawan?->nama_lengkap ?: 'Staff Purchasing');
+
+                // Ringkasan item (maksimal 5 item)
+                $itemText = "";
+                if ($purchaseInvoice->details && $purchaseInvoice->details->isNotEmpty()) {
+                    $itemRows = $purchaseInvoice->details->where('jenis', '!=', 'PPN');
+                    foreach ($itemRows->take(5) as $idx => $d) {
+                        $itemName = $d->barang?->nama_barang ?: ($d->keterangan ?: 'Item');
+                        $qtyVal   = (float)($d->jumlah ?: ($d->qty ?: 0));
+                        $satuan   = $d->barang?->satuanBesar?->nama_satuan ?: ($d->barang?->satuan?->nama_satuan ?: ($d->satuan ?: 'unit'));
+                        $qtyFmt   = number_format($qtyVal, 0, ',', '.') . ' ' . $satuan;
+                        $itemText .= "   " . ($idx + 1) . ". {$itemName} ({$qtyFmt})\n";
+                    }
+                    if ($itemRows->count() > 5) {
+                        $remaining = $itemRows->count() - 5;
+                        $itemText .= "   _... dan {$remaining} barang lainnya_\n";
+                    }
                 }
-            }
 
-            // Cari Approver yang memiliki izin 'approve-purchase-invoice' (langsung atau via Role) atau Super Admin / Owner
-            $approvers = \App\Models\User::where(function($q) {
-                $q->permission('approve-purchase-invoice')
-                  ->orWhereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']));
-            })
-            ->where(function ($q) use ($companyId, $purchaseInvoice) {
-                $q->whereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']))
-                  ->orWhereHas('companies', fn($c) => $c->where('companies.id', $companyId))
-                  ->orWhereHas('branches', fn($b) => $b->where('branches.id', $purchaseInvoice->branch_id)
-                                                       ->orWhere('branches.company_id', $companyId));
-            })
-            ->with('karyawan')
-            ->get();
-
-            if ($approvers->isEmpty()) {
+                // Cari Approver yang memiliki izin 'approve-purchase-invoice' (langsung atau via Role) atau Super Admin / Owner
                 $approvers = \App\Models\User::where(function($q) {
                     $q->permission('approve-purchase-invoice')
                       ->orWhereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']));
                 })
+                ->where(function ($q) use ($companyId, $purchaseInvoice) {
+                    $q->whereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']))
+                      ->orWhereHas('companies', fn($c) => $c->where('companies.id', $companyId))
+                      ->orWhereHas('branches', fn($b) => $b->where('branches.id', $purchaseInvoice->branch_id)
+                                                           ->orWhere('branches.company_id', $companyId));
+                })
                 ->with('karyawan')
                 ->get();
-            }
 
-            $sentPhones = [];
-            foreach ($approvers as $appr) {
-                $phone = $appr->no_hp ?: ($appr->karyawan?->no_hp);
-                $target = self::formatPhoneNumber($phone);
-                if (!$target || in_array($target, $sentPhones)) continue;
-                $sentPhones[] = $target;
-
-                $apprName = $appr->nama_lengkap ?: ($appr->karyawan?->nama_lengkap ?: 'Bapak/Ibu Pimpinan');
-
-                $message = "🔔 *PERMOHONAN PERSETUJUAN FAKTUR PEMBELIAN (BUTUH ACC)*\n"
-                    . "*{$headerEntitas}*\n\n"
-                    . "Halo, *{$apprName}* 👋\n"
-                    . "Terdapat pengajuan Faktur Pembelian (Purchase Invoice) baru yang *membutuhkan persetujuan (ACC / Posting)* Anda:\n\n"
-                    . "📋 *No. Faktur:* *{$noFaktur}*\n"
-                    . "🏷 *No. Faktur Supplier:* {$noFakSupplier}\n"
-                    . "🏢 *Supplier:* {$supplierName}\n"
-                    . "📅 *Tgl Faktur:* {$tglFaktur}\n"
-                    . "⏳ *Jatuh Tempo:* {$tglJatuhTempo}\n"
-                    . "💰 *Total Tagihan:* *{$totalStr}*\n"
-                    . "👤 *Diajukan Oleh:* {$creatorName}\n\n";
-
-                if (!empty($itemText)) {
-                    $message .= "📦 *Daftar Barang:*\n{$itemText}\n";
+                if ($approvers->isEmpty()) {
+                    $approvers = \App\Models\User::where(function($q) {
+                        $q->permission('approve-purchase-invoice')
+                          ->orWhereHas('roles', fn($r) => $r->whereIn('name', ['Super Admin', 'Owner']));
+                    })
+                    ->with('karyawan')
+                    ->get();
                 }
 
-                $catatanText = $purchaseInvoice->keterangan ?: ($purchaseInvoice->catatan ?: '');
-                if (!empty($catatanText)) {
-                    $message .= "📝 *Catatan:* {$catatanText}\n\n";
+                $sentPhones = [];
+                foreach ($approvers as $appr) {
+                    $phone = $appr->no_hp ?: ($appr->karyawan?->no_hp);
+                    $target = self::formatPhoneNumber($phone);
+                    if (!$target || in_array($target, $sentPhones)) continue;
+                    $sentPhones[] = $target;
+
+                    $apprName = $appr->nama_lengkap ?: ($appr->karyawan?->nama_lengkap ?: 'Bapak/Ibu Pimpinan');
+
+                    $message = "🔔 *PERMOHONAN PERSETUJUAN FAKTUR PEMBELIAN (BUTUH ACC)*\n"
+                        . "*{$headerEntitas}*\n\n"
+                        . "Halo, *{$apprName}* 👋\n"
+                        . "Terdapat pengajuan Faktur Pembelian (Purchase Invoice) baru yang *membutuhkan persetujuan (ACC / Posting)* Anda:\n\n"
+                        . "📋 *No. Faktur:* *{$noFaktur}*\n"
+                        . "🏷 *No. Faktur Supplier:* {$noFakSupplier}\n"
+                        . "🏢 *Supplier:* {$supplierName}\n"
+                        . "📅 *Tgl Faktur:* {$tglFaktur}\n"
+                        . "⏳ *Jatuh Tempo:* {$tglJatuhTempo}\n"
+                        . "💰 *Total Tagihan:* *{$totalStr}*\n"
+                        . "👤 *Diajukan Oleh:* {$creatorName}\n\n";
+
+                    if (!empty($itemText)) {
+                        $message .= "📦 *Daftar Barang:*\n{$itemText}\n";
+                    }
+
+                    $catatanText = $purchaseInvoice->keterangan ?: ($purchaseInvoice->catatan ?: '');
+                    if (!empty($catatanText)) {
+                        $message .= "📝 *Catatan:* {$catatanText}\n\n";
+                    }
+
+                    $message .= "Silakan masuk ke sistem ERP modul Faktur Pembelian untuk memeriksa rincian dan melakukan Persetujuan (Approve / Posting Jurnal).\n\n"
+                        . "Terima kasih,\n"
+                        . "🤖 *{$headerEntitas} - ERP System*";
+
+                    $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
+                    $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                    WhatsAppLog::create([
+                        'company_id'     => $companyId,
+                        'phone_number'   => $target,
+                        'recipient_name' => $apprName,
+                        'message'        => $message,
+                        'message_type'   => 'Purchase Invoice Submission Alert',
+                        'action'         => 'Purchase Invoice Submission',
+                        'recipient'      => $target . ' (' . $apprName . ')',
+                        'status'         => $status,
+                        'response'       => json_encode($resBody),
+                    ]);
                 }
-
-                $message .= "Silakan masuk ke sistem ERP modul Faktur Pembelian untuk memeriksa rincian dan melakukan Persetujuan (Approve / Posting Jurnal).\n\n"
-                    . "Terima kasih,\n"
-                    . "🤖 *{$headerEntitas} - ERP System*";
-
-                $resBody = self::dispatchFonnteMessage($apiToken, $target, $message);
-                $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
-
-                WhatsAppLog::create([
-                    'company_id'     => $companyId,
-                    'phone_number'   => $target,
-                    'recipient_name' => $apprName,
-                    'message'        => $message,
-                    'message_type'   => 'Purchase Invoice Submission Alert',
-                    'action'         => 'Purchase Invoice Submission',
-                    'recipient'      => $target . ' (' . $apprName . ')',
-                    'status'         => $status,
-                    'response'       => json_encode($resBody),
-                ]);
+            } catch (\Exception $e) {
+                Log::error('WA sendPurchaseInvoiceSubmissionNotification error: ' . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            Log::error('WA sendPurchaseInvoiceSubmissionNotification error: ' . $e->getMessage());
-        }
+        });
     }
 
     /**
@@ -6645,82 +6647,84 @@ class WhatsAppGatewayController extends Controller
      */
     public static function sendPurchaseInvoiceApprovedNotification($purchaseInvoice, $approverUser = null)
     {
-        try {
-            if (!$purchaseInvoice) return;
-            $purchaseInvoice->loadMissing(['supplier', 'creator.karyawan', 'branch', 'currency']);
+        self::runAsync(function () use ($purchaseInvoice, $approverUser) {
+            try {
+                if (!$purchaseInvoice) return;
+                $purchaseInvoice->loadMissing(['supplier', 'creator.karyawan', 'branch', 'currency']);
 
-            $companyId = $purchaseInvoice->company_id ?: ($purchaseInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
-            $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
-            $apiToken = self::getDecryptedToken($companyId);
+                $companyId = $purchaseInvoice->company_id ?: ($purchaseInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
+                $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+                $apiToken = self::getDecryptedToken($companyId);
 
-            if (!$enabled || !$apiToken) {
-                if ($companyId != 1) {
-                    $enabled = AppSetting::where('company_id', 1)->where('key', 'wa_enable_notification')->value('value') === '1';
-                    $apiToken = self::getDecryptedToken(1);
+                if (!$enabled || !$apiToken) {
+                    if ($companyId != 1) {
+                        $enabled = AppSetting::where('company_id', 1)->where('key', 'wa_enable_notification')->value('value') === '1';
+                        $apiToken = self::getDecryptedToken(1);
+                    }
                 }
-            }
 
-            if (!$enabled || !$apiToken) return;
+                if (!$enabled || !$apiToken) return;
 
-            $entity = self::resolveEntityDisplay($purchaseInvoice, $companyId);
-            $headerEntitas = $entity['headerEntitas'];
+                $entity = self::resolveEntityDisplay($purchaseInvoice, $companyId);
+                $headerEntitas = $entity['headerEntitas'];
 
-            $noFaktur       = $purchaseInvoice->nomor_faktur;
-            $supplierName   = $purchaseInvoice->supplier?->nama_perusahaan ?: ($purchaseInvoice->supplier?->nama_supplier ?: 'Supplier');
-            $mataUang       = $purchaseInvoice->currency?->kode_mata_uang ?: ($purchaseInvoice->mata_uang ?: 'IDR');
-            $totalNominalVal = (float)($purchaseInvoice->grand_total ?: ($purchaseInvoice->total_tagihan ?: ($purchaseInvoice->total ?: 0)));
-            $totalStr       = $mataUang . ' ' . number_format($totalNominalVal, 2, ',', '.');
+                $noFaktur       = $purchaseInvoice->nomor_faktur;
+                $supplierName   = $purchaseInvoice->supplier?->nama_perusahaan ?: ($purchaseInvoice->supplier?->nama_supplier ?: 'Supplier');
+                $mataUang       = $purchaseInvoice->currency?->kode_mata_uang ?: ($purchaseInvoice->mata_uang ?: 'IDR');
+                $totalNominalVal = (float)($purchaseInvoice->grand_total ?: ($purchaseInvoice->total_tagihan ?: ($purchaseInvoice->total ?: 0)));
+                $totalStr       = $mataUang . ' ' . number_format($totalNominalVal, 2, ',', '.');
 
-            $approverName   = $approverUser?->nama_lengkap ?: ($approverUser?->karyawan?->nama_lengkap ?: 'Atasan / Pimpinan');
+                $approverName   = $approverUser?->nama_lengkap ?: ($approverUser?->karyawan?->nama_lengkap ?: 'Atasan / Pimpinan');
 
-            // Penerima feedback adalah user yang MEMBUAT faktur
-            $creator = $purchaseInvoice->creator;
-            if (!$creator && !empty($purchaseInvoice->created_by)) {
-                $creator = \App\Models\User::with('karyawan')->find($purchaseInvoice->created_by);
-            }
+                // Penerima feedback adalah user yang MEMBUAT faktur
+                $creator = $purchaseInvoice->creator;
+                if (!$creator && !empty($purchaseInvoice->created_by)) {
+                    $creator = \App\Models\User::with('karyawan')->find($purchaseInvoice->created_by);
+                }
 
-            if ($creator) {
-                $creatorPhone = $creator->no_hp ?: ($creator->karyawan?->no_hp);
-                $targetCreator = self::formatPhoneNumber($creatorPhone);
-                if ($targetCreator) {
-                    $cName = $creator->nama_lengkap ?: ($creator->karyawan?->nama_lengkap ?: 'Staff Purchasing');
+                if ($creator) {
+                    $creatorPhone = $creator->no_hp ?: ($creator->karyawan?->no_hp);
+                    $targetCreator = self::formatPhoneNumber($creatorPhone);
+                    if ($targetCreator) {
+                        $cName = $creator->nama_lengkap ?: ($creator->karyawan?->nama_lengkap ?: 'Staff Purchasing');
 
-                    $msgCreator = "✅ *FAKTUR PEMBELIAN TELAH DISETUJUI & DIPOSTING (DI-ACC)*\n"
-                        . "*{$headerEntitas}*\n\n"
-                        . "Halo, *{$cName}* 👋\n"
-                        . "Kabar baik! Faktur Pembelian yang Anda buat/ajukan telah *disetujui (di-ACC)* dan otomatis *diposting ke Jurnal Akuntansi* oleh Atasan:\n\n"
-                        . "📋 *No. Faktur:* *{$noFaktur}*\n"
-                        . "🏢 *Supplier:* {$supplierName}\n"
-                        . "💰 *Total Tagihan:* *{$totalStr}*\n"
-                        . "👤 *Disetujui Oleh:* {$approverName}\n"
-                        . "🕒 *Waktu Disetujui:* " . now()->format('d/m/Y H:i') . " WIB\n\n"
-                        . "Status faktur kini telah *Posted* dan Jurnal Otomatis Akuntansi telah berhasil diterbitkan.\n\n"
-                        . "Terima kasih atas kerja samanya,\n"
-                        . "🤖 *{$headerEntitas} - ERP System*";
+                        $msgCreator = "✅ *FAKTUR PEMBELIAN TELAH DISETUJUI & DIPOSTING (DI-ACC)*\n"
+                            . "*{$headerEntitas}*\n\n"
+                            . "Halo, *{$cName}* 👋\n"
+                            . "Kabar baik! Faktur Pembelian yang Anda buat/ajukan telah *disetujui (di-ACC)* dan otomatis *diposting ke Jurnal Akuntansi* oleh Atasan:\n\n"
+                            . "📋 *No. Faktur:* *{$noFaktur}*\n"
+                            . "🏢 *Supplier:* {$supplierName}\n"
+                            . "💰 *Total Tagihan:* *{$totalStr}*\n"
+                            . "👤 *Disetujui Oleh:* {$approverName}\n"
+                            . "🕒 *Waktu Disetujui:* " . now()->format('d/m/Y H:i') . " WIB\n\n"
+                            . "Status faktur kini telah *Posted* dan Jurnal Otomatis Akuntansi telah berhasil diterbitkan.\n\n"
+                            . "Terima kasih atas kerja samanya,\n"
+                            . "🤖 *{$headerEntitas} - ERP System*";
 
-                    $resBody = self::dispatchFonnteMessage($apiToken, $targetCreator, $msgCreator);
-                    $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+                        $resBody = self::dispatchFonnteMessage($apiToken, $targetCreator, $msgCreator);
+                        $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
 
-                    WhatsAppLog::create([
-                        'company_id'     => $companyId,
-                        'phone_number'   => $targetCreator,
-                        'recipient_name' => $cName,
-                        'message'        => $msgCreator,
-                        'message_type'   => 'Purchase Invoice Approved Alert',
-                        'action'         => 'Purchase Invoice Approved',
-                        'recipient'      => $targetCreator . ' (' . $cName . ')',
-                        'status'         => $status,
-                        'response'       => json_encode($resBody),
-                    ]);
+                        WhatsAppLog::create([
+                            'company_id'     => $companyId,
+                            'phone_number'   => $targetCreator,
+                            'recipient_name' => $cName,
+                            'message'        => $msgCreator,
+                            'message_type'   => 'Purchase Invoice Approved Alert',
+                            'action'         => 'Purchase Invoice Approved',
+                            'recipient'      => $targetCreator . ' (' . $cName . ')',
+                            'status'         => $status,
+                            'response'       => json_encode($resBody),
+                        ]);
+                    } else {
+                        Log::warning("WA sendPurchaseInvoiceApprovedNotification: User pembuat Faktur {$noFaktur} ({$creator->nama_lengkap}) tidak memiliki nomor HP.");
+                    }
                 } else {
-                    Log::warning("WA sendPurchaseInvoiceApprovedNotification: User pembuat Faktur {$noFaktur} ({$creator->nama_lengkap}) tidak memiliki nomor HP.");
+                    Log::warning("WA sendPurchaseInvoiceApprovedNotification: User pembuat Faktur {$noFaktur} tidak ditemukan.");
                 }
-            } else {
-                Log::warning("WA sendPurchaseInvoiceApprovedNotification: User pembuat Faktur {$noFaktur} tidak ditemukan.");
+            } catch (\Exception $e) {
+                Log::error('WA sendPurchaseInvoiceApprovedNotification error: ' . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            Log::error('WA sendPurchaseInvoiceApprovedNotification error: ' . $e->getMessage());
-        }
+        });
     }
 
     /**
@@ -6728,78 +6732,76 @@ class WhatsAppGatewayController extends Controller
      */
     public static function sendPurchaseInvoiceRejectedNotification($purchaseInvoice, $alasan = null, $rejectorUser = null)
     {
-        try {
-            if (!$purchaseInvoice) return;
-            $purchaseInvoice->loadMissing(['supplier', 'creator.karyawan', 'branch', 'currency']);
+        self::runAsync(function () use ($purchaseInvoice, $alasan, $rejectorUser) {
+            try {
+                if (!$purchaseInvoice) return;
+                $purchaseInvoice->loadMissing(['supplier', 'creator.karyawan', 'branch', 'currency']);
 
-            $companyId = $purchaseInvoice->company_id ?: ($purchaseInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
-            $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
-            $apiToken = self::getDecryptedToken($companyId);
+                $companyId = $purchaseInvoice->company_id ?: ($purchaseInvoice->branch?->company_id ?? session('active_company_id') ?: 1);
+                $enabled = AppSetting::where('company_id', $companyId)->where('key', 'wa_enable_notification')->value('value') === '1';
+                $apiToken = self::getDecryptedToken($companyId);
 
-            if (!$enabled || !$apiToken) {
-                if ($companyId != 1) {
-                    $enabled = AppSetting::where('company_id', 1)->where('key', 'wa_enable_notification')->value('value') === '1';
-                    $apiToken = self::getDecryptedToken(1);
+                if (!$enabled || !$apiToken) {
+                    if ($companyId != 1) {
+                        $enabled = AppSetting::where('company_id', 1)->where('key', 'wa_enable_notification')->value('value') === '1';
+                        $apiToken = self::getDecryptedToken(1);
+                    }
                 }
-            }
 
-            if (!$enabled || !$apiToken) return;
+                if (!$enabled || !$apiToken) return;
 
-            $entity = self::resolveEntityDisplay($purchaseInvoice, $companyId);
-            $headerEntitas = $entity['headerEntitas'];
+                $entity = self::resolveEntityDisplay($purchaseInvoice, $companyId);
+                $headerEntitas = $entity['headerEntitas'];
 
-            $noFaktur     = $purchaseInvoice->nomor_faktur;
-            $supplierName = $purchaseInvoice->supplier?->nama_perusahaan ?: ($purchaseInvoice->supplier?->nama_supplier ?: 'Supplier');
-            $rejectorName = $rejectorUser?->nama_lengkap ?: ($rejectorUser?->karyawan?->nama_lengkap ?: 'Atasan / Pimpinan');
-            $alasanTeks   = $alasan ?: 'Perlu peninjauan ulang / perbaikan data.';
+                $noFaktur       = $purchaseInvoice->nomor_faktur;
+                $supplierName   = $purchaseInvoice->supplier?->nama_perusahaan ?: ($purchaseInvoice->supplier?->nama_supplier ?: 'Supplier');
+                $rejectorName   = $rejectorUser?->nama_lengkap ?: ($rejectorUser?->karyawan?->nama_lengkap ?: 'Atasan / Pimpinan');
+                $alasanTeks     = !empty($alasan) ? $alasan : '-';
 
-            // Penerima feedback adalah user yang MEMBUAT faktur
-            $creator = $purchaseInvoice->creator;
-            if (!$creator && !empty($purchaseInvoice->created_by)) {
-                $creator = \App\Models\User::with('karyawan')->find($purchaseInvoice->created_by);
-            }
-
-            if ($creator) {
-                $creatorPhone = $creator->no_hp ?: ($creator->karyawan?->no_hp);
-                $targetCreator = self::formatPhoneNumber($creatorPhone);
-                if ($targetCreator) {
-                    $cName = $creator->nama_lengkap ?: ($creator->karyawan?->nama_lengkap ?: 'Staff Purchasing');
-
-                    $msgCreator = "❌ *PENGAJUAN FAKTUR PEMBELIAN DITOLAK*\n"
-                        . "*{$headerEntitas}*\n\n"
-                        . "Halo, *{$cName}* 👋\n"
-                        . "Pemberitahuan: Pengajuan Faktur Pembelian yang Anda buat berikut *DITOLAK* oleh Atasan:\n\n"
-                        . "📋 *No. Faktur:* *{$noFaktur}*\n"
-                        . "🏢 *Supplier:* {$supplierName}\n"
-                        . "👤 *Ditolak Oleh:* {$rejectorName}\n"
-                        . "⚠️ *Alasan Penolakan:* {$alasanTeks}\n\n"
-                        . "Silakan periksa kembali data faktur tersebut pada sistem ERP dan lakukan perbaikan yang diperlukan.\n\n"
-                        . "Terima kasih,\n"
-                        . "🤖 *{$headerEntitas} - ERP System*";
-
-                    $resBody = self::dispatchFonnteMessage($apiToken, $targetCreator, $msgCreator);
-                    $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
-
-                    WhatsAppLog::create([
-                        'company_id'     => $companyId,
-                        'phone_number'   => $targetCreator,
-                        'recipient_name' => $cName,
-                        'message'        => $msgCreator,
-                        'message_type'   => 'Purchase Invoice Rejected Alert',
-                        'action'         => 'Purchase Invoice Rejected',
-                        'recipient'      => $targetCreator . ' (' . $cName . ')',
-                        'status'         => $status,
-                        'response'       => json_encode($resBody),
-                    ]);
-                } else {
-                    Log::warning("WA sendPurchaseInvoiceRejectedNotification: User pembuat Faktur {$noFaktur} ({$creator->nama_lengkap}) tidak memiliki nomor HP.");
+                // Penerima feedback adalah user yang MEMBUAT faktur
+                $creator = $purchaseInvoice->creator;
+                if (!$creator && !empty($purchaseInvoice->created_by)) {
+                    $creator = \App\Models\User::with('karyawan')->find($purchaseInvoice->created_by);
                 }
-            } else {
-                Log::warning("WA sendPurchaseInvoiceRejectedNotification: User pembuat Faktur {$noFaktur} tidak ditemukan.");
+
+                if ($creator) {
+                    $creatorPhone = $creator->no_hp ?: ($creator->karyawan?->no_hp);
+                    $targetCreator = self::formatPhoneNumber($creatorPhone);
+                    if ($targetCreator) {
+                        $cName = $creator->nama_lengkap ?: ($creator->karyawan?->nama_lengkap ?: 'Staff Purchasing');
+
+                        $msgCreator = "⚠️ *PEMBERITAHUAN PENOLAKAN FAKTUR PEMBELIAN*\n"
+                            . "*{$headerEntitas}*\n\n"
+                            . "Halo, *{$cName}* 👋\n"
+                            . "Pengajuan Faktur Pembelian Anda *tidak disetujui / ditolak* oleh Atasan:\n\n"
+                            . "📋 *No. Faktur:* *{$noFaktur}*\n"
+                            . "🏢 *Supplier:* {$supplierName}\n"
+                            . "👤 *Ditolak Oleh:* {$rejectorName}\n"
+                            . "📌 *Alasan Penolakan:*\n_{$alasanTeks}_\n\n"
+                            . "Silakan masuk ke sistem ERP modul Faktur Pembelian untuk memperbaiki rincian data lalu ajukan kembali.\n\n"
+                            . "Terima kasih,\n"
+                            . "🤖 *{$headerEntitas} - ERP System*";
+
+                        $resBody = self::dispatchFonnteMessage($apiToken, $targetCreator, $msgCreator);
+                        $status = isset($resBody['status']) && $resBody['status'] == true ? 'Success' : 'Failed';
+
+                        WhatsAppLog::create([
+                            'company_id'     => $companyId,
+                            'phone_number'   => $targetCreator,
+                            'recipient_name' => $cName,
+                            'message'        => $msgCreator,
+                            'message_type'   => 'Purchase Invoice Rejected Alert',
+                            'action'         => 'Purchase Invoice Rejected',
+                            'recipient'      => $targetCreator . ' (' . $cName . ')',
+                            'status'         => $status,
+                            'response'       => json_encode($resBody),
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('WA sendPurchaseInvoiceRejectedNotification error: ' . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            Log::error('WA sendPurchaseInvoiceRejectedNotification error: ' . $e->getMessage());
-        }
+        });
     }
 
     // ═════════════════════════════════════════════════════════════════════════

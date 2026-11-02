@@ -557,8 +557,19 @@
         let dpp = totalNetItemSubtotal;
         let taxVal = totalPajakBarang;
 
-        let ratio = (window.currentPoSubtotal > 0) ? (totalNetItemSubtotal / window.currentPoSubtotal) : 0;
-        let isFullReceipt = Math.abs(ratio - 1) < 0.0001;
+        let poNetSubtotal = Math.max(0, (window.currentPoSubtotal || 0) - (window.currentPoTotalDiskon || 0));
+        let ratio = 0;
+        if (poNetSubtotal > 0) {
+            ratio = totalNetItemSubtotal / poNetSubtotal;
+        } else if (window.currentPoSubtotal > 0) {
+            ratio = totalNilaiBarang / window.currentPoSubtotal;
+        }
+
+        ratio = Math.min(1, Math.max(0, ratio));
+        let isFullReceipt = Math.abs(ratio - 1) < 0.0001 || ratio >= 0.9999;
+        if (isFullReceipt) {
+            ratio = 1;
+        }
 
         let pphVal = 0;
         if (window.currentPoPphTarif > 0) {
